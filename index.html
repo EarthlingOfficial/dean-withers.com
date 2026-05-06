@@ -5,139 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Wildlife Archive | Deanus Politicus</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background-color: #000;
-            color: #fff;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            text-align: center;
-        }
-
-        /* Background Video Container */
-        .video-background {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            overflow: hidden;
-        }
-
-        .video-background iframe {
-            width: 100vw;
-            height: 56.25vw; /* 16:9 Aspect Ratio */
-            min-height: 100vh;
-            min-width: 177.77vh; /* 16:9 Aspect Ratio */
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-        }
-
-        /* Darkened Overlay for "Creepy" effect */
-        .overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            z-index: 0;
-        }
-
-        /* Content Styles */
-        .content {
-            position: relative;
-            z-index: 1;
-            padding: 20px;
-            max-width: 800px;
-        }
-
-        .disclaimer {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #ff3e3e;
-            margin-bottom: 10px;
-            font-weight: bold;
-        }
-
-        h1 {
-            font-size: 3rem;
-            margin-bottom: 5px;
-            font-style: italic;
-            color: #f0f0f0;
-        }
-
-        .species {
-            font-size: 1.2rem;
-            color: #aaa;
-            margin-bottom: 30px;
-            letter-spacing: 1px;
-        }
-
-        .enter-button {
-            display: inline-block;
-            padding: 15px 40px;
-            background: transparent;
-            border: 2px solid #fff;
-            color: #fff;
-            text-decoration: none;
-            font-weight: bold;
-            text-transform: uppercase;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            margin-bottom: 40px;
-        }
-
-        .enter-button:hover {
-            background: #fff;
-            color: #000;
-        }
-
-        .socials {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-        }
-
-        .socials a {
-            color: #fff;
-            text-decoration: none;
-            font-size: 0.9rem;
-            opacity: 0.7;
-            transition: opacity 0.3s;
-            border-bottom: 1px solid transparent;
-        }
-
-        .socials a:hover {
-            opacity: 1;
-            border-bottom: 1px solid #fff;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #000; color: #fff; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; text-align: center; }
+        .video-background { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; }
+        .video-background iframe { width: 100vw; height: 56.25vw; min-height: 100vh; min-width: 177.77vh; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 0; }
+        .content { position: relative; z-index: 1; padding: 20px; max-width: 800px; }
+        .disclaimer { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; color: #ff3e3e; margin-bottom: 10px; font-weight: bold; }
+        h1 { font-size: 3rem; margin-bottom: 5px; font-style: italic; color: #f0f0f0; }
+        .species { font-size: 1.2rem; color: #aaa; margin-bottom: 30px; letter-spacing: 1px; }
+        .enter-button { display: inline-block; padding: 15px 40px; background: transparent; border: 2px solid #fff; color: #fff; text-decoration: none; font-weight: bold; text-transform: uppercase; transition: all 0.3s ease; cursor: pointer; margin-bottom: 10px; width: 100%; max-width: 400px; }
+        .enter-button:hover { background: #fff; color: #000; }
+        .music-label { font-size: 0.9rem; color: #f0f0f0; margin-top: 20px; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        .socials { display: flex; justify-content: center; gap: 20px; margin-top: 30px; }
+        .socials a { color: #fff; text-decoration: none; font-size: 0.9rem; opacity: 0.7; transition: opacity 0.3s; border-bottom: 1px solid transparent; }
+        .socials a:hover { opacity: 1; border-bottom: 1px solid #fff; }
+        .yt-link { display: block; color: #666; font-size: 0.7rem; text-decoration: none; margin-top: 15px; }
     </style>
 </head>
 <body>
 
     <div class="video-background">
-        <!-- Swapped to the correct Video ID: H724ZGObr4g -->
-        <iframe 
-            src="https://www.youtube.com/embed/H724ZGObr4g?autoplay=1&mute=1&controls=0&loop=1&playlist=H724ZGObr4g&rel=0&showinfo=0&iv_load_policy=3" 
-            frameborder="0" 
-            allow="autoplay; encrypted-media" 
-            allowfullscreen>
-        </iframe>
+        <iframe src="https://www.youtube.com/embed/H724ZGObr4g?autoplay=1&mute=1&controls=0&loop=1&playlist=H724ZGObr4g&rel=0&showinfo=0&iv_load_policy=3" frameborder="0" allow="autoplay; encrypted-media"></iframe>
     </div>
 
     <div class="overlay"></div>
@@ -149,11 +38,39 @@
         
         <a href="#" class="enter-button">Enter the Pen Here</a>
 
+        <p class="music-label">Earthlings Music In Progress Feat. Caskey</p>
+        <button id="musicBtn" class="enter-button">Play Music</button>
+
+        <audio id="bgMusic" loop>
+            <source src="170-sober-off-life-boss-beats-x-taysty-beats_TK10970402.mp3(1).mp3" type="audio/mpeg">
+        </audio>
+
+        <a href="https://www.youtube.com/watch?v=H724ZGObr4g" target="_blank" class="yt-link">View Original Background Video</a>
+
         <div class="socials">
             <a href="https://www.tiktok.com/@earthling_official" target="_blank">TikTok</a>
             <a href="https://youtube.com/@earthling_official" target="_blank">YouTube</a>
         </div>
     </div>
+
+    <script>
+        const musicBtn = document.getElementById('musicBtn');
+        const audio = document.getElementById('bgMusic');
+
+        musicBtn.addEventListener('click', function() {
+            if (audio.paused) {
+                audio.play();
+                musicBtn.innerHTML = "Stop Music";
+                musicBtn.style.borderColor = "#ff3e3e";
+                musicBtn.style.color = "#ff3e3e";
+            } else {
+                audio.pause();
+                musicBtn.innerHTML = "Play Music";
+                musicBtn.style.borderColor = "#fff";
+                musicBtn.style.color = "#fff";
+            }
+        });
+    </script>
 
 </body>
 </html>
