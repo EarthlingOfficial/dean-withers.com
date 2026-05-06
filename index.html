@@ -4,23 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Wildlife Archive | Deanus Politicus</title>
+    <!-- Font for the 'Scribble' effect -->
+    <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #000; color: #fff; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; text-align: center; }
         .video-background { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; }
         .video-background iframe { width: 100vw; height: 56.25vw; min-height: 100vh; min-width: 177.77vh; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
         .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 0; }
-        .content { position: relative; z-index: 1; padding: 20px; max-width: 800px; }
+        .content { position: relative; z-index: 10; padding: 20px; max-width: 800px; }
         .disclaimer { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; color: #ff3e3e; margin-bottom: 10px; font-weight: bold; }
         h1 { font-size: 3rem; margin-bottom: 5px; font-style: italic; color: #f0f0f0; }
         .species { font-size: 1.2rem; color: #aaa; margin-bottom: 30px; letter-spacing: 1px; }
-        .enter-button { display: inline-block; padding: 15px 40px; background: transparent; border: 2px solid #fff; color: #fff; text-decoration: none; font-weight: bold; text-transform: uppercase; transition: all 0.3s ease; cursor: pointer; margin-bottom: 10px; width: 100%; max-width: 400px; }
+        .enter-button { display: inline-block; padding: 15px 40px; background: transparent; border: 2px solid #fff; color: #fff; text-decoration: none; font-weight: bold; text-transform: uppercase; transition: all 0.3s ease; cursor: pointer; margin-bottom: 5px; width: 100%; max-width: 400px; }
         .enter-button:hover { background: #fff; color: #000; }
-        .music-label { font-size: 0.9rem; color: #f0f0f0; margin-top: 20px; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
-        .socials { display: flex; justify-content: center; gap: 20px; margin-top: 30px; }
-        .socials a { color: #fff; text-decoration: none; font-size: 0.9rem; opacity: 0.7; transition: opacity 0.3s; border-bottom: 1px solid transparent; }
-        .socials a:hover { opacity: 1; border-bottom: 1px solid #fff; }
+        
+        /* New Anxiety Line style */
+        .anxiety-note { font-family: 'Courier New', monospace; font-size: 0.8rem; color: #ff3e3e; margin-bottom: 15px; }
+
+        .music-label { font-size: 0.9rem; color: #f0f0f0; margin-top: 10px; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        
+        /* Social Icons Update */
+        .socials { display: flex; justify-content: center; gap: 30px; margin-top: 30px; }
+        .socials img { height: 35px; opacity: 0.7; transition: 0.3s; }
+        .socials img:hover { opacity: 1; transform: scale(1.1); }
+        
         .yt-link { display: block; color: #666; font-size: 0.7rem; text-decoration: none; margin-top: 15px; }
+
+        /* The Scribble Area */
+        #scribble-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
     </style>
 </head>
 <body>
@@ -30,6 +42,7 @@
     </div>
 
     <div class="overlay"></div>
+    <div id="scribble-container"></div>
 
     <div class="content">
         <p class="disclaimer">Official Disclaimer: This site is not affiliated with, endorsed by, or representative of Dean Withers.</p>
@@ -37,6 +50,7 @@
         <p class="species">Species: <em>Deanus Politicus Carnivorus Paradoxus</em></p>
         
         <a href="#" class="enter-button">Enter the Pen Here</a>
+        <p class="anxiety-note">(Not an anxiety pen)</p>
 
         <p class="music-label">Earthlings Music In Progress Feat. Caskey</p>
         <button id="musicBtn" class="enter-button">Play Music</button>
@@ -48,12 +62,14 @@
         <a href="https://www.youtube.com/watch?v=H724ZGObr4g" target="_blank" class="yt-link">View Original Background Video</a>
 
         <div class="socials">
-            <a href="https://www.tiktok.com/@earthling_official" target="_blank">TikTok</a>
-            <a href="https://youtube.com/@earthling_official" target="_blank">YouTube</a>
+            <!-- Replace with your GitHub icon filenames -->
+            <a href="https://www.tiktok.com/@earthling_official" target="_blank"><img src="tiktok-icon.svg" alt="TikTok"></a>
+            <a href="https://youtube.com/@earthling_official" target="_blank"><img src="youtube-icon.svg" alt="YouTube"></a>
         </div>
     </div>
 
     <script>
+        // Music Logic (Existing)
         const musicBtn = document.getElementById('musicBtn');
         const audio = document.getElementById('bgMusic');
 
@@ -70,7 +86,63 @@
                 musicBtn.style.color = "#fff";
             }
         });
-    </script>
 
+        // The "Madman Scribble" Engine
+        const quotes = [
+            "Vegans are threatening my life.", "Go vegan or I'll **** you.", "I wouldn't eat my cat because it's cute.",
+            "Let's do an exploitation logic tree.", "Not until you say sorry Earthling.", "Earthling why do you do this?",
+            "Thanks for the $50 for the KFC DNC grift fund.", "Just have to thank my dono's tehe.",
+            "I wouldn't kill a pregnant rabbit but only because it's cute.", "People are saying Earthling's right.",
+            "FBI is probably gonna visit again.", "I have nothing in my head.", "Vegans are the upper echelon.",
+            "I have many vegan friends.", "Are you even sentient.", "Yummy pork tacos.",
+            "What do you mean The Vegan King pat me on the head?", "Is so anything for a Hello Fresh sponsorship.",
+            "Call me Booster Gold.", "Someone's going to clip that.", "It's an anxiety pen.",
+            "That's what I'd say if I had a small vape pen.", "You're crazy, everyone's crazy.",
+            "If you call someone crazy you probably have a small penis.", "No I don't remember talking about Davenport.",
+            "Another donation for the KFC grift fund.", "Door dash bad hello fresh good.", "Thanks for the rib-eye money.",
+            "Parker, have you debated Earthling?", "Bark like a dog for me bawk bawk.", "Can I get a moo moo moo.",
+            "Mum who's your favourite?", "I value sentience.", "You're using immigrants.", "JBS Greenly plant for me.",
+            "We should be worrying about window tints rather.", "You're just saying words.", "I'm a murderer for not being vegan.",
+            "Even my vegan family members aren't that mean to me.", "It read like a threat.", 
+            "I disagree with Isaac Bashevis Singer.", "I'm not yet a nobel laureate."
+        ];
+
+        function createScribble() {
+            const container = document.getElementById('scribble-container');
+            const quote = quotes[Math.floor(Math.random() * quotes.length)];
+            const el = document.createElement('div');
+            
+            el.style.position = 'absolute';
+            el.style.left = (Math.random() * 60 + 5) + '%';
+            el.style.top = (Math.random() * 70 + 10) + '%';
+            el.style.transform = `rotate(${Math.random() * 20 - 10}deg)`;
+            el.style.fontFamily = "'Permanent Marker', cursive";
+            el.style.fontSize = (Math.random() * 10 + 18) + 'px';
+            el.style.color = 'rgba(255, 255, 255, 0.4)';
+            el.style.maxWidth = '250px';
+            el.style.whiteSpace = 'normal';
+            container.appendChild(el);
+
+            let i = 0;
+            function write() {
+                if (i < quote.length) {
+                    el.innerHTML += quote.charAt(i);
+                    i++;
+                    setTimeout(write, Math.random() * 80 + 40); // Random stroke speed
+                } else {
+                    setTimeout(() => {
+                        el.style.transition = 'opacity 2s';
+                        el.style.opacity = '0';
+                        setTimeout(() => el.remove(), 2000);
+                    }, 3500);
+                }
+            }
+            write();
+        }
+
+        // Trigger scribbles every 6 seconds
+        setInterval(createScribble, 6000);
+        setTimeout(createScribble, 1000);
+    </script>
 </body>
 </html>
