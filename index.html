@@ -43,17 +43,17 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            pointer-events: none;
+            pointer-events: none; /* Prevents users from clicking the video directly */
         }
 
-        /* Overlay to make text readable */
+        /* Darkened Overlay for "Creepy" effect and readability */
         .overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.85); /* Increased darkness from 0.6 to 0.85 */
             z-index: 0;
         }
 
@@ -132,8 +132,10 @@
 <body>
 
     <div class="video-background">
-        <!-- YouTube Background - Muted and Looping -->
-        <iframe src="https://www.youtube.com/embed/3y4uoxqz2Ts?autoplay=1&mute=1&controls=0&loop=1&playlist=3y4uoxqz2Ts&rel=0&showinfo=0" frameborder="0" allow="autoplay; encrypted-media"></iframe>
+        <!-- New Video: Muted, Autoplay, Looping, No Controls -->
+        <iframe src="https://www.youtube.com/embed/3y4uoxqz2Ts?autoplay=1&mute=1&controls=0&loop=1&playlist=3y4uoxqz2Ts&rel=0&showinfo=0&iv_load_policy=3" 
+                frameborder="0" 
+                allow="autoplay; encrypted-media"></iframe>
     </div>
 
     <div class="overlay"></div>
