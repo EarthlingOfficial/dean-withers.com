@@ -43,17 +43,17 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            pointer-events: none; /* Prevents users from clicking the video directly */
+            pointer-events: none;
         }
 
-        /* Darkened Overlay for "Creepy" effect and readability */
+        /* Darkened Overlay for "Creepy" effect */
         .overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.85); /* Increased darkness from 0.6 to 0.85 */
+            background: rgba(0, 0, 0, 0.85);
             z-index: 0;
         }
 
@@ -107,7 +107,6 @@
             color: #000;
         }
 
-        /* Social Icons */
         .socials {
             display: flex;
             justify-content: center;
@@ -132,10 +131,13 @@
 <body>
 
     <div class="video-background">
-        <!-- New Video: Muted, Autoplay, Looping, No Controls -->
-        <iframe src="https://www.youtube.com/embed/3y4uoxqz2Ts?autoplay=1&mute=1&controls=0&loop=1&playlist=3y4uoxqz2Ts&rel=0&showinfo=0&iv_load_policy=3" 
-                frameborder="0" 
-                allow="autoplay; encrypted-media"></iframe>
+        <!-- Swapped to the correct Video ID: H724ZGObr4g -->
+        <iframe 
+            src="https://www.youtube.com/embed/H724ZGObr4g?autoplay=1&mute=1&controls=0&loop=1&playlist=H724ZGObr4g&rel=0&showinfo=0&iv_load_policy=3" 
+            frameborder="0" 
+            allow="autoplay; encrypted-media" 
+            allowfullscreen>
+        </iframe>
     </div>
 
     <div class="overlay"></div>
