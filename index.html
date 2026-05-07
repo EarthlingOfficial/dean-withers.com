@@ -26,15 +26,11 @@
         .music-label { font-size: 0.85rem; color: #f0f0f0; margin-top: 10px; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
         .coming-soon { font-size: 0.75rem; color: #aaa; margin-top: 8px; font-style: italic; letter-spacing: 1px; }
         
-        /* --- CSS PRO SOCIAL BUTTONS --- */
         .socials { display: flex; justify-content: center; gap: 15px; margin-top: 25px; flex-wrap: wrap; }
-        
         .btn-pro { text-decoration: none; font-weight: bold; font-size: 0.8rem; text-transform: uppercase; padding: 10px 20px; border-radius: 5px; transition: 0.3s; display: flex; align-items: center; gap: 8px; }
-
         .btn-yt { background-color: #FF0000; color: #fff; border: 1px solid #FF0000; }
         .btn-yt:hover { background-color: #cc0000; transform: translateY(-2px); }
         .btn-yt::before { content: '▶'; font-size: 0.7rem; }
-
         .btn-tt { background-color: #000; color: #fff; border: 1px solid #fff; box-shadow: -2px 0 0 #ff0050, 2px 0 0 #00f2ea; }
         .btn-tt:hover { transform: translateY(-2px); box-shadow: -3px 0 0 #ff0050, 3px 0 0 #00f2ea; }
 
@@ -79,9 +75,10 @@
         const musicBtn = document.getElementById('musicBtn');
         const audio = document.getElementById('bgMusic');
 
+        // ENSURING THE BUTTON CLICK WORKS
         musicBtn.addEventListener('click', function() {
             if (audio.paused) {
-                audio.play();
+                audio.play().catch(e => console.error("Audio failed to play:", e));
                 musicBtn.innerHTML = "Stop Music";
                 musicBtn.style.borderColor = "#ff3e3e";
                 musicBtn.style.color = "#ff3e3e";
@@ -93,6 +90,7 @@
             }
         });
 
+        // REST OF THE QUOTES SCRIPT
         const quotes = [
             "Vegans are threatening my life.", "Go vegan or I'll **** you.", "I wouldn't eat my cat because it's cute.",
             "Let's do an exploitation logic tree.", "Not until you say sorry Earthling.", "Earthling why do you do this?",
@@ -117,7 +115,6 @@
             if(!container) return;
             const quote = quotes[Math.floor(Math.random() * quotes.length)];
             const el = document.createElement('div');
-            
             el.style.position = 'absolute';
             el.style.left = (Math.random() * 60 + 5) + '%';
             el.style.top = (Math.random() * 70 + 10) + '%';
@@ -126,7 +123,6 @@
             el.style.fontSize = (Math.random() * 10 + 18) + 'px';
             el.style.color = 'rgba(255, 255, 255, 0.4)';
             el.style.maxWidth = '250px';
-            el.style.whiteSpace = 'normal';
             container.appendChild(el);
 
             let i = 0;
@@ -145,9 +141,7 @@
             }
             write();
         }
-
         setInterval(createScribble, 6000);
-        setTimeout(createScribble, 1000);
     </script>
 </body>
 </html>
