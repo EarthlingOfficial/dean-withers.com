@@ -63,6 +63,9 @@
         .btn-tt:hover { transform: translateY(-2px); box-shadow: -3px 0 0 #ff0050, 3px 0 0 #00f2ea; }
         .yt-link { display: block; color: #666; font-size: 0.7rem; text-decoration: none; margin-top: 15px; }
         #scribble-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+        
+        /* Container for bottom legal/extra buttons to stack them */
+        .bottom-actions { display: flex; flex-direction: column; align-items: center; }
     </style>
 </head>
 <body>
@@ -91,7 +94,11 @@
             <a href="https://youtube.com/@earthling_official" target="_blank" class="btn-pro btn-yt">YouTube</a>
             <a href="https://www.tiktok.com/@earthling_official" target="_blank" class="btn-pro btn-tt">TikTok</a>
         </div>
-        <a href="legal.html" class="legal-btn">Legal Compliance & Disclosure</a>
+        
+        <div class="bottom-actions">
+            <a href="legal.html" class="legal-btn">Legal Compliance & Disclosure</a>
+            <a href="keepdeansafe.html" class="legal-btn">Keep Dean Safe</a>
+        </div>
     </div>
     <script>
         const musicBtn = document.getElementById('musicBtn');
