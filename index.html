@@ -15,6 +15,23 @@
         .video-background iframe { width: 100vw; height: 56.25vw; min-height: 100vh; min-width: 177.77vh; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
         .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 0; }
         .content { position: relative; z-index: 10; padding: 20px; max-width: 800px; }
+        
+        /* New Watcher Text Styling */
+        .watcher-text {
+            position: fixed;
+            top: 25px;
+            left: 0;
+            width: 100%;
+            font-family: 'Georgia', serif;
+            font-style: italic;
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 2px;
+            z-index: 20;
+            pointer-events: none;
+            text-align: center;
+        }
+
         .production-header { font-size: 1rem; text-transform: uppercase; letter-spacing: 4px; color: #fff; margin-bottom: 5px; font-weight: bold; }
         .disclaimer { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; color: #ff3e3e; margin-bottom: 10px; font-weight: bold; }
         h1 { font-size: 3rem; margin-bottom: 5px; font-style: italic; color: #f0f0f0; }
@@ -42,6 +59,8 @@
     </style>
 </head>
 <body>
+
+    <div id="watcher" class="watcher-text"></div>
 
     <div class="video-background">
         <iframe src="https://www.youtube.com/embed/H724ZGObr4g?autoplay=1&mute=1&controls=0&loop=1&playlist=H724ZGObr4g&rel=0&showinfo=0&iv_load_policy=3" frameborder="0" allow="autoplay; encrypted-media"></iframe>
@@ -92,6 +111,26 @@
                 musicBtn.style.color = "#fff";
             }
         };
+
+        // Watcher Animation Logic
+        const watcher = document.getElementById('watcher');
+        const watchPhrases = ["watch as the Dean withers", "watch as the truth withers"];
+        let phraseIndex = 0;
+
+        function cycleWatcher() {
+            watcher.style.transition = "opacity 2s ease-in-out";
+            watcher.style.opacity = 0;
+            
+            setTimeout(() => {
+                watcher.innerHTML = watchPhrases[phraseIndex];
+                watcher.style.opacity = 1;
+                // Phrase 0 (Dean) shows more often, Phrase 1 (Truth) shows occasionally
+                phraseIndex = (Math.random() > 0.7) ? 1 : 0; 
+            }, 2000);
+        }
+
+        setInterval(cycleWatcher, 8000);
+        cycleWatcher(); // Initial call
 
         const quotes = [
             "Vegans are threatening my life.",  "I wouldn't eat my cat because it's cute.",
