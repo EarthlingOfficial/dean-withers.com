@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Wildlife Archive | Deanus Politicus</title>
-    <!-- Font for the 'Scribble' effect -->
+    
+    <link rel="canonical" href="https://dean-withers.com/" />
+
     <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -16,22 +18,26 @@
         .disclaimer { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; color: #ff3e3e; margin-bottom: 10px; font-weight: bold; }
         h1 { font-size: 3rem; margin-bottom: 5px; font-style: italic; color: #f0f0f0; }
         .species { font-size: 1.2rem; color: #aaa; margin-bottom: 30px; letter-spacing: 1px; }
+        
         .enter-button { display: inline-block; padding: 15px 40px; background: transparent; border: 2px solid #fff; color: #fff; text-decoration: none; font-weight: bold; text-transform: uppercase; transition: all 0.3s ease; cursor: pointer; margin-bottom: 5px; width: 100%; max-width: 400px; }
         .enter-button:hover { background: #fff; color: #000; }
         
-        /* New Anxiety Line style */
         .anxiety-note { font-family: 'Courier New', monospace; font-size: 0.8rem; color: #ff3e3e; margin-bottom: 15px; }
-
         .music-label { font-size: 0.9rem; color: #f0f0f0; margin-top: 10px; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
         
-        /* Social Icons Update */
-        .socials { display: flex; justify-content: center; gap: 30px; margin-top: 30px; }
-        .socials img { height: 35px; opacity: 0.7; transition: 0.3s; }
-        .socials img:hover { opacity: 1; transform: scale(1.1); }
+        /* --- CSS PRO SOCIAL BUTTONS --- */
+        .socials { display: flex; justify-content: center; gap: 15px; margin-top: 25px; flex-wrap: wrap; }
         
-        .yt-link { display: block; color: #666; font-size: 0.7rem; text-decoration: none; margin-top: 15px; }
+        .btn-pro { text-decoration: none; font-weight: bold; font-size: 0.8rem; text-transform: uppercase; padding: 10px 20px; border-radius: 5px; transition: 0.3s; display: flex; align-items: center; gap: 8px; }
 
-        /* The Scribble Area */
+        .btn-yt { background-color: #FF0000; color: #fff; border: 1px solid #FF0000; }
+        .btn-yt:hover { background-color: #cc0000; transform: translateY(-2px); }
+        .btn-yt::before { content: '▶'; font-size: 0.7rem; }
+
+        .btn-tt { background-color: #000; color: #fff; border: 1px solid #fff; box-shadow: -2px 0 0 #ff0050, 2px 0 0 #00f2ea; }
+        .btn-tt:hover { transform: translateY(-2px); box-shadow: -3px 0 0 #ff0050, 3px 0 0 #00f2ea; }
+
+        .yt-link { display: block; color: #666; font-size: 0.7rem; text-decoration: none; margin-top: 15px; }
         #scribble-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
     </style>
 </head>
@@ -62,14 +68,12 @@
         <a href="https://www.youtube.com/watch?v=H724ZGObr4g" target="_blank" class="yt-link">View Original Background Video</a>
 
         <div class="socials">
-            <!-- Replace with your GitHub icon filenames -->
-            <a href="https://www.tiktok.com/@earthling_official" target="_blank"><img src="tiktok-icon.svg" alt="TikTok"></a>
-            <a href="https://youtube.com/@earthling_official" target="_blank"><img src="youtube-icon.svg" alt="YouTube"></a>
+            <a href="https://youtube.com/@earthling_official" target="_blank" class="btn-pro btn-yt">YouTube</a>
+            <a href="https://www.tiktok.com/@earthling_official" target="_blank" class="btn-pro btn-tt">TikTok</a>
         </div>
     </div>
 
     <script>
-        // Music Logic (Existing)
         const musicBtn = document.getElementById('musicBtn');
         const audio = document.getElementById('bgMusic');
 
@@ -87,7 +91,6 @@
             }
         });
 
-        // The "Madman Scribble" Engine
         const quotes = [
             "Vegans are threatening my life.", "Go vegan or I'll **** you.", "I wouldn't eat my cat because it's cute.",
             "Let's do an exploitation logic tree.", "Not until you say sorry Earthling.", "Earthling why do you do this?",
@@ -109,6 +112,7 @@
 
         function createScribble() {
             const container = document.getElementById('scribble-container');
+            if(!container) return;
             const quote = quotes[Math.floor(Math.random() * quotes.length)];
             const el = document.createElement('div');
             
@@ -128,7 +132,7 @@
                 if (i < quote.length) {
                     el.innerHTML += quote.charAt(i);
                     i++;
-                    setTimeout(write, Math.random() * 80 + 40); // Random stroke speed
+                    setTimeout(write, Math.random() * 80 + 40);
                 } else {
                     setTimeout(() => {
                         el.style.transition = 'opacity 2s';
@@ -140,7 +144,6 @@
             write();
         }
 
-        // Trigger scribbles every 6 seconds
         setInterval(createScribble, 6000);
         setTimeout(createScribble, 1000);
     </script>
