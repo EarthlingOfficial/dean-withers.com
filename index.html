@@ -38,20 +38,6 @@
         .enter-button { display: inline-block; padding: 15px 40px; background: transparent; border: 2px solid #fff; color: #fff; text-decoration: none; font-weight: bold; text-transform: uppercase; transition: all 0.3s ease; cursor: pointer; margin-bottom: 5px; width: 100%; max-width: 400px; }
         .enter-button:hover { background: #fff; color: #000; }
         
-        /* Legal Compliance Button Style */
-        .legal-btn { 
-            display: inline-block; 
-            margin-top: 20px; 
-            padding: 8px 16px; 
-            font-size: 0.7rem; 
-            color: rgba(255, 255, 255, 0.6); 
-            border: 1px solid rgba(255, 255, 255, 0.3); 
-            text-decoration: none; 
-            text-transform: uppercase; 
-            letter-spacing: 1px; 
-            transition: 0.3s;
-        }
-        .legal-btn:hover { color: #fff; border-color: #fff; background: rgba(255,255,255,0.1); }
         .anxiety-note { font-family: 'Courier New', monospace; font-size: 0.8rem; color: #ff3e3e; margin-bottom: 15px; }
         .music-label { font-size: 0.85rem; color: #f0f0f0; margin-top: 10px; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
         .coming-soon { font-size: 0.75rem; color: #aaa; margin-top: 8px; font-style: italic; letter-spacing: 1px; }
@@ -93,7 +79,6 @@
             <a href="https://youtube.com/@earthling_official" target="_blank" class="btn-pro btn-yt">YouTube</a>
             <a href="https://www.tiktok.com/@earthling_official" target="_blank" class="btn-pro btn-tt">TikTok</a>
         </div>
-        <a href="legal.html" class="legal-btn">Legal Compliance & Disclosure</a>
     </div>
     <script>
         const musicBtn = document.getElementById('musicBtn');
@@ -122,11 +107,12 @@
             setTimeout(() => {
                 watcher.innerHTML = watchPhrases[phraseIndex];
                 watcher.style.opacity = 1;
+                // Phrase 0 (Dean) shows more often, Phrase 1 (Truth) shows occasionally
                 phraseIndex = (Math.random() > 0.7) ? 1 : 0; 
             }, 2000);
         }
         setInterval(cycleWatcher, 8000);
-        cycleWatcher(); 
+        cycleWatcher(); // Initial call
         const quotes = [
             "Vegans are threatening my life.",  "I wouldn't eat my cat because it's cute.",
             "Let's do an exploitation logic tree.", "Not until you say sorry Earthling.", "Earthling why do you do this?",
