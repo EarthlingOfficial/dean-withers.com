@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The College of Deanus Politicus</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+        #quiz-container {
+            max-width: 600px;
+            padding: 20px;
+            border: 2px solid #333;
+            background: #000;
+            box-shadow: 0 0 20px rgba(0,255,0,0.1);
+        }
+        .question { display: none; }
+        .active { display: block; }
+        h2 { color: #00ff00; margin-bottom: 30px; }
+        button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            background: #222;
+            color: #eee;
+            border: 1px solid #444;
+            cursor: pointer;
+            text-align: left;
+            font-size: 16px;
+        }
+        button:hover { background: #333; border-color: #00ff00; }
+        .fail-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        #victory-screen { display: none; }
+        .congrats-text { color: #00ff00; font-size: 24px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="quiz-container">
+        <div id="q1" class="question active">
+            <h2>Question 1</h2>
+            <p>Opponent: "Is it wrong to exploit animals for profit?"</p>
+            <button onclick="fail('Too logical.')">A) Yes, because they are sentient beings.</button>
+            <button onclick="fail('Too direct.')">B) No, because humans are superior.</button>
+            <button onclick="next(1, 2)">C) My cat is really cute, look at his little paws.</button>
+        </div>
+
+        <div id="q2" class="question">
+            <h2>Question 2</h2>
+            <p>You're told you're very cherubic looking on LIVE, what do you do?</p>
+            <button onclick="fail('Just no')">A) Humbly say thank you and move conversation back to important politics</button>
+            <button onclick="fail('You haven\'t met Momo!')">B) Tell them were here to discuss politics not aesthetics but thanks</button>
+            <button onclick="next(2, 3)">C) Do a Trump impersonation and tell the chat to type W's for Dean</button>
+        </div>
+
+        <div id="q3" class="question">
+            <h2>Question 3</h2>
+            <p>Dean Withers stares at you through a mirror, what do you do?</p>
+            <button onclick="fail('No, too straight forward')">A) Ask what he is staring for?</button>
+            <button onclick="fail('You haven\'t seen Dean Withers!')">B) Don't even acknowledge him</button>
+            <button onclick="win()">C) Tap the screen awkwardly, criticise the footage and then self-soothe?</button>
+        </div>
+
+        <div id="victory-screen">
+            <h1 class="congrats-text">WELL DONE!</h1>
+            <p>Yes! That is some high level withers-ing. You have passed the college of Deanus Politicus Carnivorus Paradoxus.</p>
+            <hr>
+            <p><i>"You didn't just win the debate... you withered it."</i></p>
+            <p><i>"Logic Level: 0% | Charisma Level: Cherubic | Trump Impersonations: Flawless."</i></p>
+            <button onclick="location.reload()">Start Over</button>
+        </div>
+    </div>
+
+    <div id="fail-overlay" class="fail-overlay">
+        <h1 id="fail-reason">FAILED</h1>
+        <p>You failed to wither. Back to Question 1.</p>
+        <button onclick="reset()">Restart Training</button>
+    </div>
+
+    <script>
+        function next(current, next) {
+            document.getElementById('q' + current).classList.remove('active');
+            document.getElementById('q' + next).classList.add('active');
+        }
+
+        function fail(reason) {
+            document.getElementById('fail-reason').innerText = "FAILED: " + reason;
+            document.getElementById('fail-overlay').style.display = 'flex';
+        }
+
+        function reset() {
+            document.getElementById('fail-overlay').style.display = 'none';
+            document.querySelectorAll('.question').forEach(q => q.classList.remove('active'));
+            document.getElementById('q1').classList.add('active');
+        }
+
+        function win() {
+            document.getElementById('q3').classList.remove('active');
+            document.getElementById('victory-screen').style.display = 'block';
+            
+            // Confetti Blast
+            var duration = 3 * 1000;
+            var end = Date.now() + duration;
+
+            (function frame() {
+                confetti({
+                    particleCount: 3,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: ['#00ff00', '#ffffff']
+                });
+                confetti({
+                    particleCount: 3,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: ['#00ff00', '#ffffff']
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }());
+        }
+    </script>
+</body>
+</html>
