@@ -1,2 +1,2 @@
-# dean-withers.com
-The official wildlife archive for Deanus Politicus Carnivorus Paradoxus 
+# earthlingofficial.com
+Earthling official The wildlife archive for Deanus Politicus Carnivorus Paradoxus 
