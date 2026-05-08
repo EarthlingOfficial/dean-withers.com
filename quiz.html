@@ -11,9 +11,10 @@
             color: #ffffff;
             font-family: 'Courier New', Courier, monospace;
             display: flex;
+            flex-direction: column; /* Changed to column to allow footer at bottom */
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
             text-align: center;
         }
@@ -23,6 +24,14 @@
             border: 2px solid #333;
             background: #000;
             box-shadow: 0 0 20px rgba(0,255,0,0.1);
+            margin-bottom: 40px; /* Space for the footer button */
+        }
+        .intro-instruction {
+            color: #888;
+            margin-bottom: 20px;
+            font-style: italic;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
         }
         .question { display: none; }
         .active { display: block; }
@@ -53,11 +62,41 @@
         }
         #victory-screen { display: none; }
         .congrats-text { color: #00ff00; font-size: 24px; font-weight: bold; }
+        
+        /* Progress text styling */
+        .progress-note {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            display: block;
+        }
+
+        /* Footer button styling */
+        .return-home {
+            background: none;
+            border: none;
+            color: #555;
+            text-decoration: underline;
+            font-size: 14px;
+            cursor: pointer;
+            width: auto;
+            margin-top: 20px;
+        }
+        .return-home:hover {
+            color: #888;
+            background: none;
+            border: none;
+        }
     </style>
 </head>
 <body>
 
     <div id="quiz-container">
+        <!-- New Intro Text -->
+        <div class="intro-instruction">
+            To unlock access to the pen, you must first learn the art of withers-ing.
+        </div>
+
         <div id="q1" class="question active">
             <h2>Question 1</h2>
             <p>Opponent: "Is it wrong to exploit animals for profit?"</p>
@@ -75,7 +114,7 @@
         </div>
 
         <div id="q3" class="question">
-            <h2>Question 3</h2>
+            <h2>Question 2</h2>
             <p>Dean Withers stares at you through a mirror, what do you do?</p>
             <button onclick="fail('No, too straight forward')">A) Ask what he is staring for?</button>
             <button onclick="fail('You haven\'t seen Dean Withers!')">B) Don't even acknowledge him</button>
@@ -88,14 +127,24 @@
             <hr>
             <p><i>"You didn't just win the debate... you withered it."</i></p>
             <p><i>"Logic Level: 0% | Charisma Level: Cherubic | Trump Impersonations: Flawless."</i></p>
-            <button onclick="location.reload()">Start Over</button>
+            
+            <!-- Modified Success Button -->
+            <div style="margin-top: 20px;">
+                <button style="text-align: center;">Access the Pen 🔓</button>
+                <span class="progress-note">(Site in progress)</span>
+            </div>
         </div>
     </div>
+
+    <!-- Plain Text Return Button -->
+    <button class="return-home" onclick="window.location.href='index.html'">
+        Return to main website
+    </button>
 
     <div id="fail-overlay" class="fail-overlay">
         <h1 id="fail-reason">FAILED</h1>
         <p>You failed to wither. Back to Question 1.</p>
-        <button onclick="reset()">Restart Training</button>
+        <button onclick="reset()" style="text-align: center;">Restart Training</button>
     </div>
 
     <script>
