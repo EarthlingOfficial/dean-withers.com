@@ -56,6 +56,15 @@
             height: 100%;
             background: rgba(0, 0, 0, 0.85);
             z-index: 2;
+            transition: background 0.5s ease;
+        }
+
+        /* State when video is "Front and Center" */
+        .video-active .video-overlay {
+            background: rgba(0, 0, 0, 0);
+        }
+        .video-active .lock-content {
+            display: none; /* Hide text/input when watching */
         }
 
         .lock-content {
@@ -99,6 +108,35 @@
             text-align: center;
             outline: none;
             box-shadow: 0 0 10px rgba(50, 205, 50, 0.2);
+        }
+
+        /* New Video Control Buttons */
+        .video-toggle-btn {
+            margin-top: 25px;
+            padding: 10px 20px;
+            background: transparent;
+            border: 1px solid var(--alert-red);
+            color: var(--alert-red);
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            z-index: 4;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        .video-toggle-btn:hover {
+            background: var(--alert-red);
+            color: white;
+        }
+
+        #close-video {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            z-index: 10000;
+            border-color: var(--neon-green);
+            color: var(--neon-green);
         }
 
         .hidden {
@@ -167,40 +205,12 @@
             cursor: cell;
         }
 
-        .highlight {
-            color: #fff;
-            text-shadow: 0 0 10px var(--neon-green);
-        }
-
-        .redacted {
-            background: var(--neon-green);
-            color: var(--neon-green);
-            transition: color 0.3s ease;
-        }
-
-        .redacted:hover { color: #000; }
-
         footer {
             margin-top: 40px;
             font-size: 0.7rem;
             opacity: 0.6;
             text-align: center;
         }
-
-        .btn-next {
-            display: block;
-            width: 200px;
-            margin: 20px auto;
-            padding: 10px;
-            background: transparent;
-            border: 1px solid var(--neon-green);
-            color: var(--neon-green);
-            text-decoration: none;
-            text-align: center;
-            font-weight: bold;
-        }
-
-        .btn-next:hover { background: var(--neon-green); color: #000; }
     </style>
 </head>
 <body>
@@ -208,27 +218,30 @@
 <!-- THE GATEKEEPER LOCK SCREEN -->
 <div id="lock-screen">
     <div class="video-background">
-        <iframe width="100%" height="100%" 
+        <iframe id="main-video" width="100%" height="100%" 
             src="https://www.youtube.com/embed/Xf1Rd72banE?autoplay=1&mute=1&loop=1&playlist=Xf1Rd72banE&controls=0&showinfo=0&modestbranding=1" 
             frameborder="0" allow="autoplay; encrypted-media" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1.5); height: 100vh; width: 56.25vh; min-width: 320px;">
         </iframe>
     </div>
-    <div class="video-overlay"></div>
+    <div class="video-overlay" id="overlay"></div>
     
-    <div class="lock-content">
+    <div class="lock-content" id="lock-content">
         <div class="denied-text">ACCESS DENIED</div>
         <p class="instruction-text">
             Non-vegan signature detected or identity not found in the database.<br><br>
-            If you are a vegan and not in the database yet, or if you've recently transitioned, please contact <span class="social-link" onclick="window.open('https://youtube.com/@earthling_official?si=soNsKs6WupxdI0dW', '_blank')">Admin Earthling Official</span> on his socials to unlock access.
+            If you are a vegan and not in the database yet, please contact <span class="social-link" onclick="window.open('https://youtube.com/@earthling_official?si=soNsKs6WupxdI0dW', '_blank')">Admin Earthling Official</span> on his socials.
         </p>
         <input type="text" id="passcode-input" placeholder="ENTER CLEARANCE CODE..." autocomplete="off">
         <p id="error-msg" style="color: red; margin-top: 10px; font-size: 0.8rem; display: none;">INVALID CLEARANCE CODE</p>
+        <br>
+        <button class="video-toggle-btn" onclick="playVideoWithSound()">[ INTERCEPT SIGNAL: VIEW FEED ]</button>
     </div>
+
+    <button id="close-video" class="video-toggle-btn" onclick="stopVideoSound()">[ EXIT FEED ]</button>
 </div>
 
-<!-- THE RHYME CONTENT (Visible after unlock) -->
+<!-- THE RHYME CONTENT -->
 <canvas id="bg-canvas"></canvas>
-
 <div class="container">
     <header>
         <div>
@@ -237,75 +250,68 @@
         </div>
         <div class="status-bar">SYSTEM STATUS: ANALYSING HOMEOS-STASIS...</div>
     </header>
-
     <div class="meter-container">
         <label>HOMEOSTASIS LEVEL:</label>
         <div id="meter-bar"></div>
     </div>
-
-    <div class="lyrics" id="rhyme-body">
-Well what is a dean,
-well a dean is me,
-follow along on the screen,
-and you'll see!
-... [Lyrics continue as provided] ...
-    </div>
-
-    <a href="#" class="btn-next">ACCESS NEXT PAGE</a>
-
-    <footer>
-        <p>ENCRYPTED DOCUMENT // DEAN-HYPHEN-WITHERS // DO NOT LEAK</p>
-    </footer>
+    <div class="lyrics">Well what is a dean, well a dean is me...</div>
 </div>
 
 <script>
-    // CODE VALIDATION LOGIC
     const lockScreen = document.getElementById('lock-screen');
+    const overlay = document.getElementById('overlay');
+    const content = document.getElementById('lock-content');
+    const closeBtn = document.getElementById('close-video');
+    const videoFrame = document.getElementById('main-video');
     const input = document.getElementById('passcode-input');
-    const errorMsg = document.getElementById('error-msg');
     const SECRET_CODE = "ipledgetobeveganforeverearthling66";
+
+    // Function to "Bring video to front" and enable sound
+    function playVideoWithSound() {
+        // We reload the src without "mute=1" to allow sound
+        videoFrame.src = "https://www.youtube.com/embed/Xf1Rd72banE?autoplay=1&mute=0&loop=1&playlist=Xf1Rd72banE&controls=0";
+        overlay.style.background = "rgba(0,0,0,0)";
+        content.style.display = "none";
+        closeBtn.style.display = "block";
+    }
+
+    // Function to hide video and return to lock screen
+    function stopVideoSound() {
+        videoFrame.src = "https://www.youtube.com/embed/Xf1Rd72banE?autoplay=1&mute=1&loop=1&playlist=Xf1Rd72banE&controls=0";
+        overlay.style.background = "rgba(0,0,0,0.85)";
+        content.style.display = "block";
+        closeBtn.style.display = "none";
+    }
 
     input.addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
             if (input.value === SECRET_CODE) {
                 lockScreen.classList.add('hidden');
             } else {
-                errorMsg.style.display = 'block';
+                document.getElementById('error-msg').style.display = 'block';
                 input.style.border = "1px solid red";
                 setTimeout(() => {
-                    errorMsg.style.display = 'none';
+                    document.getElementById('error-msg').style.display = 'none';
                     input.style.border = "1px solid var(--neon-green)";
                 }, 2000);
             }
         }
     });
 
-    // Background Animation Logic
+    // Background Canvas Logic (Simplified)
     const canvas = document.getElementById('bg-canvas');
     const ctx = canvas.getContext('2d');
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+    ctx.strokeStyle = '#32cd32';
+    for (let i = 0; i < canvas.width; i += 40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
+    for (let j = 0; j < canvas.height; j += 40) { ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvas.width, j); ctx.stroke(); }
 
-    function drawGrid() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = '#32cd32';
-        ctx.lineWidth = 0.5;
-        for (let i = 0; i < canvas.width; i += 40) {
-            ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
-        }
-        for (let j = 0; j < canvas.height; j += 40) {
-            ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvas.width, j); ctx.stroke();
-        }
-    }
-    drawGrid();
-
-    // Homeostasis Meter Interaction
+    // Meter logic
     const meter = document.getElementById('meter-bar');
     document.addEventListener('mousemove', (e) => {
         let val = (e.clientX / window.innerWidth) * 100;
         meter.style.width = val + "%";
-        if (val > 90) { document.body.style.color = '#ff4500'; } 
-        else { document.body.style.color = '#32cd32'; }
     });
 </script>
 
