@@ -1,137 +1,176 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Wonder Boy: The Vegan Crusade</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        body { margin: 0; overflow: hidden; background: #87CEEB; font-family: 'Arial', sans-serif; }
-        canvas { display: block; background: #87CEEB; }
-        #ui { position: absolute; top: 10px; left: 10px; color: white; text-shadow: 2px 2px black; font-size: 24px; pointer-events: none; }
+        body { margin: 0; overflow: hidden; background: #87CEEB; font-family: 'Courier New', Courier, monospace; }
+        canvas { display: block; }
+        #ui { position: absolute; top: 10px; left: 10px; color: #FFF; text-shadow: 2px 2px #000; font-size: 24px; pointer-events: none; }
+        #msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: white; text-shadow: 3px 3px #000; font-size: 30px; display: block; }
     </style>
 </head>
 <body>
-    <div id="ui">VEGAN CRUSADE: Get to the Pipe!</div>
+    <div id="ui">ENERGY: <span id="score">100</span></div>
+    <div id="msg">TAP TO START<br><small style="font-size: 15px;">(STAY VEGAN - EAT FRUIT!)</small></div>
     <canvas id="gameCanvas"></canvas>
 
 <script>
+/** 8-BIT AUDIO ENGINE **/
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(freq, type, duration, vol) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    if (type === 'square') osc.frequency.exponentialRampToValueAtTime(freq * 2, audioCtx.currentTime + duration);
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+}
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+const msgEl = document.getElementById('msg');
 
-function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let gameActive = false;
+let energy = 100;
+let distance = 0;
+
+const player = { x: 80, y: 0, w: 40, h: 60, dy: 0, grounded: false, frame: 0 };
+let obstacles = [];
+let items = [];
+
+// Input
+function handleInput() {
+    if (!gameActive) {
+        resetGame();
+        return;
+    }
+    if (player.grounded) {
+        player.dy = -14;
+        player.grounded = false;
+        playSound(150, 'square', 0.1, 0.1); // Jump sound
+    }
 }
-window.onresize = resize;
-resize();
 
-// --- Game Settings ---
-const gravity = 0.8;
-const player = {
-    x: 100, y: 0, width: 40, height: 60,
-    velY: 0, speed: 8, jumped: false,
-    color: '#32CD32' // Leafy Green
-};
+window.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(); }, {passive: false});
+window.addEventListener('mousedown', handleInput);
 
-let scrollX = 0;
-const levelLength = 5000;
-const enemies = [];
-const goalPipe = { x: levelLength - 400, width: 80, height: 150 };
-
-// Create "Dairy Demons" (Orange Blocks)
-for(let i = 0; i < 20; i++) {
-    enemies.push({
-        x: 800 + (i * 350) + Math.random() * 150,
-        width: 50, height: 60
-    });
+function resetGame() {
+    energy = 100;
+    distance = 0;
+    obstacles = [];
+    items = [];
+    gameActive = true;
+    msgEl.style.display = 'none';
+    if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
 function update() {
-    const groundY = canvas.height - 50;
-    
-    // Movement
-    if (keys['ArrowRight']) player.x += player.speed;
-    if (keys['ArrowLeft']) player.x -= player.speed;
-    if ((keys[' '] || keys['ArrowUp']) && !player.jumped) {
-        player.velY = -18;
-        player.jumped = true;
+    if (!gameActive) return;
+
+    // Auto-scroll logic
+    distance += 5;
+    energy -= 0.05; // Constant decay (hunger)
+    scoreEl.innerText = Math.ceil(energy);
+
+    // Physics
+    player.dy += 0.7;
+    player.y += player.dy;
+    player.frame++;
+
+    const groundLevel = canvas.height - 60;
+    if (player.y + player.h > groundLevel) {
+        player.y = groundLevel - player.h;
+        player.dy = 0;
+        player.grounded = true;
     }
 
-    // Gravity
-    player.velY += gravity;
-    player.y += player.velY;
+    // Spawn Logic
+    if (Math.random() < 0.01) obstacles.push({ x: canvas.width, y: groundLevel - 40, w: 30, h: 40 });
+    if (Math.random() < 0.015) items.push({ x: canvas.width, y: groundLevel - 100 - Math.random()*50, w: 25, h: 25 });
 
-    if (player.y + player.height > groundY) {
-        player.y = groundY - player.height;
-        player.velY = 0;
-        player.jumped = false;
-    }
-
-    // Camera follow
-    if (player.x > canvas.width / 2) {
-        scrollX = player.x - canvas.width / 2;
-    }
-
-    // Check Collisions
-    enemies.forEach(enemy => {
-        let ey = groundY - enemy.height;
-        if (player.x < enemy.x + enemy.width && player.x + player.width > enemy.x &&
-            player.y < ey + enemy.height && player.y + player.height > ey) {
-            player.x = 100; // Sent back for touching cheese!
+    // Move & Collide
+    obstacles.forEach((obs, i) => {
+        obs.x -= 6;
+        if (player.x < obs.x + obs.w && player.x + player.w > obs.x && player.y < obs.y + obs.h && player.y + player.h > obs.y) {
+            energy -= 10;
+            playSound(60, 'sawtooth', 0.2, 0.2); // Hit sound
+            obstacles.splice(i, 1);
         }
+        if (obs.x < -50) obstacles.splice(i, 1);
     });
 
-    // Check Win
-    let py = groundY - goalPipe.height;
-    if (player.x + player.width > goalPipe.x && player.x < goalPipe.x + goalPipe.width && player.y + player.height > py) {
-        victory();
+    items.forEach((item, i) => {
+        item.x -= 6;
+        if (player.x < item.x + item.w && player.x + player.w > item.x && player.y < item.y + item.h && player.y + player.h > item.y) {
+            energy = Math.min(100, energy + 15);
+            playSound(800, 'sine', 0.1, 0.1); // Ping sound
+            items.splice(i, 1);
+        }
+        if (item.x < -50) items.splice(i, 1);
+    });
+
+    if (energy <= 0) {
+        gameActive = false;
+        msgEl.style.display = 'block';
+        msgEl.innerHTML = "OUT OF ENERGY!<br>FINAL DISTANCE: " + Math.floor(distance/10) + "<br>TAP TO TRY AGAIN";
     }
 }
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const groundY = canvas.height - 50;
 
-    // Draw Ground
-    ctx.fillStyle = '#228B22';
-    ctx.fillRect(0, groundY, canvas.width, 50);
+    // Ground
+    ctx.fillStyle = '#795548';
+    ctx.fillRect(0, canvas.height - 60, canvas.width, 60);
+    ctx.fillStyle = '#8BC34A';
+    ctx.fillRect(0, canvas.height - 60, canvas.width, 10);
 
+    // Player
     ctx.save();
-    ctx.translate(-scrollX, 0);
+    ctx.translate(player.x, player.y);
+    ctx.fillStyle = '#4CAF50';
+    ctx.beginPath(); // Leaf body
+    ctx.ellipse(20, 30, 18, 28, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'white'; // Eyes
+    ctx.fillRect(22, 15, 8, 8); ctx.fillRect(10, 15, 8, 8);
+    const leg = Math.sin(player.frame * 0.2) * 10;
+    ctx.strokeStyle = '#2E7D32'; ctx.lineWidth = 4;
+    ctx.strokeRect(10 + (leg/2), 55, 5, 10); // Simple walking legs
+    ctx.strokeRect(25 - (leg/2), 55, 5, 10);
+    ctx.restore();
 
-    // Draw Pipe
-    ctx.fillStyle = '#696969';
-    ctx.fillRect(goalPipe.x, groundY - goalPipe.height, goalPipe.width, goalPipe.height);
-    ctx.fillStyle = 'white';
-    ctx.font = "bold 20px Arial";
-    ctx.fillText("FUDGE ROOM", goalPipe.x - 20, groundY - goalPipe.height - 20);
-
-    // Draw Dairy Demons
-    ctx.fillStyle = '#FFA500';
-    enemies.forEach(e => {
-        ctx.fillRect(e.x, groundY - e.height, e.width, e.height);
+    // Obstacles (Snails)
+    ctx.fillStyle = '#FF5722';
+    obstacles.forEach(o => {
+        ctx.beginPath();
+        ctx.arc(o.x + 15, o.y + 25, 15, 0, Math.PI, true);
+        ctx.fill();
     });
 
-    // Draw Player
-    ctx.fillStyle = player.color;
-    ctx.fillRect(player.x, player.y, player.width, player.height);
+    // Items (Fruit)
+    ctx.fillStyle = '#E91E63';
+    items.forEach(item => {
+        ctx.beginPath();
+        ctx.arc(item.x + 12, item.y + 12, 10, 0, Math.PI * 2);
+        ctx.fill();
+    });
 
-    ctx.restore();
-}
-
-function victory() {
-    alert("BING BONG! DEAN IS IN THE PIPE!\n\nMelania was right, he's going straight to the Fudge Room. Quite frankly, a total disaster.");
-    player.x = 100;
-}
-
-const keys = {};
-window.addEventListener('keydown', e => keys[e.key] = true);
-window.addEventListener('keyup', e => keys[e.key] = false);
-
-function gameLoop() {
     update();
-    draw();
-    requestAnimationFrame(gameLoop);
+    requestAnimationFrame(draw);
 }
-gameLoop();
+
+draw();
 </script>
 </body>
 </html>
