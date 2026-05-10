@@ -1,1 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>3D First-Person Snake (Native WebGL)</title>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; color: #fff; font-family: monospace; }
+        canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
+        #ui { position: absolute; top: 10px; left: 10px; pointer-events: none; }
+        #score { font-size: 24px; }
+        #controls { position: absolute; bottom: 20px; width: 100%; text-align: center; font-size: 14px; opacity: 0.6; }
+    </style>
+</head>
+<body>
+    <div id="ui"><div id="score">SCORE: 0</div></div>
+    <div id="controls">TAP LEFT / RIGHT TO TURN</div>
+    <canvas id="glcanvas"></canvas>
 
+<script>
+/* 
+ * 1. VERTEX SHADER (Runs once per geometry point) 
+ * Defines how objects are transformed from 3D coordinates into 2D screen space.
+ */
+const vsSource = `
+    attribute vec4 aVertexPosition;
+    attribute vec4 aVertexColor;
+    uniform mat4 uModelViewMatrix;
+    uniform mat4 uProjectionMatrix;
+    varying lowp vec4 vColor;
+    void main(void) {
+        gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+        vColor = aVertexColor;
+    }
+`;
+
+/* 
+ * 2. FRAGMENT SHADER (Runs once per pixel)
+ * Defines the color of each pixel.
+ */
+const fsSource = `
+    varying lowp vec4 vColor;
+    void main(void) {
+        gl_FragColor = vColor;
+    }
+`;
+
+// --- The Game State ---
+const state = {
+    gl: null,
+    programInfo: null,
+    buffers: null,
+    score: 0,
+    startTime: 0,
+    currentAngle: 0, // In radians
+    targetAngle: 0,
+    speed: 0.2, // Movement per update
+    turnSpeed: 0.1, // Responsiveness (0.01 to 0.5)
+    
+    // Snake: Array of vec3 (x, y, z) coordinates. 
+    // Snake[0] is the head, Snake[length-1] is the tail.
+    snake: [{x: 0, y: 0, z: 0}], 
+    baseLength: 300, // How many segments are 'active' (visible)
+    segBuffer: 600, // Pre-allocated storage for geometry (reduces stutter)
+};
+
+// --- WebGL Core Functions ---
+
+function initShaderProgram(gl, vsSource, fsSource) {
+    const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vsSource);
+    const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
+    const shaderProgram = gl.createProgram();
+    gl.attachShader(shaderProgram, vertexShader);
+    gl.attachShader(shaderProgram, fragmentShader);
+    gl.linkProgram(shaderProgram);
+    if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+        alert('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
+        return null;
+    }
+    return shaderProgram;
+}
+
+function loadShader(gl, type, source) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        alert('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+        return null;
+    }
+    return shader;
+}
+
+// 3. Define the Geometry (A long rectangular prism path)
+function initBuffers(gl) {
+    const vertices = new Float32Array(state.segBuffer * 24); // (6 faces * 4 vertices * 3 coords)
+    const colors = new Float32Array(state.segBuffer * 32);   // (6 faces * 4 vertices * 4 colors)
+    const indices = new Uint16Array(state.segBuffer * 36);  // (6 faces * 6 indices)
+
+    // Pre-fill the color buffer with random greens/greys
+    for (let s = 0; s < state.segBuffer; s++) {
+        for (let v = 0; v < 24; v++) {
+            const green = 0.5 + Math.random() * 0.4;
+            const idx = (s * 32) + (v * 4);
+            colors[idx] = green * 0.2; // R
+            colors[idx + 1] = green;   // G
+            colors[idx + 2] = green * 0.2; // B
+            colors[idx + 3] = 1.0;     // Alpha
+        }
+    }
+
+    return {
+        position: gl.createBuffer(),
+        color: gl.createBuffer(),
+        indices: gl.createBuffer(),
+        vertexData: vertices,
+        colorData: colors,
+        indexData: indices,
+    };
+}
+
+// --- The Game Logic & Render Loop ---
+
+function main() {
+    const canvas = document.getElementById('glcanvas');
+    const gl = canvas.getContext('webgl');
+    if (!gl) { alert('Unable to initialize WebGL. Your browser may not support it.'); return; }
+    state.gl = gl;
+
+    // Adjust canvas to match device pixels (important for retina screens)
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+
+    const shaderProgram = initShaderProgram(gl, vsSource, fsSource);
+    state.programInfo = {
+        program: shaderProgram,
+        attribLocations: {
+            vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
+            vertexColor: gl.getAttribLocation(shaderProgram, 'aVertexColor'),
+        },
+        uniformLocations: {
+            projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
+            modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
+        },
+    };
+    state.buffers = initBuffers(gl);
+
+    window.addEventListener('resize', main); // Redraw on resize
+    
+    // Add Control Listeners (Touch for Mobile, Mouse for Desktop)
+    canvas.addEventListener('touchstart', handleInput);
+    canvas.addEventListener('mousedown', handleInput);
+
+    requestAnimationFrame(render);
+}
+
+function handleInput(e) {
+    const x = e.touches ? e.touches[0].clientX : e.clientX;
+    const mid = window.innerWidth / 2;
+    const turnAmount = Math.PI / 16; // 11.25 degrees (gentle turn)
+    
+    // We smooth-turn, adding or subtracting from the *target* angle
+    if (x < mid) {
+        state.targetAngle += turnAmount; // Turn left
+    } else {
+        state.targetAngle -= turnAmount; // Turn right
+    }
+}
+
+function updateGameState() {
+    // 1. Move the snake head
+    const head = state.snake[0];
+    const newHead = {
+        x: head.x + Math.sin(state.currentAngle) * state.speed,
+        y: head.y,
+        z: head.z + Math.cos(state.currentAngle) * state.speed,
+    };
+    
+    // 2. Self-collision (Simple distance check against historical positions)
+    // We only check segments further back than 'minDistance' to avoid false positives at the neck.
+    const minSafetyBuffer = Math.floor(2 / state.speed); 
+    for(let i = minSafetyBuffer; i < state.snake.length; i += 2) {
+        const seg = state.snake[i];
+        const distSq = (newHead.x - seg.x)**2 + (newHead.z - seg.z)**2;
+        if(distSq < 0.2) { // Width^2 (collision threshold)
+            alert(`GAME OVER! Final Score: ${Math.floor(state.score)}`);
+            location.reload();
+            return;
+        }
+    }
+
+    // 3. Add new position and trim the tail (unless "eating")
+    state.snake.unshift(newHead);
+    state.snake.pop(); // Basic movement, length doesn't change yet
+
+    // 4. Update angle (Lerp current towards target)
+    const angleDiff = state.targetAngle - state.currentAngle;
+    state.currentAngle += angleDiff * state.turnSpeed;
+
+    // 5. Scoring (just distance traveled)
+    state.score += state.speed;
+    document.getElementById('score').innerText = `SCORE: ${Math.floor(state.score)}`;
+}
+
+// 4. Matrix Math Functions (Since we aren't loading a library like glMatrix)
+// Source: simplified from classic tutorials (like MDN)
+const Mat4 = {
+    identity: () => new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]),
+    
+    // Create a perspective matrix (for the 3D 'look')
+    perspective: (fovDeg, aspect, near, far) => {
+        const f = 1.0 / Math.tan(fovDeg * Math.PI / 360);
+        const rangeInv = 1 / (near - far);
+        return new Float32Array([
+            f / aspect, 0, 0, 0,
+            0, f, 0, 0,
+            0, 0, (near + far) * rangeInv, -1,
+            0, 0, near * far * rangeInv * 2, 0
+        ]);
+    },
+
+    // A Matrix that simulates a Camera positioned at 'eye', looking at 'target'
+    lookAt: (eye, target, up) => {
+        const z = vec3.normalize(vec3.sub(eye, target));
+        const x = vec3.normalize(vec3.cross(up, z));
+        const y = vec3.normalize(vec3.cross(z, x));
+        return new Float32Array([
+            x[0], y[0], z[0], 0,
+            x[1], y[1], z[1], 0,
+            x[2], y[2], z[2], 0,
+            -vec3.dot(x, eye), -vec3.dot(y, eye), -vec3.dot(z, eye), 1
+        ]);
+    },
+};
+
+const vec3 = {
+    sub: (a, b) => [a.x - b.x, a.y - b.y, a.z - b.z],
+    cross: (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]],
+    normalize: (a) => {
+        const len = Math.sqrt(a[0]*a[0] + a[1]*a[1] + a[2]*a[2]);
+        if (len > 0.00001) return [a[0]/len, a[1]/len, a[2]/len];
+        return [0, 0, 0];
+    },
+    dot: (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
+};
+
+// 5. Drawing the Geometry
+function render(now) {
+    const gl = state.gl;
+    if (!gl) return;
+
+    // Game Update
+    updateGameState();
+
+    gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black
+    gl.clearDepth(1.0);                 // Clear depth buffer
+    gl.enable(gl.DEPTH_TEST);           // Enable depth testing
+    gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
+
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    // --- Define matrices for the camera ---
+
+    // 1. Projection Matrix (Define FOV, AR, and clipping)
+    const fieldOfView = 60; // Degrees
+    const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+    const zNear = 0.1;
+    const zFar = 1000.0;
+    const projectionMatrix = Mat4.perspective(fieldOfView, aspect, zNear, zFar);
+
+    // 2. View Matrix (Define the Camera position relative to the snake head)
+    const head = state.snake[0];
+    
+    // We place the camera "inside/above" the snake head.
+    const cameraOffset = 0.5; // distance from head center
+    const cameraHeight = 0.6; // height above the ground
+    
+    // Calculate the point the snake is looking at (slightly in front of the head)
+    const lookAheadDistance = 5.0; 
+    const target = {
+        x: head.x + Math.sin(state.currentAngle) * lookAheadDistance,
+        y: head.y + cameraHeight * 0.8, // Look slightly down
+        z: head.z + Math.cos(state.currentAngle) * lookAheadDistance,
+    };
+
+    // Calculate position of camera relative to head and orientation
+    const eye = {
+        x: head.x + Math.sin(state.currentAngle) * cameraOffset,
+        y: head.y + cameraHeight,
+        z: head.z + Math.cos(state.currentAngle) * cameraOffset,
+    };
+    
+    const up = [0, 1, 0]; // World Up vector
+
+    // Generating the LookAt matrix
+    const viewMatrix = Mat4.lookAt(eye, target, up);
+
+    // --- Update and Draw the Snake Geometry ---
+    // We must rebuild the vertices for the segments every frame as the snake "moves"
+    
+    const snakeLen = Math.min(state.snake.length, state.segBuffer);
+    const geometryWidth = 0.5;
+    const geometryHeight = 0.5;
+
+    // Use TypedArrays to pass data efficiently to WebGL
+    const { vertexData, colorData, indexData } = state.buffers;
+
+    for (let i = 0; i < snakeLen; i++) {
+        const seg = state.snake[i];
+        
+        // This is a simple logic: each segment is drawn as a cube
+        // centered on the snake coordinate.
+        const xMin = seg.x - geometryWidth;  const xMax = seg.x + geometryWidth;
+        const yMin = seg.y - geometryHeight; const yMax = seg.y + geometryHeight;
+        const zMin = seg.z - geometryWidth;  const zMax = seg.z + geometryWidth;
+        
+        const vOff = i * 24; // 8 vertices * 3 coords
+        
+        // Vertices of the cube
+        vertexData.set([
+            xMin, yMin, zMax,  xMax, yMin, zMax,  xMax, yMax, zMax,  xMin, yMax, zMax, // Front
+            xMin, yMin, zMin,  xMin, yMax, zMin,  xMax, yMax, zMin,  xMax, yMin, zMin, // Back
+            xMin, yMax, zMin,  xMin, yMax, zMax,  xMax, yMax, zMax,  xMax, yMax, zMin, // Top
+            xMin, yMin, zMin,  xMax, yMin, zMin,  xMax, yMin, zMax,  xMin, yMin, zMax, // Bottom
+            xMax, yMin, zMin,  xMax, yMax, zMin,  xMax, yMax, zMax,  xMax, yMin, zMax, // Right
+            xMin, yMin, zMin,  xMin, yMin, zMax,  xMin, yMax, zMax,  xMin, yMax, zMin, // Left
+        ], vOff);
+
+        const iOff = i * 36; // 12 triangles * 3 indices
+        const vStart = i * 24 / 3; // Starting vertex index for this segment
+        indexData.set([
+            0,1,2, 0,2,3,    4,5,6, 4,6,7,    8,9,10, 8,10,11,
+            12,13,14, 12,14,15, 16,17,18, 16,18,19, 20,21,22, 20,22,23
+        ].map(idx => idx + vStart), iOff);
+    }
+
+    // --- Upload the updated geometry buffers to the GPU ---
+    
+    // Positions
+    gl.bindBuffer(gl.ARRAY_BUFFER, state.buffers.position);
+    gl.bufferData(gl.ARRAY_BUFFER, vertexData, gl.DYNAMIC_DRAW);
+    gl.vertexAttribPointer(state.programInfo.attribLocations.vertexPosition, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(state.programInfo.attribLocations.vertexPosition);
+
+    // Colors
+    gl.bindBuffer(gl.ARRAY_BUFFER, state.buffers.color);
+    gl.bufferData(gl.ARRAY_BUFFER, colorData, gl.STATIC_DRAW);
+    gl.vertexAttribPointer(state.programInfo.attribLocations.vertexColor, 4, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(state.programInfo.attribLocations.vertexColor);
+
+    // Indices
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, state.buffers.indices);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexData, gl.DYNAMIC_DRAW);
+
+    // --- Draw the completed scene ---
+    gl.useProgram(state.programInfo.program);
+    gl.uniformMatrix4fv(state.programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
+    gl.uniformMatrix4fv(state.programInfo.uniformLocations.modelViewMatrix, false, viewMatrix);
+
+    const vertexCount = snakeLen * 36;
+    gl.drawElements(gl.TRIANGLES, vertexCount, gl.UNSIGNED_SHORT, 0);
+
+    requestAnimationFrame(render);
+}
+
+// Pre-populate the snake with initial length
+for (let i = 0; i < state.baseLength; i++) {
+    const zOffset = i * state.speed;
+    state.snake.push({x: 0, y: 0, z: -zOffset});
+}
+
+// Start the application
+window.onload = main;
+
+</script>
+</body>
+</html>
