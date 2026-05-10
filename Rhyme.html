@@ -47,7 +47,6 @@
             z-index: 1;
         }
 
-        /* Dark filter over video */
         .video-overlay {
             position: absolute;
             top: 0;
@@ -56,28 +55,20 @@
             height: 100%;
             background: rgba(0, 0, 0, 0.85);
             z-index: 2;
-            transition: background 0.5s ease;
-        }
-
-        /* State when video is "Front and Center" */
-        .video-active .video-overlay {
-            background: rgba(0, 0, 0, 0);
-        }
-        .video-active .lock-content {
-            display: none; /* Hide text/input when watching */
         }
 
         .lock-content {
             position: relative;
             z-index: 3;
             text-align: center;
-            padding: 20px;
-            max-width: 600px;
+            padding: 15px;
+            max-width: 90%; /* Improved for mobile */
+            box-sizing: border-box;
         }
 
         .denied-text {
             color: var(--alert-red);
-            font-size: 3rem;
+            font-size: clamp(1.5rem, 8vw, 3rem); /* Responsive font size */
             font-weight: bold;
             letter-spacing: 5px;
             margin-bottom: 10px;
@@ -87,8 +78,9 @@
 
         .instruction-text {
             color: #ccc;
-            margin-bottom: 30px;
-            line-height: 1.5;
+            margin-bottom: 20px;
+            line-height: 1.4;
+            font-size: 0.9rem;
         }
 
         .social-link {
@@ -101,42 +93,35 @@
             background: transparent;
             border: 1px solid var(--neon-green);
             color: var(--neon-green);
-            padding: 10px;
+            padding: 12px;
             font-family: 'Courier New', monospace;
-            font-size: 1.2rem;
-            width: 80%;
+            font-size: 1rem;
+            width: 100%;
+            max-width: 300px;
             text-align: center;
             outline: none;
             box-shadow: 0 0 10px rgba(50, 205, 50, 0.2);
         }
 
-        /* New Video Control Buttons */
+        /* Fixed Button for Mobile Visibility */
         .video-toggle-btn {
-            margin-top: 25px;
-            padding: 10px 20px;
+            margin-top: 20px;
+            padding: 12px 24px;
             background: transparent;
-            border: 1px solid var(--alert-red);
+            border: 2px solid var(--alert-red);
             color: var(--alert-red);
             font-family: 'Courier New', monospace;
             cursor: pointer;
             z-index: 4;
             text-transform: uppercase;
             font-weight: bold;
+            display: inline-block;
+            width: auto;
         }
+
         .video-toggle-btn:hover {
             background: var(--alert-red);
             color: white;
-        }
-
-        #close-video {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: none;
-            z-index: 10000;
-            border-color: var(--neon-green);
-            color: var(--neon-green);
         }
 
         .hidden {
@@ -145,7 +130,7 @@
             pointer-events: none;
         }
 
-        /* --- ORIGINAL DOSSIER STYLES --- */
+        /* --- DOSSIER STYLES --- */
         #bg-canvas {
             position: fixed;
             top: 0;
@@ -156,27 +141,10 @@
 
         .container {
             max-width: 900px;
-            margin: 40px auto;
+            margin: 20px auto;
             padding: 20px;
             border: 2px solid var(--neon-green);
-            box-shadow: 0 0 20px rgba(50, 205, 50, 0.2);
             background: rgba(10, 10, 10, 0.9);
-            position: relative;
-        }
-
-        header {
-            border-bottom: 2px solid var(--neon-green);
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-        }
-
-        .status-bar {
-            font-size: 0.8rem;
-            color: var(--alert-red);
-            text-transform: uppercase;
         }
 
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
@@ -195,21 +163,12 @@
             height: 10px;
             background: var(--neon-green);
             width: 50%;
-            transition: width 0.1s ease;
         }
 
         .lyrics {
             white-space: pre-wrap;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             line-height: 1.6;
-            cursor: cell;
-        }
-
-        footer {
-            margin-top: 40px;
-            font-size: 0.7rem;
-            opacity: 0.6;
-            text-align: center;
         }
     </style>
 </head>
@@ -223,32 +182,30 @@
             frameborder="0" allow="autoplay; encrypted-media" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1.5); height: 100vh; width: 56.25vh; min-width: 320px;">
         </iframe>
     </div>
-    <div class="video-overlay" id="overlay"></div>
+    <div class="video-overlay"></div>
     
-    <div class="lock-content" id="lock-content">
+    <div class="lock-content">
         <div class="denied-text">ACCESS DENIED</div>
         <p class="instruction-text">
-            Non-vegan signature detected or identity not found in the database.<br><br>
-            If you are a vegan and not in the database yet, please contact <span class="social-link" onclick="window.open('https://youtube.com/@earthling_official?si=soNsKs6WupxdI0dW', '_blank')">Admin Earthling Official</span> on his socials.
+            Non-vegan signature detected.<br>
+            Identify not found in database.<br><br>
+            Contact <span class="social-link" onclick="window.open('https://youtube.com/@earthling_official?si=soNsKs6WupxdI0dW', '_blank')">Admin Earthling Official</span>.
         </p>
         <input type="text" id="passcode-input" placeholder="ENTER CLEARANCE CODE..." autocomplete="off">
         <p id="error-msg" style="color: red; margin-top: 10px; font-size: 0.8rem; display: none;">INVALID CLEARANCE CODE</p>
         <br>
-        <button class="video-toggle-btn" onclick="playVideoWithSound()">[ INTERCEPT SIGNAL: VIEW FEED ]</button>
+        <!-- Modified to open the direct YouTube link -->
+        <button class="video-toggle-btn" onclick="window.open('https://www.youtube.com/watch?v=Xf1Rd72banE', '_blank')">[ VIEW ORIGINAL FEED ]</button>
     </div>
-
-    <button id="close-video" class="video-toggle-btn" onclick="stopVideoSound()">[ EXIT FEED ]</button>
 </div>
 
-<!-- THE RHYME CONTENT -->
+<!-- CONTENT -->
 <canvas id="bg-canvas"></canvas>
 <div class="container">
     <header>
         <div>
-            <h1>CASE FILE: DEAN HYPHEN-WITHERS</h1>
-            <p>SUBSECTION: PARODY_DEFENSE_04</p>
+            <h1>CASE FILE: WITHERS-001</h1>
         </div>
-        <div class="status-bar">SYSTEM STATUS: ANALYSING HOMEOS-STASIS...</div>
     </header>
     <div class="meter-container">
         <label>HOMEOSTASIS LEVEL:</label>
@@ -259,29 +216,8 @@
 
 <script>
     const lockScreen = document.getElementById('lock-screen');
-    const overlay = document.getElementById('overlay');
-    const content = document.getElementById('lock-content');
-    const closeBtn = document.getElementById('close-video');
-    const videoFrame = document.getElementById('main-video');
     const input = document.getElementById('passcode-input');
     const SECRET_CODE = "ipledgetobeveganforeverearthling66";
-
-    // Function to "Bring video to front" and enable sound
-    function playVideoWithSound() {
-        // We reload the src without "mute=1" to allow sound
-        videoFrame.src = "https://www.youtube.com/embed/Xf1Rd72banE?autoplay=1&mute=0&loop=1&playlist=Xf1Rd72banE&controls=0";
-        overlay.style.background = "rgba(0,0,0,0)";
-        content.style.display = "none";
-        closeBtn.style.display = "block";
-    }
-
-    // Function to hide video and return to lock screen
-    function stopVideoSound() {
-        videoFrame.src = "https://www.youtube.com/embed/Xf1Rd72banE?autoplay=1&mute=1&loop=1&playlist=Xf1Rd72banE&controls=0";
-        overlay.style.background = "rgba(0,0,0,0.85)";
-        content.style.display = "block";
-        closeBtn.style.display = "none";
-    }
 
     input.addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
@@ -298,7 +234,6 @@
         }
     });
 
-    // Background Canvas Logic (Simplified)
     const canvas = document.getElementById('bg-canvas');
     const ctx = canvas.getContext('2d');
     canvas.width = window.innerWidth;
@@ -307,7 +242,6 @@
     for (let i = 0; i < canvas.width; i += 40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
     for (let j = 0; j < canvas.height; j += 40) { ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvas.width, j); ctx.stroke(); }
 
-    // Meter logic
     const meter = document.getElementById('meter-bar');
     document.addEventListener('mousemove', (e) => {
         let val = (e.clientX / window.innerWidth) * 100;
