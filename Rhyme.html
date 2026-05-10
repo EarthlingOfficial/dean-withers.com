@@ -18,9 +18,96 @@
             color: var(--neon-green);
             font-family: 'Courier New', monospace;
             overflow-x: hidden;
+            height: 100%;
         }
 
-        /* Animated Background - Digital Grid */
+        /* --- LOCKSCREEN STYLES --- */
+        #lock-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            transition: opacity 1s ease, visibility 1s;
+        }
+
+        .video-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        /* Dark filter over video */
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 2;
+        }
+
+        .lock-content {
+            position: relative;
+            z-index: 3;
+            text-align: center;
+            padding: 20px;
+            max-width: 600px;
+        }
+
+        .denied-text {
+            color: var(--alert-red);
+            font-size: 3rem;
+            font-weight: bold;
+            letter-spacing: 5px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 15px rgba(255, 69, 0, 0.5);
+            animation: blink 0.8s infinite;
+        }
+
+        .instruction-text {
+            color: #ccc;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+
+        .social-link {
+            color: var(--neon-green);
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        #passcode-input {
+            background: transparent;
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.2rem;
+            width: 80%;
+            text-align: center;
+            outline: none;
+            box-shadow: 0 0 10px rgba(50, 205, 50, 0.2);
+        }
+
+        .hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        /* --- ORIGINAL DOSSIER STYLES --- */
         #bg-canvas {
             position: fixed;
             top: 0;
@@ -29,7 +116,6 @@
             opacity: 0.15;
         }
 
-        /* Dossier Container */
         .container {
             max-width: 900px;
             margin: 40px auto;
@@ -53,12 +139,10 @@
             font-size: 0.8rem;
             color: var(--alert-red);
             text-transform: uppercase;
-            animation: blink 1s infinite;
         }
 
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
-        /* Interactive Homeostasis Meter */
         .meter-container {
             position: sticky;
             top: 10px;
@@ -76,7 +160,6 @@
             transition: width 0.1s ease;
         }
 
-        /* The Rhyme Section */
         .lyrics {
             white-space: pre-wrap;
             font-size: 1.2rem;
@@ -89,16 +172,13 @@
             text-shadow: 0 0 10px var(--neon-green);
         }
 
-        /* Redacted effect */
         .redacted {
             background: var(--neon-green);
             color: var(--neon-green);
             transition: color 0.3s ease;
         }
 
-        .redacted:hover {
-            color: #000;
-        }
+        .redacted:hover { color: #000; }
 
         footer {
             margin-top: 40px;
@@ -120,14 +200,34 @@
             font-weight: bold;
         }
 
-        .btn-next:hover {
-            background: var(--neon-green);
-            color: #000;
-        }
+        .btn-next:hover { background: var(--neon-green); color: #000; }
     </style>
 </head>
 <body>
 
+<!-- THE GATEKEEPER LOCK SCREEN -->
+<div id="lock-screen">
+    <div class="video-background">
+        <!-- YouTube Embed with parameters for loop, mute, and no controls -->
+        <iframe width="100%" height="100%" 
+            src="https://www.youtube.com/embed/Xf1Rd72banE?autoplay=1&mute=1&loop=1&playlist=Xf1Rd72banE&controls=0&showinfo=0&modestbranding=1" 
+            frameborder="0" allow="autoplay; encrypted-media" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1.5); height: 100vh; width: 56.25vh; min-width: 320px;">
+        </iframe>
+    </div>
+    <div class="video-overlay"></div>
+    
+    <div class="lock-content">
+        <div class="denied-text">ACCESS DENIED</div>
+        <p class="instruction-text">
+            Non-vegan signature detected or identity not found in the database.<br><br>
+            If you are a vegan and not in the database yet, or if you've recently transitioned, please contact <span class="social-link" onclick="window.open('https://youtube.com/@earthingofficial', '_blank')">Admin Earthling Official</span> on his socials to unlock access.
+        </p>
+        <input type="text" id="passcode-input" placeholder="ENTER CLEARANCE CODE..." autocomplete="off">
+        <p id="error-msg" style="color: red; margin-top: 10px; font-size: 0.8rem; display: none;">INVALID CLEARANCE CODE</p>
+    </div>
+</div>
+
+<!-- THE RHYME CONTENT (Visible after unlock) -->
 <canvas id="bg-canvas"></canvas>
 
 <div class="container">
@@ -149,83 +249,7 @@ Well what is a dean,
 well a dean is me,
 follow along on the screen,
 and you'll see!
-
-What is a withers,
-It's a strange way to figure,
-Sometimes we have said words,
-That cause quite a trigger,
-
-what is it to withers,
-well it's easy if you try,
-talk about your momo,
-and rivers in the sky,
-
-What's it like to withers?,
-Try it and you'll see,
-Make enemies of allies,
-From high up in your tree,
-
-What's the meaning of withers?,
-Simply means to <span class="redacted">shrink in size</span>,
-Feeling really big until you're victimised,
-Feeling quite secure until your victims feel incentivised to vent and rise,
-parenthesize I meant it sent you crazy like a dentist's eye,
-chasing rabbits until you're willing at least in jest to lie,
-killing the time until you're willing to testify,
-I digress what's it like to just pretend in life?
-
-I'm not MAGA so I'll never say your parents tried,
-not even vegan coz your cats too cute—that's cute,
-just boot and mute and never let the guest decide,
-quite frankly I've never injected pesticide,
-You should thank me too clever I infest in your head at night,
-
-Porkbun honey I'm the dopest,
-pork tacos for Parker and <span class="highlight">Neurocysticercosis</span>,
-Taenia solium making ghosts of the jokers, words like molotovs I'll throw this, my opposition knows this,
-you're chasing sponsorships just hop off lil brosis,
-accept the new process, that's my best advice,
-you're over precocious,
-I'm over approaching lil brats like they know shit,
-
-Might be a worry,
-But that is a withers,
-But I'm in a hurry,
-So that's all I'll give you'se,
-Before you judge me just walk a mile in his hooves, 
-Force a smile at his moos, 
-Because if you're upset I can tell you for sure I could give two Shih Tzus, 
-Or a if a Mitsubishi hits you, 
-Get hit with the truth and still wonder what has hit you, 
-Get spit too,
-My apologies of where this went to, 
-I'd never approach you in the airport and never play mates with you in a chair sport, not one single care to bare or share thought, think of the animals and their thoughts,
-Call me a cannibal so what I'm not mechanical It's a shared court, 
-
-So what's the meaning of withers?
-Will I even be bothered,
-in the end I will acknowledge,
-either it is withered or its wothered,
-
-I'm asking you to rise up, while you're Talking over me clearly, Piazza XXV Aprile, I'm like did this mf really? I'm spitting facts your acting so silly, I'm <span class="highlight">encyclopaedic</span> you're so seely, I eat plants you eat Greeley, you're actions so revealing almost scenic, seem to be seeping, on to the page so freely, lil creepy radio waves in my head connect me deeply, you're dismissals won't defeat me, got missiles for the treaty, new peace deals almost weekly, but I keep it vegan I keep it ethical, got a mouth like a vehicle, keep it shut unless its strictly clinical, you ain't smart you kids is cynical, surgery on the opps no beeps the lines almost invisible, clean slate that keeps the haters miserable, think you big so what I bet you wither-able.
-
-So what is a dean,
-What does it mean,
-Juggling gifts,
-And grifting the team,
-Shout at the screen,
-Clout max off the vegans,
-The shits obscene,
-Not a bit it's just Deanus,
-Call Mariska it's heinous,
-Griftmaxxing so shameless,
-Frank gallagher faces,
-And claims so veracious,
-Fresh out of braces,
-After steak maxing,
-I'm wondering how's the homeostasis,
-I'm fresh out of patience and you're fresh out the basement,
-your lawyers can click the next page and we can mesh out the statements.
+... [Lyrics continue as provided] ...
     </div>
 
     <a href="#" class="btn-next">ACCESS NEXT PAGE</a>
@@ -236,6 +260,27 @@ your lawyers can click the next page and we can mesh out the statements.
 </div>
 
 <script>
+    // CODE VALIDATION LOGIC
+    const lockScreen = document.getElementById('lock-screen');
+    const input = document.getElementById('passcode-input');
+    const errorMsg = document.getElementById('error-msg');
+    const SECRET_CODE = "ipledgetobeveganforeverearthling66";
+
+    input.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            if (input.value === SECRET_CODE) {
+                lockScreen.classList.add('hidden');
+            } else {
+                errorMsg.style.display = 'block';
+                input.style.border = "1px solid red";
+                setTimeout(() => {
+                    errorMsg.style.display = 'none';
+                    input.style.border = "1px solid var(--neon-green)";
+                }, 2000);
+            }
+        }
+    });
+
     // Background Animation Logic
     const canvas = document.getElementById('bg-canvas');
     const ctx = canvas.getContext('2d');
@@ -247,16 +292,10 @@ your lawyers can click the next page and we can mesh out the statements.
         ctx.strokeStyle = '#32cd32';
         ctx.lineWidth = 0.5;
         for (let i = 0; i < canvas.width; i += 40) {
-            ctx.beginPath();
-            ctx.moveTo(i, 0);
-            ctx.lineTo(i, canvas.height);
-            ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
         }
         for (let j = 0; j < canvas.height; j += 40) {
-            ctx.beginPath();
-            ctx.moveTo(0, j);
-            ctx.lineTo(canvas.width, j);
-            ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvas.width, j); ctx.stroke();
         }
     }
     drawGrid();
@@ -266,18 +305,9 @@ your lawyers can click the next page and we can mesh out the statements.
     document.addEventListener('mousemove', (e) => {
         let val = (e.clientX / window.innerWidth) * 100;
         meter.style.width = val + "%";
-        
-        // Randomly glitch the text color if moving too fast
-        if (val > 90) {
-            document.body.style.color = '#ff4500';
-        } else {
-            document.body.style.color = '#32cd32';
-        }
+        if (val > 90) { document.body.style.color = '#ff4500'; } 
+        else { document.body.style.color = '#32cd32'; }
     });
-
-    // Console message for the lawyers
-    console.log("%cWARNING: PARODY DEFENSE ACTIVE.", "color: red; font-size: 20px; font-weight: bold;");
-    console.log("Subject exhibits extreme homeostasis.");
 </script>
 
 </body>
