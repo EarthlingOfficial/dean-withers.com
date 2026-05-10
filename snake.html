@@ -3,38 +3,46 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        body { margin: 0; overflow: hidden; background: #87CEEB; font-family: 'Courier New', Courier, monospace; }
+        body { margin: 0; overflow: hidden; background: #5c94fc; font-family: 'Courier New', Courier, monospace; }
         canvas { display: block; }
-        #ui { position: absolute; top: 10px; left: 10px; color: #FFF; text-shadow: 2px 2px #000; font-size: 24px; pointer-events: none; }
-        #msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: white; text-shadow: 3px 3px #000; font-size: 30px; display: block; }
+        #ui { position: absolute; top: 10px; left: 10px; color: #FFF; text-shadow: 2px 2px #000; font-size: 24px; pointer-events: none; z-index: 10; }
+        #msg { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            text-align: center; color: #ffeb3b; text-shadow: 4px 4px #e91e63; 
+            font-size: 40px; font-weight: bold; width: 100%;
+        }
+        .flash { animation: blink 0.5s infinite; color: #fff; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } }
     </style>
 </head>
 <body>
-    <div id="ui">ENERGY: <span id="score">100</span></div>
-    <div id="msg">TAP TO START<br><small style="font-size: 15px;">(STAY VEGAN - EAT FRUIT!)</small></div>
+    <div id="ui">ENERGY: <span id="score">100</span> | DIST: <span id="dist">0</span></div>
+    <div id="msg">VEGAN BROS.<br><small style="font-size: 20px; color: white; text-shadow: 2px 2px #000;">TAP TO START<br>STAY VEGAN - AVOID THE MEAT!</small></div>
     <canvas id="gameCanvas"></canvas>
 
 <script>
 /** 8-BIT AUDIO ENGINE **/
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-function playSound(freq, type, duration, vol) {
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-    if (type === 'square') osc.frequency.exponentialRampToValueAtTime(freq * 2, audioCtx.currentTime + duration);
-    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + duration);
+function playSound(freq, type, duration, vol, slide = 0) {
+    try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        if (slide) osc.frequency.exponentialRampToValueAtTime(freq + slide, audioCtx.currentTime + duration);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    } catch(e) {}
 }
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score');
+const distEl = document.getElementById('dist');
 const msgEl = document.getElementById('msg');
 
 canvas.width = window.innerWidth;
@@ -43,30 +51,38 @@ canvas.height = window.innerHeight;
 let gameActive = false;
 let energy = 100;
 let distance = 0;
+let lastMilestone = 0;
+let powerUpTimer = 0;
 
-const player = { x: 80, y: 0, w: 40, h: 60, dy: 0, grounded: false, frame: 0 };
+const player = { x: 80, y: 0, w: 50, h: 50, dy: 0, grounded: false, char: "👦" };
+const fruits = ["🍎", "🍐", "🍓", "🍊", "🥦", "🥕"];
+const meats = ["🥩", "🍖", "🍔", "🥓"];
+
 let obstacles = [];
 let items = [];
+let effects = [];
 
-// Input
 function handleInput() {
     if (!gameActive) {
         resetGame();
         return;
     }
     if (player.grounded) {
-        player.dy = -14;
+        const jumpForce = powerUpTimer > 0 ? -20 : -14;
+        player.dy = jumpForce;
         player.grounded = false;
-        playSound(150, 'square', 0.1, 0.1); // Jump sound
+        playSound(200, 'square', 0.15, 0.1, 400); // Mario-ish jump
     }
 }
 
-window.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(); }, {passive: false});
 window.addEventListener('mousedown', handleInput);
+window.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(); }, {passive: false});
 
 function resetGame() {
     energy = 100;
     distance = 0;
+    lastMilestone = 0;
+    powerUpTimer = 0;
     obstacles = [];
     items = [];
     gameActive = true;
@@ -74,46 +90,79 @@ function resetGame() {
     if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
+function spawnEffect(text, x, y) {
+    effects.push({ text, x, y, life: 60 });
+}
+
 function update() {
     if (!gameActive) return;
 
-    // Auto-scroll logic
-    distance += 5;
-    energy -= 0.05; // Constant decay (hunger)
+    distance += 1;
+    energy -= 0.04;
+    if (powerUpTimer > 0) powerUpTimer--;
+
     scoreEl.innerText = Math.ceil(energy);
+    distEl.innerText = Math.floor(distance);
+
+    // Milestone Check
+    if (Math.floor(distance / 500) > lastMilestone) {
+        lastMilestone = Math.floor(distance / 500);
+        spawnEffect("MILESTONE! SPEED UP!", canvas.width/2 - 100, canvas.height/2);
+        playSound(500, 'square', 0.3, 0.1, 500);
+    }
 
     // Physics
     player.dy += 0.7;
     player.y += player.dy;
-    player.frame++;
-
-    const groundLevel = canvas.height - 60;
+    const groundLevel = canvas.height - 80;
     if (player.y + player.h > groundLevel) {
         player.y = groundLevel - player.h;
         player.dy = 0;
         player.grounded = true;
     }
 
-    // Spawn Logic
-    if (Math.random() < 0.01) obstacles.push({ x: canvas.width, y: groundLevel - 40, w: 30, h: 40 });
-    if (Math.random() < 0.015) items.push({ x: canvas.width, y: groundLevel - 100 - Math.random()*50, w: 25, h: 25 });
+    // Spawning
+    if (Math.random() < 0.02) {
+        obstacles.push({ x: canvas.width, y: groundLevel - 40, char: meats[Math.floor(Math.random()*meats.length)] });
+    }
+    if (Math.random() < 0.02) {
+        // High fruits only reachable with power-up
+        const high = Math.random() < 0.3;
+        items.push({ 
+            x: canvas.width, 
+            y: high ? groundLevel - 220 : groundLevel - 110, 
+            char: high ? "🍌" : fruits[Math.floor(Math.random()*fruits.length)],
+            type: 'food'
+        });
+    }
+    if (Math.random() < 0.003) { // Rare Power-up
+        items.push({ x: canvas.width, y: groundLevel - 110, char: "🍄", type: 'powerup' });
+    }
 
-    // Move & Collide
+    // Obstacle Logic
     obstacles.forEach((obs, i) => {
-        obs.x -= 6;
-        if (player.x < obs.x + obs.w && player.x + player.w > obs.x && player.y < obs.y + obs.h && player.y + player.h > obs.y) {
-            energy -= 10;
-            playSound(60, 'sawtooth', 0.2, 0.2); // Hit sound
+        obs.x -= (6 + (distance/500));
+        if (player.x < obs.x + 30 && player.x + 30 > obs.x && player.y < obs.y + 30 && player.y + 30 > obs.y) {
+            energy -= 20;
+            playSound(100, 'sawtooth', 0.3, 0.2, -50); // Bad sound
             obstacles.splice(i, 1);
+            spawnEffect("OUCH! MEAT!", player.x, player.y - 20);
         }
         if (obs.x < -50) obstacles.splice(i, 1);
     });
 
+    // Item Logic
     items.forEach((item, i) => {
         item.x -= 6;
-        if (player.x < item.x + item.w && player.x + player.w > item.x && player.y < item.y + item.h && player.y + player.h > item.y) {
-            energy = Math.min(100, energy + 15);
-            playSound(800, 'sine', 0.1, 0.1); // Ping sound
+        if (player.x < item.x + 30 && player.x + 30 > item.x && player.y < item.y + 30 && player.y + 30 > item.y) {
+            if (item.type === 'powerup') {
+                powerUpTimer = 400;
+                playSound(400, 'sine', 0.4, 0.1, 600);
+                spawnEffect("SUPER JUMP!", player.x, player.y - 20);
+            } else {
+                energy = Math.min(100, energy + 10);
+                playSound(600, 'sine', 0.1, 0.1, 200); // Good sound
+            }
             items.splice(i, 1);
         }
         if (item.x < -50) items.splice(i, 1);
@@ -122,48 +171,43 @@ function update() {
     if (energy <= 0) {
         gameActive = false;
         msgEl.style.display = 'block';
-        msgEl.innerHTML = "OUT OF ENERGY!<br>FINAL DISTANCE: " + Math.floor(distance/10) + "<br>TAP TO TRY AGAIN";
+        msgEl.innerHTML = "OUT OF ENERGY!<br><small style='font-size:20px'>YOU TRAVELED " + Math.floor(distance) + "m</small><br>TAP TO TRY AGAIN";
     }
 }
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Ground
-    ctx.fillStyle = '#795548';
-    ctx.fillRect(0, canvas.height - 60, canvas.width, 60);
-    ctx.fillStyle = '#8BC34A';
-    ctx.fillRect(0, canvas.height - 60, canvas.width, 10);
+    // Ground (Mario style)
+    ctx.fillStyle = '#e07b39';
+    ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
+    ctx.fillStyle = '#9acd32';
+    ctx.fillRect(0, canvas.height - 80, canvas.width, 15);
 
     // Player
-    ctx.save();
-    ctx.translate(player.x, player.y);
-    ctx.fillStyle = '#4CAF50';
-    ctx.beginPath(); // Leaf body
-    ctx.ellipse(20, 30, 18, 28, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = 'white'; // Eyes
-    ctx.fillRect(22, 15, 8, 8); ctx.fillRect(10, 15, 8, 8);
-    const leg = Math.sin(player.frame * 0.2) * 10;
-    ctx.strokeStyle = '#2E7D32'; ctx.lineWidth = 4;
-    ctx.strokeRect(10 + (leg/2), 55, 5, 10); // Simple walking legs
-    ctx.strokeRect(25 - (leg/2), 55, 5, 10);
-    ctx.restore();
+    ctx.font = powerUpTimer > 0 ? "60px Arial" : "50px Arial";
+    ctx.fillText(player.char, player.x, player.y + 45);
+    if (powerUpTimer > 0) {
+        ctx.font = "14px Courier";
+        ctx.fillStyle = "white";
+        ctx.fillText("POWERED UP!", player.x - 10, player.y - 10);
+    }
 
-    // Obstacles (Snails)
-    ctx.fillStyle = '#FF5722';
-    obstacles.forEach(o => {
-        ctx.beginPath();
-        ctx.arc(o.x + 15, o.y + 25, 15, 0, Math.PI, true);
-        ctx.fill();
-    });
+    // Draw Obstacles
+    ctx.font = "40px Arial";
+    obstacles.forEach(o => ctx.fillText(o.char, o.x, o.y + 35));
 
-    // Items (Fruit)
-    ctx.fillStyle = '#E91E63';
-    items.forEach(item => {
-        ctx.beginPath();
-        ctx.arc(item.x + 12, item.y + 12, 10, 0, Math.PI * 2);
-        ctx.fill();
+    // Draw Items
+    items.forEach(item => ctx.fillText(item.char, item.x, item.y + 35));
+
+    // Floating Text Effects
+    ctx.font = "bold 25px Courier New";
+    ctx.fillStyle = "white";
+    effects.forEach((eff, i) => {
+        ctx.fillText(eff.text, eff.x, eff.y);
+        eff.y -= 1;
+        eff.life--;
+        if (eff.life <= 0) effects.splice(i, 1);
     });
 
     update();
