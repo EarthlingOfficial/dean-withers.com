@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Wildlife Archive | Deanus Politicus</title>
+    <title>Official Home | Earthling Official</title>
     
     <link rel="canonical" href="https://earthlingofficial.com/" />
     <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
@@ -29,9 +29,10 @@
             pointer-events: none;
             text-align: center;
         }
-        .disclaimer { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; color: #ff3e3e; margin-bottom: 10px; font-weight: bold; }
+        .official-badge { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; color: #fff; margin-bottom: 10px; font-weight: bold; border: 1px solid #fff; padding: 5px 10px; display: inline-block; }
         h1 { font-size: 3rem; margin-bottom: 5px; font-style: italic; color: #f0f0f0; }
-        .species { font-size: 1.2rem; color: #aaa; margin-bottom: 30px; letter-spacing: 1px; }
+        .species { font-size: 1.2rem; color: #aaa; margin-bottom: 10px; letter-spacing: 1px; }
+        .debate-history { font-size: 0.9rem; color: #ff3e3e; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: bold; }
         
         .enter-button { display: inline-block; padding: 15px 40px; background: transparent; border: 2px solid #fff; color: #fff; text-decoration: none; font-weight: bold; text-transform: uppercase; transition: all 0.3s ease; cursor: pointer; margin-bottom: 5px; width: 100%; max-width: 400px; }
         .enter-button:hover { background: #fff; color: #000; }
@@ -49,10 +50,11 @@
             transition: 0.3s;
         }
         .legal-btn:hover { color: #fff; border-color: #fff; background: rgba(255,255,255,0.1); }
-        .anxiety-note { font-family: 'Courier New', monospace; font-size: 0.8rem; color: #ff3e3e; margin-bottom: 15px; }
+        .anxiety-note { font-family: 'Courier New', monospace; font-size: 0.8rem; color: #666; margin-bottom: 15px; }
         
-        /* Music Attribution Fine Print */
-        .music-attribution { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        /* Music Attribution & Coming Soon */
+        .music-attribution { font-size: 10px; color: rgba(255,255,255,0.8); margin-top: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        .coming-soon { color: #ff3e3e; font-weight: bold; display: block; margin-top: 2px; }
 
         .socials { display: flex; justify-content: center; gap: 15px; margin-top: 25px; flex-wrap: wrap; }
         .btn-pro { text-decoration: none; font-weight: bold; font-size: 0.8rem; text-transform: uppercase; padding: 10px 20px; border-radius: 5px; transition: 0.3s; display: flex; align-items: center; gap: 8px; }
@@ -66,7 +68,6 @@
         
         .bottom-actions { display: flex; flex-direction: column; align-items: center; margin-bottom: 40px; }
 
-        /* The Legal Shield Footer */
         footer { 
             position: relative; 
             z-index: 10; 
@@ -89,16 +90,20 @@
     <div class="overlay"></div>
     <div id="scribble-container"></div>
     <div class="content">
-        <p style="font-size: 0.7rem; letter-spacing: 3px; color: rgba(255,255,255,0.5); text-transform: uppercase; margin-bottom: 20px;">An Earthling production</p>
-        <p class="disclaimer">Official Disclaimer: This site is not affiliated with, endorsed by, or representative of Dean Withers.</p>
+        <p style="font-size: 0.7rem; letter-spacing: 3px; color: rgba(255,255,255,0.7); text-transform: uppercase; margin-bottom: 20px;">The Official Home of Earthling Official</p>
+        <div class="official-badge">Verified Primary Domain</div>
         <h1>Wildlife Archive</h1>
-        <p class="species">Species: <em>Deanus Politicus Carnivorus Paradoxus</em></p>
+        <p class="species">Cataloging: <em>Deanus Politicus Carnivorus Paradoxus</em></p>
+        <p class="debate-history">Veteran of 11 Debates & Counting</p>
         
         <a href="quiz.html" class="enter-button">Enter the Pen Here</a>
         <p class="anxiety-note">(Not an anxiety pen)</p>
         
         <button id="musicBtn" class="enter-button">Play Music</button>
-        <p class="music-attribution">Production: Taysty & Boss Beats / Caskey (Non-Commercial Use)</p>
+        <p class="music-attribution">
+            Prod. Taysty & Boss Beats | Vocals: Caskey
+            <span class="coming-soon">Full track featuring Earthling coming soon</span>
+        </p>
 
         <audio id="bgMusic" loop>
             <source src="170-sober-off-life-boss-beats-x-taysty-beats_TK10970402.mp3(1).mp3" type="audio/mpeg">
@@ -110,13 +115,13 @@
         </div>
         
         <div class="bottom-actions">
-            <a href="legal.html" class="legal-btn">Legal Compliance & Disclosure</a>
+            <a href="legal.html" class="legal-btn">Official Disclosure & Intellectual Property</a>
             <a href="keepdeansafe.html" class="legal-btn">Keep Dean Safe</a>
         </div>
     </div>
 
     <footer>
-        NON-COMMERCIAL COMPLIANCE & ATTRIBUTION: THIS WEBSITE IS A STRICTLY NON-COMMERCIAL, PRIVATE ARCHIVE USED FOR PUBLIC INTEREST DOCUMENTATION, PARODY, AND CRITIQUE UNDER THE AUSTRALIAN COPYRIGHT ACT 1968 (SECTION 41A). ALL CREATIVE AND MUSICAL ELEMENTS ARE TRANSFORMATIVE CHARACTER ANALYSIS. NO REVENUE IS GENERATED FROM THIS SITE, NO PRODUCTS ARE FOR SALE, AND NO COMMERCIAL RELATIONSHIP EXISTS WITH THE SUBJECT.
+        OFFICIAL NOTICE: All media, terminology, and branding are the property of Earthling Official. This archive serves as a factual record of public conduct and intellectual property. All rights reserved. No unauthorized duplication of Earthling Official content permitted.
     </footer>
 
     <script>
