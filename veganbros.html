@@ -160,16 +160,10 @@ function update() {
     obstacles.forEach((obs, i) => {
         obs.x += obs.dx; obs.y += obs.dy;
         if (player.x < obs.x + 35 && player.x + 35 > obs.x && player.y < obs.y + 40 && player.y + player.h > obs.y) {
-            if (rainbowTimer > 0) { 
-                obstacles.splice(i, 1); 
-                playSound(800, 'sine', 0.1, 0.1, 200); 
-            } else { 
-                // CUSTOM DAMAGE CHUNKS
-                energy -= 40; 
-                obstacles.splice(i, 1); 
-                playSound(150, 'sawtooth', 0.2, 0.2, -50);
-                scoreEl.style.color = "red";
-                setTimeout(() => { scoreEl.style.color = "white"; }, 200);
+            if (rainbowTimer > 0) { obstacles.splice(i, 1); playSound(800, 'sine', 0.1, 0.1, 200); }
+            else { 
+                energy -= 40; // Only change: reduce energy instead of instant death
+                obstacles.splice(i, 1);
                 if (energy <= 0) die("MEAT"); 
             }
         }
