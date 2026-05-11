@@ -53,6 +53,7 @@ let gameActive = false, energy = 100, distance = 0, currentWorld = 1, worldDista
 let powerUpTimer = 0, rainbowTimer = 0, jumpCount = 0, bgRainbowX = 0;
 let canRestart = false; 
 
+// Hidden Internal Logic for the Shark
 let hiddenSeaTimer = 0;
 let bigShark = { active: false, x: -400, y: 0 };
 
@@ -131,52 +132,74 @@ function update() {
 
     if (currentWorld === 5) {
         hiddenSeaTimer += 2;
+        
+        // Shark Attack Sequence
         if (hiddenSeaTimer > 8000 && hiddenSeaTimer < 10000) {
-            ctx.fillStyle = "rgba(255,0,0,0.1)";
+            ctx.fillStyle = "rgba(255,0,0,0.1)"; // Red tint warning
             ctx.fillRect(0,0,canvas.width,canvas.height);
         }
+
         if (hiddenSeaTimer >= 10000) {
             bigShark.active = true;
             bigShark.x += 6;
             bigShark.y = player.y - 100;
+            
+            // Big Shark Collision (Game Over)
             if (bigShark.x + 280 > player.x && bigShark.x < player.x + 40) {
                 if (player.y < bigShark.y + 240 && player.y + player.h > bigShark.y) {
-                    playSound(100, 'sawtooth', 0.5, 0.3);
                     die("SHARK");
                 }
             }
         }
+
         if (player.y > canvas.height) {
-            currentWorld = 4; hiddenSeaTimer = 0; bigShark.active = false; bigShark.x = -400;
-            obstacles = []; items = []; pitfalls = []; pipes = []; player.y = -50;
+            // Escape back to World 4
+            currentWorld = 4;
+            hiddenSeaTimer = 0;
+            bigShark.active = false;
+            bigShark.x = -400;
+            obstacles = []; items = []; pitfalls = []; pipes = [];
+            player.y = -50;
             document.body.style.background = worldSettings[4].bg;
-            playSound(100, 'sine', 0.5, 0.1);
+            playSound(100, 'sawtooth', 0.5, 0.2);
         }
     } else if (player.y + player.h > groundLevel) {
         if (isFalling) {
             if (player.y > canvas.height) {
                 if (currentWorld === 4) {
-                    currentWorld = 5; obstacles = []; items = []; pitfalls = []; pipes = []; player.y = -50;
+                    currentWorld = 5;
+                    obstacles = []; items = []; pitfalls = []; pipes = [];
+                    player.y = -50;
                     document.body.style.background = worldSettings[5].bg;
-                    playSound(400, 'sine', 0.5, 0.1, -200);
-                } else die("FALL");
+                } else {
+                    die("FALL");
+                }
             }
         } else {
-            player.y = groundLevel - player.h; player.dy = 0; player.grounded = true; jumpCount = 0;
+            player.y = groundLevel - player.h;
+            player.dy = 0;
+            player.grounded = true;
+            jumpCount = 0;
         }
     }
 
+    // Hazard Spawning
     if (Math.random() < 0.025) {
         let obsType = worldSettings[currentWorld].hazards[Math.floor(Math.random()*worldSettings[currentWorld].hazards.length)];
         let obsX, obsY, dx, dy;
+
         if (obsType === "🔥") { 
             let isSniper = Math.random() < 0.20;
             obsX = isSniper ? player.x + 10 : Math.random() * canvas.width;
             obsY = -50; dy = 9; dx = -1; 
         } else if (currentWorld === 5) {
-            obsX = canvas.width; obsY = Math.random() * canvas.height; dx = -7; dy = 0;
+            obsX = canvas.width;
+            obsY = Math.random() * canvas.height;
+            dx = -7; dy = 0;
         } else {
-            obsX = canvas.width; obsY = groundLevel - 45; dx = -(8 + currentWorld); dy = 0;
+            obsX = canvas.width;
+            obsY = groundLevel - 45;
+            dx = -(8 + currentWorld); dy = 0;
         }
         obstacles.push({ x: obsX, y: obsY, char: obsType, dx: dx, dy: dy });
     }
@@ -186,38 +209,50 @@ function update() {
     if (worldDistance > 2500 && pipes.length === 0 && currentWorld < 4) pipes.push({ x: canvas.width + 100, y: canvas.height - 150, w: 70, h: 70 });
     if (Math.random() < 0.006 && currentWorld !== 5) pitfalls.push({ x: canvas.width, w: 120 });
 
-    pipes.forEach(p => p.x -= 8);
+    pipes.forEach((p, i) => {
+        p.x -= 8;
+        if (player.x + player.w > p.x && player.x < p.x + p.w && player.y + player.h > p.y) {
+            currentWorld++; worldDistance = 0; player.y = -100;
+            obstacles = []; items = []; pitfalls = []; pipes = [];
+            document.body.style.background = worldSettings[currentWorld].bg;
+        }
+    });
+
     obstacles.forEach((obs, i) => {
         obs.x += obs.dx; obs.y += obs.dy;
-        if (player.x < obs.x + 30 && player.x + 40 > obs.x && player.y + 30 < obs.y + 40 && player.y + player.h > obs.y) {
-            if (rainbowTimer > 0) {
+        let hitX = (player.x < obs.x + 30 && player.x + 40 > obs.x);
+        let hitY = (player.y + 30 < obs.y + 40 && player.y + player.h > obs.y);
+        if (hitX && hitY) {
+            if (rainbowTimer > 0) { obstacles.splice(i, 1); } 
+            else { 
+                energy -= (currentWorld === 4 || currentWorld === 5) ? 25 : 40;
                 obstacles.splice(i, 1);
-                playSound(600, 'sine', 0.1, 0.1);
-            } else { 
-                energy -= (currentWorld >= 4) ? 25 : 40; 
-                playSound(150, 'sawtooth', 0.2, 0.2, -50);
-                obstacles.splice(i, 1); 
-                if (energy <= 0) die("MEAT"); 
+                if (energy <= 0) { die("MEAT"); return; }
             }
         }
     });
-    items.forEach((it, i) => { 
-        it.x -= 8; 
-        if (player.x < it.x + 35 && player.x + 35 > it.x && player.y < it.y + 35 && player.y + player.h > it.y) { 
-            energy = Math.min(100, energy + 10); 
-            playSound(800, 'sine', 0.1, 0.1);
-            items.splice(i, 1); 
-        } 
+
+    items.forEach((item, i) => {
+        item.x -= 8;
+        if (player.x < item.x + 35 && player.x + 35 > item.x && player.y < item.y + 35 && player.y + player.h > item.y) {
+            energy = Math.min(100, energy + 10);
+            items.splice(i, 1);
+        }
     });
-    pitfalls.forEach(p => p.x -= 8);
-    decor.forEach(d => d.x -= d.speed);
-    if (energy <= 0) die("ENERGY");
+
+    pitfalls.forEach((p, i) => { p.x -= 8; });
+    decor.forEach((d, i) => { d.x -= d.speed; });
 }
 
 function die(type) {
     if (!gameActive) return;
     gameActive = false; canRestart = false; 
-    let msg = type === "SHARK" ? "EATEN BY THE BIG SHARK! 🦈" : type === "FALL" ? "YOU FELL TO YOUR DEATH" : type === "ENERGY" ? "OUT OF ENERGY!" : "MEAT DEATH ☠️";
+    let msg = "";
+    if (type === "SHARK") msg = "EATEN BY THE BIG SHARK! 🦈";
+    else if (type === "FALL") msg = "YOU FELL TO YOUR DEATH";
+    else if (type === "ENERGY") msg = "OUT OF ENERGY!";
+    else msg = "MEAT DEATH ☠️";
+    
     msgEl.style.display = 'block';
     msgEl.innerHTML = msg + "<br><small style='font-size:22px; color:white;'>DIST: " + Math.floor(distance) + "m</small><br>TAP TWICE TO RESTART";
 }
@@ -225,6 +260,7 @@ function die(type) {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const s = worldSettings[currentWorld];
+
     ctx.font = "50px Arial";
     decor.forEach(d => ctx.fillText(d.char, d.x, d.y));
     
@@ -232,35 +268,25 @@ function draw() {
         ctx.fillStyle = s.floor; ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
         ctx.fillStyle = s.ground; ctx.fillRect(0, canvas.height - 80, canvas.width, 15);
         ctx.fillStyle = s.bg; pitfalls.forEach(p => ctx.fillRect(p.x, canvas.height - 81, p.w, 82));
-    } else if (bigShark.active) {
-        ctx.font = "300px Arial"; ctx.fillText("🦈", bigShark.x, bigShark.y + 200);
+    } else {
+        if (bigShark.active) {
+            ctx.font = "300px Arial";
+            ctx.fillText("🦈", bigShark.x, bigShark.y + 200);
+        }
     }
     
     ctx.fillStyle = "#2ecc71";
     pipes.forEach(p => { ctx.fillRect(p.x, p.y, p.w, p.h); ctx.fillRect(p.x + 10, p.y + p.h, p.w - 20, canvas.height); });
-    
+
     player.frame += 0.25;
     const px = player.x, py = player.y;
-
-    // RESTORED LEGS ANIMATION
-    if (currentWorld !== 5) {
-        const runCycle = Math.sin(player.frame) * 15;
-        ctx.strokeStyle = "#333"; ctx.lineWidth = 4; ctx.beginPath();
-        if (!player.grounded) { 
-            ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 10, py + 80); 
-            ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 30, py + 80); 
-        } else { 
-            ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 20 + runCycle, py + 90); 
-            ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 20 - runCycle, py + 90); 
-        }
-        ctx.stroke();
-    }
-
     let bodyColor = (rainbowTimer > 0) ? `hsl(${Date.now() % 360}, 80%, 50%)` : "#27ae60";
+
     ctx.fillStyle = bodyColor; ctx.fillRect(px + 10, py + 40, 20, 30);
     ctx.font = "45px Arial"; ctx.fillText(player.head, px, py + 45);
     obstacles.forEach(o => ctx.fillText(o.char, o.x, o.y + 40));
     items.forEach(it => ctx.fillText(it.char, it.x, it.y + 40));
+
     update();
     requestAnimationFrame(draw);
 }
