@@ -18,14 +18,13 @@
     <div id="msg">VEGAN BROS.<br>
         <small style="font-size: 22px; color: white; text-shadow: 2px 2px #000;">
             TAP TO JUMP | ENTER PIPES TO WARP<br>
-            <span style="color: #afff94;">EAT FRUITS & VEGGIES</span> | <span style="color: #ff9494;">AVOID THE MEAT</span><br>
+            <span style="color: #afff94;">EAT FRUITS & VEGGIES</span> | <span style="color: #ff9494;">SMASH MEAT WITH RAINBOWS</span><br>
             STAY VEGAN! REACH 100,000m!
         </small>
     </div>
     <canvas id="gameCanvas"></canvas>
 
 <script>
-/** AUDIO **/
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 function playSound(freq, type, duration, vol, slide = 0) {
     try {
@@ -51,18 +50,10 @@ const worldEl = document.getElementById('worldNum');
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-let gameActive = false;
-let energy = 100;
-let distance = 0;
-let currentWorld = 1;
-let worldDistance = 0; 
-let powerUpTimer = 0;
-let jumpCount = 0;
+let gameActive = false, energy = 100, distance = 0, currentWorld = 1, worldDistance = 0; 
+let powerUpTimer = 0, rainbowTimer = 0, jumpCount = 0, bgRainbowX = 0;
 
-const player = { 
-    x: 100, y: 0, w: 50, h: 80, dy: 0, 
-    grounded: false, head: "👦", frame: 0 
-};
+const player = { x: 100, y: 0, w: 40, h: 90, dy: 0, grounded: false, head: "👦", frame: 0 };
 
 const worldSettings = {
     1: { bg: "#5c94fc", ground: "#9acd32", floor: "#e07b39", items: ["🍎", "🍐", "🥦"], hazards: ["🥩", "🍖"], deco: "☁️" },
@@ -71,7 +62,7 @@ const worldSettings = {
     4: { bg: "#000000", ground: "#576574", floor: "#222f3e", items: ["🥥"], hazards: ["🔥", "🥛"], deco: "☄️" }
 };
 
-let obstacles = [], items = [], effects = [], decor = [], pipes = [], pitfalls = [];
+let obstacles = [], items = [], decor = [], pipes = [], pitfalls = [];
 
 function handleInput() {
     if (!gameActive) { resetGame(); return; }
@@ -88,7 +79,8 @@ window.addEventListener('mousedown', handleInput);
 window.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(); }, {passive: false});
 
 function resetGame() {
-    energy = 100; distance = 0; currentWorld = 1; worldDistance = 0; powerUpTimer = 0;
+    energy = 100; distance = 0; currentWorld = 1; worldDistance = 0; 
+    powerUpTimer = 0; rainbowTimer = 0;
     obstacles = []; items = []; decor = []; pipes = []; pitfalls = [];
     gameActive = true;
     msgEl.style.display = 'none';
@@ -99,10 +91,11 @@ function resetGame() {
 function update() {
     if (!gameActive) return;
 
-    distance += 2; 
-    worldDistance += 2;
+    distance += 2; worldDistance += 2;
     energy -= 0.03;
     if (powerUpTimer > 0) powerUpTimer--;
+    if (rainbowTimer > 0) rainbowTimer--;
+    bgRainbowX -= 1; // Slow background scroll
 
     scoreEl.innerText = Math.ceil(energy);
     distEl.innerText = Math.floor(distance);
@@ -111,7 +104,7 @@ function update() {
     if (distance >= 100000) {
         gameActive = false;
         msgEl.style.display = 'block';
-        msgEl.innerHTML = "🏆 100,000m REACHED! 🏆<br><small style='font-size:20px'>YOU ARE THE ULTIMATE VEGAN BARKEEP!</small>";
+        msgEl.innerHTML = "🏆 100,000m REACHED! 🏆<br>LEGENDARY VEGAN!";
         return;
     }
 
@@ -119,8 +112,7 @@ function update() {
     player.y += player.dy;
     const groundLevel = canvas.height - 80;
 
-    let isFalling = pitfalls.some(p => player.x + 25 > p.x && player.x + 25 < p.x + p.w);
-    
+    let isFalling = pitfalls.some(p => player.x + 20 > p.x && player.x + 20 < p.x + p.w);
     if (player.y + player.h > groundLevel) {
         if (isFalling) {
             if (player.y > canvas.height) die("YOU FELL INTO A PIT!");
@@ -132,10 +124,12 @@ function update() {
         }
     }
 
-    if (Math.random() < 0.02) obstacles.push({ x: canvas.width, y: groundLevel - 40, char: worldSettings[currentWorld].hazards[Math.floor(Math.random()*2)] });
-    if (Math.random() < 0.015) items.push({ x: canvas.width, y: groundLevel - 110, char: worldSettings[currentWorld].items[Math.floor(Math.random()*worldSettings[currentWorld].items.length)], type: 'food' });
+    // Spawning logic
+    if (Math.random() < 0.02) obstacles.push({ x: canvas.width, y: groundLevel - 45, char: worldSettings[currentWorld].hazards[Math.floor(Math.random()*2)] });
+    if (Math.random() < 0.015) items.push({ x: canvas.width, y: groundLevel - 120, char: worldSettings[currentWorld].items[Math.floor(Math.random()*worldSettings[currentWorld].items.length)], type: 'food' });
     if (Math.random() < 0.005) decor.push({ x: canvas.width, y: Math.random() * 200, char: worldSettings[currentWorld].deco, speed: Math.random() * 2 + 1 });
-    if (Math.random() < 0.003) items.push({ x: canvas.width, y: groundLevel - 110, char: "🫐", type: 'powerup' });
+    if (Math.random() < 0.002) items.push({ x: canvas.width, y: groundLevel - 120, char: "🫐", type: 'powerup' });
+    if (Math.random() < 0.002) items.push({ x: canvas.width, y: groundLevel - 120, char: "🌈", type: 'rainbow' });
     if (worldDistance > 2500 && pipes.length === 0 && currentWorld < 4) pipes.push({ x: canvas.width + 100, y: canvas.height - 150, w: 70, h: 70 });
     if (Math.random() < 0.006) pitfalls.push({ x: canvas.width, w: 100 });
 
@@ -152,16 +146,23 @@ function update() {
 
     obstacles.forEach((obs, i) => {
         obs.x -= (8 + currentWorld);
-        if (player.x < obs.x + 30 && player.x + 30 > obs.x && player.y < obs.y + 40 && player.y + 40 > obs.y) {
-            energy -= 20; obstacles.splice(i, 1); playSound(100, 'sawtooth', 0.2, 0.1);
+        // Corrected Hitbox: Player Y to Player Y + Height
+        if (player.x < obs.x + 35 && player.x + 35 > obs.x && player.y < obs.y + 40 && player.y + player.h > obs.y) {
+            if (rainbowTimer > 0) {
+                obstacles.splice(i, 1);
+                playSound(800, 'sine', 0.1, 0.1, 200);
+            } else {
+                energy -= 20; obstacles.splice(i, 1); playSound(100, 'sawtooth', 0.2, 0.1);
+            }
         }
         if (obs.x < -50) obstacles.splice(i, 1);
     });
 
     items.forEach((item, i) => {
         item.x -= 8;
-        if (player.x < item.x + 35 && player.x + 35 > item.x && player.y < item.y + 35 && player.y + 35 > item.y) {
+        if (player.x < item.x + 35 && player.x + 35 > item.x && player.y < item.y + 35 && player.y + player.h > item.y) {
             if (item.type === 'powerup') { powerUpTimer = 600; playSound(500, 'sine', 0.3, 0.1, 400); }
+            else if (item.type === 'rainbow') { rainbowTimer = 400; playSound(600, 'sine', 0.5, 0.1, 500); }
             else { energy = Math.min(100, energy + 8); playSound(800, 'sine', 0.1, 0.1); }
             items.splice(i, 1);
         }
@@ -183,6 +184,20 @@ function die(reason) {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const s = worldSettings[currentWorld];
+
+    // Mega Rainbow Background
+    if (currentWorld < 4) {
+        ctx.save();
+        ctx.globalAlpha = 0.2;
+        ctx.translate(bgRainbowX % 2000, 100);
+        for(let i=0; i<6; i++) {
+            ctx.strokeStyle = `hsl(${i * 40}, 100%, 50%)`;
+            ctx.lineWidth = 15;
+            ctx.beginPath(); ctx.arc(1000, 400, 500 + (i*15), Math.PI, 0); ctx.stroke();
+        }
+        ctx.restore();
+    }
+
     ctx.font = "50px Arial";
     decor.forEach(d => ctx.fillText(d.char, d.x, d.y));
     ctx.fillStyle = s.floor; ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
@@ -198,33 +213,35 @@ function draw() {
     // --- ANIMATED PLAYER ---
     player.frame += 0.25;
     const runCycle = Math.sin(player.frame) * 15;
-    const px = player.x + 10;
-    const py = player.y + 40;
+    const px = player.x, py = player.y;
+
+    // Body Color (Rainbow Flash)
+    let bodyColor = "#27ae60";
+    if (rainbowTimer > 0) bodyColor = `hsl(${Date.now() % 360}, 80%, 50%)`;
 
     // Legs
-    ctx.strokeStyle = "#333";
-    ctx.lineWidth = 4;
+    ctx.strokeStyle = "#333"; ctx.lineWidth = 4;
     ctx.beginPath();
     if (!player.grounded) {
-        ctx.moveTo(px + 15, py + 15); ctx.lineTo(px + 5, py + 25);
-        ctx.moveTo(px + 15, py + 15); ctx.lineTo(px + 25, py + 25);
+        ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 10, py + 80);
+        ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 30, py + 80);
     } else {
-        ctx.moveTo(px + 15, py + 15); ctx.lineTo(px + 15 + runCycle, py + 35);
-        ctx.moveTo(px + 15, py + 15); ctx.lineTo(px + 15 - runCycle, py + 35);
+        ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 20 + runCycle, py + 90);
+        ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 20 - runCycle, py + 90);
     }
     ctx.stroke();
 
     // Body (Shirt)
-    ctx.fillStyle = "#27ae60";
-    ctx.fillRect(px + 5, py - 5, 20, 25);
+    ctx.fillStyle = bodyColor;
+    ctx.fillRect(px + 10, py + 40, 20, 30);
 
     // Head
     ctx.font = powerUpTimer > 0 ? "60px Arial" : "45px Arial";
-    ctx.fillText(player.head, px - 8, py + 5);
+    ctx.fillText(player.head, px, py + 45);
 
-    ctx.font = "40px Arial";
-    obstacles.forEach(o => ctx.fillText(o.char, o.x, o.y + 35));
-    items.forEach(it => ctx.fillText(it.char, it.x, it.y + 35));
+    ctx.font = "45px Arial";
+    obstacles.forEach(o => ctx.fillText(o.char, o.x, o.y + 40));
+    items.forEach(it => ctx.fillText(it.char, it.x, it.y + 40));
 
     update();
     requestAnimationFrame(draw);
