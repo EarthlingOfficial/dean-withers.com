@@ -14,8 +14,14 @@
     </style>
 </head>
 <body>
-    <div id="ui">WORLD: <span id="worldNum">1</span> | ENERGY: <span id="score">100</span> | DIST: <span id="dist">0</span>/50000</div>
-    <div id="msg">VEGAN BROS.<br><small style="font-size: 20px; color: white; text-shadow: 2px 2px #000;">TAP TO JUMP | ENTER PIPES TO WARP<br>REACH 50,000m!</small></div>
+    <div id="ui">WORLD: <span id="worldNum">1</span> | ENERGY: <span id="score">100</span> | DIST: <span id="dist">0</span>/100000</div>
+    <div id="msg">VEGAN BROS.<br>
+        <small style="font-size: 22px; color: white; text-shadow: 2px 2px #000;">
+            TAP TO JUMP | ENTER PIPES TO WARP<br>
+            <span style="color: #afff94;">EAT FRUITS & VEGGIES</span> | <span style="color: #ff9494;">AVOID THE MEAT</span><br>
+            STAY VEGAN! REACH 100,000m!
+        </small>
+    </div>
     <canvas id="gameCanvas"></canvas>
 
 <script>
@@ -53,7 +59,11 @@ let worldDistance = 0;
 let powerUpTimer = 0;
 let jumpCount = 0;
 
-const player = { x: 100, y: 0, w: 50, h: 50, dy: 0, grounded: false, char: "👦" };
+const player = { 
+    x: 100, y: 0, w: 50, h: 80, dy: 0, 
+    grounded: false, head: "👦", frame: 0 
+};
+
 const worldSettings = {
     1: { bg: "#5c94fc", ground: "#9acd32", floor: "#e07b39", items: ["🍎", "🍐", "🥦"], hazards: ["🥩", "🍖"], deco: "☁️" },
     2: { bg: "#ff9ff3", ground: "#feca57", floor: "#ff9f43", items: ["🍓", "🍊", "🥥"], hazards: ["🍔", "🥓"], deco: "🌈" },
@@ -86,8 +96,6 @@ function resetGame() {
     if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
-function spawnEffect(text, x, y) { effects.push({ text, x, y, life: 60 }); }
-
 function update() {
     if (!gameActive) return;
 
@@ -100,10 +108,10 @@ function update() {
     distEl.innerText = Math.floor(distance);
     worldEl.innerText = currentWorld;
 
-    if (distance >= 50000) {
+    if (distance >= 100000) {
         gameActive = false;
         msgEl.style.display = 'block';
-        msgEl.innerHTML = "🏆 50,000m REACHED! 🏆<br>GAME COMPLETE!";
+        msgEl.innerHTML = "🏆 100,000m REACHED! 🏆<br><small style='font-size:20px'>YOU ARE THE ULTIMATE VEGAN BARKEEP!</small>";
         return;
     }
 
@@ -168,7 +176,7 @@ function update() {
 function die(reason) {
     gameActive = false;
     msgEl.style.display = 'block';
-    msgEl.innerHTML = reason + "<br><small style='font-size:20px'>DIST: " + Math.floor(distance) + "m</small><br>TAP TO RESTART";
+    msgEl.innerHTML = reason + "<br><small style='font-size:20px'>STAY VEGAN! DIST: " + Math.floor(distance) + "m</small><br>TAP TO RESTART";
     playSound(50, 'sawtooth', 0.5, 0.2);
 }
 
@@ -180,16 +188,44 @@ function draw() {
     ctx.fillStyle = s.floor; ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
     ctx.fillStyle = s.ground; ctx.fillRect(0, canvas.height - 80, canvas.width, 15);
     ctx.fillStyle = s.bg; pitfalls.forEach(p => ctx.fillRect(p.x, canvas.height - 81, p.w, 82));
+    
     ctx.fillStyle = "#2ecc71";
     pipes.forEach(p => {
         ctx.fillRect(p.x, p.y, p.w, p.h);
         ctx.fillRect(p.x + 10, p.y + p.h, p.w - 20, canvas.height);
     });
-    ctx.font = powerUpTimer > 0 ? "65px Arial" : "50px Arial";
-    ctx.fillText(player.char, player.x, player.y + 45);
+
+    // --- ANIMATED PLAYER ---
+    player.frame += 0.25;
+    const runCycle = Math.sin(player.frame) * 15;
+    const px = player.x + 10;
+    const py = player.y + 40;
+
+    // Legs
+    ctx.strokeStyle = "#333";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    if (!player.grounded) {
+        ctx.moveTo(px + 15, py + 15); ctx.lineTo(px + 5, py + 25);
+        ctx.moveTo(px + 15, py + 15); ctx.lineTo(px + 25, py + 25);
+    } else {
+        ctx.moveTo(px + 15, py + 15); ctx.lineTo(px + 15 + runCycle, py + 35);
+        ctx.moveTo(px + 15, py + 15); ctx.lineTo(px + 15 - runCycle, py + 35);
+    }
+    ctx.stroke();
+
+    // Body (Shirt)
+    ctx.fillStyle = "#27ae60";
+    ctx.fillRect(px + 5, py - 5, 20, 25);
+
+    // Head
+    ctx.font = powerUpTimer > 0 ? "60px Arial" : "45px Arial";
+    ctx.fillText(player.head, px - 8, py + 5);
+
     ctx.font = "40px Arial";
     obstacles.forEach(o => ctx.fillText(o.char, o.x, o.y + 35));
     items.forEach(it => ctx.fillText(it.char, it.x, it.y + 35));
+
     update();
     requestAnimationFrame(draw);
 }
