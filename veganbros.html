@@ -67,12 +67,8 @@ let obstacles = [], items = [], decor = [], pipes = [], pitfalls = [];
 
 function handleInput() {
     if (!gameActive) {
-        if (!canRestart) {
-            canRestart = true; 
-            return;
-        }
-        resetGame(); 
-        return; 
+        if (!canRestart) { canRestart = true; return; }
+        resetGame(); return; 
     }
     const maxJumps = powerUpTimer > 0 ? 2 : 1;
     if (player.grounded || jumpCount < maxJumps) {
@@ -132,15 +128,22 @@ function update() {
         }
     }
 
+    // SPAWNING LOGIC
     if (Math.random() < 0.02) {
-        let obsX = canvas.width, obsY = groundLevel - 45, dy = 0, dx = -(8 + currentWorld);
         let obsType = worldSettings[currentWorld].hazards[Math.floor(Math.random()*worldSettings[currentWorld].hazards.length)];
-        
+        let obsX, obsY, dx, dy;
+
         if (obsType === "🔥") { 
-            obsX = canvas.width + Math.random() * 200; 
+            let isSniper = Math.random() < 0.20; // 1 in 5 rule
+            obsX = isSniper ? player.x + 10 : Math.random() * canvas.width;
             obsY = -50; 
-            dy = 8; 
-            dx = -6; 
+            dy = 9; 
+            dx = -1; 
+        } else {
+            obsX = canvas.width;
+            obsY = groundLevel - 45;
+            dx = -(8 + currentWorld);
+            dy = 0;
         }
         obstacles.push({ x: obsX, y: obsY, char: obsType, dx: dx, dy: dy });
     }
@@ -165,21 +168,23 @@ function update() {
 
     obstacles.forEach((obs, i) => {
         obs.x += obs.dx; obs.y += obs.dy;
-        // Hitbox detection
-        if (player.x < obs.x + 35 && player.x + 35 > obs.x && player.y < obs.y + 45 && player.y + player.h > obs.y) {
+        
+        // HITBOX: Aimed at the feet. If you are jumping, your Y is lower (numerically), so you dodge.
+        let hitX = (player.x < obs.x + 30 && player.x + 40 > obs.x);
+        let hitY = (player.y + 50 < obs.y + 40 && player.y + player.h > obs.y);
+
+        if (hitX && hitY) {
             if (rainbowTimer > 0) { 
                 obstacles.splice(i, 1); 
                 playSound(800, 'sine', 0.1, 0.1, 200); 
-            }
-            else { 
-                let damageValue = (currentWorld === 4) ? 25 : 40;
-                energy -= damageValue; 
+            } else { 
+                energy -= (currentWorld === 4) ? 25 : 40;
                 playSound(150, 'sawtooth', 0.2, 0.2, -50); 
                 obstacles.splice(i, 1);
                 if (energy <= 0) { die("MEAT"); return; }
             }
         }
-        if (obs.x < -100 || obs.y > canvas.height + 100) obstacles.splice(i, 1);
+        if (obs.x < -200 || obs.y > canvas.height + 100) obstacles.splice(i, 1);
     });
 
     items.forEach((item, i) => {
@@ -195,26 +200,15 @@ function update() {
 
     pitfalls.forEach((p, i) => { p.x -= 8; if (p.x < -200) pitfalls.splice(i, 1); });
     decor.forEach((d, i) => { d.x -= d.speed; if (d.x < -100) decor.splice(i, 1); });
-    
-    if (energy <= 0) {
-        die("ENERGY");
-    }
+    if (energy <= 0) die("ENERGY");
 }
 
 function die(type) {
     if (!gameActive) return;
-    gameActive = false;
-    canRestart = false; 
-    let msg = "";
-    
-    if (type === "FALL") {
-        msg = "YOU FELL TO YOUR DEATH";
-    } else if (type === "ENERGY") {
-        msg = "OUT OF ENERGY!";
-    } else {
-        const meatMsgs = ["meat death ☠️", "victim of greed", "you meat lemming", "meat head"];
-        msg = meatMsgs[Math.floor(Math.random() * meatMsgs.length)];
-    }
+    gameActive = false; canRestart = false; 
+    let msg = (type === "FALL") ? "YOU FELL TO YOUR DEATH" : 
+              (type === "ENERGY") ? "OUT OF ENERGY!" : 
+              ["meat death ☠️", "victim of greed", "you meat lemming", "meat head"][Math.floor(Math.random() * 4)];
 
     msgEl.style.display = 'block';
     msgEl.innerHTML = msg + "<br><small style='font-size:22px; color:white;'>DIST: " + Math.floor(distance) + "m</small><br><span style='font-size:18px; color:#afff94;'>TAP TWICE TO RESTART</span>";
@@ -244,18 +238,15 @@ function draw() {
     const runCycle = Math.sin(player.frame) * 15;
     const px = player.x, py = player.y;
 
-    let bodyColor = "#27ae60";
-    if (rainbowTimer > 0) bodyColor = `hsl(${Date.now() % 360}, 80%, 50%)`;
+    let bodyColor = (rainbowTimer > 0) ? `hsl(${Date.now() % 360}, 80%, 50%)` : "#27ae60";
 
     ctx.strokeStyle = "#333"; ctx.lineWidth = 4; ctx.beginPath();
     if (!player.grounded) { ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 10, py + 80); ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 30, py + 80); }
     else { ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 20 + runCycle, py + 90); ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 20 - runCycle, py + 90); }
     ctx.stroke();
 
-    ctx.fillStyle = bodyColor;
-    ctx.fillRect(px + 10, py + 40, 20, 30);
-    ctx.font = powerUpTimer > 0 ? "60px Arial" : "45px Arial";
-    ctx.fillText(player.head, px, py + 45);
+    ctx.fillStyle = bodyColor; ctx.fillRect(px + 10, py + 40, 20, 30);
+    ctx.font = powerUpTimer > 0 ? "60px Arial" : "45px Arial"; ctx.fillText(player.head, px, py + 45);
 
     ctx.font = "45px Arial";
     obstacles.forEach(o => ctx.fillText(o.char, o.x, o.y + 40));
