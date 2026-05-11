@@ -60,7 +60,7 @@ const worldSettings = {
     1: { bg: "#5c94fc", ground: "#9acd32", floor: "#e07b39", items: ["🍎", "🍐", "🥦"], hazards: ["🥩", "🍖"], deco: "☁️" },
     2: { bg: "#ff9ff3", ground: "#feca57", floor: "#ff9f43", items: ["🍓", "🍊", "🥥"], hazards: ["🍔", "🥓"], deco: "🌈" },
     3: { bg: "#48dbfb", ground: "#1dd1a1", floor: "#10ac84", items: ["🌽", "🥑", "🥥"], hazards: ["🌭", "🍕"], deco: "⛅" },
-    4: { bg: "#000000", ground: "#576574", floor: "#222f3e", items: ["🥥"], hazards: ["🔥"], deco: "☄️" }
+    4: { bg: "#000000", ground: "#576574", floor: "#222f3e", items: ["🥥"], hazards: ["🔥", "🥩", "🍖"], deco: "☄️" }
 };
 
 let obstacles = [], items = [], decor = [], pipes = [], pitfalls = [];
@@ -135,7 +135,13 @@ function update() {
     if (Math.random() < 0.02) {
         let obsX = canvas.width, obsY = groundLevel - 45, dy = 0, dx = -(8 + currentWorld);
         let obsType = worldSettings[currentWorld].hazards[Math.floor(Math.random()*worldSettings[currentWorld].hazards.length)];
-        if (currentWorld === 4 && obsType === "🔥") { obsX = canvas.width + Math.random() * 200; obsY = -50; dy = 7; dx = -10; }
+        
+        if (obsType === "🔥") { 
+            obsX = canvas.width + Math.random() * 200; 
+            obsY = -50; 
+            dy = 8; 
+            dx = -6; 
+        }
         obstacles.push({ x: obsX, y: obsY, char: obsType, dx: dx, dy: dy });
     }
 
@@ -159,10 +165,15 @@ function update() {
 
     obstacles.forEach((obs, i) => {
         obs.x += obs.dx; obs.y += obs.dy;
-        if (player.x < obs.x + 35 && player.x + 35 > obs.x && player.y < obs.y + 40 && player.y + player.h > obs.y) {
-            if (rainbowTimer > 0) { obstacles.splice(i, 1); playSound(800, 'sine', 0.1, 0.1, 200); }
+        // Hitbox detection
+        if (player.x < obs.x + 35 && player.x + 35 > obs.x && player.y < obs.y + 45 && player.y + player.h > obs.y) {
+            if (rainbowTimer > 0) { 
+                obstacles.splice(i, 1); 
+                playSound(800, 'sine', 0.1, 0.1, 200); 
+            }
             else { 
-                energy -= 40; 
+                let damageValue = (currentWorld === 4) ? 25 : 40;
+                energy -= damageValue; 
                 playSound(150, 'sawtooth', 0.2, 0.2, -50); 
                 obstacles.splice(i, 1);
                 if (energy <= 0) { die("MEAT"); return; }
@@ -200,7 +211,7 @@ function die(type) {
         msg = "YOU FELL TO YOUR DEATH";
     } else if (type === "ENERGY") {
         msg = "OUT OF ENERGY!";
-    } else if (type === "MEAT") {
+    } else {
         const meatMsgs = ["meat death ☠️", "victim of greed", "you meat lemming", "meat head"];
         msg = meatMsgs[Math.floor(Math.random() * meatMsgs.length)];
     }
