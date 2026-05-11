@@ -140,7 +140,7 @@ function update() {
     }
 
     if (Math.random() < 0.015) items.push({ x: canvas.width, y: groundLevel - 120, char: worldSettings[currentWorld].items[Math.floor(Math.random()*worldSettings[currentWorld].items.length)], type: 'food' });
-    if (Math.random() < 0.005) decor.push({ x: canvas.width, y: Math.random() * 200, char: worldSettings[currentWorld].deco, speed: Math.random() * 2 + 1 });
+    if (Math.random() < 0.015) decor.push({ x: canvas.width, y: Math.random() * 200, char: worldSettings[currentWorld].deco, speed: Math.random() * 2 + 1 });
     if (Math.random() < 0.002) items.push({ x: canvas.width, y: groundLevel - 120, char: "🫐", type: 'powerup' });
     if (Math.random() < 0.002) items.push({ x: canvas.width, y: groundLevel - 120, char: "🌈", type: 'rainbow' });
     if (worldDistance > 2500 && pipes.length === 0 && currentWorld < 4) pipes.push({ x: canvas.width + 100, y: canvas.height - 150, w: 70, h: 70 });
@@ -165,7 +165,7 @@ function update() {
                 energy -= 40; 
                 playSound(150, 'sawtooth', 0.2, 0.2, -50); 
                 obstacles.splice(i, 1);
-                if (energy <= 0) die("MEAT"); 
+                if (energy <= 0) { die("MEAT"); return; }
             }
         }
         if (obs.x < -100 || obs.y > canvas.height + 100) obstacles.splice(i, 1);
@@ -184,19 +184,24 @@ function update() {
 
     pitfalls.forEach((p, i) => { p.x -= 8; if (p.x < -200) pitfalls.splice(i, 1); });
     decor.forEach((d, i) => { d.x -= d.speed; if (d.x < -100) decor.splice(i, 1); });
-    if (energy <= 0) die("ENERGY");
+    
+    if (energy <= 0) {
+        die("ENERGY");
+    }
 }
 
 function die(type) {
+    if (!gameActive) return;
     gameActive = false;
     canRestart = false; 
     let msg = "";
+    
     if (type === "FALL") {
         msg = "YOU FELL TO YOUR DEATH";
     } else if (type === "ENERGY") {
         msg = "OUT OF ENERGY!";
-    } else {
-        const meatMsgs = ["meat death ☠️", "victim of greed", "you meat lemming", "meathead"];
+    } else if (type === "MEAT") {
+        const meatMsgs = ["meat death ☠️", "victim of greed", "you meat lemming", "meat head"];
         msg = meatMsgs[Math.floor(Math.random() * meatMsgs.length)];
     }
 
