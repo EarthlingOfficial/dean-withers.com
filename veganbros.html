@@ -40,7 +40,6 @@ function playSound(freq, type, duration, vol, slide = 0) {
     } catch(e) {}
 }
 
-// Retro Arcade Pipe Warp Sound
 function playYellowPipeSound() {
     try {
         let now = audioCtx.currentTime;
@@ -75,13 +74,11 @@ let gameActive = false, energy = 100, distance = 0, currentWorld = 1, worldDista
 let powerUpTimer = 0, rainbowTimer = 0, jumpCount = 0, bgRainbowX = 0;
 let megaJumpTimer = 0, flyTimer = 0;
 let canRestart = false; 
-
-// Yellow Pipe Challenge Trackers
 let inYellowChallenge = false, yellowChallengeLeft = 5000;
+let lastYellowPipeDist = 0;
 
 const player = { x: 100, y: 0, w: 45, h: 90, dy: 0, grounded: false, head: "👦", frame: 0 };
 
-// Base Worlds
 const worldSettings = {
     1: { bg: "#5c94fc", ground: "#9acd32", floor: "#e07b39", items: ["🍎", "🍐", "🥦"], hazards: ["🥩", "🍖"], deco: "☁️" },
     2: { bg: "#ff9ff3", ground: "#feca57", floor: "#ff9f43", items: ["🍓", "🍊", "🥥"], hazards: ["🍔", "🥓"], deco: "🌈" },
@@ -90,10 +87,9 @@ const worldSettings = {
     5: { bg: "#0077be", ground: "#c2b280", floor: "#e0cd95", items: ["🌿", "🥬", "🌱"], hazards: ["🐟", "🐡", "🦈"], deco: "🫧" },
     6: { bg: "#87CEEB", ground: "#2E8B57", floor: "#8B4513", items: ["🫐", "🍇", "🍓"], hazards: ["🍔", "🥩", "🍗"], deco: "🌴" },
     7: { bg: "#4a148c", ground: "#00ffcc", floor: "#1a0033", items: ["🌀", "✨", "⚡"], hazards: ["👾", "🪲", "🚫"], deco: "📺" },
-    8: { bg: "#222", ground: "#fff", floor: "#333", items: ["🍎"], hazards: ["🥩"], deco: "🌙" } // Dynamic Slot for Yellow Pipe
+    8: { bg: "#222", ground: "#fff", floor: "#333", items: ["🍎"], hazards: ["🥩"], deco: "🌙" } 
 };
 
-// Tool Arrays to draw random assets from
 const randomBgs = ["#ff5252", "#341f97", "#222f3e", "#10ac84", "#ff9f43", "#01a3a4", "#b53471", "#2c3e50"];
 const randomGrounds = ["#ffda79", "#cd84f1", "#ffb8b8", "#32ff7e", "#7d5fff", "#18dcff", "#fff"];
 const randomFloors = ["#ccae62", "#9b59b6", "#e74c3c", "#27ae60", "#d35400", "#2980b9", "#555"];
@@ -128,7 +124,7 @@ window.addEventListener('mousedown', handleInput);
 window.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(); }, {passive: false});
 
 function resetGame() {
-    energy = 100; distance = 0; currentWorld = 1; worldDistance = 0; 
+    energy = 100; distance = 0; currentWorld = 1; worldDistance = 0; lastYellowPipeDist = 0;
     powerUpTimer = 0; rainbowTimer = 0; megaJumpTimer = 0; flyTimer = 0; canRestart = false;
     inYellowChallenge = false; yellowChallengeLeft = 5000;
     challengeZoneEl.style.display = "none";
@@ -140,18 +136,12 @@ function resetGame() {
 }
 
 function generateYellowChaosWorld() {
-    // Pick pairs randomly
     let bg = randomBgs[Math.floor(Math.random() * randomBgs.length)];
     let ground = randomGrounds[Math.floor(Math.random() * randomGrounds.length)];
     let floor = randomFloors[Math.floor(Math.random() * randomFloors.length)];
     let deco = randomDecos[Math.floor(Math.random() * randomDecos.length)];
-    
-    // Pick 3 random foods
     let shuffFood = [...poolFood].sort(() => 0.5 - Math.random()).slice(0, 3);
-    // Pick 2 random hazards
     let shuffHazards = [...poolHazards].sort(() => 0.5 - Math.random()).slice(0, 2);
-
-    // Lock it into World 8 slot
     worldSettings[8] = { bg: bg, ground: ground, floor: floor, items: shuffFood, hazards: shuffHazards, deco: deco };
 }
 
@@ -166,12 +156,9 @@ function update() {
     if (flyTimer > 0) flyTimer--;
     bgRainbowX -= 1; 
 
-    // Handle Yellow Challenge Progress Tracker
     if (inYellowChallenge) {
         yellowChallengeLeft -= 2;
         challengeDistEl.innerText = Math.max(0, yellowChallengeLeft);
-        
-        // Check for Challenge Victory condition
         if (yellowChallengeLeft <= 0) {
             inYellowChallenge = false;
             challengeZoneEl.style.display = "none";
@@ -196,7 +183,6 @@ function update() {
         return;
     }
 
-    // Dynamic color shifting in Glitch level
     if (currentWorld === 7 && Math.random() < 0.005) {
         worldSettings[7].bg = `hsl(${Math.random() * 360}, 60%, 20%)`;
         worldSettings[7].ground = `hsl(${Math.random() * 360}, 100%, 50%)`;
@@ -232,11 +218,9 @@ function update() {
         }
     }
 
-    // SPAWNING
     if (Math.random() < 0.02) {
         let obsType = worldSettings[currentWorld].hazards[Math.floor(Math.random()*worldSettings[currentWorld].hazards.length)];
         let obsX, obsY, dx, dy, isGiant = false;
-
         if (currentWorld === 5 && Math.random() < 0.05) {
             obsType = "🦈"; isGiant = true; obsX = canvas.width; obsY = Math.random() * (canvas.height - 200);
             dx = -12; dy = 0;
@@ -266,24 +250,20 @@ function update() {
         if (Math.random() < 0.002) items.push({ x: canvas.width, y: groundLevel - 180, char: "🍃", type: 'fly' });
     }
 
-    // PIPE ROUTER SYSTEM (With rare Purple & ultra-rare Yellow generation rules)
-    // Locked out while playing inside a Yellow Challenge run!
     if (worldDistance > 1200 && pipes.length === 0 && !inYellowChallenge) {
-        let randRoll = Math.random();
         let nextDest;
-        let pipeColor = "#2ecc71"; // Default Green
+        let pipeColor = "#2ecc71";
         
-        if (randRoll < 0.01) { 
-            // 1% Ultra Rare Yellow Pipe roll
+        if (Math.floor(distance) % 10000 === 0 && distance > 0 && distance !== lastYellowPipeDist) {
             pipeColor = "#ffeb3b";
-            nextDest = 8; 
-        } else if (randRoll < 0.06) { 
-            // 5% Purple Pipe roll
+            nextDest = 8;
+            lastYellowPipeDist = distance;
+        } else if (Math.random() < 0.06) { 
             pipeColor = "#9c27b0";
             nextDest = 7; 
         } else {
             nextDest = Math.floor(Math.random() * 6) + 1;
-            while(nextDest === currentWorld) { nextDest = Math.floor(Math.random() * 6) + 1; }
+            while(nextDest === currentWorld || nextDest === 8) { nextDest = Math.floor(Math.random() * 6) + 1; }
         }
         
         let pHeight = (currentWorld >= 5) ? 180 : 70;
@@ -300,7 +280,6 @@ function update() {
 
         if (hitX && hitY) {
             if (p.color === "#ffeb3b") {
-                // Initialize Challenge Mode
                 inYellowChallenge = true;
                 yellowChallengeLeft = 5000;
                 challengeZoneEl.style.display = "inline";
@@ -309,7 +288,6 @@ function update() {
             } else {
                 playSound(p.color === "#9c27b0" ? 700 : 400, 'sine', 0.5, 0.1, p.color === "#9c27b0" ? -300 : 400);
             }
-
             currentWorld = p.dest; worldDistance = 0; player.y = -100; player.dy = 0;
             obstacles = []; items = []; pitfalls = []; pipes = [];
             document.body.style.background = worldSettings[currentWorld].bg;
@@ -319,7 +297,14 @@ function update() {
 
     obstacles.forEach((obs, i) => {
         obs.x += obs.dx; obs.y += obs.dy;
-        let ow = obs.isGiant ? 100 : 30; let oh = obs.isGiant ? 80 : 40;
+        let ow = obs.isGiant ? 100 : 30; 
+        let oh = obs.isGiant ? 80 : 40;
+        
+        // Water Level Hitbox Fix
+        if (currentWorld === 5) {
+            oh = oh * 0.4;
+        }
+
         let hitX = (player.x < obs.x + ow && player.x + player.w > obs.x);
         let hitY = (player.y + 40 < obs.y + oh && player.y + player.h > obs.y);
 
@@ -375,11 +360,13 @@ function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const s = worldSettings[currentWorld];
 
-    // Background configurations
+    // Optimized background drawing to reduce CPU load
     if (currentWorld !== 4 && currentWorld !== 6 && currentWorld !== 7 && currentWorld !== 8) {
-        ctx.save(); ctx.globalAlpha = 0.2; ctx.translate(bgRainbowX % 2000, 100);
-        for(let i=0; i<6; i++) { ctx.strokeStyle = `hsl(${i * 40}, 100%, 50%)`; ctx.lineWidth = 15; ctx.beginPath(); ctx.arc(1000, 400, 500 + (i*15), Math.PI, 0); ctx.stroke(); }
-        ctx.restore();
+        if (rainbowTimer > 0) {
+             ctx.save(); ctx.globalAlpha = 0.2; ctx.translate(bgRainbowX % 2000, 100);
+             for(let i=0; i<6; i++) { ctx.strokeStyle = `hsl(${i * 40}, 100%, 50%)`; ctx.lineWidth = 15; ctx.beginPath(); ctx.arc(1000, 400, 500 + (i*15), Math.PI, 0); ctx.stroke(); }
+             ctx.restore();
+        }
     }
 
     if (currentWorld === 6) {
@@ -391,7 +378,6 @@ function draw() {
         ctx.restore();
     }
 
-    // Dynamic large background drawing if Yellow Custom Mode lands a huge moon/tree asset
     if (currentWorld === 8) {
         ctx.save(); ctx.globalAlpha = 0.15;
         let offset = (bgRainbowX * 0.5) % 1200;
