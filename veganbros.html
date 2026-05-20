@@ -52,6 +52,7 @@ canvas.height = window.innerHeight;
 
 let gameActive = false, energy = 100, distance = 0, currentWorld = 1, worldDistance = 0; 
 let powerUpTimer = 0, rainbowTimer = 0, jumpCount = 0, bgRainbowX = 0;
+let megaJumpTimer = 0, flyTimer = 0;
 let canRestart = false; 
 
 const player = { x: 100, y: 0, w: 40, h: 90, dy: 0, grounded: false, head: "👦", frame: 0 };
@@ -60,7 +61,9 @@ const worldSettings = {
     1: { bg: "#5c94fc", ground: "#9acd32", floor: "#e07b39", items: ["🍎", "🍐", "🥦"], hazards: ["🥩", "🍖"], deco: "☁️" },
     2: { bg: "#ff9ff3", ground: "#feca57", floor: "#ff9f43", items: ["🍓", "🍊", "🥥"], hazards: ["🍔", "🥓"], deco: "🌈" },
     3: { bg: "#48dbfb", ground: "#1dd1a1", floor: "#10ac84", items: ["🌽", "🥑", "🥥"], hazards: ["🌭", "🍕"], deco: "⛅" },
-    4: { bg: "#000000", ground: "#576574", floor: "#222f3e", items: ["🥥"], hazards: ["🔥", "🥩", "🍖"], deco: "☄️" }
+    4: { bg: "#000000", ground: "#576574", floor: "#222f3e", items: ["🥥"], hazards: ["🔥", "🥩", "🍖"], deco: "☄️" },
+    5: { bg: "#0077be", ground: "#c2b280", floor: "#e0cd95", items: ["🌿", "🥬", "🌱"], hazards: ["🐟", "🐡", "🦈"], deco: "🫧" },
+    6: { bg: "#87CEEB", ground: "#2E8B57", floor: "#8B4513", items: ["🫐", "🍇", "🍓"], hazards: ["🍔", "🥩", "🍗"], deco: "🌴" }
 };
 
 let obstacles = [], items = [], decor = [], pipes = [], pitfalls = [];
@@ -70,12 +73,21 @@ function handleInput() {
         if (!canRestart) { canRestart = true; return; }
         resetGame(); return; 
     }
-    const maxJumps = powerUpTimer > 0 ? 2 : 1;
-    if (player.grounded || jumpCount < maxJumps) {
-        player.dy = powerUpTimer > 0 ? -18 : -14;
+    
+    if (currentWorld === 5 || flyTimer > 0) {
+        // Underwater or Flying mechanics
+        player.dy = (flyTimer > 0) ? -9 : -6;
         player.grounded = false;
-        jumpCount++;
-        playSound(200 + (jumpCount * 100), 'square', 0.15, 0.1, 400);
+        playSound(300, 'triangle', 0.1, 0.1, 100);
+    } else {
+        // Normal jump mechanics
+        const maxJumps = powerUpTimer > 0 ? 2 : 1;
+        if (player.grounded || jumpCount < maxJumps) {
+            player.dy = megaJumpTimer > 0 ? -24 : (powerUpTimer > 0 ? -18 : -14);
+            player.grounded = false;
+            jumpCount++;
+            playSound(200 + (jumpCount * 100), 'square', 0.15, 0.1, 400);
+        }
     }
 }
 
@@ -84,7 +96,7 @@ window.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput()
 
 function resetGame() {
     energy = 100; distance = 0; currentWorld = 1; worldDistance = 0; 
-    powerUpTimer = 0; rainbowTimer = 0; canRestart = false;
+    powerUpTimer = 0; rainbowTimer = 0; megaJumpTimer = 0; flyTimer = 0; canRestart = false;
     obstacles = []; items = []; decor = []; pipes = []; pitfalls = [];
     gameActive = true;
     msgEl.style.display = 'none';
@@ -99,6 +111,8 @@ function update() {
     energy -= 0.035;
     if (powerUpTimer > 0) powerUpTimer--;
     if (rainbowTimer > 0) rainbowTimer--;
+    if (megaJumpTimer > 0) megaJumpTimer--;
+    if (flyTimer > 0) flyTimer--;
     bgRainbowX -= 1; 
 
     scoreEl.innerText = Math.ceil(energy);
@@ -112,14 +126,31 @@ function update() {
         return;
     }
 
-    player.dy += 0.8;
+    // Physics
+    let isUnderwater = (currentWorld === 5);
+    let gravity = (isUnderwater || flyTimer > 0) ? 0.25 : 0.8;
+    player.dy += gravity;
+    
+    // Sink down slowly if underwater or flying
+    if ((isUnderwater || flyTimer > 0) && player.dy > 4) player.dy = 4;
+    
     player.y += player.dy;
     const groundLevel = canvas.height - 80;
 
-    let isFalling = pitfalls.some(p => player.x + 10 < p.x + p.w && player.x + 30 > p.x);
+    let pit = pitfalls.find(p => player.x + 10 < p.x + p.w && player.x + 30 > p.x);
     if (player.y + player.h > groundLevel) {
-        if (isFalling) {
-            if (player.y > canvas.height) die("FALL");
+        if (pit) {
+            if (player.y > canvas.height) {
+                if (pit.isWater && currentWorld !== 5) {
+                    // Warp to underwater world
+                    currentWorld = 5; worldDistance = 0; player.y = -50; player.dy = 0;
+                    obstacles = []; items = []; pitfalls = []; pipes = [];
+                    document.body.style.background = worldSettings[currentWorld].bg;
+                    playSound(400, 'sine', 0.5, 0.1, -200);
+                } else {
+                    die("FALL");
+                }
+            }
         } else {
             player.y = groundLevel - player.h;
             player.dy = 0;
@@ -131,34 +162,58 @@ function update() {
     // SPAWNING LOGIC
     if (Math.random() < 0.02) {
         let obsType = worldSettings[currentWorld].hazards[Math.floor(Math.random()*worldSettings[currentWorld].hazards.length)];
-        let obsX, obsY, dx, dy;
+        let obsX, obsY, dx, dy, isGiant = false;
 
-        if (obsType === "🔥") { 
-            let isSniper = Math.random() < 0.20; // 1 in 5 rule
+        // Giant Shark logic in underwater level
+        if (currentWorld === 5 && Math.random() < 0.05) {
+            obsType = "🦈";
+            isGiant = true;
+            obsX = canvas.width;
+            obsY = Math.random() * (canvas.height - 200);
+            dx = -12;
+            dy = 0;
+        } else if (obsType === "🔥") { 
+            let isSniper = Math.random() < 0.20; 
             obsX = isSniper ? player.x + 10 : Math.random() * canvas.width;
             obsY = -50; 
             dy = 9; 
             dx = -1; 
         } else {
             obsX = canvas.width;
-            obsY = groundLevel - 45;
-            dx = -(8 + currentWorld);
+            obsY = (currentWorld === 5) ? (Math.random() * (groundLevel - 100) + 50) : groundLevel - 45;
+            dx = -(8 + (currentWorld > 4 ? 2 : currentWorld));
             dy = 0;
         }
-        obstacles.push({ x: obsX, y: obsY, char: obsType, dx: dx, dy: dy });
+        obstacles.push({ x: obsX, y: obsY, char: obsType, dx: dx, dy: dy, isGiant: isGiant });
     }
 
-    if (Math.random() < 0.015) items.push({ x: canvas.width, y: groundLevel - 120, char: worldSettings[currentWorld].items[Math.floor(Math.random()*worldSettings[currentWorld].items.length)], type: 'food' });
+    if (Math.random() < 0.015) {
+        let spawnY = currentWorld === 5 ? Math.random() * (groundLevel - 100) + 50 : groundLevel - 120;
+        items.push({ x: canvas.width, y: spawnY, char: worldSettings[currentWorld].items[Math.floor(Math.random()*worldSettings[currentWorld].items.length)], type: 'food' });
+    }
+    
     if (Math.random() < 0.015) decor.push({ x: canvas.width, y: Math.random() * 200, char: worldSettings[currentWorld].deco, speed: Math.random() * 2 + 1 });
     if (Math.random() < 0.002) items.push({ x: canvas.width, y: groundLevel - 120, char: "🫐", type: 'powerup' });
     if (Math.random() < 0.002) items.push({ x: canvas.width, y: groundLevel - 120, char: "🌈", type: 'rainbow' });
-    if (worldDistance > 2500 && pipes.length === 0 && currentWorld < 4) pipes.push({ x: canvas.width + 100, y: canvas.height - 150, w: 70, h: 70 });
-    if (Math.random() < 0.006) pitfalls.push({ x: canvas.width, w: 120 });
+    
+    // World 6 Special Items
+    if (currentWorld === 6) {
+        if (Math.random() < 0.004) items.push({ x: canvas.width, y: groundLevel - 150, char: "🍄", type: 'megajump' });
+        if (Math.random() < 0.001) items.push({ x: canvas.width, y: groundLevel - 180, char: "🍃", type: 'fly' });
+    }
+
+    // Pipe Spawning
+    if (worldDistance > 2500 && pipes.length === 0 && currentWorld !== 6 && currentWorld !== 5) {
+        let isJungle = Math.random() < 0.4 || currentWorld === 4; // Higher chance to get jungle, guaranteed at W4
+        pipes.push({ x: canvas.width + 100, y: canvas.height - 150, w: 70, h: 70, dest: isJungle ? 6 : currentWorld + 1 });
+    }
+    
+    if (Math.random() < 0.006) pitfalls.push({ x: canvas.width, w: 120, isWater: Math.random() < 0.4 });
 
     pipes.forEach((p, i) => {
         p.x -= 8;
         if (player.x + player.w > p.x && player.x < p.x + p.w && player.y + player.h > p.y) {
-            currentWorld++; worldDistance = 0; player.y = -100;
+            currentWorld = p.dest; worldDistance = 0; player.y = -100;
             obstacles = []; items = []; pitfalls = []; pipes = [];
             document.body.style.background = worldSettings[currentWorld].bg;
             playSound(400, 'sine', 0.4, 0.1, 400);
@@ -169,22 +224,24 @@ function update() {
     obstacles.forEach((obs, i) => {
         obs.x += obs.dx; obs.y += obs.dy;
         
-        // HITBOX: Aimed at the feet. If you are jumping, your Y is lower (numerically), so you dodge.
-        let hitX = (player.x < obs.x + 30 && player.x + 40 > obs.x);
-        let hitY = (player.y + 50 < obs.y + 40 && player.y + player.h > obs.y);
+        let ow = obs.isGiant ? 100 : 30;
+        let oh = obs.isGiant ? 80 : 40;
+        let hitX = (player.x < obs.x + ow && player.x + 40 > obs.x);
+        let hitY = (player.y + 50 < obs.y + oh && player.y + player.h > obs.y);
 
         if (hitX && hitY) {
-            if (rainbowTimer > 0) { 
+            if (rainbowTimer > 0 && !obs.isGiant) { 
                 obstacles.splice(i, 1); 
                 playSound(800, 'sine', 0.1, 0.1, 200); 
             } else { 
-                energy -= (currentWorld === 4) ? 25 : 40;
+                if (obs.isGiant) { die("SHARK"); return; }
+                energy -= (currentWorld >= 4) ? 25 : 40;
                 playSound(150, 'sawtooth', 0.2, 0.2, -50); 
                 obstacles.splice(i, 1);
                 if (energy <= 0) { die("MEAT"); return; }
             }
         }
-        if (obs.x < -200 || obs.y > canvas.height + 100) obstacles.splice(i, 1);
+        if (obs.x < -300 || obs.y > canvas.height + 100) obstacles.splice(i, 1);
     });
 
     items.forEach((item, i) => {
@@ -192,6 +249,8 @@ function update() {
         if (player.x < item.x + 35 && player.x + 35 > item.x && player.y < item.y + 35 && player.y + player.h > item.y) {
             if (item.type === 'powerup') { powerUpTimer = 600; playSound(500, 'sine', 0.3, 0.1, 400); }
             else if (item.type === 'rainbow') { rainbowTimer = 400; playSound(600, 'sine', 0.5, 0.1, 500); }
+            else if (item.type === 'megajump') { megaJumpTimer = 600; playSound(700, 'sine', 0.3, 0.1, 600); }
+            else if (item.type === 'fly') { flyTimer = 600; playSound(800, 'square', 0.4, 0.1, 700); }
             else { energy = Math.min(100, energy + 10); playSound(800, 'sine', 0.1, 0.1); }
             items.splice(i, 1);
         }
@@ -207,6 +266,7 @@ function die(type) {
     if (!gameActive) return;
     gameActive = false; canRestart = false; 
     let msg = (type === "FALL") ? "YOU FELL TO YOUR DEATH" : 
+              (type === "SHARK") ? "EATEN BY A GIANT SHARK!" :
               (type === "ENERGY") ? "OUT OF ENERGY!" : 
               ["meat death ☠️", "victim of greed", "you meat lemming", "meat head"][Math.floor(Math.random() * 4)];
 
@@ -219,9 +279,20 @@ function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const s = worldSettings[currentWorld];
 
-    if (currentWorld !== 4) {
+    // Background Rainbows (Worlds 1-3, 5)
+    if (currentWorld !== 4 && currentWorld !== 6) {
         ctx.save(); ctx.globalAlpha = 0.2; ctx.translate(bgRainbowX % 2000, 100);
         for(let i=0; i<6; i++) { ctx.strokeStyle = `hsl(${i * 40}, 100%, 50%)`; ctx.lineWidth = 15; ctx.beginPath(); ctx.arc(1000, 400, 500 + (i*15), Math.PI, 0); ctx.stroke(); }
+        ctx.restore();
+    }
+
+    // World 6 Big Jungle Palm Trees
+    if (currentWorld === 6) {
+        ctx.save(); ctx.globalAlpha = 0.5; ctx.translate((bgRainbowX / 1.5) % 1500, 50);
+        ctx.font = "300px Arial";
+        ctx.fillText("🌴", 100, 400);
+        ctx.fillText("🌴", 700, 450);
+        ctx.fillText("🌴", 1300, 380);
         ctx.restore();
     }
 
@@ -229,7 +300,12 @@ function draw() {
     decor.forEach(d => ctx.fillText(d.char, d.x, d.y));
     ctx.fillStyle = s.floor; ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
     ctx.fillStyle = s.ground; ctx.fillRect(0, canvas.height - 80, canvas.width, 15);
-    ctx.fillStyle = s.bg; pitfalls.forEach(p => ctx.fillRect(p.x, canvas.height - 81, p.w, 82));
+    
+    // Draw Pitfalls - Make water warps blue so they can be identified
+    pitfalls.forEach(p => {
+        ctx.fillStyle = p.isWater ? "#0077be" : s.bg;
+        ctx.fillRect(p.x, canvas.height - 81, p.w, 82);
+    });
     
     ctx.fillStyle = "#2ecc71";
     pipes.forEach(p => { ctx.fillRect(p.x, p.y, p.w, p.h); ctx.fillRect(p.x + 10, p.y + p.h, p.w - 20, canvas.height); });
@@ -246,10 +322,19 @@ function draw() {
     ctx.stroke();
 
     ctx.fillStyle = bodyColor; ctx.fillRect(px + 10, py + 40, 20, 30);
-    ctx.font = powerUpTimer > 0 ? "60px Arial" : "45px Arial"; ctx.fillText(player.head, px, py + 45);
+    ctx.font = (powerUpTimer > 0 || megaJumpTimer > 0) ? "60px Arial" : "45px Arial"; 
+    ctx.fillText(player.head, px, py + 45);
 
     ctx.font = "45px Arial";
-    obstacles.forEach(o => ctx.fillText(o.char, o.x, o.y + 40));
+    obstacles.forEach(o => {
+        if (o.isGiant) {
+            ctx.font = "120px Arial";
+            ctx.fillText(o.char, o.x, o.y + 100);
+            ctx.font = "45px Arial";
+        } else {
+            ctx.fillText(o.char, o.x, o.y + 40);
+        }
+    });
     items.forEach(it => ctx.fillText(it.char, it.x, it.y + 40));
 
     update();
