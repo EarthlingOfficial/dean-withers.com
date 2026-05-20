@@ -55,16 +55,17 @@ let powerUpTimer = 0, rainbowTimer = 0, jumpCount = 0, bgRainbowX = 0;
 let megaJumpTimer = 0, flyTimer = 0;
 let canRestart = false; 
 
-const player = { x: 100, y: 0, w: 40, h: 90, dy: 0, grounded: false, head: "👦", frame: 0 };
+const player = { x: 100, y: 0, w: 45, h: 90, dy: 0, grounded: false, head: "👦", frame: 0 };
 
-// ALL 6 WORLDS
+// ALL CORE WORLDS + WORLD 7 (GLITCH DIMENSION)
 const worldSettings = {
     1: { bg: "#5c94fc", ground: "#9acd32", floor: "#e07b39", items: ["🍎", "🍐", "🥦"], hazards: ["🥩", "🍖"], deco: "☁️" },
     2: { bg: "#ff9ff3", ground: "#feca57", floor: "#ff9f43", items: ["🍓", "🍊", "🥥"], hazards: ["🍔", "🥓"], deco: "🌈" },
     3: { bg: "#48dbfb", ground: "#1dd1a1", floor: "#10ac84", items: ["🌽", "🥑", "🥥"], hazards: ["🌭", "🍕"], deco: "⛅" },
     4: { bg: "#000000", ground: "#576574", floor: "#222f3e", items: ["🥥"], hazards: ["🔥", "🥩", "🍖"], deco: "☄️" },
     5: { bg: "#0077be", ground: "#c2b280", floor: "#e0cd95", items: ["🌿", "🥬", "🌱"], hazards: ["🐟", "🐡", "🦈"], deco: "🫧" },
-    6: { bg: "#87CEEB", ground: "#2E8B57", floor: "#8B4513", items: ["🫐", "🍇", "🍓"], hazards: ["🍔", "🥩", "🍗"], deco: "🌴" }
+    6: { bg: "#87CEEB", ground: "#2E8B57", floor: "#8B4513", items: ["🫐", "🍇", "🍓"], hazards: ["🍔", "🥩", "🍗"], deco: "🌴" },
+    7: { bg: "#4a148c", ground: "#00ffcc", floor: "#1a0033", items: ["🌀", "✨", "⚡"], hazards: ["👾", "🪲", "🚫"], deco: "📺" }
 };
 
 let obstacles = [], items = [], decor = [], pipes = [], pitfalls = [];
@@ -116,7 +117,7 @@ function update() {
 
     scoreEl.innerText = Math.ceil(energy);
     distEl.innerText = Math.floor(distance);
-    worldEl.innerText = currentWorld;
+    worldEl.innerText = currentWorld === 7 ? "7 [GLITCH]" : currentWorld;
 
     if (distance >= 1000000) {
         gameActive = false;
@@ -125,7 +126,13 @@ function update() {
         return;
     }
 
-    // Physics
+    // Dynamic Engine Shifts inside the Glitch Dimension
+    if (currentWorld === 7 && Math.random() < 0.005) {
+        worldSettings[7].bg = `hsl(${Math.random() * 360}, 60%, 20%)`;
+        worldSettings[7].ground = `hsl(${Math.random() * 360}, 100%, 50%)`;
+        document.body.style.background = worldSettings[7].bg;
+    }
+
     let isUnderwater = (currentWorld === 5);
     let gravity = (isUnderwater || flyTimer > 0) ? 0.25 : 0.8;
     player.dy += gravity;
@@ -134,7 +141,7 @@ function update() {
     player.y += player.dy;
     const groundLevel = canvas.height - 80;
 
-    let pit = pitfalls.find(p => player.x + 10 < p.x + p.w && player.x + 30 > p.x);
+    let pit = pitfalls.find(p => player.x + 10 < p.x + p.w && player.x + 35 > p.x);
     if (player.y + player.h > groundLevel) {
         if (pit) {
             if (player.y > canvas.height) {
@@ -155,7 +162,7 @@ function update() {
         }
     }
 
-    // SPAWNING LOGIC
+    // SPAWNING
     if (Math.random() < 0.02) {
         let obsType = worldSettings[currentWorld].hazards[Math.floor(Math.random()*worldSettings[currentWorld].hazards.length)];
         let obsX, obsY, dx, dy, isGiant = false;
@@ -180,50 +187,53 @@ function update() {
         items.push({ x: canvas.width, y: spawnY, char: worldSettings[currentWorld].items[Math.floor(Math.random()*worldSettings[currentWorld].items.length)], type: 'food' });
     }
     
-    if (Math.random() < 0.015) decor.push({ x: canvas.width, y: Math.random() * 200, char: worldSettings[currentWorld].deco, speed: Math.random() * 2 + 1 });
-    if (Math.random() < 0.002) items.push({ x: canvas.width, y: groundLevel - 120, char: "🫐", type: 'powerup' });
+    if (Math.random() < 0.015 && currentWorld !== 6) decor.push({ x: canvas.width, y: Math.random() * 200, char: worldSettings[currentWorld].deco, speed: Math.random() * 2 + 1 });
+    if (Math.random() < 0.003) items.push({ x: canvas.width, y: groundLevel - 120, char: "🫐", type: 'powerup' });
     if (Math.random() < 0.002) items.push({ x: canvas.width, y: groundLevel - 120, char: "🌈", type: 'rainbow' });
     
     if (currentWorld === 6) {
-        if (Math.random() < 0.004) items.push({ x: canvas.width, y: groundLevel - 150, char: "🍄", type: 'megajump' });
-        if (Math.random() < 0.001) items.push({ x: canvas.width, y: groundLevel - 180, char: "🍃", type: 'fly' });
+        if (Math.random() < 0.005) items.push({ x: canvas.width, y: groundLevel - 150, char: "🍄", type: 'megajump' });
+        if (Math.random() < 0.002) items.push({ x: canvas.width, y: groundLevel - 180, char: "🍃", type: 'fly' });
     }
 
-    // MASSIVELY REDUCED DISTANCE FOR PIPES (from 2500 down to 1200)
+    // PIPE ROUTER SYSTEM (With rare Purple Pipe roll)
     if (worldDistance > 1200 && pipes.length === 0) {
-        let nextDest = Math.floor(Math.random() * 6) + 1;
-        while(nextDest === currentWorld) { nextDest = Math.floor(Math.random() * 6) + 1; }
+        let isPurple = Math.random() < 0.05; // 5% ultra rare generation rule
+        let nextDest;
         
-        // Make the pipe much taller in water/jungle so it's impossible to miss
+        if (isPurple) {
+            nextDest = 7; // Go to secret glitch world
+        } else {
+            nextDest = Math.floor(Math.random() * 6) + 1;
+            while(nextDest === currentWorld) { nextDest = Math.floor(Math.random() * 6) + 1; }
+        }
+        
         let pHeight = (currentWorld >= 5) ? 180 : 70;
-        pipes.push({ x: canvas.width + 100, y: groundLevel - pHeight, w: 70, h: pHeight, dest: nextDest });
+        pipes.push({ x: canvas.width + 100, y: groundLevel - pHeight, w: 70, h: pHeight, dest: nextDest, color: isPurple ? "#9c27b0" : "#2ecc71" });
     }
     
     if (Math.random() < 0.006) pitfalls.push({ x: canvas.width, w: 120, isWater: Math.random() < 0.4 });
 
     pipes.forEach((p, i) => {
         p.x -= 8;
-        
-        // Vortex Mechanic: If you fly or swim over it horizontally, it pulls you in
         let isFloating = (currentWorld === 5 || flyTimer > 0);
-        let hitPipe = (player.x + player.w > p.x && player.x < p.x + p.w);
-        let verticalHit = isFloating ? true : (player.y + player.h > p.y);
+        let hitX = (player.x + player.w > p.x && player.x < p.x + p.w);
+        let hitY = isFloating ? true : (player.y + player.h > p.y);
 
-        if (hitPipe && verticalHit) {
+        if (hitX && hitY) {
             currentWorld = p.dest; worldDistance = 0; player.y = -100; player.dy = 0;
             obstacles = []; items = []; pitfalls = []; pipes = [];
             document.body.style.background = worldSettings[currentWorld].bg;
-            playSound(400, 'sine', 0.4, 0.1, 400);
+            playSound(p.color === "#9c27b0" ? 700 : 400, 'sine', 0.5, 0.1, p.color === "#9c27b0" ? -300 : 400);
         }
         if (p.x < -100) pipes.splice(i, 1);
     });
 
     obstacles.forEach((obs, i) => {
         obs.x += obs.dx; obs.y += obs.dy;
-        
         let ow = obs.isGiant ? 100 : 30; let oh = obs.isGiant ? 80 : 40;
-        let hitX = (player.x < obs.x + ow && player.x + 40 > obs.x);
-        let hitY = (player.y + 50 < obs.y + oh && player.y + player.h > obs.y);
+        let hitX = (player.x < obs.x + ow && player.x + player.w > obs.x);
+        let hitY = (player.y + 40 < obs.y + oh && player.y + player.h > obs.y);
 
         if (hitX && hitY) {
             if (rainbowTimer > 0 && !obs.isGiant) { 
@@ -239,14 +249,18 @@ function update() {
         if (obs.x < -300 || obs.y > canvas.height + 100) obstacles.splice(i, 1);
     });
 
+    // Cleaned up Berry Collision calculation
     items.forEach((item, i) => {
         item.x -= 8;
-        if (player.x < item.x + 35 && player.x + 35 > item.x && player.y < item.y + 35 && player.y + player.h > item.y) {
+        let hitX = (player.x < item.x + 45 && player.x + player.w > item.x);
+        let hitY = (player.y < item.y + 45 && player.y + player.h > item.y);
+        
+        if (hitX && hitY) {
             if (item.type === 'powerup') { powerUpTimer = 600; playSound(500, 'sine', 0.3, 0.1, 400); }
             else if (item.type === 'rainbow') { rainbowTimer = 400; playSound(600, 'sine', 0.5, 0.1, 500); }
             else if (item.type === 'megajump') { megaJumpTimer = 600; playSound(700, 'sine', 0.3, 0.1, 600); }
             else if (item.type === 'fly') { flyTimer = 600; playSound(800, 'square', 0.4, 0.1, 700); }
-            else { energy = Math.min(100, energy + 10); playSound(800, 'sine', 0.1, 0.1); }
+            else { energy = Math.min(100, energy + 12); playSound(800, 'sine', 0.1, 0.1); }
             items.splice(i, 1);
         }
         if (item.x < -50) items.splice(i, 1);
@@ -274,15 +288,19 @@ function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const s = worldSettings[currentWorld];
 
-    if (currentWorld !== 4 && currentWorld !== 6) {
+    // Optimized Background Drawing Loop to kill the lagging spikes
+    if (currentWorld !== 4 && currentWorld !== 6 && currentWorld !== 7) {
         ctx.save(); ctx.globalAlpha = 0.2; ctx.translate(bgRainbowX % 2000, 100);
         for(let i=0; i<6; i++) { ctx.strokeStyle = `hsl(${i * 40}, 100%, 50%)`; ctx.lineWidth = 15; ctx.beginPath(); ctx.arc(1000, 400, 500 + (i*15), Math.PI, 0); ctx.stroke(); }
         ctx.restore();
     }
 
     if (currentWorld === 6) {
-        ctx.save(); ctx.globalAlpha = 0.5; ctx.translate((bgRainbowX / 1.5) % 1500, 50);
-        ctx.font = "300px Arial"; ctx.fillText("🌴", 100, 400); ctx.fillText("🌴", 700, 450); ctx.fillText("🌴", 1300, 380);
+        ctx.save(); ctx.globalAlpha = 0.25;
+        let offset = (bgRainbowX * 0.8) % 800;
+        ctx.font = "260px Arial";
+        ctx.fillText("🌴", offset + 100, 400);
+        ctx.fillText("🌴", offset + 500, 430);
         ctx.restore();
     }
 
@@ -297,8 +315,8 @@ function draw() {
         ctx.fillRect(p.x, canvas.height - 81, p.w, 82);
     });
     
-    ctx.fillStyle = "#2ecc71";
     pipes.forEach(p => { 
+        ctx.fillStyle = p.color;
         ctx.fillRect(p.x, p.y, p.w, p.h); 
         ctx.fillRect(p.x + 10, p.y + p.h, p.w - 20, canvas.height); 
     });
