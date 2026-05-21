@@ -75,12 +75,9 @@ let powerUpTimer = 0, rainbowTimer = 0, jumpCount = 0, bgRainbowX = 0;
 let megaJumpTimer = 0, flyTimer = 0;
 let canRestart = false; 
 
-// Yellow Pipe Challenge Trackers
 let inYellowChallenge = false, yellowChallengeLeft = 5000, yellowWorldSeed = 0;
-
-// Boss Fight Trackers
 let bossTimer = 0;
-let bossDino = { x: 0, targetX: 0, dir: -1, state: 'spawning' };
+let bossDino = { x: 0, dir: -1, state: 'spawning' };
 
 const player = { x: 100, y: 0, w: 45, h: 90, dy: 0, grounded: false, head: "👦", frame: 0 };
 
@@ -92,9 +89,9 @@ const worldSettings = {
     5: { bg: "#0077be", ground: "#c2b280", floor: "#e0cd95", items: ["🌿", "🥬", "🌱"], hazards: ["🐟", "🐡", "🦈"], deco: "🫧" },
     6: { bg: "#87CEEB", ground: "#2E8B57", floor: "#8B4513", items: ["🫐", "🍇", "🍓"], hazards: ["🍔", "🥩", "🍗"], deco: "🌴" },
     7: { bg: "#4a148c", ground: "#00ffcc", floor: "#1a0033", items: ["🌀", "✨", "⚡"], hazards: ["👾", "🪲", "🚫"], deco: "📺" },
-    8: { bg: "#222", ground: "#fff", floor: "#333", items: ["🍎"], hazards: ["🥩"], deco: "🌙" }, // Mutated Zone
-    9: { bg: "#6ab0de", ground: "transparent", floor: "transparent", items: ["☀️", "🌞"], hazards: ["⛈️", "🐦", "🦅"], deco: "☁️" }, // Sky World
-    10: { bg: "#f0f0f0", ground: "#cccccc", floor: "#aaaaaa", items: [], hazards: [], deco: "" } // Boss World
+    8: { bg: "#222", ground: "#fff", floor: "#333", items: ["🍎"], hazards: ["🥩"], deco: "🌙" }, 
+    9: { bg: "#6ab0de", ground: "transparent", floor: "transparent", items: ["☀️", "🌞"], hazards: ["⛈️", "🐦", "🦅"], deco: "☁️" }, 
+    10: { bg: "#f0f0f0", ground: "#cccccc", floor: "#aaaaaa", items: [], hazards: [], deco: "" } 
 };
 
 const randomBgs = ["#ff5252", "#341f97", "#222f3e", "#10ac84", "#ff9f43", "#01a3a4", "#b53471", "#2c3e50"];
@@ -143,7 +140,7 @@ function resetGame() {
 }
 
 function generateYellowChaosWorld() {
-    yellowWorldSeed = Math.floor(Math.random() * 10000) + 1; // Pick a random seed between 1 and 10,000
+    yellowWorldSeed = Math.floor(Math.random() * 10000) + 1;
     
     let bg = randomBgs[Math.floor(Math.random() * randomBgs.length)];
     let ground = randomGrounds[Math.floor(Math.random() * randomGrounds.length)];
@@ -181,12 +178,12 @@ function update() {
         }
     }
 
-    scoreEl.innerText = Math.ceil(energy);
+    let displayEnergy = Math.max(0, Math.ceil(energy));
+    scoreEl.innerText = displayEnergy;
     distEl.innerText = Math.floor(distance);
     
-    // Level Labels (Guaranteed numerical identifiers)
     if (inYellowChallenge) worldEl.innerText = yellowWorldSeed + " [MUTATED ZONE]";
-    else if (currentWorld === 7) worldEl.innerText = "7 [GLITCH]";
+    else if (currentWorld === 7) worldEl.innerText = "11 [GLITCH]";
     else if (currentWorld === 8) worldEl.innerText = "8 [MUTATED ZONE]";
     else if (currentWorld === 9) worldEl.innerText = "9 [SKY HORIZON]";
     else if (currentWorld === 10) worldEl.innerText = "10 [BOSS FIGHT]";
@@ -239,6 +236,7 @@ function update() {
                     playSound(100, 'sawtooth', 0.8, 0.3, 50);
                 } else {
                     die("FALL");
+                    return;
                 }
             }
         } else {
@@ -249,44 +247,34 @@ function update() {
             
             if (currentWorld === 10 && bossDino.state === 'spawning') {
                 bossDino.state = 'active';
-                bossDino.x = canvas.width + 150;
-                bossDino.targetX = canvas.width - 250;
+                bossDino.x = canvas.width - 250; // Locked to right side out of contact range
                 bossDino.dir = -1; 
             }
         }
     }
 
-    // BOSS FIGHT LOGIC LOOP
+    // BOSS FIGHT PATTERN
     if (currentWorld === 10) {
         bossTimer--;
         if (bossDino.state === 'active') {
-            let minAllowedX = 350;
-            let maxAllowedX = canvas.width - 150;
-            bossDino.x += bossDino.dir * 4;
-            
-            if (bossDino.x <= minAllowedX) { bossDino.dir = 1; }
-            if (bossDino.x >= maxAllowedX) { bossDino.dir = -1; }
+            // Boss shifts slightly left/right dynamically within its boundary zone, never touching player
+            bossDino.x += bossDino.dir * 2;
+            if (bossDino.x < canvas.width - 350) bossDino.dir = 1;
+            if (bossDino.x > canvas.width - 150) bossDino.dir = -1;
 
-            if (Math.random() < 0.012) {
+            if (Math.random() < 0.025) {
                 let fireType = Math.random() < 0.5 ? "🔥" : "🐦";
-                let weaponY = groundLevel - 150; 
+                let weaponY = groundLevel - 45;
                 let roll = Math.random();
-                if (roll < 0.33) {
-                    weaponY = groundLevel - 45; 
-                } else if (roll < 0.66) {
-                    weaponY = groundLevel - 100; 
-                } else {
-                    weaponY = groundLevel - 210; 
-                }
-                obstacles.push({ x: bossDino.x, y: weaponY, char: fireType, dx: -7, dy: 0, isGiant: false });
+                if (roll < 0.33) weaponY = groundLevel - 45; 
+                else if (roll < 0.66) weaponY = groundLevel - 110; 
+                else weaponY = groundLevel - 190; 
+
+                obstacles.push({ x: bossDino.x, y: weaponY, char: fireType, dx: -8, dy: 0, isGiant: false, isBossWeapon: true });
             }
 
-            if (Math.random() < 0.008) {
-                items.push({ x: canvas.width, y: groundLevel - 120, char: "🫐", type: 'powerup' });
-            }
-            if (Math.random() < 0.005) {
-                items.push({ x: canvas.width, y: groundLevel - 120, char: "🌈", type: 'rainbow' });
-            }
+            if (Math.random() < 0.008) items.push({ x: canvas.width - 400, y: groundLevel - 120, char: "🫐", type: 'powerup' });
+            if (Math.random() < 0.005) items.push({ x: canvas.width - 400, y: groundLevel - 120, char: "🌈", type: 'rainbow' });
         }
 
         if (bossTimer <= 0) {
@@ -300,7 +288,7 @@ function update() {
         }
     }
 
-    // SPAWNING
+    // SPAWNING 
     if (Math.random() < 0.02 && currentWorld !== 10) {
         let obsType = worldSettings[currentWorld].hazards[Math.floor(Math.random()*worldSettings[currentWorld].hazards.length)];
         let obsX, obsY, dx, dy, isGiant = false;
@@ -313,15 +301,13 @@ function update() {
             obsX = isSniper ? player.x + 10 : Math.random() * canvas.width;
             obsY = -50; dy = 9; dx = -1; 
         } else if (currentWorld === 9) {
-            obsX = canvas.width;
-            obsY = Math.random() * (canvas.height - 150) + 50;
-            dx = -9; dy = 0;
+            obsX = canvas.width; obsY = Math.random() * (canvas.height - 150) + 50; dx = -9; dy = 0;
         } else {
             obsX = canvas.width;
             obsY = (currentWorld === 5) ? (Math.random() * (groundLevel - 100) + 50) : groundLevel - 45;
             dx = -(8 + (currentWorld > 4 ? 2 : currentWorld)); dy = 0;
         }
-        obstacles.push({ x: obsX, y: obsY, char: obsType, dx: dx, dy: dy, isGiant: isGiant });
+        obstacles.push({ x: obsX, y: obsY, char: obsType, dx: dx, dy: dy, isGiant: isGiant, isBossWeapon: false });
     }
 
     if (Math.random() < 0.015 && currentWorld !== 10) {
@@ -336,7 +322,6 @@ function update() {
     
     if (Math.random() < 0.003 && currentWorld !== 10) items.push({ x: canvas.width, y: (currentWorld === 9 ? Math.random() * 400 + 100 : groundLevel - 120), char: "🫐", type: 'powerup' });
     if (Math.random() < 0.002 && currentWorld !== 10) items.push({ x: canvas.width, y: (currentWorld === 9 ? Math.random() * 400 + 100 : groundLevel - 120), char: "🌈", type: 'rainbow' });
-    
     if (Math.random() < 0.0003 && currentWorld !== 10) items.push({ x: canvas.width, y: (currentWorld === 9 ? Math.random() * 400 + 100 : groundLevel - 120), char: "🪶", type: 'feather' });
     
     if (currentWorld === 6) {
@@ -353,16 +338,10 @@ function update() {
         let nextDest;
         let pipeColor = "#2ecc71"; 
         
-        if (randRoll < 0.15) { 
-            pipeColor = "#ffeb3b";
-            nextDest = 8; 
-        } else if (randRoll < 0.25) { 
-            pipeColor = "#2196f3";
-            nextDest = 9;
-        } else if (randRoll < 0.31) { 
-            pipeColor = "#9c27b0";
-            nextDest = 7; 
-        } else {
+        if (randRoll < 0.15) { pipeColor = "#ffeb3b"; nextDest = 8; } 
+        else if (randRoll < 0.25) { pipeColor = "#2196f3"; nextDest = 9; } 
+        else if (randRoll < 0.31) { pipeColor = "#9c27b0"; nextDest = 7; } 
+        else {
             nextDest = Math.floor(Math.random() * 6) + 1;
             while(nextDest === currentWorld) { nextDest = Math.floor(Math.random() * 6) + 1; }
         }
@@ -379,27 +358,16 @@ function update() {
     pipes.forEach((p, i) => {
         p.x -= 8;
         let hitX = (player.x + player.w > p.x && player.x < p.x + p.w);
-        let hitY = false;
-
-        if (p.isRing) {
-            hitY = (player.y + player.h > p.y && player.y < p.y + p.h);
-        } else {
-            let isFloating = (currentWorld === 5 || flyTimer > 0);
-            hitY = isFloating ? true : (player.y + player.h > p.y);
-        }
+        let hitY = p.isRing ? (player.y + player.h > p.y && player.y < p.y + p.h) : ((currentWorld === 5 || flyTimer > 0) ? true : (player.y + player.h > p.y));
 
         if (hitX && hitY) {
             if (!p.isRing && p.color === "#ffeb3b") {
-                inYellowChallenge = true;
-                yellowChallengeLeft = 5000;
-                challengeZoneEl.style.display = "inline";
-                generateYellowChaosWorld();
-                playYellowPipeSound();
+                inYellowChallenge = true; yellowChallengeLeft = 5000; challengeZoneEl.style.display = "inline";
+                generateYellowChaosWorld(); playYellowPipeSound();
             } else {
                 let sPitch = p.isRing ? 900 : (p.color === "#9c27b0" ? 700 : 400);
                 playSound(sPitch, 'sine', 0.5, 0.1, 200);
             }
-
             currentWorld = p.dest; worldDistance = 0; player.y = -100; player.dy = 0;
             obstacles = []; items = []; pitfalls = []; pipes = [];
             document.body.style.background = worldSettings[currentWorld].bg;
@@ -407,6 +375,7 @@ function update() {
         if (p.x < -200) pipes.splice(i, 1);
     });
 
+    // DAMAGE DETERMINATION AND DEATH ROUTING
     obstacles.forEach((obs, i) => {
         obs.x += obs.dx; obs.y += obs.dy;
         let ow = obs.isGiant ? 100 : 30; let oh = obs.isGiant ? 80 : 40;
@@ -414,17 +383,25 @@ function update() {
         let hitY = (player.y + 40 < obs.y + oh && player.y + player.h > obs.y);
 
         if (hitX && hitY) {
-            if (rainbowTimer > 0 && !obs.isGiant) { 
+            if (rainbowTimer > 0 && !obs.isGiant && !obs.isBossWeapon) { 
                 obstacles.splice(i, 1); playSound(800, 'sine', 0.1, 0.1, 200); 
             } else { 
                 if (obs.isGiant) { die("SHARK"); return; }
-                if (currentWorld === 10) { die("DINO"); return; }
                 
+                // Deduct energy from projectile hit
                 energy -= (currentWorld >= 4) ? 25 : 40;
                 playSound(150, 'sawtooth', 0.2, 0.2, -50); 
                 obstacles.splice(i, 1);
                 
-                if (energy <= 0) { die("MEAT"); return; }
+                // Check if this specific projectile drop killed you
+                if (energy <= 0) { 
+                    if (obs.isBossWeapon || currentWorld === 10) {
+                        die("DINO"); 
+                    } else {
+                        die("MEAT"); 
+                    }
+                    return; 
+                }
             }
         }
         if (obs.x < -300 || obs.y > canvas.height + 100) obstacles.splice(i, 1);
@@ -455,7 +432,12 @@ function update() {
     pitfalls.forEach((p, i) => { p.x -= 8; if (p.x < -200) pitfalls.splice(i, 1); });
     decor.forEach((d, i) => { d.x -= d.speed; if (d.x < -100) decor.splice(i, 1); });
     
-    if (energy <= 0) die("ENERGY");
+    // Check if passive energy drain killed you inside the boss arena
+    if (energy <= 0) { 
+        if (currentWorld === 10) die("DINO"); 
+        else die("ENERGY"); 
+        return; 
+    }
 }
 
 function die(type) {
@@ -469,6 +451,7 @@ function die(type) {
     else if (type === "ENERGY") msg = "YOU WITHERED AWAY!";
     else if (type === "MEAT") msg = ["meat death ☠️", "victim of greed", "you meat lemming", "meat head"][Math.floor(Math.random() * 4)];
 
+    scoreEl.innerText = "0";
     msgEl.style.display = 'block';
     msgEl.innerHTML = msg + "<br><small style='font-size:22px; color:white;'>DIST: " + Math.floor(distance) + "m</small><br><span style='font-size:18px; color:#afff94;'>TAP TWICE TO RESTART</span>";
     playSound(50, 'sawtooth', 0.5, 0.2);
@@ -487,17 +470,14 @@ function draw() {
     if (currentWorld === 6) {
         ctx.save(); ctx.globalAlpha = 0.25;
         let offset = (bgRainbowX * 0.8) % 800;
-        ctx.font = "260px Arial";
-        ctx.fillText("🌴", offset + 100, 400);
-        ctx.fillText("🌴", offset + 500, 430);
+        ctx.font = "260px Arial"; ctx.fillText("🌴", offset + 100, 400); ctx.fillText("🌴", offset + 500, 430);
         ctx.restore();
     }
 
     if (currentWorld === 8) {
         ctx.save(); ctx.globalAlpha = 0.15;
         let offset = (bgRainbowX * 0.5) % 1200;
-        ctx.font = "280px Arial";
-        ctx.fillText(s.deco, offset + 300, 380);
+        ctx.font = "280px Arial"; ctx.fillText(s.deco, offset + 300, 380);
         ctx.restore();
     }
 
@@ -516,17 +496,10 @@ function draw() {
     
     pipes.forEach(p => { 
         if (p.isRing) {
-            ctx.strokeStyle = "#e91e63";
-            ctx.lineWidth = 12;
-            ctx.beginPath();
-            ctx.arc(p.x + p.w/2, p.y + p.h/2, p.w/2, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.fillStyle = "rgba(233, 30, 99, 0.15)";
-            ctx.fill();
+            ctx.strokeStyle = "#e91e63"; ctx.lineWidth = 12; ctx.beginPath(); ctx.arc(p.x + p.w/2, p.y + p.h/2, p.w/2, 0, Math.PI * 2); ctx.stroke();
+            ctx.fillStyle = "rgba(233, 30, 99, 0.15)"; ctx.fill();
         } else {
-            ctx.fillStyle = p.color;
-            ctx.fillRect(p.x, p.y, p.w, p.h); 
-            ctx.fillRect(p.x + 10, p.y + p.h, p.w - 20, canvas.height); 
+            ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.w, p.h); ctx.fillRect(p.x + 10, p.y + p.h, p.w - 20, canvas.height); 
         }
     });
 
@@ -541,12 +514,10 @@ function draw() {
     ctx.stroke();
 
     ctx.fillStyle = bodyColor; ctx.fillRect(px + 10, py + 40, 20, 30);
-    ctx.font = (powerUpTimer > 0 || megaJumpTimer > 0) ? "60px Arial" : "45px Arial"; 
-    ctx.fillText(player.head, px, py + 45);
+    ctx.font = (powerUpTimer > 0 || megaJumpTimer > 0) ? "60px Arial" : "45px Arial"; ctx.fillText(player.head, px, py + 45);
 
-    if (currentWorld === 10 && bossDino.state === 'active') {
-        ctx.font = "120px Arial";
-        ctx.fillText("🦖", bossDino.x, canvas.height - 80);
+    if (currentWorld === 10 && (bossDino.state === 'active' || bossDino.state === 'spawning')) {
+        ctx.font = "120px Arial"; ctx.fillText("🦖", bossDino.x, canvas.height - 80);
     }
 
     ctx.font = "45px Arial";
