@@ -79,6 +79,10 @@ let canRestart = false;
 // Yellow Pipe Challenge Trackers
 let inYellowChallenge = false, yellowChallengeLeft = 5000;
 
+// Boss Fight Trackers
+let bossTimer = 0;
+let bossDino = { x: 0, targetX: 0, dir: -1, state: 'spawning' };
+
 const player = { x: 100, y: 0, w: 45, h: 90, dy: 0, grounded: false, head: "👦", frame: 0 };
 
 // Base Worlds
@@ -90,7 +94,9 @@ const worldSettings = {
     5: { bg: "#0077be", ground: "#c2b280", floor: "#e0cd95", items: ["🌿", "🥬", "🌱"], hazards: ["🐟", "🐡", "🦈"], deco: "🫧" },
     6: { bg: "#87CEEB", ground: "#2E8B57", floor: "#8B4513", items: ["🫐", "🍇", "🍓"], hazards: ["🍔", "🥩", "🍗"], deco: "🌴" },
     7: { bg: "#4a148c", ground: "#00ffcc", floor: "#1a0033", items: ["🌀", "✨", "⚡"], hazards: ["👾", "🪲", "🚫"], deco: "📺" },
-    8: { bg: "#222", ground: "#fff", floor: "#333", items: ["🍎"], hazards: ["🥩"], deco: "🌙" } // Dynamic Slot for Yellow Pipe
+    8: { bg: "#222", ground: "#fff", floor: "#333", items: ["🍎"], hazards: ["🥩"], deco: "🌙" }, // Dynamic Slot for Yellow Pipe
+    9: { bg: "#6ab0de", ground: "transparent", floor: "transparent", items: ["☀️", "🌞"], hazards: ["⛈️", "🐦", "🦅"], deco: "☁️" }, // Sky World
+    10: { bg: "#f0f0f0", ground: "#cccccc", floor: "#aaaaaa", items: [], hazards: [], deco: "" } // Boss World
 };
 
 // Tool Arrays to draw random assets from
@@ -109,8 +115,8 @@ function handleInput() {
         resetGame(); return; 
     }
     
-    if (currentWorld === 5 || flyTimer > 0) {
-        player.dy = (flyTimer > 0) ? -9 : -6;
+    if (currentWorld === 5 || currentWorld === 9 || flyTimer > 0) {
+        player.dy = (flyTimer > 0 || currentWorld === 9) ? -9 : -6;
         player.grounded = false;
         playSound(300, 'triangle', 0.1, 0.1, 100);
     } else {
@@ -130,7 +136,7 @@ window.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput()
 function resetGame() {
     energy = 100; distance = 0; currentWorld = 1; worldDistance = 0; 
     powerUpTimer = 0; rainbowTimer = 0; megaJumpTimer = 0; flyTimer = 0; canRestart = false;
-    inYellowChallenge = false; yellowChallengeLeft = 5000;
+    inYellowChallenge = false; yellowChallengeLeft = 5000; bossTimer = 0;
     challengeZoneEl.style.display = "none";
     obstacles = []; items = []; decor = []; pipes = []; pitfalls = [];
     gameActive = true;
@@ -140,18 +146,14 @@ function resetGame() {
 }
 
 function generateYellowChaosWorld() {
-    // Pick pairs randomly
     let bg = randomBgs[Math.floor(Math.random() * randomBgs.length)];
     let ground = randomGrounds[Math.floor(Math.random() * randomGrounds.length)];
     let floor = randomFloors[Math.floor(Math.random() * randomFloors.length)];
     let deco = randomDecos[Math.floor(Math.random() * randomDecos.length)];
     
-    // Pick 3 random foods
     let shuffFood = [...poolFood].sort(() => 0.5 - Math.random()).slice(0, 3);
-    // Pick 2 random hazards
     let shuffHazards = [...poolHazards].sort(() => 0.5 - Math.random()).slice(0, 2);
 
-    // Lock it into World 8 slot
     worldSettings[8] = { bg: bg, ground: ground, floor: floor, items: shuffFood, hazards: shuffHazards, deco: deco };
 }
 
@@ -171,7 +173,6 @@ function update() {
         yellowChallengeLeft -= 2;
         challengeDistEl.innerText = Math.max(0, yellowChallengeLeft);
         
-        // Check for Challenge Victory condition
         if (yellowChallengeLeft <= 0) {
             inYellowChallenge = false;
             challengeZoneEl.style.display = "none";
@@ -187,6 +188,8 @@ function update() {
     
     if (currentWorld === 7) worldEl.innerText = "7 [GLITCH]";
     else if (currentWorld === 8) worldEl.innerText = "💥 [MUTATED ZONE]";
+    else if (currentWorld === 9) worldEl.innerText = "☁️ [SKY HORIZON]";
+    else if (currentWorld === 10) worldEl.innerText = "🦖 [BOSS FIGHT]";
     else worldEl.innerText = currentWorld;
 
     if (distance >= 1000000) {
@@ -204,22 +207,39 @@ function update() {
     }
 
     let isUnderwater = (currentWorld === 5);
-    let gravity = (isUnderwater || flyTimer > 0) ? 0.25 : 0.8;
+    let gravity = (isUnderwater || currentWorld === 9 || flyTimer > 0) ? 0.25 : 0.8;
     player.dy += gravity;
-    if ((isUnderwater || flyTimer > 0) && player.dy > 4) player.dy = 4;
+    if ((isUnderwater || currentWorld === 9 || flyTimer > 0) && player.dy > 4) player.dy = 4;
     
     player.y += player.dy;
     const groundLevel = canvas.height - 80;
 
+    // Infinite Screen-wrap rules for Sky Level
+    if (currentWorld === 9) {
+        if (player.y < -player.h) {
+            player.y = canvas.height;
+        } else if (player.y > canvas.height) {
+            player.y = -player.h;
+        }
+    }
+
     let pit = pitfalls.find(p => player.x + 10 < p.x + p.w && player.x + 35 > p.x);
-    if (player.y + player.h > groundLevel) {
+    if (player.y + player.h > groundLevel && currentWorld !== 9) {
         if (pit) {
             if (player.y > canvas.height) {
-                if (pit.isWater && currentWorld !== 5 && !inYellowChallenge) {
+                if (pit.isWater && currentWorld !== 5 && currentWorld !== 4 && !inYellowChallenge) {
                     currentWorld = 5; worldDistance = 0; player.y = -50; player.dy = 0;
                     obstacles = []; items = []; pitfalls = []; pipes = [];
                     document.body.style.background = worldSettings[currentWorld].bg;
                     playSound(400, 'sine', 0.5, 0.1, -200);
+                } else if (currentWorld === 4 && pit.isLava) {
+                    // Warp to Boss Fight stage
+                    currentWorld = 10; worldDistance = 0; player.y = -100; player.dy = 0; player.grounded = false;
+                    bossTimer = 1000; 
+                    bossDino.state = 'spawning';
+                    obstacles = []; items = []; pitfalls = []; pipes = []; decor = [];
+                    document.body.style.background = worldSettings[currentWorld].bg;
+                    playSound(100, 'sawtooth', 0.8, 0.3, 50);
                 } else {
                     die("FALL");
                 }
@@ -229,21 +249,75 @@ function update() {
             player.dy = 0;
             player.grounded = true;
             jumpCount = 0;
+            
+            // Activate boss asset on first ground touch
+            if (currentWorld === 10 && bossDino.state === 'spawning') {
+                bossDino.state = 'active';
+                bossDino.x = canvas.width + 150;
+                bossDino.targetX = canvas.width - 250;
+                bossDino.dir = -1; 
+            }
+        }
+    }
+
+    // BOSS FIGHT LOGIC LOOP
+    if (currentWorld === 10) {
+        bossTimer--;
+        if (bossDino.state === 'active') {
+            // Patrol movement engine (stays safely away from player's absolute boundary)
+            let minAllowedX = 350;
+            let maxAllowedX = canvas.width - 150;
+            bossDino.x += bossDino.dir * 4;
+            
+            if (bossDino.x <= minAllowedX) { bossDino.dir = 1; }
+            if (bossDino.x >= maxAllowedX) { bossDino.dir = -1; }
+
+            // Dynamic Weapon Fire Rules
+            if (Math.random() < 0.04) {
+                let fireType = Math.random() < 0.5 ? "🔥" : "🐦";
+                let weaponY = groundLevel - 150; // default chest/head high
+                let roll = Math.random();
+                if (roll < 0.33) {
+                    weaponY = groundLevel - 45; // target feet
+                } else if (roll < 0.66) {
+                    weaponY = groundLevel - 100; // target torso/head
+                } else {
+                    weaponY = groundLevel - 210; // fire overhead space
+                }
+                obstacles.push({ x: bossDino.x, y: weaponY, char: fireType, dx: -9, dy: 0, isGiant: false });
+            }
+        }
+
+        // Boss Survival Victory Code
+        if (bossTimer <= 0) {
+            bossDino.state = 'dead';
+            distance += 50000; // 50,000m reward
+            // Drop out the floor and warp
+            currentWorld = Math.floor(Math.random() * 6) + 1;
+            worldDistance = 0; player.y = -100; player.dy = 0;
+            obstacles = []; items = []; pitfalls = []; pipes = [];
+            document.body.style.background = worldSettings[currentWorld].bg;
+            playSound(600, 'sine', 1.0, 0.2, 400);
         }
     }
 
     // SPAWNING
-    if (Math.random() < 0.02) {
+    if (Math.random() < 0.02 && currentWorld !== 10) {
         let obsType = worldSettings[currentWorld].hazards[Math.floor(Math.random()*worldSettings[currentWorld].hazards.length)];
         let obsX, obsY, dx, dy, isGiant = false;
 
         if (currentWorld === 5 && Math.random() < 0.05) {
             obsType = "🦈"; isGiant = true; obsX = canvas.width; obsY = Math.random() * (canvas.height - 200);
             dx = -12; dy = 0;
-        } else if (obsType === "🔥") { 
+        } else if (obsType === "🔥" && currentWorld === 4) { 
             let isSniper = Math.random() < 0.20; 
             obsX = isSniper ? player.x + 10 : Math.random() * canvas.width;
             obsY = -50; dy = 9; dx = -1; 
+        } else if (currentWorld === 9) {
+            // Sky obstacles configuration
+            obsX = canvas.width;
+            obsY = Math.random() * (canvas.height - 150) + 50;
+            dx = -9; dy = 0;
         } else {
             obsX = canvas.width;
             obsY = (currentWorld === 5) ? (Math.random() * (groundLevel - 100) + 50) : groundLevel - 45;
@@ -252,33 +326,46 @@ function update() {
         obstacles.push({ x: obsX, y: obsY, char: obsType, dx: dx, dy: dy, isGiant: isGiant });
     }
 
-    if (Math.random() < 0.015) {
-        let spawnY = currentWorld === 5 ? Math.random() * (groundLevel - 100) + 50 : groundLevel - 120;
+    if (Math.random() < 0.015 && currentWorld !== 10) {
+        let spawnY = (currentWorld === 5 || currentWorld === 9) ? Math.random() * (canvas.height - 150) + 50 : groundLevel - 120;
         items.push({ x: canvas.width, y: spawnY, char: worldSettings[currentWorld].items[Math.floor(Math.random()*worldSettings[currentWorld].items.length)], type: 'food' });
     }
     
-    if (Math.random() < 0.015 && currentWorld !== 6) decor.push({ x: canvas.width, y: Math.random() * 200, char: worldSettings[currentWorld].deco, speed: Math.random() * 2 + 1 });
-    if (Math.random() < 0.003) items.push({ x: canvas.width, y: groundLevel - 120, char: "🫐", type: 'powerup' });
-    if (Math.random() < 0.002) items.push({ x: canvas.width, y: groundLevel - 120, char: "🌈", type: 'rainbow' });
+    if (Math.random() < 0.015 && currentWorld !== 6 && currentWorld !== 10) {
+        let decoY = currentWorld === 9 ? Math.random() * canvas.height : Math.random() * 200;
+        decor.push({ x: canvas.width, y: decoY, char: worldSettings[currentWorld].deco, speed: Math.random() * 2 + 1 });
+    }
+    
+    if (Math.random() < 0.003 && currentWorld !== 10) items.push({ x: canvas.width, y: (currentWorld === 9 ? Math.random() * 400 + 100 : groundLevel - 120), char: "🫐", type: 'powerup' });
+    if (Math.random() < 0.002 && currentWorld !== 10) items.push({ x: canvas.width, y: (currentWorld === 9 ? Math.random() * 400 + 100 : groundLevel - 120), char: "🌈", type: 'rainbow' });
+    if (Math.random() < 0.002 && currentWorld !== 10) items.push({ x: canvas.width, y: (currentWorld === 9 ? Math.random() * 400 + 100 : groundLevel - 120), char: "🪶", type: 'feather' });
     
     if (currentWorld === 6) {
         if (Math.random() < 0.005) items.push({ x: canvas.width, y: groundLevel - 150, char: "🍄", type: 'megajump' });
         if (Math.random() < 0.002) items.push({ x: canvas.width, y: groundLevel - 180, char: "🍃", type: 'fly' });
     }
 
-    // PIPE ROUTER SYSTEM (With rare Purple & ultra-rare Yellow generation rules)
-    // Locked out while playing inside a Yellow Challenge run!
-    if (worldDistance > 1200 && pipes.length === 0 && !inYellowChallenge) {
+    // Portal / Warp Rings for Sky Level
+    if (currentWorld === 9 && Math.random() < 0.004 && pipes.length === 0) {
+        pipes.push({ x: canvas.width + 100, y: Math.random() * (canvas.height - 300) + 100, w: 140, h: 140, dest: Math.floor(Math.random() * 6) + 1, isRing: true });
+    }
+
+    // PIPE ROUTER SYSTEM
+    if (worldDistance > 1200 && pipes.length === 0 && !inYellowChallenge && currentWorld !== 9 && currentWorld !== 10) {
         let randRoll = Math.random();
         let nextDest;
         let pipeColor = "#2ecc71"; // Default Green
         
-        if (randRoll < 0.01) { 
-            // 1% Ultra Rare Yellow Pipe roll
+        if (randRoll < 0.15) { 
+            // 15% Balanced Spawn for Yellow Pipes
             pipeColor = "#ffeb3b";
             nextDest = 8; 
-        } else if (randRoll < 0.06) { 
-            // 5% Purple Pipe roll
+        } else if (randRoll < 0.25) { 
+            // 10% Spawn for Blue Sky level pipes
+            pipeColor = "#2196f3";
+            nextDest = 9;
+        } else if (randRoll < 0.31) { 
+            // Purple Pipe
             pipeColor = "#9c27b0";
             nextDest = 7; 
         } else {
@@ -287,34 +374,43 @@ function update() {
         }
         
         let pHeight = (currentWorld >= 5) ? 180 : 70;
-        pipes.push({ x: canvas.width + 100, y: groundLevel - pHeight, w: 70, h: pHeight, dest: nextDest, color: pipeColor });
+        pipes.push({ x: canvas.width + 100, y: groundLevel - pHeight, w: 70, h: pHeight, dest: nextDest, color: pipeColor, isRing: false });
     }
     
-    if (Math.random() < 0.006) pitfalls.push({ x: canvas.width, w: 120, isWater: Math.random() < 0.4 });
+    if (Math.random() < 0.006 && currentWorld !== 9 && currentWorld !== 10) {
+        let assignLava = (currentWorld === 4 && Math.random() < 0.5);
+        pitfalls.push({ x: canvas.width, w: 120, isWater: !assignLava, isLava: assignLava });
+    }
 
     pipes.forEach((p, i) => {
         p.x -= 8;
-        let isFloating = (currentWorld === 5 || flyTimer > 0);
         let hitX = (player.x + player.w > p.x && player.x < p.x + p.w);
-        let hitY = isFloating ? true : (player.y + player.h > p.y);
+        let hitY = false;
+
+        if (p.isRing) {
+            hitY = (player.y + player.h > p.y && player.y < p.y + p.h);
+        } else {
+            let isFloating = (currentWorld === 5 || flyTimer > 0);
+            hitY = isFloating ? true : (player.y + player.h > p.y);
+        }
 
         if (hitX && hitY) {
-            if (p.color === "#ffeb3b") {
-                // Initialize Challenge Mode
+            if (!p.isRing && p.color === "#ffeb3b") {
                 inYellowChallenge = true;
                 yellowChallengeLeft = 5000;
                 challengeZoneEl.style.display = "inline";
                 generateYellowChaosWorld();
                 playYellowPipeSound();
             } else {
-                playSound(p.color === "#9c27b0" ? 700 : 400, 'sine', 0.5, 0.1, p.color === "#9c27b0" ? -300 : 400);
+                let sPitch = p.isRing ? 900 : (p.color === "#9c27b0" ? 700 : 400);
+                playSound(sPitch, 'sine', 0.5, 0.1, 200);
             }
 
             currentWorld = p.dest; worldDistance = 0; player.y = -100; player.dy = 0;
             obstacles = []; items = []; pitfalls = []; pipes = [];
             document.body.style.background = worldSettings[currentWorld].bg;
         }
-        if (p.x < -100) pipes.splice(i, 1);
+        if (p.x < -200) pipes.splice(i, 1);
     });
 
     obstacles.forEach((obs, i) => {
@@ -328,6 +424,7 @@ function update() {
                 obstacles.splice(i, 1); playSound(800, 'sine', 0.1, 0.1, 200); 
             } else { 
                 if (obs.isGiant) { die("SHARK"); return; }
+                if (currentWorld === 10) { die("DINO"); return; }
                 energy -= (currentWorld >= 4) ? 25 : 40;
                 playSound(150, 'sawtooth', 0.2, 0.2, -50); 
                 obstacles.splice(i, 1);
@@ -347,6 +444,13 @@ function update() {
             else if (item.type === 'rainbow') { rainbowTimer = 400; playSound(600, 'sine', 0.5, 0.1, 500); }
             else if (item.type === 'megajump') { megaJumpTimer = 600; playSound(700, 'sine', 0.3, 0.1, 600); }
             else if (item.type === 'fly') { flyTimer = 600; playSound(800, 'square', 0.4, 0.1, 700); }
+            else if (item.type === 'feather') { 
+                // Rare feather triggers immediate Sky World warp
+                currentWorld = 9; worldDistance = 0; player.y = 200; player.dy = 0;
+                obstacles = []; items = []; pitfalls = []; pipes = [];
+                document.body.style.background = worldSettings[currentWorld].bg;
+                playSound(850, 'sine', 0.5, 0.15, 300);
+            }
             else { energy = Math.min(100, energy + 12); playSound(800, 'sine', 0.1, 0.1); }
             items.splice(i, 1);
         }
@@ -361,10 +465,13 @@ function update() {
 function die(type) {
     if (!gameActive) return;
     gameActive = false; canRestart = false; 
-    let msg = (type === "FALL") ? "YOU FELL TO YOUR DEATH" : 
-              (type === "SHARK") ? "EATEN BY A GIANT SHARK!" :
-              (type === "ENERGY") ? "OUT OF ENERGY!" : 
-              ["meat death ☠️", "victim of greed", "you meat lemming", "meat head"][Math.floor(Math.random() * 4)];
+    let msg = "";
+    
+    if (type === "FALL") msg = "YOU FELL TO YOUR DEATH";
+    else if (type === "SHARK") msg = "EATEN BY A GIANT SHARK!";
+    else if (type === "DINO") msg = "Deanus Politicus Carnivorus Paradoxus ate you";
+    else if (type === "ENERGY") msg = "YOU WITHERED AWAY!";
+    else msg = ["meat death ☠️", "victim of greed", "you meat lemming", "meat head"][Math.floor(Math.random() * 4)];
 
     msgEl.style.display = 'block';
     msgEl.innerHTML = msg + "<br><small style='font-size:22px; color:white;'>DIST: " + Math.floor(distance) + "m</small><br><span style='font-size:18px; color:#afff94;'>TAP TWICE TO RESTART</span>";
@@ -376,7 +483,7 @@ function draw() {
     const s = worldSettings[currentWorld];
 
     // Background configurations
-    if (currentWorld !== 4 && currentWorld !== 6 && currentWorld !== 7 && currentWorld !== 8) {
+    if (currentWorld !== 4 && currentWorld !== 6 && currentWorld !== 7 && currentWorld !== 8 && currentWorld !== 9 && currentWorld !== 10) {
         ctx.save(); ctx.globalAlpha = 0.2; ctx.translate(bgRainbowX % 2000, 100);
         for(let i=0; i<6; i++) { ctx.strokeStyle = `hsl(${i * 40}, 100%, 50%)`; ctx.lineWidth = 15; ctx.beginPath(); ctx.arc(1000, 400, 500 + (i*15), Math.PI, 0); ctx.stroke(); }
         ctx.restore();
@@ -391,7 +498,6 @@ function draw() {
         ctx.restore();
     }
 
-    // Dynamic large background drawing if Yellow Custom Mode lands a huge moon/tree asset
     if (currentWorld === 8) {
         ctx.save(); ctx.globalAlpha = 0.15;
         let offset = (bgRainbowX * 0.5) % 1200;
@@ -403,18 +509,32 @@ function draw() {
     ctx.font = "50px Arial";
     decor.forEach(d => ctx.fillText(d.char, d.x, d.y));
     
-    ctx.fillStyle = s.floor; ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
-    ctx.fillStyle = s.ground; ctx.fillRect(0, canvas.height - 80, canvas.width, 15);
+    // Draw floors and grounds unless in Sky Level
+    if (currentWorld !== 9) {
+        ctx.fillStyle = s.floor; ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
+        ctx.fillStyle = s.ground; ctx.fillRect(0, canvas.height - 80, canvas.width, 15);
+    }
     
     pitfalls.forEach(p => {
-        ctx.fillStyle = p.isWater ? "#0077be" : s.bg;
+        ctx.fillStyle = p.isLava ? "#ff3333" : (p.isWater ? "#0077be" : s.bg);
         ctx.fillRect(p.x, canvas.height - 81, p.w, 82);
     });
     
     pipes.forEach(p => { 
-        ctx.fillStyle = p.color;
-        ctx.fillRect(p.x, p.y, p.w, p.h); 
-        ctx.fillRect(p.x + 10, p.y + p.h, p.w - 20, canvas.height); 
+        if (p.isRing) {
+            // Draw Warp Portal Ring for Sky stage
+            ctx.strokeStyle = "#e91e63";
+            ctx.lineWidth = 12;
+            ctx.beginPath();
+            ctx.arc(p.x + p.w/2, p.y + p.h/2, p.w/2, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillStyle = "rgba(233, 30, 99, 0.15)";
+            ctx.fill();
+        } else {
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x, p.y, p.w, p.h); 
+            ctx.fillRect(p.x + 10, p.y + p.h, p.w - 20, canvas.height); 
+        }
     });
 
     player.frame += 0.25;
@@ -423,13 +543,19 @@ function draw() {
     let bodyColor = (rainbowTimer > 0) ? `hsl(${Date.now() % 360}, 80%, 50%)` : "#27ae60";
 
     ctx.strokeStyle = "#333"; ctx.lineWidth = 4; ctx.beginPath();
-    if (!player.grounded) { ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 10, py + 80); ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 30, py + 80); }
+    if (!player.grounded || currentWorld === 9) { ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 10, py + 80); ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 30, py + 80); }
     else { ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 20 + runCycle, py + 90); ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 20 - runCycle, py + 90); }
     ctx.stroke();
 
     ctx.fillStyle = bodyColor; ctx.fillRect(px + 10, py + 40, 20, 30);
     ctx.font = (powerUpTimer > 0 || megaJumpTimer > 0) ? "60px Arial" : "45px Arial"; 
     ctx.fillText(player.head, px, py + 45);
+
+    // Draw active Boss Dinosaur asset
+    if (currentWorld === 10 && bossDino.state === 'active') {
+        ctx.font = "120px Arial";
+        ctx.fillText("🦖", bossDino.x, canvas.height - 80);
+    }
 
     ctx.font = "45px Arial";
     obstacles.forEach(o => {
