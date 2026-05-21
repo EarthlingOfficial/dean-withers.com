@@ -11,6 +11,28 @@
             text-align: center; color: #ffeb3b; text-shadow: 4px 4px #e91e63; 
             font-size: 40px; font-weight: bold; width: 100%; z-index: 20;
         }
+        /* New Neon Glitch Overlay styling */
+        #glitchOverlay {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+            z-index: 30;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00;
+            text-align: center;
+        }
+        .flicker {
+            animation: glitchFlicker 0.15s infinite alternate;
+        }
+        @keyframes glitchFlicker {
+            0% { opacity: 0.9; transform: skewX(-2deg); }
+            100% { opacity: 1; transform: skewX(2deg); }
+        }
     </style>
 </head>
 <body>
@@ -22,6 +44,14 @@
             STAY VEGAN! REACH 1,000,000m!
         </small>
     </div>
+
+    <!-- The Neon Glitch Lockdown Screen Component -->
+    <div id="glitchOverlay">
+        <h1 class="flicker" style="font-size: 45px; letter-spacing: 2px;">⚠️ SYSTEM COMPROMISED ⚠️</h1>
+        <h2 class="flicker" style="font-size: 32px; color: #39ff14;">NON-VEGAN PRESENCE DETECTED</h2>
+        <p style="color: #888; font-size: 16px; margin-top: 20px;">PURGING CONTAMINANTS... PLEASE STAND BY</p>
+    </div>
+
     <canvas id="gameCanvas"></canvas>
 
 <script>
@@ -43,17 +73,17 @@ function playSound(freq, type, duration, vol, slide = 0) {
 function playYellowPipeSound() {
     try {
         let now = audioCtx.currentTime;
-        let notes = [200, 400, 300, 600, 800];
+        let notes = [120, 90, 150, 80, 200]; // Deeper, more mechanical corrupted tones
         notes.forEach((freq, index) => {
             let osc = audioCtx.createOscillator();
             let gain = audioCtx.createGain();
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(freq, now + (index * 0.06));
-            gain.gain.setValueAtTime(0.15, now + (index * 0.06));
-            gain.gain.exponentialRampToValueAtTime(0.01, now + (index * 0.06) + 0.05);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(freq, now + (index * 0.08));
+            gain.gain.setValueAtTime(0.2, now + (index * 0.08));
+            gain.gain.exponentialRampToValueAtTime(0.01, now + (index * 0.08) + 0.07);
             osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.start(now + (index * 0.06));
-            osc.stop(now + (index * 0.06) + 0.06);
+            osc.start(now + (index * 0.08));
+            osc.stop(now + (index * 0.08) + 0.08);
         });
     } catch(e) {}
 }
@@ -66,6 +96,7 @@ const msgEl = document.getElementById('msg');
 const worldEl = document.getElementById('worldNum');
 const challengeZoneEl = document.getElementById('challengeZone');
 const challengeDistEl = document.getElementById('challengeDist');
+const glitchOverlayEl = document.getElementById('glitchOverlay');
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
@@ -78,9 +109,9 @@ let canRestart = false;
 let inYellowChallenge = false, yellowChallengeLeft = 5000, yellowWorldSeed = 0;
 let bossTimer = 0;
 let bossDino = { x: 0, dir: -1, state: 'spawning' };
+let glitchScreenTimer = 0; // Tracks active terminal blackouts
 
-const player = { x: 100, y: 0, w: 45, h: 90, dy: 0, grounded: false, head: "👦", frame: 0 };
-
+// "Filling the wound with Gold" - Secure Baseline definitions mapped with gold fallbacks
 const worldSettings = {
     1: { bg: "#5c94fc", ground: "#9acd32", floor: "#e07b39", items: ["🍎", "🍐", "🥦"], hazards: ["🥩", "🍖"], deco: "☁️" },
     2: { bg: "#ff9ff3", ground: "#feca57", floor: "#ff9f43", items: ["🍓", "🍊", "🥥"], hazards: ["🍔", "🥓"], deco: "🌈" },
@@ -88,22 +119,23 @@ const worldSettings = {
     4: { bg: "#000000", ground: "#576574", floor: "#222f3e", items: ["🥥"], hazards: ["🔥", "🥩", "🍖"], deco: "☄️" },
     5: { bg: "#0077be", ground: "#c2b280", floor: "#e0cd95", items: ["🌿", "🥬", "🌱"], hazards: ["🐟", "🐡", "🦈"], deco: "🫧" },
     6: { bg: "#87CEEB", ground: "#2E8B57", floor: "#8B4513", items: ["🫐", "🍇", "🍓"], hazards: ["🍔", "🥩", "🍗"], deco: "🌴" },
-    7: { bg: "#4a148c", ground: "#00ffcc", floor: "#1a0033", items: ["🌀", "✨", "⚡"], hazards: ["👾", "🪲", "🚫"], deco: "📺" }, 
-    8: { bg: "#222", ground: "#fff", floor: "#333", items: ["🍎"], hazards: ["🥩"], deco: "🌙" }, 
+    7: { bg: "#4a148c", ground: "#d4af37", floor: "#1a0033", items: ["🌀", "✨", "⚡"], hazards: ["👾", "🪲", "🚫"], deco: "📺" }, 
+    8: { bg: "#111111", ground: "#d4af37", floor: "#8a7322", items: ["🍎"], hazards: ["🥩"], deco: "🔱" }, // Gold baseline
     9: { bg: "#6ab0de", ground: "transparent", floor: "transparent", items: ["☀️", "🌞"], hazards: ["⛈️", "🐦", "🦅"], deco: "☁️" }, 
-    10: { bg: "#f0f0f0", ground: "#cccccc", floor: "#aaaaaa", items: [], hazards: [], deco: "" } 
+    10: { bg: "#0a0a0a", ground: "#ff3333", floor: "#222222", items: ["🍎"], hazards: ["🔥"], deco: "💀" } 
 };
 
-const randomBgs = ["#ff5252", "#341f97", "#222f3e", "#10ac84", "#ff9f43", "#01a3a4", "#b53471", "#2c3e50"];
-const randomGrounds = ["#ffda79", "#cd84f1", "#ffb8b8", "#32ff7e", "#7d5fff", "#18dcff", "#fff"];
-const randomFloors = ["#ccae62", "#9b59b6", "#e74c3c", "#27ae60", "#d35400", "#2980b9", "#555"];
-const randomDecos = ["☁️", "🌈", "⛅", "☄️", "🫧", "🌴", "📺", "🌙", "🛸", "⭐", "🪐", "🌵"];
-const poolFood = ["🍎", "🍐", "🥦", "🍓", "🍊", "🥬", "🌽", "🥑", "🍇", "🍉", "🍒", "🥕"];
-const poolHazards = ["🥩", "🍖", "🍔", "🥓", "🌭", "🍕", "🍗", "🔥", "👾", "🪲"];
+const randomBgs = ["#0d0d0d", "#1a1a1a", "#120024", "#001a0d"];
+const randomGrounds = ["#d4af37", "#ffd700", "#aa8000"]; // Strictly metallic gold variants
+const randomFloors = ["#5c4d1a", "#443913", "#221b07"];
+const randomDecos = ["🔱", "👑", "✨", "⚡", "👽", "👁️"];
+const poolFood = ["🍎", "🍐", "🥦", "🍓", "🍊", "🥬"];
+const poolHazards = ["🥩", "🍖", "🍔", "🥓", "🌭", "🍕"];
 
 let obstacles = [], items = [], decor = [], pipes = [], pitfalls = [];
 
 function handleInput() {
+    if (glitchScreenTimer > 0) return; // Ignore inputs during automated glitch lockdown
     if (!gameActive) {
         if (!canRestart) { canRestart = true; return; }
         resetGame(); return; 
@@ -131,12 +163,20 @@ function resetGame() {
     energy = 100; distance = 0; currentWorld = 1; worldDistance = 0; 
     powerUpTimer = 0; rainbowTimer = 0; megaJumpTimer = 0; flyTimer = 0; canRestart = false;
     inYellowChallenge = false; yellowChallengeLeft = 5000; bossTimer = 0; yellowWorldSeed = 0;
+    glitchScreenTimer = 0;
+    glitchOverlayEl.style.display = "none";
     challengeZoneEl.style.display = "none";
     obstacles = []; items = []; decor = []; pipes = []; pitfalls = [];
     gameActive = true;
     msgEl.style.display = 'none';
     document.body.style.background = worldSettings[currentWorld].bg;
     if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function triggerGlitchLockdown() {
+    glitchScreenTimer = 90; // About 1.5 seconds of black screen lockdown
+    glitchOverlayEl.style.display = "flex";
+    playSound(60, 'sawtooth', 0.6, 0.3, -30);
 }
 
 function generateYellowChaosWorld() {
@@ -150,7 +190,9 @@ function generateYellowChaosWorld() {
     let shuffFood = [...poolFood].sort(() => 0.5 - Math.random()).slice(0, 3);
     let shuffHazards = [...poolHazards].sort(() => 0.5 - Math.random()).slice(0, 2);
 
+    // Re-writing with gold accents embedded natively
     worldSettings[8] = { bg: bg, ground: ground, floor: floor, items: shuffFood, hazards: shuffHazards, deco: deco };
+    triggerGlitchLockdown();
 }
 
 function clearSurvivalState() {
@@ -161,6 +203,15 @@ function clearSurvivalState() {
 
 function update() {
     if (!gameActive) return;
+
+    // Handle automated glitch system overheads
+    if (glitchScreenTimer > 0) {
+        glitchScreenTimer--;
+        if (glitchScreenTimer <= 0) {
+            glitchOverlayEl.style.display = "none";
+        }
+        return; // Halt core updates while screen is blacked out
+    }
 
     distance += 2; worldDistance += 2;
     energy -= 0.035;
@@ -188,8 +239,8 @@ function update() {
     scoreEl.innerText = displayEnergy;
     distEl.innerText = Math.floor(distance);
     
-    if (currentWorld === 7) worldEl.innerText = "7 [GLITCH]";
-    else if (currentWorld === 8) worldEl.innerText = yellowWorldSeed + " [MUTATED ZONE]";
+    if (currentWorld === 7) worldEl.innerText = "7 [GLITCH_CORE]";
+    else if (currentWorld === 8) worldEl.innerText = yellowWorldSeed + " [MUTATED_GOLD]";
     else if (currentWorld === 9) worldEl.innerText = "9 [SKY HORIZON]";
     else if (currentWorld === 10) worldEl.innerText = "10 [BOSS FIGHT]";
     else worldEl.innerText = currentWorld;
@@ -201,10 +252,12 @@ function update() {
         return;
     }
 
-    if (currentWorld === 7 && Math.random() < 0.005) {
-        worldSettings[7].bg = `hsl(${Math.random() * 360}, 60%, 20%)`;
-        worldSettings[7].ground = `hsl(${Math.random() * 360}, 100%, 50%)`;
+    // Injected Glitch Intercepts for visual disruption inside world 7
+    if (currentWorld === 7 && Math.random() < 0.01) {
+        worldSettings[7].bg = Math.random() < 0.5 ? "#000" : "#2a085c";
+        worldSettings[7].ground = "#d4af37"; // Golden trace lines
         document.body.style.background = worldSettings[7].bg;
+        if(Math.random() < 0.05) triggerGlitchLockdown();
     }
 
     let isUnderwater = (currentWorld === 5);
@@ -228,14 +281,14 @@ function update() {
         if (pit) {
             if (player.y > canvas.height) {
                 if (pit.isWater && currentWorld !== 5) {
-                    clearSurvivalState(); 
+                    clearSurvivalState();
                     currentWorld = 5; worldDistance = 0; player.y = -50; player.dy = 0;
                     obstacles = []; items = []; pitfalls = []; pipes = [];
                     document.body.style.background = worldSettings[currentWorld].bg;
                     playSound(400, 'sine', 0.5, 0.1, -200);
                 } else if (currentWorld === 4 && pit.isLava) {
                     currentWorld = 10; worldDistance = 0; player.y = -100; player.dy = 0; player.grounded = false;
-                    bossTimer = 10000; 
+                    bossTimer = 1000; 
                     bossDino.state = 'spawning';
                     obstacles = []; items = []; pitfalls = []; pipes = []; decor = [];
                     document.body.style.background = worldSettings[currentWorld].bg;
@@ -276,14 +329,13 @@ function update() {
 
                 obstacles.push({ x: bossDino.x, y: weaponY, char: fireType, dx: -8, dy: 0, isGiant: false, isBossWeapon: true });
             }
-
-            if (Math.random() < 0.003) items.push({ x: canvas.width - 400, y: groundLevel - 120, char: "🫐", type: 'powerup' });
-            if (Math.random() < 0.001) items.push({ x: canvas.width - 400, y: groundLevel - 120, char: "🌈", type: 'rainbow' });
+            if (Math.random() < 0.008) items.push({ x: canvas.width - 400, y: groundLevel - 120, char: "🫐", type: 'powerup' });
+            if (Math.random() < 0.005) items.push({ x: canvas.width - 400, y: groundLevel - 120, char: "🌈", type: 'rainbow' });
         }
 
         if (bossTimer <= 0) {
             bossDino.state = 'dead';
-            distance += 50000; 
+            distance += 15000; // Balanced reward value down from 50k to protect game length metrics
             currentWorld = Math.floor(Math.random() * 6) + 1;
             worldDistance = 0; player.y = -100; player.dy = 0;
             obstacles = []; items = []; pitfalls = []; pipes = [];
@@ -293,7 +345,8 @@ function update() {
     }
 
     if (Math.random() < 0.02 && currentWorld !== 10) {
-        let obsType = worldSettings[currentWorld].hazards[Math.floor(Math.random()*worldSettings[currentWorld].hazards.length)];
+        let currentHazards = worldSettings[currentWorld].hazards;
+        let obsType = currentHazards ? currentHazards[Math.floor(Math.random() * currentHazards.length)] : "🥩";
         let obsX, obsY, dx, dy, isGiant = false;
 
         if (currentWorld === 5 && Math.random() < 0.05) {
@@ -314,13 +367,16 @@ function update() {
     }
 
     if (Math.random() < 0.015 && currentWorld !== 10) {
-        let spawnY = (currentWorld === 5 || currentWorld === 9) ? Math.random() * (canvas.height - 150) + 50 : groundLevel - 120;
-        items.push({ x: canvas.width, y: spawnY, char: worldSettings[currentWorld].items[Math.floor(Math.random()*worldSettings[currentWorld].items.length)], type: 'food' });
+        let currentItems = worldSettings[currentWorld].items;
+        if(currentItems && currentItems.length > 0) {
+            let spawnY = (currentWorld === 5 || currentWorld === 9) ? Math.random() * (canvas.height - 150) + 50 : groundLevel - 120;
+            items.push({ x: canvas.width, y: spawnY, char: currentItems[Math.floor(Math.random() * currentItems.length)], type: 'food' });
+        }
     }
     
     if (Math.random() < 0.015 && currentWorld !== 6 && currentWorld !== 10) {
         let decoY = currentWorld === 9 ? Math.random() * canvas.height : Math.random() * 200;
-        decor.push({ x: canvas.width, y: decoY, char: worldSettings[currentWorld].deco, speed: Math.random() * 2 + 1 });
+        decor.push({ x: canvas.width, y: decoY, char: worldSettings[currentWorld].deco || "✨", speed: Math.random() * 2 + 1 });
     }
     
     if (Math.random() < 0.003 && currentWorld !== 10) items.push({ x: canvas.width, y: (currentWorld === 9 ? Math.random() * 400 + 100 : groundLevel - 120), char: "🫐", type: 'powerup' });
@@ -367,15 +423,16 @@ function update() {
             if (!p.isRing && p.color === "#ffeb3b") {
                 yellowChallengeLeft = 5000; challengeZoneEl.style.display = "inline";
                 inYellowChallenge = true; 
-                generateYellowChaosWorld(); playYellowPipeSound();
+                generateYellowChaosWorld();
             } else {
                 clearSurvivalState(); 
                 let sPitch = p.isRing ? 900 : (p.color === "#9c27b0" ? 700 : 400);
                 playSound(sPitch, 'sine', 0.5, 0.1, 200);
+                if(p.color === "#9c27b0") triggerGlitchLockdown(); // Explicit glitch screen on purple pipes too!
             }
             currentWorld = p.dest; worldDistance = 0; player.y = -100; player.dy = 0;
             obstacles = []; items = []; pitfalls = []; pipes = [];
-            document.body.style.background = worldSettings[currentWorld].bg;
+            document.body.style.background = worldSettings[currentWorld].bg || "#111";
         }
         if (p.x < -200) pipes.splice(i, 1);
     });
@@ -457,8 +514,9 @@ function die(type) {
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const s = worldSettings[currentWorld];
+    const s = worldSettings[currentWorld] || worldSettings[1];
 
+    // Main running background environment fills
     if (currentWorld !== 4 && currentWorld !== 6 && currentWorld !== 7 && currentWorld !== 8 && currentWorld !== 9 && currentWorld !== 10) {
         ctx.save(); ctx.globalAlpha = 0.2; ctx.translate(bgRainbowX % 2000, 100);
         for(let i=0; i<6; i++) { ctx.strokeStyle = `hsl(${i * 40}, 100%, 50%)`; ctx.lineWidth = 15; ctx.beginPath(); ctx.arc(1000, 400, 500 + (i*15), Math.PI, 0); ctx.stroke(); }
@@ -473,9 +531,10 @@ function draw() {
     }
 
     if (currentWorld === 8) {
-        ctx.save(); ctx.globalAlpha = 0.15;
+        ctx.save(); ctx.globalAlpha = 0.25;
         let offset = (bgRainbowX * 0.5) % 1200;
-        ctx.font = "280px Arial"; ctx.fillText(s.deco, offset + 300, 380);
+        ctx.fillStyle = "#ffd700"; // Metallic Gold shadow text inside World 8
+        ctx.font = "bold 280px Arial"; ctx.fillText(s.deco || "🔱", offset + 300, 380);
         ctx.restore();
     }
 
@@ -483,12 +542,12 @@ function draw() {
     decor.forEach(d => ctx.fillText(d.char, d.x, d.y));
     
     if (currentWorld !== 9) {
-        ctx.fillStyle = s.floor; ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
-        ctx.fillStyle = s.ground; ctx.fillRect(0, canvas.height - 80, canvas.width, 15);
+        ctx.fillStyle = s.floor || "#8a7322"; ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
+        ctx.fillStyle = s.ground || "#d4af37"; ctx.fillRect(0, canvas.height - 80, canvas.width, 15);
     }
     
     pitfalls.forEach(p => {
-        ctx.fillStyle = p.isLava ? "#ff3333" : (p.isWater ? "#0077be" : s.bg);
+        ctx.fillStyle = p.isLava ? "#ff3333" : (p.isWater ? "#0077be" : (s.bg || "#111"));
         ctx.fillRect(p.x, canvas.height - 81, p.w, 82);
     });
     
@@ -504,9 +563,11 @@ function draw() {
     player.frame += 0.25;
     const runCycle = Math.sin(player.frame) * 15;
     const px = player.x, py = player.y;
-    let bodyColor = (rainbowTimer > 0) ? `hsl(${Date.now() % 360}, 80%, 50%)` : "#27ae60";
+    
+    // Aesthetic upgrade: Golden trails if inside the Mutated gold zone
+    let bodyColor = (currentWorld === 8) ? "#ffd700" : ((rainbowTimer > 0) ? `hsl(${Date.now() % 360}, 80%, 50%)` : "#27ae60");
 
-    ctx.strokeStyle = "#333"; ctx.lineWidth = 4; ctx.beginPath();
+    ctx.strokeStyle = (currentWorld === 8) ? "#ffd700" : "#333"; ctx.lineWidth = 4; ctx.beginPath();
     if (!player.grounded || currentWorld === 9) { ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 10, py + 80); ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 30, py + 80); }
     else { ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 20 + runCycle, py + 90); ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 20 - runCycle, py + 90); }
     ctx.stroke();
