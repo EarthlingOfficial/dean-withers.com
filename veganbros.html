@@ -153,7 +153,6 @@ function generateYellowChaosWorld() {
     worldSettings[8] = { bg: bg, ground: ground, floor: floor, items: shuffFood, hazards: shuffHazards, deco: deco };
 }
 
-// Global cleanup function to eliminate state/text bleeding completely when leaving World 8
 function clearSurvivalState() {
     inYellowChallenge = false;
     yellowWorldSeed = 0;
@@ -175,14 +174,13 @@ function update() {
         yellowChallengeLeft -= 2;
         challengeDistEl.innerText = Math.max(0, yellowChallengeLeft);
         
-        // SUCCESS: Finished countdown inside the Mutated Zone
         if (yellowChallengeLeft <= 0) {
-            distance += 20000; // NEW: 20,000m survival gift!
+            distance += 20000; 
             clearSurvivalState();
             currentWorld = 1; worldDistance = 0; player.y = -100; player.dy = 0;
             obstacles = []; items = []; pitfalls = []; pipes = [];
             document.body.style.background = worldSettings[currentWorld].bg;
-            playSound(900, 'sine', 0.8, 0.2, 200); // High pitch win sound
+            playSound(900, 'sine', 0.8, 0.2, 200); 
         }
     }
 
@@ -190,7 +188,6 @@ function update() {
     scoreEl.innerText = displayEnergy;
     distEl.innerText = Math.floor(distance);
     
-    // Exact HUD layout without text bleedouts
     if (currentWorld === 7) worldEl.innerText = "7 [GLITCH]";
     else if (currentWorld === 8) worldEl.innerText = yellowWorldSeed + " [MUTATED ZONE]";
     else if (currentWorld === 9) worldEl.innerText = "9 [SKY HORIZON]";
@@ -231,14 +228,14 @@ function update() {
         if (pit) {
             if (player.y > canvas.height) {
                 if (pit.isWater && currentWorld !== 5) {
-                    clearSurvivalState(); // Clean up if falling out of World 8 into Water
+                    clearSurvivalState(); 
                     currentWorld = 5; worldDistance = 0; player.y = -50; player.dy = 0;
                     obstacles = []; items = []; pitfalls = []; pipes = [];
                     document.body.style.background = worldSettings[currentWorld].bg;
                     playSound(400, 'sine', 0.5, 0.1, -200);
                 } else if (currentWorld === 4 && pit.isLava) {
                     currentWorld = 10; worldDistance = 0; player.y = -100; player.dy = 0; player.grounded = false;
-                    bossTimer = 1000; 
+                    bossTimer = 10000; 
                     bossDino.state = 'spawning';
                     obstacles = []; items = []; pitfalls = []; pipes = []; decor = [];
                     document.body.style.background = worldSettings[currentWorld].bg;
@@ -280,8 +277,8 @@ function update() {
                 obstacles.push({ x: bossDino.x, y: weaponY, char: fireType, dx: -8, dy: 0, isGiant: false, isBossWeapon: true });
             }
 
-            if (Math.random() < 0.008) items.push({ x: canvas.width - 400, y: groundLevel - 120, char: "🫐", type: 'powerup' });
-            if (Math.random() < 0.005) items.push({ x: canvas.width - 400, y: groundLevel - 120, char: "🌈", type: 'rainbow' });
+            if (Math.random() < 0.003) items.push({ x: canvas.width - 400, y: groundLevel - 120, char: "🫐", type: 'powerup' });
+            if (Math.random() < 0.001) items.push({ x: canvas.width - 400, y: groundLevel - 120, char: "🌈", type: 'rainbow' });
         }
 
         if (bossTimer <= 0) {
@@ -369,10 +366,10 @@ function update() {
         if (hitX && hitY) {
             if (!p.isRing && p.color === "#ffeb3b") {
                 yellowChallengeLeft = 5000; challengeZoneEl.style.display = "inline";
-                inYellowChallenge = true; // explicitly trigger challenge tracking
+                inYellowChallenge = true; 
                 generateYellowChaosWorld(); playYellowPipeSound();
             } else {
-                clearSurvivalState(); // Clean memory if hitting any other normal pipe to leave World 8
+                clearSurvivalState(); 
                 let sPitch = p.isRing ? 900 : (p.color === "#9c27b0" ? 700 : 400);
                 playSound(sPitch, 'sine', 0.5, 0.1, 200);
             }
@@ -419,7 +416,7 @@ function update() {
             else if (item.type === 'megajump') { megaJumpTimer = 600; playSound(700, 'sine', 0.3, 0.1, 600); }
             else if (item.type === 'fly') { flyTimer = 600; playSound(800, 'square', 0.4, 0.1, 700); }
             else if (item.type === 'feather') { 
-                clearSurvivalState(); // Clean up variables completely if using a feather to fly to World 9
+                clearSurvivalState(); 
                 currentWorld = 9; worldDistance = 0; player.y = 200; player.dy = 0;
                 obstacles = []; items = []; pitfalls = []; pipes = [];
                 document.body.style.background = worldSettings[currentWorld].bg;
