@@ -88,7 +88,7 @@ const worldSettings = {
     4: { bg: "#000000", ground: "#576574", floor: "#222f3e", items: ["🥥"], hazards: ["🔥", "🥩", "🍖"], deco: "☄️" },
     5: { bg: "#0077be", ground: "#c2b280", floor: "#e0cd95", items: ["🌿", "🥬", "🌱"], hazards: ["🐟", "🐡", "🦈"], deco: "🫧" },
     6: { bg: "#87CEEB", ground: "#2E8B57", floor: "#8B4513", items: ["🫐", "🍇", "🍓"], hazards: ["🍔", "🥩", "🍗"], deco: "🌴" },
-    7: { bg: "#4a148c", ground: "#00ffcc", floor: "#1a0033", items: ["🌀", "✨", "⚡"], hazards: ["👾", "🪲", "🚫"], deco: "📺" },
+    7: { bg: "#4a148c", ground: "#00ffcc", floor: "#1a0033", items: ["🌀", "✨", "⚡"], hazards: ["👾", "🪲", "🚫"], deco: "📺" }, 
     8: { bg: "#222", ground: "#fff", floor: "#333", items: ["🍎"], hazards: ["🥩"], deco: "🌙" }, 
     9: { bg: "#6ab0de", ground: "transparent", floor: "transparent", items: ["☀️", "🌞"], hazards: ["⛈️", "🐦", "🦅"], deco: "☁️" }, 
     10: { bg: "#f0f0f0", ground: "#cccccc", floor: "#aaaaaa", items: [], hazards: [], deco: "" } 
@@ -153,6 +153,13 @@ function generateYellowChaosWorld() {
     worldSettings[8] = { bg: bg, ground: ground, floor: floor, items: shuffFood, hazards: shuffHazards, deco: deco };
 }
 
+// Global cleanup function to eliminate state/text bleeding completely when leaving World 8
+function clearSurvivalState() {
+    inYellowChallenge = false;
+    yellowWorldSeed = 0;
+    challengeZoneEl.style.display = "none";
+}
+
 function update() {
     if (!gameActive) return;
 
@@ -168,13 +175,14 @@ function update() {
         yellowChallengeLeft -= 2;
         challengeDistEl.innerText = Math.max(0, yellowChallengeLeft);
         
+        // SUCCESS: Finished countdown inside the Mutated Zone
         if (yellowChallengeLeft <= 0) {
-            inYellowChallenge = false;
-            challengeZoneEl.style.display = "none";
+            distance += 20000; // NEW: 20,000m survival gift!
+            clearSurvivalState();
             currentWorld = 1; worldDistance = 0; player.y = -100; player.dy = 0;
             obstacles = []; items = []; pitfalls = []; pipes = [];
             document.body.style.background = worldSettings[currentWorld].bg;
-            playSound(500, 'sine', 0.6, 0.15, 300);
+            playSound(900, 'sine', 0.8, 0.2, 200); // High pitch win sound
         }
     }
 
@@ -182,9 +190,9 @@ function update() {
     scoreEl.innerText = displayEnergy;
     distEl.innerText = Math.floor(distance);
     
-    if (inYellowChallenge) worldEl.innerText = yellowWorldSeed + " [MUTATED ZONE]";
-    else if (currentWorld === 7) worldEl.innerText = "11 [GLITCH]";
-    else if (currentWorld === 8) worldEl.innerText = "8 [MUTATED ZONE]";
+    // Exact HUD layout without text bleedouts
+    if (currentWorld === 7) worldEl.innerText = "7 [GLITCH]";
+    else if (currentWorld === 8) worldEl.innerText = yellowWorldSeed + " [MUTATED ZONE]";
     else if (currentWorld === 9) worldEl.innerText = "9 [SKY HORIZON]";
     else if (currentWorld === 10) worldEl.innerText = "10 [BOSS FIGHT]";
     else worldEl.innerText = currentWorld;
@@ -222,7 +230,8 @@ function update() {
     if (player.y + player.h > groundLevel && currentWorld !== 9) {
         if (pit) {
             if (player.y > canvas.height) {
-                if (pit.isWater && currentWorld !== 5 && !inYellowChallenge) {
+                if (pit.isWater && currentWorld !== 5) {
+                    clearSurvivalState(); // Clean up if falling out of World 8 into Water
                     currentWorld = 5; worldDistance = 0; player.y = -50; player.dy = 0;
                     obstacles = []; items = []; pitfalls = []; pipes = [];
                     document.body.style.background = worldSettings[currentWorld].bg;
@@ -247,17 +256,15 @@ function update() {
             
             if (currentWorld === 10 && bossDino.state === 'spawning') {
                 bossDino.state = 'active';
-                bossDino.x = canvas.width - 250; // Locked to right side out of contact range
+                bossDino.x = canvas.width - 250; 
                 bossDino.dir = -1; 
             }
         }
     }
 
-    // BOSS FIGHT PATTERN
     if (currentWorld === 10) {
         bossTimer--;
         if (bossDino.state === 'active') {
-            // Boss shifts slightly left/right dynamically within its boundary zone, never touching player
             bossDino.x += bossDino.dir * 2;
             if (bossDino.x < canvas.width - 350) bossDino.dir = 1;
             if (bossDino.x > canvas.width - 150) bossDino.dir = -1;
@@ -288,7 +295,6 @@ function update() {
         }
     }
 
-    // SPAWNING 
     if (Math.random() < 0.02 && currentWorld !== 10) {
         let obsType = worldSettings[currentWorld].hazards[Math.floor(Math.random()*worldSettings[currentWorld].hazards.length)];
         let obsX, obsY, dx, dy, isGiant = false;
@@ -362,9 +368,11 @@ function update() {
 
         if (hitX && hitY) {
             if (!p.isRing && p.color === "#ffeb3b") {
-                inYellowChallenge = true; yellowChallengeLeft = 5000; challengeZoneEl.style.display = "inline";
+                yellowChallengeLeft = 5000; challengeZoneEl.style.display = "inline";
+                inYellowChallenge = true; // explicitly trigger challenge tracking
                 generateYellowChaosWorld(); playYellowPipeSound();
             } else {
+                clearSurvivalState(); // Clean memory if hitting any other normal pipe to leave World 8
                 let sPitch = p.isRing ? 900 : (p.color === "#9c27b0" ? 700 : 400);
                 playSound(sPitch, 'sine', 0.5, 0.1, 200);
             }
@@ -375,7 +383,6 @@ function update() {
         if (p.x < -200) pipes.splice(i, 1);
     });
 
-    // DAMAGE DETERMINATION AND DEATH ROUTING
     obstacles.forEach((obs, i) => {
         obs.x += obs.dx; obs.y += obs.dy;
         let ow = obs.isGiant ? 100 : 30; let oh = obs.isGiant ? 80 : 40;
@@ -383,23 +390,17 @@ function update() {
         let hitY = (player.y + 40 < obs.y + oh && player.y + player.h > obs.y);
 
         if (hitX && hitY) {
-            if (rainbowTimer > 0 && !obs.isGiant && !obs.isBossWeapon) { 
+            if (rainbowTimer > 0 && !obs.isGiant) { 
                 obstacles.splice(i, 1); playSound(800, 'sine', 0.1, 0.1, 200); 
             } else { 
                 if (obs.isGiant) { die("SHARK"); return; }
-                
-                // Deduct energy from projectile hit
                 energy -= (currentWorld >= 4) ? 25 : 40;
                 playSound(150, 'sawtooth', 0.2, 0.2, -50); 
                 obstacles.splice(i, 1);
                 
-                // Check if this specific projectile drop killed you
                 if (energy <= 0) { 
-                    if (obs.isBossWeapon || currentWorld === 10) {
-                        die("DINO"); 
-                    } else {
-                        die("MEAT"); 
-                    }
+                    if (obs.isBossWeapon || currentWorld === 10) die("DINO"); 
+                    else die("MEAT"); 
                     return; 
                 }
             }
@@ -418,6 +419,7 @@ function update() {
             else if (item.type === 'megajump') { megaJumpTimer = 600; playSound(700, 'sine', 0.3, 0.1, 600); }
             else if (item.type === 'fly') { flyTimer = 600; playSound(800, 'square', 0.4, 0.1, 700); }
             else if (item.type === 'feather') { 
+                clearSurvivalState(); // Clean up variables completely if using a feather to fly to World 9
                 currentWorld = 9; worldDistance = 0; player.y = 200; player.dy = 0;
                 obstacles = []; items = []; pitfalls = []; pipes = [];
                 document.body.style.background = worldSettings[currentWorld].bg;
@@ -432,7 +434,6 @@ function update() {
     pitfalls.forEach((p, i) => { p.x -= 8; if (p.x < -200) pitfalls.splice(i, 1); });
     decor.forEach((d, i) => { d.x -= d.speed; if (d.x < -100) decor.splice(i, 1); });
     
-    // Check if passive energy drain killed you inside the boss arena
     if (energy <= 0) { 
         if (currentWorld === 10) die("DINO"); 
         else die("ENERGY"); 
