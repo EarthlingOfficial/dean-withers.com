@@ -1222,8 +1222,8 @@ function update() {
         document.body.style.background = worldSettings[7].bg;
     }
 
-    // World 4: spawn flag pole at 10000m
-    if (currentWorld === 4 && worldDistance >= 10000 && stageTransitionState === 'none' && flagPoleX < 0) {
+    // World 4: spawn flag pole at 100m
+    if (currentWorld === 4 && worldDistance >= 100 && stageTransitionState === 'none' && flagPoleX < 0) {
         spawnFlagPole();
     }
 
