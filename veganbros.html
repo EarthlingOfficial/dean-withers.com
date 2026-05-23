@@ -5,1468 +5,1237 @@
     <style>
         body { margin: 0; overflow: hidden; background: #5c94fc; font-family: 'Courier New', Courier, monospace; transition: background 1s; }
         canvas { display: block; }
-        #ui { position: absolute; top: 10px; left: 10px; color: #FFF; text-shadow: 2px 2px #000; font-size: 20px; pointer-events: none; z-index: 10; }
-        #msg { 
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-            text-align: center; color: #ffeb3b; text-shadow: 4px 4px #e91e63; 
-            font-size: 40px; font-weight: bold; width: 100%; z-index: 20;
-        }
-        #scoreboard {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(20, 20, 20, 0.95); border: 4px solid #00ffcc; box-shadow: 0 0 20px #00ffcc;
-            color: #fff; padding: 20px; border-radius: 10px; width: 90%; max-width: 550px;
-            text-align: center; z-index: 30; display: none; font-family: 'Courier New', monospace;
-        }
+        #ui { position: absolute; top: 10px; left: 10px; color: #FFF; text-shadow: 2px 2px #000; font-size: 18px; pointer-events: none; z-index: 10; line-height: 1.6; }
+        #msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #ffeb3b; text-shadow: 4px 4px #e91e63; font-size: 40px; font-weight: bold; width: 100%; z-index: 20; }
+        #scoreboard { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(20,20,20,0.95); border: 4px solid #00ffcc; box-shadow: 0 0 20px #00ffcc; color: #fff; padding: 20px; border-radius: 10px; width: 90%; max-width: 550px; text-align: center; z-index: 30; display: none; font-family: 'Courier New', monospace; }
         #scoreboard h1 { color: #ffeb3b; text-shadow: 2px 2px #e91e63; margin: 0 0 10px 0; font-size: 28px; text-transform: uppercase; }
         #scoreboard .death-reason { font-size: 20px; color: #ff3333; margin-bottom: 5px; text-transform: uppercase; font-weight: bold; }
         #scoreboard .judgment { font-size: 22px; font-weight: bold; margin-bottom: 15px; }
         #scoreboard table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 16px; text-align: left; }
         #scoreboard th, #scoreboard td { padding: 5px; border-bottom: 1px solid #444; }
-        #scoreboard .player-row { background: rgba(255, 235, 59, 0.2); color: #ffeb3b; font-weight: bold; }
+        #scoreboard .player-row { background: rgba(255,235,59,0.2); color: #ffeb3b; font-weight: bold; }
         #scoreboard .player-row td { border-bottom: 2px solid #ffeb3b; }
         #restartText { font-size: 22px; color: #afff94; animation: flash 1s infinite; margin-top: 10px; }
         @keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-
-        /* Stage transition overlay */
-        #stageOverlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); display: none; z-index: 50;
-            flex-direction: column; align-items: center; justify-content: center;
-            text-align: center;
-        }
+        #stageOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.88); display: none; z-index: 50; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; box-sizing: border-box; }
         #stageOverlay.active { display: flex; }
-        #stageOverlay h1 { color: #ffeb3b; text-shadow: 3px 3px #e91e63; font-size: 48px; margin: 0 0 20px; animation: flash 0.8s infinite; }
-        #stageOverlay p { color: #fff; font-size: 24px; margin: 10px 0; line-height: 1.5; }
-        #stageOverlay .tap-prompt { color: #afff94; font-size: 22px; margin-top: 30px; animation: flash 1s infinite; }
-
-        /* Mobile buttons for Stage 2 */
-        #mobileControls {
-            position: absolute; bottom: 20px; left: 0; width: 100%;
-            display: none; justify-content: space-between; padding: 0 20px;
-            box-sizing: border-box; z-index: 15; pointer-events: none;
-        }
+        #stageOverlay h1 { color: #ffeb3b; text-shadow: 3px 3px #e91e63; font-size: 44px; margin: 0 0 16px; animation: flash 0.8s infinite; }
+        #stageOverlay p { color: #fff; font-size: 22px; margin: 8px 0; line-height: 1.5; }
+        #stageOverlay .tap-prompt { color: #afff94; font-size: 20px; margin-top: 24px; animation: flash 1s infinite; }
+        #mobileControls { position: absolute; bottom: 20px; left: 0; width: 100%; display: none; justify-content: space-between; align-items: center; padding: 0 20px; box-sizing: border-box; z-index: 15; pointer-events: none; }
         #mobileControls.active { display: flex; }
-        .ctrl-btn {
-            width: 80px; height: 80px; border-radius: 50%;
-            background: rgba(255,255,255,0.25); border: 3px solid rgba(255,255,255,0.5);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 32px; color: #fff; user-select: none;
-            pointer-events: all; touch-action: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        }
-
-        @media (max-width: 600px) {
-            #scoreboard h1 { font-size: 20px; }
-            #scoreboard table { font-size: 12px; }
-            #scoreboard .judgment { font-size: 16px; }
-            #scoreboard .death-reason { font-size: 16px; }
-            #restartText { font-size: 18px; }
-            #stageOverlay h1 { font-size: 32px; }
-            #stageOverlay p { font-size: 18px; }
-        }
+        .ctrl-btn { width: 75px; height: 75px; border-radius: 50%; background: rgba(255,255,255,0.22); border: 3px solid rgba(255,255,255,0.45); display: flex; align-items: center; justify-content: center; font-size: 28px; color: #fff; user-select: none; pointer-events: all; touch-action: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        #btnShoot { background: rgba(100,255,100,0.3); border-color: rgba(100,255,100,0.7); font-size: 22px; }
+        @media (max-width: 600px) { #scoreboard h1 { font-size: 20px; } #scoreboard table { font-size: 12px; } #scoreboard .judgment { font-size: 16px; } #scoreboard .death-reason { font-size: 16px; } #restartText { font-size: 18px; } #stageOverlay h1 { font-size: 28px; } #stageOverlay p { font-size: 16px; } }
     </style>
 </head>
 <body>
-    <div id="ui">WORLD: <span id="worldNum">1</span> | ENERGY: <span id="score">100</span> | DIST: <span id="dist">0</span>/1000000 <span id="challengeZone" style="color:#ffeb3b; font-weight:bold; display:none;">| SURVIVE: <span id="challengeDist">5000</span>m</span></div>
-    
-    <div id="msg">GO DEAN!<br>
-        <small style="font-size: 22px; color: white; text-shadow: 2px 2px #000;">
-            TAP TO JUMP | ENTER PIPES TO WARP<br>
-            <span style="color: #afff94;">EAT FRUITS & VEGGIES</span> | <span style="color: #ff9494;">SMASH MEAT WITH RAINBOWS</span><br>
-            STAY VEGAN! REACH 1,000,000m!
-        </small>
-    </div>
-
-    <div id="stageOverlay">
-        <h1 id="stageTitle">STAGE COMPLETE!</h1>
-        <p id="stageMsg"></p>
-        <div class="tap-prompt" id="stageTapPrompt">TAP TO CONTINUE</div>
-    </div>
-
-    <div id="scoreboard"></div>
-
-    <!-- Mobile controls for Stage 2 -->
-    <div id="mobileControls">
-        <div class="ctrl-btn" id="btnLeft">◀</div>
-        <div class="ctrl-btn" id="btnRight">▶</div>
-    </div>
-
-    <canvas id="gameCanvas"></canvas>
-
+<div id="ui">
+    WORLD: <span id="worldNum">1</span> | ENERGY: <span id="score">100</span> | DIST: <span id="dist">0</span>/1000000
+    <span id="challengeZone" style="color:#ffeb3b;font-weight:bold;display:none;">| SURVIVE: <span id="challengeDist">5000</span>m</span>
+    <span id="s2ui" style="display:none;"><br>🪙 COINS: <span id="coinCount">0</span> | 🌿 AMMO: <span id="ammoCount">30</span> | ❤️ <span id="bossHpUi" style="display:none;">DINO HP: <span id="bossHpNum">50</span></span></span>
+</div>
+<div id="msg">GO DEAN!<br><small style="font-size:22px;color:white;text-shadow:2px 2px #000;">TAP TO JUMP | ENTER PIPES TO WARP<br><span style="color:#afff94;">EAT FRUITS & VEGGIES</span> | <span style="color:#ff9494;">SMASH MEAT WITH RAINBOWS</span><br>STAY VEGAN! REACH 1,000,000m!</small></div>
+<div id="stageOverlay"><h1 id="stageTitle">STAGE COMPLETE!</h1><p id="stageMsg"></p><div class="tap-prompt" id="stageTapPrompt">TAP TO CONTINUE</div></div>
+<div id="scoreboard"></div>
+<div id="mobileControls">
+    <div class="ctrl-btn" id="btnLeft">◀</div>
+    <div class="ctrl-btn" id="btnShoot">🍃</div>
+    <div class="ctrl-btn" id="btnRight">▶</div>
+</div>
+<canvas id="gameCanvas"></canvas>
 <script>
+// ===================== AUDIO =====================
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function playSound(freq, type, duration, vol, slide = 0) {
+function playSound(freq, type, duration, vol, slide=0) {
     try {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        if (slide) osc.frequency.exponentialRampToValueAtTime(freq + slide, audioCtx.currentTime + duration);
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        if (slide) osc.frequency.exponentialRampToValueAtTime(freq+slide, audioCtx.currentTime+duration);
         gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime+duration);
         osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(); osc.stop(audioCtx.currentTime + duration);
+        osc.start(); osc.stop(audioCtx.currentTime+duration);
     } catch(e) {}
 }
-
 function playYellowPipeSound() {
     try {
-        let now = audioCtx.currentTime;
-        let notes = [200, 400, 300, 600, 800];
-        notes.forEach((freq, index) => {
-            let osc = audioCtx.createOscillator();
-            let gain = audioCtx.createGain();
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(freq, now + (index * 0.06));
-            gain.gain.setValueAtTime(0.15, now + (index * 0.06));
-            gain.gain.exponentialRampToValueAtTime(0.01, now + (index * 0.06) + 0.05);
+        let now = audioCtx.currentTime, notes=[200,400,300,600,800];
+        notes.forEach((freq,i) => {
+            let osc=audioCtx.createOscillator(), gain=audioCtx.createGain();
+            osc.type='square'; osc.frequency.setValueAtTime(freq, now+i*0.06);
+            gain.gain.setValueAtTime(0.15, now+i*0.06); gain.gain.exponentialRampToValueAtTime(0.01, now+i*0.06+0.05);
             osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.start(now + (index * 0.06));
-            osc.stop(now + (index * 0.06) + 0.06);
+            osc.start(now+i*0.06); osc.stop(now+i*0.06+0.06);
         });
     } catch(e) {}
 }
-
 function playFlagSound() {
     try {
-        let now = audioCtx.currentTime;
-        let melody = [261, 329, 392, 523, 659, 784, 1046];
-        melody.forEach((freq, i) => {
-            let osc = audioCtx.createOscillator();
-            let gain = audioCtx.createGain();
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(freq, now + i * 0.1);
-            gain.gain.setValueAtTime(0.15, now + i * 0.1);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.12);
+        let now=audioCtx.currentTime, melody=[261,329,392,523,659,784,1046];
+        melody.forEach((freq,i) => {
+            let osc=audioCtx.createOscillator(), gain=audioCtx.createGain();
+            osc.type='square'; osc.frequency.setValueAtTime(freq, now+i*0.1);
+            gain.gain.setValueAtTime(0.15, now+i*0.1); gain.gain.exponentialRampToValueAtTime(0.01, now+i*0.1+0.12);
             osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.start(now + i * 0.1);
-            osc.stop(now + i * 0.1 + 0.15);
+            osc.start(now+i*0.1); osc.stop(now+i*0.1+0.15);
         });
     } catch(e) {}
 }
+function playStompSound() { playSound(300,'square',0.15,0.2,-200); }
+function playBoxHitSound() { playSound(440,'square',0.1,0.2); }
+function playShootSound() { playSound(600,'triangle',0.08,0.1,200); }
+function playCoinSound() { playSound(880,'sine',0.1,0.15,400); }
 
-function playStompSound() {
-    try {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.15);
-    } catch(e) {}
+// ===================== TITLE GENERATION =====================
+const t1Prefixes=["BACON_","SAUSAGE_","STEAK_","WAGYU_","MILKIES_","DEANUS_","BURGER_","FATTY_","MEAT_","CHOKING_","GLAZED_","WHINER_","MILK_","SLURPER_","CHEESE_","GREASY_","CLOGGED_","CARNIVORE_","WEAK_","CHUBBY_","BUTTER_","GELATIN_","BEEFY_","PORKY_","WHEY_"];
+const t1Nouns=["CHOKER_DEAN","DONATOR_DEAN","SIMP_DEAN","SLURPER_DEAN","BOY_DEAN","LEMMING_DEAN","DONUT_DEAN","MILK_SIMP","CHICKEN_DEAN","LEMMING","MEAT_BOY","DEAN_THE_SLURPER","WAGYU_DOMINATOR_9","NUGGET_DEAN","PORKCHOP","QUITTER","MEAT_PUPPET","SAUSAGE_FEST","SLOUCH_DEAN","FAIL_DEAN","BEEF_CAKE","LACTOSE_LEMMING"];
+const t3Prefixes=["SOY_","VEGAN_","PURE_","DEAN_","BROCCOLI_","AVOCADO_","GREEN_","ULTRA_","BRUTAL_","ALPHA_","GOD_","KALE_","TOFU_","SEITAN_","LEAFY_","CHLOROPHYLL_","PRANA_","ZEN_","SUPREME_","IRON_","EARTH_","FLORA_"];
+const t3Nouns=["COMMANDER_DEAN","GOD_DEAN","TITAN_DEAN","GOAT_DEAN","LEGEND_DEAN","WARRIOR_DEAN","KING_DEAN","MACHINE_DEAN","ALPHA_DEAN","SPROUT_GOD","BEAST_DEAN","MASTER_DEAN","GURU_DEAN","SAVIOR_DEAN","TEMPEH_TITAN","LEAF_LORD","PLANT_CHAD"];
+const suffixes=["_69","_420","_99","_777","_13","_100","_88","_1","_9","_007","_X","_9000","_247","_V2"];
+function getRand(arr){return arr[Math.floor(Math.random()*arr.length)];}
+function generateTitle(dist){
+    let p,n,s=getRand(suffixes);
+    if(dist<50000){p=getRand(t1Prefixes);n=getRand(t1Nouns);}
+    else if(dist>=100000){p=getRand(t3Prefixes);n=getRand(t3Nouns);}
+    else{p=getRand(t1Prefixes.concat(t3Prefixes));n=getRand(t1Nouns.concat(t3Nouns));}
+    return p+n+s;
 }
 
-function playBoxHitSound() {
-    try {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.1);
-    } catch(e) {}
-}
+// ===================== CANVAS =====================
+const canvas=document.getElementById('gameCanvas'), ctx=canvas.getContext('2d');
+canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+const scoreEl=document.getElementById('score'), distEl=document.getElementById('dist'), msgEl=document.getElementById('msg');
+const scoreboardEl=document.getElementById('scoreboard'), worldEl=document.getElementById('worldNum');
+const challengeZoneEl=document.getElementById('challengeZone'), challengeDistEl=document.getElementById('challengeDist');
+const stageOverlayEl=document.getElementById('stageOverlay'), stageTitleEl=document.getElementById('stageTitle');
+const stageMsgEl=document.getElementById('stageMsg'), mobileControlsEl=document.getElementById('mobileControls');
+const s2uiEl=document.getElementById('s2ui'), coinCountEl=document.getElementById('coinCount');
+const ammoCountEl=document.getElementById('ammoCount'), bossHpUiEl=document.getElementById('bossHpUi');
+const bossHpNumEl=document.getElementById('bossHpNum');
 
-// === TITLE GENERATION ===
-const t1Prefixes = ["BACON_","SAUSAGE_","STEAK_","WAGYU_","MILKIES_","DEANUS_","BURGER_","FATTY_","MEAT_","CHOKING_","GLAZED_","WHINER_","MILK_","SLURPER_","CHEESE_","GREASY_","CLOGGED_","CARNIVORE_","WEAK_","CHUBBY_","BUTTER_","GELATIN_","BEEFY_","PORKY_","WHEY_"];
-const t1Nouns = ["CHOKER_DEAN","DONATOR_DEAN","SIMP_DEAN","SLURPER_DEAN","BOY_DEAN","LEMMING_DEAN","DONUT_DEAN","MILK_SIMP","CHICKEN_DEAN","LEMMING","MEAT_BOY","DEAN_THE_SLURPER","WAGYU_DOMINATOR_9","NUGGET_DEAN","PORKCHOP","QUITTER","MEAT_PUPPET","SAUSAGE_FEST","SLOUCH_DEAN","FAIL_DEAN","BEEF_CAKE","LACTOSE_LEMMING"];
-const t3Prefixes = ["SOY_","VEGAN_","PURE_","DEAN_","BROCCOLI_","AVOCADO_","GREEN_","ULTRA_","BRUTAL_","ALPHA_","GOD_","KALE_","TOFU_","SEITAN_","LEAFY_","CHLOROPHYLL_","PRANA_","ZEN_","SUPREME_","IRON_","EARTH_","FLORA_"];
-const t3Nouns = ["COMMANDER_DEAN","GOD_DEAN","TITAN_DEAN","GOAT_DEAN","LEGEND_DEAN","WARRIOR_DEAN","KING_DEAN","MACHINE_DEAN","ALPHA_DEAN","SPROUT_GOD","BEAST_DEAN","MASTER_DEAN","GURU_DEAN","SAVIOR_DEAN","TEMPEH_TITAN","LEAF_LORD","PLANT_CHAD"];
-const suffixes = ["_69","_420","_99","_777","_13","_100","_88","_1","_9","_007","_X","_9000","_247","_V2"];
-function getRand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-function generateTitle(dist) {
-    let p, n, s = getRand(suffixes);
-    if (dist < 50000) { p = getRand(t1Prefixes); n = getRand(t1Nouns); }
-    else if (dist >= 100000) { p = getRand(t3Prefixes); n = getRand(t3Nouns); }
-    else { p = getRand(t1Prefixes.concat(t3Prefixes)); n = getRand(t1Nouns.concat(t3Nouns)); }
-    return p + n + s;
-}
+// ===================== GAME STATE =====================
+let gameActive=false, energy=100, distance=0, currentWorld=1, worldDistance=0;
+let powerUpTimer=0, rainbowTimer=0, jumpCount=0, bgRainbowX=0;
+let megaJumpTimer=0, flyTimer=0, starTimer=0, canRestart=false, currentStage=1;
+let stageTransitionState='none', flagPoleX=-1, flagY=0, flagRiseSpeed=0;
+let fireworks=[], stageOverlayPhase=0;
+let inYellowChallenge=false, yellowChallengeLeft=5000, yellowWorldSeed=0;
+let bossTimer=0, bossDino={x:0,dir:-1,state:'spawning'};
+let obstacles=[], items=[], decor=[], pipes=[], pitfalls=[];
 
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const scoreEl = document.getElementById('score');
-const distEl = document.getElementById('dist');
-const msgEl = document.getElementById('msg');
-const scoreboardEl = document.getElementById('scoreboard');
-const worldEl = document.getElementById('worldNum');
-const challengeZoneEl = document.getElementById('challengeZone');
-const challengeDistEl = document.getElementById('challengeDist');
-const stageOverlayEl = document.getElementById('stageOverlay');
-const stageTitleEl = document.getElementById('stageTitle');
-const stageMsgEl = document.getElementById('stageMsg');
-const mobileControlsEl = document.getElementById('mobileControls');
+// ===================== STAGE 2 STATE =====================
+let s2WorldIndex = 1;
+let s2Coins = parseInt(localStorage.getItem('goDeanCoins'))||0;
+let s2Ammo = 30;
+let s2MaxAmmo = 30;
+let s2Projectiles = [];
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
-// =============================================
-// GAME STATE
-// =============================================
-let gameActive = false, energy = 100, distance = 0, currentWorld = 1, worldDistance = 0;
-let powerUpTimer = 0, rainbowTimer = 0, jumpCount = 0, bgRainbowX = 0;
-let megaJumpTimer = 0, flyTimer = 0, starTimer = 0;
-let canRestart = false;
-let currentStage = 1; // 1 = auto-runner, 2 = mario-style
-
-// Stage transition state
-let stageTransitionState = 'none'; // 'none','flag_approach','flag_rising','fireworks','complete','waiting'
-let flagPoleX = -1; // world4 flag pole x position
-let flagY = 0;      // flag emoji Y (rises up pole)
-let flagRiseSpeed = 0;
-let fireworks = [];
-let stageOverlayPhase = 0; // 0=stage complete screen, 1=vegan message
-
-// =============================================
-// STAGE 2 STATE
-// =============================================
 let s2 = {
-    cameraX: 0,
-    levelWidth: 8000,
-    keys: { left: false, right: false },
-    boxes: [],
-    enemies: [],
-    platforms: [],
-    particles: [],
-    flagX: 7600,
-    flagReached: false,
-    flagRiseY: 0,
-    flagRising: false,
-    fireworks: [],
-    levelBuilt: false
+    cameraX:0, levelWidth:8000,
+    boxes:[], enemies:[], platforms:[], particles:[], foodItems:[], coins:[],
+    flagX:7600, flagReached:false, flagRiseY:0, flagRising:false, fireworks:[], levelBuilt:false
 };
 
-const player = { x: 100, y: 0, w: 45, h: 90, dy: 0, dx: 0, grounded: false, head: "👦", frame: 0 };
-
-// =============================================
-// WORLD SETTINGS (Stage 1)
-// =============================================
-const worldSettings = {
-    1:  { bg: "#5c94fc", ground: "#9acd32", floor: "#e07b39", items: ["🍎","🍐","🥦"],       hazards: ["🥩","🍖"],           deco: "☁️" },
-    2:  { bg: "#ff9ff3", ground: "#feca57", floor: "#ff9f43", items: ["🍓","🍊","🥥"],       hazards: ["🍔","🥓"],           deco: "🌈" },
-    3:  { bg: "#48dbfb", ground: "#1dd1a1", floor: "#10ac84", items: ["🌽","🥑","🥥"],       hazards: ["🌭","🍕"],           deco: "⛅" },
-    4:  { bg: "#000000", ground: "#576574", floor: "#222f3e", items: ["🥥"],                 hazards: ["🔥","🥩","🍖"],      deco: "☄️" },
-    5:  { bg: "#0077be", ground: "#c2b280", floor: "#e0cd95", items: ["🌿","🥬","🌱"],       hazards: ["🐟","🐡","🦈"],      deco: "🫧" },
-    6:  { bg: "#87CEEB", ground: "#2E8B57", floor: "#8B4513", items: ["🫐","🍇","🍓"],       hazards: ["🍔","🥩","🍗"],      deco: "🌴" },
-    7:  { bg: "#4a148c", ground: "#00ffcc", floor: "#1a0033", items: ["🌀","✨","⚡"],       hazards: ["👾","🪲","🚫"],      deco: "📺" },
-    8:  { bg: "#222",    ground: "#fff",    floor: "#333",    items: ["🍎"],                 hazards: ["🥩"],                deco: "🌙" },
-    9:  { bg: "#6ab0de", ground: "transparent", floor: "transparent", items: ["☀️","🌞"],   hazards: ["⛈️","🐦","🦅"],     deco: "☁️" },
-    10: { bg: "#f0f0f0", ground: "#cccccc", floor: "#aaaaaa", items: [],                    hazards: [],                    deco: "" },
-    11: { bg: "#5c94fc", ground: "#9acd32", floor: "#8B4513", items: [],                    hazards: [],                    deco: "☁️" }
+let boss = {
+    x:0, y:0, w:120, h:120, dx:3, dy:0,
+    hp:50, maxHp:50, state:'idle', jumpTimer:0, shootTimer:0,
+    projectiles:[], grounded:false, angry:false
 };
 
-const randomBgs = ["#ff5252","#341f97","#222f3e","#10ac84","#ff9f43","#01a3a4","#b53471","#2c3e50"];
-const randomGrounds = ["#ffda79","#cd84f1","#ffb8b8","#32ff7e","#7d5fff","#18dcff","#fff"];
-const randomFloors = ["#ccae62","#9b59b6","#e74c3c","#27ae60","#d35400","#2980b9","#555"];
-const randomDecos = ["☁️","🌈","⛅","☄️","🫧","🌴","📺","🌙","🛸","⭐","🪐","🌵"];
-const poolFood = ["🍎","🍐","🥦","🍓","🍊","🥬","🌽","🥑","🍇","🍉","🍒","🥕"];
-const poolHazards = ["🥩","🍖","🍔","🥓","🌭","🍕","🍗","🔥","👾","🪲"];
+const player={x:100,y:0,w:45,h:90,dy:0,dx:0,grounded:false,head:"👦",frame:0};
 
-let obstacles = [], items = [], decor = [], pipes = [], pitfalls = [];
-let inYellowChallenge = false, yellowChallengeLeft = 5000, yellowWorldSeed = 0;
-let bossTimer = 0;
-let bossDino = { x: 0, dir: -1, state: 'spawning' };
+// ===================== WORLD SETTINGS =====================
+const worldSettings={
+    1:{bg:"#5c94fc",ground:"#9acd32",floor:"#e07b39",items:["🍎","🍐","🥦"],hazards:["🥩","🍖"],deco:"☁️"},
+    2:{bg:"#ff9ff3",ground:"#feca57",floor:"#ff9f43",items:["🍓","🍊","🥥"],hazards:["🍔","🥓"],deco:"🌈"},
+    3:{bg:"#48dbfb",ground:"#1dd1a1",floor:"#10ac84",items:["🌽","🥑","🥥"],hazards:["🌭","🍕"],deco:"⛅"},
+    4:{bg:"#000000",ground:"#576574",floor:"#222f3e",items:["🥥"],hazards:["🔥","🥩","🍖"],deco:"☄️"},
+    5:{bg:"#0077be",ground:"#c2b280",floor:"#e0cd95",items:["🌿","🥬","🌱"],hazards:["🐟","🐡","🦈"],deco:"🫧"},
+    6:{bg:"#87CEEB",ground:"#2E8B57",floor:"#8B4513",items:["🫐","🍇","🍓"],hazards:["🍔","🥩","🍗"],deco:"🌴"},
+    7:{bg:"#4a148c",ground:"#00ffcc",floor:"#1a0033",items:["🌀","✨","⚡"],hazards:["👾","🪲","🚫"],deco:"📺"},
+    8:{bg:"#222",ground:"#fff",floor:"#333",items:["🍎"],hazards:["🥩"],deco:"🌙"},
+    9:{bg:"#6ab0de",ground:"transparent",floor:"transparent",items:["☀️","🌞"],hazards:["⛈️","🐦","🦅"],deco:"☁️"},
+    10:{bg:"#f0f0f0",ground:"#cccccc",floor:"#aaaaaa",items:[],hazards:[],deco:""}
+};
 
-// =============================================
-// INPUT HANDLING
-// =============================================
-let leftPressed = false, rightPressed = false;
+const s2Worlds = {
+    1:{bg:"#5c94fc",ground:"#9acd32",floor:"#8B4513",name:"GRASSLANDS",deco:"☁️"},
+    2:{bg:"#e8c87a",ground:"#c8a050",floor:"#8B6914",name:"DESERT CANYON",deco:"🌵"},
+    3:{bg:"#2d5a27",ground:"#4a7c45",floor:"#3d2b1f",name:"DEEP FOREST",deco:"🌲"},
+    4:{bg:"#1a1a2e",ground:"#444",floor:"#222",name:"UNDERGROUND CAVE",deco:"🦇"},
+    5:{bg:"#c8e8ff",ground:"#e8f4ff",floor:"#a0c8e8",name:"ICE PEAKS",deco:"❄️"},
+    6:{bg:"#1a0000",ground:"#4a1a00",floor:"#2a0a00",name:"VOLCANO",deco:"🌋"},
+    7:{bg:"#87ceeb",ground:"#e8e8e8",floor:"#c0c0c0",name:"SKY CITY",deco:"🏙️"},
+    8:{bg:"#3d2b1f",ground:"#6b4c35",floor:"#4a3020",name:"ANCIENT RUINS",deco:"🏛️"},
+    9:{bg:"#0d0d0d",ground:"#333",floor:"#111",name:"FINAL BATTLE",deco:"💀"}
+};
 
-// Mobile button setup
-const btnLeft = document.getElementById('btnLeft');
-const btnRight = document.getElementById('btnRight');
+const randomBgs=["#ff5252","#341f97","#222f3e","#10ac84","#ff9f43","#01a3a4","#b53471","#2c3e50"];
+const randomGrounds=["#ffda79","#cd84f1","#ffb8b8","#32ff7e","#7d5fff","#18dcff","#fff"];
+const randomFloors=["#ccae62","#9b59b6","#e74c3c","#27ae60","#d35400","#2980b9","#555"];
+const randomDecos=["☁️","🌈","⛅","☄️","🫧","🌴","📺","🌙","🛸","⭐","🪐","🌵"];
+const poolFood=["🍎","🍐","🥦","🍓","🍊","🥬","🌽","🥑","🍇","🍉","🍒","🥕"];
+const poolHazards=["🥩","🍖","🍔","🥓","🌭","🍕","🍗","🔥","👾","🪲"];
 
-function setLeft(v) { leftPressed = v; }
-function setRight(v) { rightPressed = v; }
+// ===================== SHOOTING CONFIG =====================
+function getShootConfig(worldIdx) {
+    const configs = {
+        1:{char:'🍃',speed:6,size:20,double:false,bounce:false,damage:1,ammoMax:30},
+        2:{char:'🍃',speed:8,size:20,double:false,bounce:false,damage:1,ammoMax:35},
+        3:{char:'🥦',speed:7,size:28,double:false,bounce:false,damage:1,ammoMax:35},
+        4:{char:'🥦',speed:8,size:28,double:true,bounce:false,damage:1,ammoMax:40},
+        5:{char:'🌿',speed:7,size:22,double:false,bounce:true,damage:1,ammoMax:40},
+        6:{char:'🌿',speed:10,size:22,double:false,bounce:true,damage:1,ammoMax:45},
+        7:{char:'🥑',speed:10,size:26,double:true,bounce:false,damage:2,ammoMax:45},
+        8:{char:'🥑',speed:11,size:26,double:true,bounce:true,damage:2,ammoMax:50},
+        9:{char:'🥑',speed:11,size:26,double:true,bounce:true,damage:2,ammoMax:50}
+    };
+    return configs[worldIdx] || configs[1];
+}
 
-btnLeft.addEventListener('touchstart',  (e) => { e.preventDefault(); setLeft(true); },  {passive:false});
-btnLeft.addEventListener('touchend',    (e) => { e.preventDefault(); setLeft(false); }, {passive:false});
-btnLeft.addEventListener('mousedown',   () => setLeft(true));
-btnLeft.addEventListener('mouseup',     () => setLeft(false));
-btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); setRight(true); },  {passive:false});
-btnRight.addEventListener('touchend',   (e) => { e.preventDefault(); setRight(false); }, {passive:false});
-btnRight.addEventListener('mousedown',  () => setRight(true));
-btnRight.addEventListener('mouseup',    () => setRight(false));
+// ===================== INPUT =====================
+let leftPressed=false, rightPressed=false;
+const btnLeft=document.getElementById('btnLeft'), btnRight=document.getElementById('btnRight'), btnShoot=document.getElementById('btnShoot');
+function setLeft(v){leftPressed=v;} function setRight(v){rightPressed=v;}
+function triggerShoot(){if(currentStage===2&&gameActive)doShoot();}
 
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowLeft'  || e.key === 'a') setLeft(true);
-    if (e.key === 'ArrowRight' || e.key === 'd') setRight(true);
+btnLeft.addEventListener('touchstart',(e)=>{e.preventDefault();setLeft(true);},{passive:false});
+btnLeft.addEventListener('touchend',(e)=>{e.preventDefault();setLeft(false);},{passive:false});
+btnLeft.addEventListener('mousedown',()=>setLeft(true)); btnLeft.addEventListener('mouseup',()=>setLeft(false));
+btnRight.addEventListener('touchstart',(e)=>{e.preventDefault();setRight(true);},{passive:false});
+btnRight.addEventListener('touchend',(e)=>{e.preventDefault();setRight(false);},{passive:false});
+btnRight.addEventListener('mousedown',()=>setRight(true)); btnRight.addEventListener('mouseup',()=>setRight(false));
+btnShoot.addEventListener('touchstart',(e)=>{e.preventDefault();triggerShoot();},{passive:false});
+btnShoot.addEventListener('mousedown',()=>triggerShoot());
+document.addEventListener('keydown',(e)=>{
+    if(e.key==='ArrowLeft'||e.key==='a')setLeft(true);
+    if(e.key==='ArrowRight'||e.key==='d')setRight(true);
+    if(e.key===' '||e.key==='f')triggerShoot();
 });
-document.addEventListener('keyup', (e) => {
-    if (e.key === 'ArrowLeft'  || e.key === 'a') setLeft(false);
-    if (e.key === 'ArrowRight' || e.key === 'd') setRight(false);
+document.addEventListener('keyup',(e)=>{
+    if(e.key==='ArrowLeft'||e.key==='a')setLeft(false);
+    if(e.key==='ArrowRight'||e.key==='d')setRight(false);
 });
+
+function doShoot() {
+    let cfg = getShootConfig(s2WorldIndex);
+    if(s2Ammo<=0) return;
+    s2Ammo--;
+    updateAmmoUI();
+    playShootSound();
+    let dir = leftPressed ? -1 : 1;
+    s2Projectiles.push({x:player.x+player.w/2, y:player.y+40, vx:cfg.speed*dir, vy:0, char:cfg.char, size:cfg.size, damage:cfg.damage, bounces:cfg.bounce?2:0, life:120});
+    if(cfg.double) {
+        s2Projectiles.push({x:player.x+player.w/2, y:player.y+55, vx:cfg.speed*dir, vy:-1, char:cfg.char, size:cfg.size, damage:cfg.damage, bounces:cfg.bounce?2:0, life:120});
+    }
+}
+
+function updateAmmoUI() {
+    ammoCountEl.innerText = s2Ammo;
+    coinCountEl.innerText = s2Coins;
+}
 
 function handleInput() {
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-
-    // Stage transition tap handling
-    if (stageTransitionState === 'waiting') {
+    if(audioCtx.state==='suspended') audioCtx.resume();
+    if(stageTransitionState==='waiting') {
         stageOverlayPhase++;
-        if (stageOverlayPhase === 1) {
-            stageTitleEl.style.animation = 'none';
-            stageTitleEl.style.color = '#afff94';
-            stageTitleEl.style.fontSize = '32px';
-            stageTitleEl.innerText = "YOU'RE LEARNING TO VEGAN";
-            stageMsgEl.innerHTML = "KEEP GOING! 🌱<br><br><span style='font-size:18px;color:#aaa;'>Stage 2 is a whole new world.<br>Use LEFT/RIGHT buttons + TAP TO JUMP</span>";
-            document.getElementById('stageTapPrompt').innerText = "TAP TO START STAGE 2";
-        } else if (stageOverlayPhase >= 2) {
-            stageOverlayEl.classList.remove('active');
-            stageTransitionState = 'none';
-            startStage2();
+        if(stageOverlayPhase===1) {
+            stageTitleEl.style.animation='none'; stageTitleEl.style.color='#afff94'; stageTitleEl.style.fontSize='32px';
+            stageTitleEl.innerText="YOU'RE LEARNING TO VEGAN";
+            stageMsgEl.innerHTML="KEEP GOING! 🌱<br><br><span style='font-size:18px;color:#aaa;'>Stage 2: USE LEFT/RIGHT + SHOOT 🍃 + TAP TO JUMP</span>";
+            document.getElementById('stageTapPrompt').innerText="TAP TO START STAGE 2";
+        } else if(stageOverlayPhase>=2) {
+            stageOverlayEl.classList.remove('active'); stageTransitionState='none'; startStage2(1);
         }
         return;
     }
-
-    // Ignore taps during transition animations to avoid accidental resets
-    if (stageTransitionState !== 'none') return;
-    if (currentStage === 2 && s2.flagReached) return;
-
-    if (!gameActive) {
-        if (!canRestart) { 
-            canRestart = true; 
-            let rt = document.getElementById('restartText');
-            if (rt) rt.innerText = "TAP AGAIN TO RESTART";
-            return; 
-        }
-        resetGame(); return; 
+    if(stageTransitionState!=='none') return;
+    if(currentStage===2&&s2.flagReached) return;
+    if(!gameActive) {
+        if(!canRestart) { canRestart=true; let rt=document.getElementById('restartText'); if(rt) rt.innerText="TAP AGAIN TO RESTART"; return; }
+        resetGame(); return;
     }
-
-    // Jumping — works in both stages
-    if (currentStage === 2) {
-        if (player.grounded || jumpCount < 1) {
-            player.dy = powerUpTimer > 0 ? -18 : -15;
-            player.grounded = false;
-            jumpCount++;
-            playSound(250 + (jumpCount * 80), 'square', 0.15, 0.1, 300);
+    if(currentStage===2) {
+        const maxJ = powerUpTimer>0?2:1;
+        if(player.grounded||jumpCount<maxJ) {
+            player.dy=megaJumpTimer>0?-22:(powerUpTimer>0?-18:-15);
+            player.grounded=false; jumpCount++;
+            playSound(250+(jumpCount*80),'square',0.15,0.1,300);
         }
         return;
     }
-
-    // Stage 1 jump logic
-    if (currentWorld === 5 || currentWorld === 9 || flyTimer > 0) {
-        player.dy = (flyTimer > 0 || currentWorld === 9) ? -9 : -6;
-        player.grounded = false;
-        playSound(300, 'triangle', 0.1, 0.1, 100);
+    if(currentWorld===5||currentWorld===9||flyTimer>0) {
+        player.dy=(flyTimer>0||currentWorld===9)?-9:-6; player.grounded=false;
+        playSound(300,'triangle',0.1,0.1,100);
     } else {
-        const maxJumps = powerUpTimer > 0 ? 2 : 1;
-        if (player.grounded || jumpCount < maxJumps) {
-            player.dy = megaJumpTimer > 0 ? -24 : (powerUpTimer > 0 ? -18 : -14);
-            player.grounded = false;
-            jumpCount++;
-            playSound(200 + (jumpCount * 100), 'square', 0.15, 0.1, 400);
+        const maxJumps=powerUpTimer>0?2:1;
+        if(player.grounded||jumpCount<maxJumps) {
+            player.dy=megaJumpTimer>0?-24:(powerUpTimer>0?-18:-14);
+            player.grounded=false; jumpCount++;
+            playSound(200+(jumpCount*100),'square',0.15,0.1,400);
         }
     }
 }
 
-window.addEventListener('mousedown', (e) => {
-    // Don't trigger jump if clicking mobile buttons
-    if (e.target === btnLeft || e.target === btnRight) return;
-    handleInput();
-});
-window.addEventListener('touchstart', (e) => {
-    // Don't trigger jump if touching mobile buttons
-    if (e.target === btnLeft || e.target === btnRight) return;
-    e.preventDefault(); handleInput();
-}, {passive: false});
+window.addEventListener('mousedown',(e)=>{if(e.target===btnLeft||e.target===btnRight||e.target===btnShoot)return; handleInput();});
+window.addEventListener('touchstart',(e)=>{if(e.target===btnLeft||e.target===btnRight||e.target===btnShoot)return; e.preventDefault(); handleInput();},{passive:false});
 
-// =============================================
-// RESET
-// =============================================
+// ===================== RESET =====================
 function resetGame() {
-    energy = 100; distance = 0; currentWorld = 1; worldDistance = 0; currentStage = 1;
-    powerUpTimer = 0; rainbowTimer = 0; megaJumpTimer = 0; flyTimer = 0; starTimer = 0; canRestart = false;
-    inYellowChallenge = false; yellowChallengeLeft = 5000; bossTimer = 0; yellowWorldSeed = 0;
-    challengeZoneEl.style.display = "none";
-    obstacles = []; items = []; decor = []; pipes = []; pitfalls = [];
-    stageTransitionState = 'none'; flagPoleX = -1; fireworks = [];
-    stageOverlayEl.classList.remove('active');
-    mobileControlsEl.classList.remove('active');
-    s2.levelBuilt = false; s2.flagReached = false;
-    gameActive = true;
-    msgEl.style.display = 'none';
-    scoreboardEl.style.display = 'none';
-    player.x = 100; player.y = 0; player.dy = 0; player.dx = 0;
-    document.body.style.background = worldSettings[1].bg;
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    energy=100; distance=0; currentWorld=1; worldDistance=0; currentStage=1;
+    powerUpTimer=0; rainbowTimer=0; megaJumpTimer=0; flyTimer=0; starTimer=0; canRestart=false;
+    inYellowChallenge=false; yellowChallengeLeft=5000; bossTimer=0; yellowWorldSeed=0;
+    challengeZoneEl.style.display="none"; obstacles=[]; items=[]; decor=[]; pipes=[]; pitfalls=[];
+    stageTransitionState='none'; flagPoleX=-1; fireworks=[];
+    stageOverlayEl.classList.remove('active'); mobileControlsEl.classList.remove('active');
+    s2.levelBuilt=false; s2.flagReached=false; s2WorldIndex=1; s2Projectiles=[];
+    s2uiEl.style.display='none'; bossHpUiEl.style.display='none';
+    gameActive=true; msgEl.style.display='none'; scoreboardEl.style.display='none';
+    player.x=100; player.y=0; player.dy=0; player.dx=0;
+    document.body.style.background=worldSettings[1].bg;
+    if(audioCtx.state==='suspended') audioCtx.resume();
 }
 
 function generateYellowChaosWorld() {
-    yellowWorldSeed = Math.floor(Math.random() * 10000) + 1;
-    let bg = randomBgs[Math.floor(Math.random() * randomBgs.length)];
-    let ground = randomGrounds[Math.floor(Math.random() * randomGrounds.length)];
-    let floor = randomFloors[Math.floor(Math.random() * randomFloors.length)];
-    let deco = randomDecos[Math.floor(Math.random() * randomDecos.length)];
-    let shuffFood = [...poolFood].sort(() => 0.5 - Math.random()).slice(0, 3);
-    let shuffHazards = [...poolHazards].sort(() => 0.5 - Math.random()).slice(0, 2);
-    worldSettings[8] = { bg, ground, floor, items: shuffFood, hazards: shuffHazards, deco };
+    yellowWorldSeed=Math.floor(Math.random()*10000)+1;
+    let bg=randomBgs[Math.floor(Math.random()*randomBgs.length)], ground=randomGrounds[Math.floor(Math.random()*randomGrounds.length)];
+    let floor=randomFloors[Math.floor(Math.random()*randomFloors.length)], deco=randomDecos[Math.floor(Math.random()*randomDecos.length)];
+    let shuffFood=[...poolFood].sort(()=>0.5-Math.random()).slice(0,3);
+    let shuffHazards=[...poolHazards].sort(()=>0.5-Math.random()).slice(0,2);
+    worldSettings[8]={bg,ground,floor,items:shuffFood,hazards:shuffHazards,deco};
 }
+function clearSurvivalState(){inYellowChallenge=false;yellowWorldSeed=0;challengeZoneEl.style.display="none";}
 
-function clearSurvivalState() {
-    inYellowChallenge = false; yellowWorldSeed = 0;
-    challengeZoneEl.style.display = "none";
-}
-
-// =============================================
-// WORLD 4 FLAG POLE LOGIC
-// =============================================
-function spawnFlagPole() {
-    flagPoleX = canvas.width + 100;
-    flagY = 0; // will be computed in draw as pole top
-    stageTransitionState = 'flag_approach';
-}
-
-function spawnFirework(x, y) {
-    let colors = ['#ff0','#f0f','#0ff','#f60','#0f6','#ff6','#6ff','#fff'];
-    for (let i = 0; i < 18; i++) {
-        let angle = (i / 18) * Math.PI * 2;
-        let speed = Math.random() * 5 + 3;
-        fireworks.push({
-            x, y,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            color: colors[Math.floor(Math.random() * colors.length)],
-            life: 60 + Math.random() * 40,
-            maxLife: 100
-        });
+// ===================== STAGE 1 FLAG =====================
+function spawnFlagPole(){flagPoleX=canvas.width+100; flagY=0; stageTransitionState='flag_approach';}
+function spawnFirework(x,y) {
+    let colors=['#ff0','#f0f','#0ff','#f60','#0f6','#ff6','#6ff','#fff'];
+    for(let i=0;i<18;i++){
+        let angle=(i/18)*Math.PI*2, speed=Math.random()*5+3;
+        fireworks.push({x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,color:colors[Math.floor(Math.random()*colors.length)],life:60+Math.random()*40});
     }
 }
 
-// =============================================
-// STAGE 2 SETUP
-// =============================================
-function startStage2() {
-    currentWorld = 11; currentStage = 2;
-    worldDistance = 0; distance = distance || 0;
-    energy = 100;
-    powerUpTimer = 0; rainbowTimer = 0; megaJumpTimer = 0; flyTimer = 0; starTimer = 0;
-    player.x = 80; player.y = -100; player.dy = 0; player.dx = 0;
-    jumpCount = 0;
-    s2.cameraX = 0;
-    s2.flagReached = false;
-    s2.flagRising = false;
-    s2.flagRiseY = 0;
-    s2.fireworks = [];
-    s2.particles = [];
-    s2.levelBuilt = false;
-    obstacles = []; items = []; decor = []; pipes = []; pitfalls = [];
-    mobileControlsEl.classList.add('active');
-    gameActive = true;
-    document.body.style.background = worldSettings[11].bg;
-    buildStage2Level();
+// ===================== STAGE 2 SETUP =====================
+function startStage2(worldIdx) {
+    currentStage=2; s2WorldIndex=worldIdx;
+    currentWorld=10+worldIdx;
+    worldDistance=0;
+    energy=100; powerUpTimer=0; rainbowTimer=0; megaJumpTimer=0; flyTimer=0; starTimer=0;
+    player.x=80; player.y=-100; player.dy=0; player.dx=0; jumpCount=0;
+    s2.cameraX=0; s2.flagReached=false; s2.flagRising=false; s2.flagRiseY=0;
+    s2.fireworks=[]; s2.particles=[]; s2.levelBuilt=false;
+    s2Projectiles=[];
+    let cfg=getShootConfig(worldIdx); s2Ammo=cfg.ammoMax; s2MaxAmmo=cfg.ammoMax;
+    obstacles=[]; items=[]; decor=[]; pipes=[]; pitfalls=[];
+    mobileControlsEl.classList.add('active'); s2uiEl.style.display='inline';
+    gameActive=true;
+    let theme=s2Worlds[worldIdx]||s2Worlds[1];
+    document.body.style.background=theme.bg;
+    if(worldIdx===9) { startBossWorld(); return; }
+    buildS2Level(worldIdx);
+    updateAmmoUI();
 }
 
-function buildStage2Level() {
-    s2.levelBuilt = true;
-    s2.boxes = [];
-    s2.enemies = [];
-    s2.platforms = [];
+// ===================== BUILD S2 LEVEL =====================
+function buildS2Level(worldIdx) {
+    s2.levelBuilt=true; s2.boxes=[]; s2.enemies=[]; s2.platforms=[]; s2.foodItems=[]; s2.coins=[];
+    const GL=canvas.height-80;
+    s2.levelWidth=7000+worldIdx*500;
+    s2.flagX=s2.levelWidth-400;
 
-    const groundLevel = canvas.height - 80;
-    const LW = s2.levelWidth;
+    let plats=[];
+    let xCursor=300, yBase=GL-120;
+    let numPlats=18+worldIdx*2;
+    for(let i=0;i<numPlats;i++){
+        let w=80+Math.random()*100, h=20;
+        let x=xCursor+100+Math.random()*120;
+        let y=yBase-Math.random()*150-i*(worldIdx>4?10:5);
+        y=Math.max(GL-380,Math.min(GL-80,y));
+        let type=Math.random()<0.4?'grass':'brick';
+        plats.push({x,y,w,h,type});
+        xCursor=x+w;
+    }
+    s2.platforms=plats;
 
-    let platDefs = [
-        {x:350,  y:groundLevel-120, w:140, h:20, type:'brick'},
-        {x:560,  y:groundLevel-180, w:100, h:20, type:'brick'},
-        {x:720,  y:groundLevel-120, w:160, h:20, type:'brick'},
-        {x:1000, y:groundLevel-200, w:120, h:20, type:'grass'},
-        {x:1200, y:groundLevel-150, w:100, h:20, type:'brick'},
-        {x:1380, y:groundLevel-240, w:80,  h:20, type:'brick'},
-        {x:1650, y:groundLevel-160, w:130, h:20, type:'grass'},
-        {x:1850, y:groundLevel-220, w:90,  h:20, type:'brick'},
-        {x:2050, y:groundLevel-180, w:110, h:20, type:'grass'},
-        {x:2300, y:groundLevel-200, w:150, h:20, type:'brick'},
-        {x:2520, y:groundLevel-260, w:80,  h:20, type:'brick'},
-        {x:2700, y:groundLevel-200, w:120, h:20, type:'grass'},
-        {x:3000, y:groundLevel-140, w:80,  h:20, type:'brick'},
-        {x:3140, y:groundLevel-200, w:80,  h:20, type:'brick'},
-        {x:3280, y:groundLevel-260, w:80,  h:20, type:'brick'},
-        {x:3420, y:groundLevel-200, w:80,  h:20, type:'brick'},
-        {x:3700, y:groundLevel-180, w:100, h:20, type:'grass'},
-        {x:3900, y:groundLevel-250, w:80,  h:20, type:'brick'},
-        {x:4100, y:groundLevel-190, w:100, h:20, type:'grass'},
-        {x:4300, y:groundLevel-230, w:90,  h:20, type:'brick'},
-        {x:4550, y:groundLevel-160, w:120, h:20, type:'brick'},
-        {x:5000, y:groundLevel-200, w:100, h:20, type:'brick'},
-        {x:5200, y:groundLevel-260, w:80,  h:20, type:'grass'},
-        {x:5400, y:groundLevel-200, w:120, h:20, type:'brick'},
-        {x:5650, y:groundLevel-160, w:100, h:20, type:'grass'},
-        {x:6000, y:groundLevel-180, w:120, h:20, type:'brick'},
-        {x:6200, y:groundLevel-240, w:80,  h:20, type:'brick'},
-        {x:6400, y:groundLevel-180, w:100, h:20, type:'grass'},
-        {x:6700, y:groundLevel-140, w:160, h:20, type:'brick'},
-    ];
-    s2.platforms = platDefs;
+    let brickCount=12+worldIdx*2;
+    for(let i=0;i<brickCount;i++){
+        let x=400+i*(s2.levelWidth/brickCount)*0.85+Math.random()*80;
+        let y=GL-160-Math.random()*140;
+        s2.platforms.push({x,y,w:40,h:40,type:'destructible',destroyed:false});
+    }
 
-    let qboxRewards = ['blueberry','rainbow','heart','star','mushroom'];
-    let qboxPositions = [
-        {x:420,  y:groundLevel-210}, {x:620,  y:groundLevel-270}, {x:1050, y:groundLevel-320},
-        {x:1400, y:groundLevel-340}, {x:1700, y:groundLevel-280}, {x:2350, y:groundLevel-330},
-        {x:2560, y:groundLevel-370}, {x:3050, y:groundLevel-270}, {x:3290, y:groundLevel-380},
-        {x:3750, y:groundLevel-300}, {x:4120, y:groundLevel-310}, {x:4560, y:groundLevel-290},
-        {x:5050, y:groundLevel-330}, {x:5420, y:groundLevel-320}, {x:6050, y:groundLevel-310},
-        {x:6720, y:groundLevel-270},
-    ];
-    s2.boxes = qboxPositions.map(p => ({
-        x: p.x, y: p.y, w: 40, h: 40,
-        hit: false, popped: false, bounceAnim: 0,
-        reward: qboxRewards[Math.floor(Math.random() * qboxRewards.length)]
-    }));
+    let qboxCount=10+worldIdx;
+    let rewards=['blueberry','rainbow','heart','star','mushroom','ammo'];
+    for(let i=0;i<qboxCount;i++){
+        let x=500+i*(s2.levelWidth/qboxCount)*0.85+Math.random()*60;
+        let y=GL-200-Math.random()*120;
+        s2.boxes.push({x,y,w:40,h:40,hit:false,popped:false,bounceAnim:0,reward:rewards[Math.floor(Math.random()*rewards.length)]});
+    }
 
-    let brickDefs = [
-        {x:480,  y:groundLevel-210, w:40, h:40, destructible:true},
-        {x:525,  y:groundLevel-210, w:40, h:40, destructible:false},
-        {x:750,  y:groundLevel-210, w:40, h:40, destructible:true},
-        {x:1250, y:groundLevel-260, w:40, h:40, destructible:true},
-        {x:1295, y:groundLevel-260, w:40, h:40, destructible:false},
-        {x:1340, y:groundLevel-260, w:40, h:40, destructible:true},
-        {x:2100, y:groundLevel-290, w:40, h:40, destructible:true},
-        {x:2145, y:groundLevel-290, w:40, h:40, destructible:true},
-        {x:3200, y:groundLevel-300, w:40, h:40, destructible:true},
-        {x:3800, y:groundLevel-260, w:40, h:40, destructible:false},
-        {x:3845, y:groundLevel-260, w:40, h:40, destructible:true},
-        {x:4600, y:groundLevel-270, w:40, h:40, destructible:true},
-        {x:5100, y:groundLevel-310, w:40, h:40, destructible:true},
-        {x:5650, y:groundLevel-280, w:40, h:40, destructible:false},
-        {x:6250, y:groundLevel-340, w:40, h:40, destructible:true},
-        {x:6760, y:groundLevel-250, w:40, h:40, destructible:true},
-    ];
-    brickDefs.forEach(b => s2.platforms.push({...b, type: b.destructible ? 'destructible' : 'brickblock', destroyed: false}));
+    let enemyCount=10+worldIdx*3;
+    let types=['steak','chicken','sausage'];
+    if(worldIdx>=4) types.push('burger');
+    if(worldIdx>=6) types.push('hotdog_boss');
+    for(let i=0;i<enemyCount;i++){
+        let x=500+i*(s2.levelWidth/enemyCount)*0.88+Math.random()*80;
+        let etype=types[Math.floor(Math.random()*types.length)];
+        let hp=getEnemyHp(etype, worldIdx);
+        let spd=etype==='sausage'?3:(etype==='chicken'?1.5:2);
+        spd+=worldIdx*0.15;
+        let y=GL-45;
+        if(i%4===0&&plats.length>0){
+            let plat=plats[Math.floor(Math.random()*plats.length)];
+            x=plat.x+Math.random()*Math.max(0,plat.w-40);
+            y=plat.y-45;
+        }
+        s2.enemies.push({x,y,w:40,h:40,type:etype,dy:0,dx:-spd,speed:spd,
+            alive:true,dead:false,deadTimer:0,baseY:y,hp,maxHp:hp,
+            onPlatform:null,frame:0,stun:0});
+    }
 
-    let enemyDefs = [
-        {x:500,   type:'steak',   onGround:true}, {x:700,   type:'chicken', onGround:true},
-        {x:950,   type:'sausage', onGround:true}, {x:1150,  type:'steak',   onGround:true},
-        {x:1300,  type:'chicken', onGround:true}, {x:1005,  type:'steak',   onPlatform:platDefs[3]},
-        {x:1380,  type:'steak',   onPlatform:platDefs[5]}, {x:1700,  type:'sausage', onGround:true},
-        {x:1900,  type:'steak',   onGround:true}, {x:2100,  type:'chicken', onGround:true},
-        {x:2350,  type:'steak',   onGround:true}, {x:2500,  type:'sausage', onGround:true},
-        {x:2700,  type:'chicken', onGround:true}, {x:2900,  type:'steak',   onGround:true},
-        {x:3100,  type:'steak',   onGround:true}, {x:3300,  type:'sausage', onGround:true},
-        {x:3500,  type:'chicken', onGround:true}, {x:2310,  type:'chicken', onPlatform:platDefs[9]},
-        {x:3010,  type:'steak',   onPlatform:platDefs[12]}, {x:3800,  type:'sausage', onGround:true},
-        {x:4000,  type:'steak',   onGround:true}, {x:4200,  type:'chicken', onGround:true},
-        {x:4400,  type:'steak',   onGround:true}, {x:4700,  type:'sausage', onGround:true},
-        {x:5000,  type:'steak',   onGround:true}, {x:5200,  type:'chicken', onGround:true},
-        {x:5500,  type:'sausage', onGround:true}, {x:5800,  type:'steak',   onGround:true},
-        {x:6000,  type:'steak',   onGround:true}, {x:6200,  type:'sausage', onGround:true},
-        {x:6500,  type:'chicken', onGround:true}, {x:6700,  type:'steak',   onGround:true},
-        {x:7000,  type:'steak',   onGround:true}, {x:7100,  type:'sausage', onGround:true},
-        {x:7200,  type:'chicken', onGround:true}, {x:7300,  type:'steak',   onGround:true},
-    ];
-
-    const groundY = groundLevel - 45;
-    s2.enemies = enemyDefs.map(e => {
-        let y = groundY;
-        if (e.onPlatform) y = e.onPlatform.y - 45;
-        let spd = e.type === 'sausage' ? 3 : (e.type === 'chicken' ? 1.5 : 2);
-        return {
-            x: e.x, y: y, w: 40, h: 40, type: e.type, dy: 0, dx: -spd, speed: spd,
-            alive: true, dead: false, deadTimer: 0, bounceTimer: 0, baseY: y, onPlatform: e.onPlatform || null, frame: 0
-        };
-    });
-
-    let foodItems = ['🍎','🍐','🥦','🍓','🍊','🥬','🌽','🥑','🫐'];
-    s2.foodItems = [];
-    for (let i = 0; i < 55; i++) {
+    let foodChars=['🍎','🍐','🥦','🍓','🍊','🥬','🌽','🥑','🫐','🥕'];
+    for(let i=0;i<50;i++){
         s2.foodItems.push({
-            x: 300 + i * 130 + Math.random() * 50,
-            y: groundLevel - 100 - Math.random() * 120,
-            char: foodItems[Math.floor(Math.random() * foodItems.length)],
-            collected: false
+            x:300+i*((s2.levelWidth-400)/50)+Math.random()*60,
+            y:GL-100-Math.random()*130,
+            char:foodChars[Math.floor(Math.random()*foodChars.length)],collected:false
+        });
+    }
+    for(let i=0;i<12+worldIdx;i++){
+        s2.foodItems.push({
+            x:400+i*(s2.levelWidth/14)+Math.random()*60,
+            y:GL-110-Math.random()*100,
+            char:'🌱',collected:false,isAmmo:true
+        });
+    }
+
+    let coinCount=8+worldIdx*2;
+    for(let i=0;i<coinCount;i++){
+        s2.coins.push({
+            x:400+i*(s2.levelWidth/coinCount)+Math.random()*60,
+            y:GL-120-Math.random()*100,
+            collected:false
         });
     }
 }
 
-// =============================================
-// STAGE 2 UPDATE
-// =============================================
-function updateStage2() {
-    // Flag rise & fireworks animations continue regardless of gameActive state
-    if (s2.flagRising) {
-        if (s2.flagRiseY > 20) {
-            s2.flagRiseY -= 4;
-        } else {
-            s2.flagRising = false;
-            for (let i = 0; i < 5; i++) {
-                setTimeout(() => {
-                    let fx = s2.flagX - s2.cameraX + Math.random() * 200 - 100;
-                    let fy = canvas.height - 200 - Math.random() * 200;
-                    for (let j = 0; j < 20; j++) {
-                        let angle = (j/20)*Math.PI*2;
-                        let spd = Math.random()*5+3;
-                        let colors = ['#ff0','#f0f','#0ff','#f60','#0f6'];
-                        s2.fireworks.push({x:fx,y:fy,vx:Math.cos(angle)*spd,vy:Math.sin(angle)*spd,color:colors[Math.floor(Math.random()*colors.length)],life:80});
-                    }
-                    playSound(400+i*150,'sine',0.5,0.15,200);
-                }, i * 400);
-            }
-            setTimeout(() => {
-                stageTransitionState = 'waiting';
-                stageOverlayPhase = -1; // so first tap goes to vegan message
-                stageTitleEl.style.animation = 'flash 0.8s infinite';
-                stageTitleEl.style.color = '#ffeb3b';
-                stageTitleEl.style.fontSize = '48px';
-                stageTitleEl.innerText = '🏆 STAGE 2 COMPLETE! 🏆';
-                stageMsgEl.innerHTML = 'MEAT HAS BEEN DEFEATED!<br><span style="font-size:18px;color:#aaa;">More stages coming soon...</span>';
-                document.getElementById('stageTapPrompt').innerText = 'TAP TO CONTINUE';
-                stageOverlayEl.classList.add('active');
-                stageOverlayPhase = 99; // skip to end
-            }, 3000);
-        }
-    }
+function getEnemyHp(type, worldIdx) {
+    let base = type==='sausage'?2:(type==='chicken'?1:(type==='burger'?3:(type==='hotdog_boss'?4:1)));
+    if(worldIdx>=4) base=Math.max(base,2);
+    if(worldIdx>=6) base=Math.max(base,3);
+    return base;
+}
 
-    s2.fireworks.forEach(f => { f.x += f.vx; f.y += f.vy; f.vy += 0.08; f.life--; });
-    s2.fireworks = s2.fireworks.filter(f => f.life > 0);
+// ===================== BOSS WORLD =====================
+function startBossWorld() {
+    s2.levelBuilt=true; s2.boxes=[]; s2.enemies=[]; s2.platforms=[]; s2.foodItems=[]; s2.coins=[];
+    s2Projectiles=[]; s2.fireworks=[];
+    s2.levelWidth=6000; s2.flagX=5800;
+    const GL=canvas.height-80;
+    bossHpUiEl.style.display='inline';
 
-    // Stop evaluating collisions and input mechanics if flag reached or game over
-    if (!gameActive) return;
-
-    const groundLevel = canvas.height - 80;
-    const SPEED = 4;
-    const GRAVITY = 0.7;
-
-    player.dx = 0;
-    if (leftPressed)  player.dx = -SPEED;
-    if (rightPressed) player.dx =  SPEED;
-
-    player.x += player.dx;
-
-    let targetCam = player.x - canvas.width * 0.35;
-    targetCam = Math.max(0, Math.min(targetCam, s2.levelWidth - canvas.width));
-    s2.cameraX += (targetCam - s2.cameraX) * 0.15;
-
-    if (player.x < 10) player.x = 10;
-    if (player.x + player.w > s2.levelWidth - 10) player.x = s2.levelWidth - 10 - player.w;
-
-    player.dy += GRAVITY;
-    player.y += player.dy;
-    player.grounded = false;
-
-    if (player.y + player.h >= groundLevel) {
-        player.y = groundLevel - player.h;
-        player.dy = 0;
-        player.grounded = true;
-        jumpCount = 0;
-    }
-
-    let allSolids = [
-        ...s2.platforms.filter(p => !p.destroyed),
-        ...s2.boxes.filter(b => !b.popped)
+    let arenaPlats=[
+        {x:200,y:GL-120,w:200,h:20,type:'brick'},{x:500,y:GL-120,w:200,h:20,type:'brick'},
+        {x:900,y:GL-120,w:200,h:20,type:'brick'},{x:1300,y:GL-120,w:200,h:20,type:'brick'},
+        {x:1700,y:GL-120,w:200,h:20,type:'brick'},{x:2100,y:GL-120,w:200,h:20,type:'brick'},
+        {x:2500,y:GL-120,w:200,h:20,type:'brick'},{x:2900,y:GL-120,w:200,h:20,type:'brick'},
+        {x:3300,y:GL-120,w:200,h:20,type:'brick'},{x:3700,y:GL-120,w:200,h:20,type:'brick'},
+        {x:4100,y:GL-120,w:200,h:20,type:'brick'},{x:4500,y:GL-120,w:200,h:20,type:'brick'},
+        {x:300,y:GL-240,w:160,h:20,type:'grass'},{x:700,y:GL-240,w:160,h:20,type:'grass'},
+        {x:1100,y:GL-240,w:160,h:20,type:'grass'},{x:1500,y:GL-240,w:160,h:20,type:'grass'},
+        {x:1900,y:GL-240,w:160,h:20,type:'grass'},{x:2300,y:GL-240,w:160,h:20,type:'grass'},
+        {x:2700,y:GL-240,w:160,h:20,type:'grass'},{x:3100,y:GL-240,w:160,h:20,type:'grass'},
+        {x:3500,y:GL-240,w:160,h:20,type:'grass'},{x:3900,y:GL-240,w:160,h:20,type:'grass'},
+        {x:4300,y:GL-240,w:160,h:20,type:'grass'},{x:4700,y:GL-240,w:160,h:20,type:'grass'},
+        {x:400,y:GL-360,w:120,h:20,type:'brick'},{x:800,y:GL-360,w:120,h:20,type:'brick'},
+        {x:1200,y:GL-360,w:120,h:20,type:'brick'},{x:1600,y:GL-360,w:120,h:20,type:'brick'},
+        {x:2000,y:GL-360,w:120,h:20,type:'brick'},{x:2400,y:GL-360,w:120,h:20,type:'brick'},
+        {x:2800,y:GL-360,w:120,h:20,type:'brick'},{x:3200,y:GL-360,w:120,h:20,type:'brick'},
+        {x:3600,y:GL-360,w:120,h:20,type:'brick'},{x:4000,y:GL-360,w:120,h:20,type:'brick'},
+        {x:4400,y:GL-360,w:120,h:20,type:'brick'},{x:4800,y:GL-360,w:120,h:20,type:'brick'},
     ];
-
-    allSolids.forEach(p => {
-        let pw = p.w, ph = p.h;
-        let overlap_x = player.x + player.w > p.x && player.x < p.x + pw;
-        let wasAbove = (player.y + player.h - player.dy) <= p.y + 2;
-
-        if (overlap_x) {
-            if (wasAbove && player.dy >= 0 && player.y + player.h >= p.y && player.y + player.h <= p.y + ph + 10) {
-                player.y = p.y - player.h;
-                player.dy = 0;
-                player.grounded = true;
-                jumpCount = 0;
-            } else if (!wasAbove && player.dy < 0 && player.y <= p.y + ph && player.y >= p.y) {
-                player.y = p.y + ph;
-                player.dy = 0;
-                if ((p.reward !== undefined) && !p.hit) {
-                    hitQBox(p);
-                } else if (p.type === 'destructible' && !p.destroyed) {
-                    p.destroyed = true;
-                    playBoxHitSound();
-                    for (let i = 0; i < 8; i++) {
-                        s2.particles.push({x: p.x + 20, y: p.y, vx: (Math.random()-0.5)*5, vy: -Math.random()*5-2, life:30, color:'#c8a060'});
-                    }
-                } else if (p.type === 'brickblock') {
-                    player.dy = 1; 
-                    playBoxHitSound();
-                }
-            }
-        }
-    });
-
-    s2.enemies.forEach(e => {
-        if (!e.alive && !e.dead) return;
-
-        if (e.dead) {
-            e.deadTimer--;
-            if (e.deadTimer <= 0) e.alive = false;
-            return;
-        }
-
-        e.frame += 0.15;
-        if (e.type === 'chicken') {
-            e.dy += 0.5;
-            e.y += e.dy;
-            if (e.y >= e.baseY) { e.y = e.baseY; e.dy = -6; }
-        }
-
-        e.x += e.dx;
-        if (e.onPlatform) {
-            if (e.x < e.onPlatform.x || e.x + e.w > e.onPlatform.x + e.onPlatform.w) { e.dx *= -1; }
-        } else {
-            if (e.x < 50 || e.x + e.w > s2.levelWidth - 50) e.dx *= -1;
-        }
-
-        let hitX = player.x + player.w > e.x && player.x < e.x + e.w;
-        let hitY = player.y + player.h > e.y && player.y < e.y + e.h;
-
-        if (hitX && hitY) {
-            let wasAboveEnemy = (player.y + player.h - player.dy) < e.y + e.h * 0.4;
-            if (wasAboveEnemy && player.dy > 0) {
-                if (e.type === 'sausage') {
-                    player.dy = -10;
-                    energy -= 20;
-                    playSound(150, 'sawtooth', 0.2, 0.2, -50);
-                    if (energy <= 0) { die("SAUSAGE"); return; }
-                } else {
-                    e.dead = true; e.deadTimer = 30;
-                    player.dy = -10;
-                    playStompSound();
-                    energy = Math.min(100, energy + 5);
-                    for (let i=0;i<10;i++) s2.particles.push({x:e.x+20,y:e.y,vx:(Math.random()-0.5)*6,vy:-Math.random()*5-1,life:25,color:e.type==='steak'?'#c0392b':'#f39c12'});
-                }
-            } else if (starTimer <= 0) {
-                energy -= 25;
-                playSound(150, 'sawtooth', 0.2, 0.2, -50);
-                if (energy <= 0) { die(e.type === 'steak' ? "MEAT" : "SAUSAGE"); return; }
-                player.x += player.dx >= 0 ? -30 : 30;
-            }
-        }
-    });
-
-    s2.foodItems.forEach(f => {
-        if (f.collected) return;
-        if (player.x + player.w > f.x && player.x < f.x + 30 && player.y + player.h > f.y && player.y < f.y + 30) {
-            f.collected = true;
-            energy = Math.min(100, energy + 8);
-            playSound(700, 'sine', 0.1, 0.08);
-        }
-    });
-
-    s2.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.life--; });
-    s2.particles = s2.particles.filter(p => p.life > 0);
-    s2.boxes.forEach(b => { if (b.bounceAnim > 0) b.bounceAnim--; });
-
-    energy -= 0.02;
-    distance += 1;
-    worldDistance += 1;
-    if (energy <= 0) { die("ENERGY"); return; }
-
-    if (powerUpTimer > 0) powerUpTimer--;
-    if (rainbowTimer > 0) rainbowTimer--;
-    if (megaJumpTimer > 0) megaJumpTimer--;
-    if (starTimer > 0) starTimer--;
-
-    scoreEl.innerText = Math.max(0, Math.ceil(energy));
-    distEl.innerText = Math.floor(distance);
-    worldEl.innerText = "11 [STAGE 2]";
-
-    // Detect level complete and cut input controls
-    let flagWorldX = s2.flagX;
-    if (!s2.flagReached && player.x + player.w > flagWorldX && player.x < flagWorldX + 30) {
-        s2.flagReached = true;
-        s2.flagRising = true;
-        s2.flagRiseY = 280;
-        playFlagSound();
-        gameActive = false; // Freeze gameplay and start transition
+    for(let i=0;i<20;i++){
+        arenaPlats.push({x:250+i*230,y:GL-180-Math.random()*60,w:40,h:40,type:'destructible',destroyed:false});
     }
+    s2.platforms=arenaPlats;
+
+    for(let i=0;i<20;i++) s2.foodItems.push({x:300+i*230,y:GL-140,char:'🌱',collected:false,isAmmo:true});
+    for(let i=0;i<15;i++) s2.foodItems.push({x:400+i*280,y:GL-140,char:'🍎',collected:false});
+    for(let i=0;i<10;i++) s2.coins.push({x:350+i*420,y:GL-150,collected:false});
+
+    boss.x=3000; boss.y=GL-200; boss.dx=3; boss.dy=0; boss.hp=50; boss.maxHp=50;
+    boss.state='active'; boss.jumpTimer=180; boss.shootTimer=120; boss.grounded=false;
+    boss.angry=false; boss.projectiles=[];
+    bossHpNumEl.innerText=boss.hp;
+    updateAmmoUI();
+}
+
+// ===================== STAGE 2 UPDATE =====================
+function updateStage2() {
+    if(s2.flagRising){
+        s2.flagRiseY>20 ? s2.flagRiseY-=4 : endS2World();
+    }
+    s2.fireworks.forEach(f=>{f.x+=f.vx;f.y+=f.vy;f.vy+=0.08;f.life--;});
+    s2.fireworks=s2.fireworks.filter(f=>f.life>0);
+    if(!gameActive) return;
+
+    const GL=canvas.height-80, SPEED=4+(s2WorldIndex*0.2), GRAVITY=0.7;
+    player.dx=0;
+    if(leftPressed) player.dx=-SPEED;
+    if(rightPressed) player.dx=SPEED;
+    player.x+=player.dx;
+
+    let targetCam=player.x-canvas.width*0.35;
+    targetCam=Math.max(0,Math.min(targetCam,s2.levelWidth-canvas.width));
+    s2.cameraX+=(targetCam-s2.cameraX)*0.15;
+    player.x=Math.max(10,Math.min(player.x,s2.levelWidth-10-player.w));
+
+    player.dy+=GRAVITY; player.y+=player.dy; player.grounded=false;
+    if(player.y+player.h>=GL){player.y=GL-player.h;player.dy=0;player.grounded=true;jumpCount=0;}
+
+    let allSolids=[...s2.platforms.filter(p=>!p.destroyed),...s2.boxes.filter(b=>!b.popped)];
+    allSolids.forEach(p=>{
+        let overlap_x=player.x+player.w>p.x&&player.x<p.x+p.w;
+        let wasAbove=(player.y+player.h-player.dy)<=p.y+2;
+        if(overlap_x){
+            if(wasAbove&&player.dy>=0&&player.y+player.h>=p.y&&player.y+player.h<=p.y+p.h+10){
+                player.y=p.y-player.h; player.dy=0; player.grounded=true; jumpCount=0;
+            } else if(!wasAbove&&player.dy<0&&player.y<=p.y+p.h&&player.y>=p.y){
+                player.y=p.y+p.h; player.dy=0;
+                if(p.reward!==undefined&&!p.hit) hitQBox(p);
+                else if(p.type==='destructible'&&!p.destroyed){
+                    p.destroyed=true; playBoxHitSound();
+                    for(let i=0;i<8;i++) s2.particles.push({x:p.x+20,y:p.y,vx:(Math.random()-0.5)*5,vy:-Math.random()*5-2,life:30,color:'#c8a060'});
+                } else if(p.type==='brickblock'){player.dy=1;playBoxHitSound();}
+            }
+        }
+    });
+
+    updateProjectiles(GL);
+    updateS2Enemies(GL);
+    if(s2WorldIndex===9) updateBoss(GL);
+
+    s2.foodItems.forEach(f=>{
+        if(f.collected) return;
+        if(player.x+player.w>f.x&&player.x<f.x+30&&player.y+player.h>f.y&&player.y<f.y+30){
+            f.collected=true;
+            if(f.isAmmo){s2Ammo=Math.min(s2MaxAmmo,s2Ammo+8);playSound(600,'sine',0.1,0.1,200);}
+            else{energy=Math.min(100,energy+8);playSound(700,'sine',0.1,0.08);}
+            updateAmmoUI();
+        }
+    });
+
+    s2.coins.forEach(c=>{
+        if(c.collected) return;
+        if(player.x+player.w>c.x&&player.x<c.x+24&&player.y+player.h>c.y&&player.y<c.y+24){
+            c.collected=true; s2Coins++;
+            localStorage.setItem('goDeanCoins',s2Coins);
+            playCoinSound(); updateAmmoUI();
+        }
+    });
+
+    s2.particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.2;p.life--;});
+    s2.particles=s2.particles.filter(p=>p.life>0);
+    s2.boxes.forEach(b=>{if(b.bounceAnim>0)b.bounceAnim--;});
+
+    energy-=0.015; distance+=1; worldDistance+=1;
+    if(energy<=0){die("ENERGY");return;}
+    if(powerUpTimer>0)powerUpTimer--; if(rainbowTimer>0)rainbowTimer--;
+    if(megaJumpTimer>0)megaJumpTimer--; if(starTimer>0)starTimer--;
+
+    scoreEl.innerText=Math.max(0,Math.ceil(energy));
+    distEl.innerText=Math.floor(distance);
+    let theme=s2Worlds[s2WorldIndex]||s2Worlds[1];
+    worldEl.innerText=`S2-W${s2WorldIndex} [${theme.name}]`;
+
+    if(!s2.flagReached&&player.x+player.w>s2.flagX&&player.x<s2.flagX+30&&s2WorldIndex!==9){
+        s2.flagReached=true; s2.flagRising=true; s2.flagRiseY=280;
+        playFlagSound(); gameActive=false;
+    }
+}
+
+function updateProjectiles(GL) {
+    s2Projectiles.forEach(p=>{
+        p.x+=p.vx; p.y+=p.vy; p.life--;
+        if(p.bounces>0){
+            if(p.x<0||p.x>s2.levelWidth){p.vx*=-1;p.bounces--;}
+            if(p.y<0){p.vy*=-1;p.bounces--;}
+        }
+        s2.enemies.forEach(e=>{
+            if(!e.alive||e.dead) return;
+            if(p.life>0&&p.x>e.x&&p.x<e.x+e.w&&p.y>e.y&&p.y<e.y+e.h){
+                e.hp-=p.damage; p.life=0;
+                playSound(300,'sawtooth',0.05,0.1,-100);
+                for(let i=0;i<5;i++) s2.particles.push({x:e.x+20,y:e.y+20,vx:(Math.random()-0.5)*4,vy:-Math.random()*3,life:20,color:'#32ff7e'});
+                if(e.hp<=0){e.dead=true;e.deadTimer=30;energy=Math.min(100,energy+3);}
+                else{e.stun=20;}
+            }
+        });
+        if(s2WorldIndex===9&&boss.state==='active'&&p.life>0){
+            if(p.x>boss.x&&p.x<boss.x+boss.w&&p.y>boss.y&&p.y<boss.y+boss.h){
+                boss.hp-=p.damage; p.life=0;
+                playSound(200,'sawtooth',0.1,0.15,-100);
+                bossHpNumEl.innerText=Math.max(0,boss.hp);
+                for(let i=0;i<8;i++) s2.particles.push({x:boss.x+60,y:boss.y+40,vx:(Math.random()-0.5)*6,vy:-Math.random()*4,life:25,color:'#ff0'});
+                if(boss.hp<=0) bossDefeated();
+                else if(boss.hp<=25&&!boss.angry){boss.angry=true;boss.dx=5;}
+            }
+        }
+    });
+    s2Projectiles=s2Projectiles.filter(p=>p.life>0);
+}
+
+function updateS2Enemies(GL) {
+    s2.enemies.forEach(e=>{
+        if(!e.alive&&!e.dead) return;
+        if(e.dead){e.deadTimer--;if(e.deadTimer<=0)e.alive=false;return;}
+        if(e.stun>0){e.stun--;return;}
+        e.frame+=0.15;
+        if(e.type==='chicken'){e.dy+=0.5;e.y+=e.dy;if(e.y>=e.baseY){e.y=e.baseY;e.dy=-6;}}
+        e.x+=e.dx;
+        if(e.x<50||e.x+e.w>s2.levelWidth-50) e.dx*=-1;
+
+        let hitX=player.x+player.w>e.x&&player.x<e.x+e.w;
+        let hitY=player.y+player.h>e.y&&player.y<e.y+e.h;
+        if(hitX&&hitY){
+            let wasAbove=(player.y+player.h-player.dy)<e.y+e.h*0.4;
+            if(wasAbove&&player.dy>0){
+                e.hp--; player.dy=-10;
+                if(e.hp<=0){
+                    e.dead=true;e.deadTimer=30;playStompSound();
+                    energy=Math.min(100,energy+5);
+                    if(s2WorldIndex===9){boss.hp-=2;bossHpNumEl.innerText=Math.max(0,boss.hp);if(boss.hp<=0)bossDefeated();}
+                    for(let i=0;i<10;i++) s2.particles.push({x:e.x+20,y:e.y,vx:(Math.random()-0.5)*6,vy:-Math.random()*5,life:25,color:'#c0392b'});
+                } else {
+                    e.stun=40; playSound(300,'square',0.1,0.15,-100);
+                }
+            } else if(starTimer<=0){
+                energy-=20; playSound(150,'sawtooth',0.2,0.2,-50);
+                if(energy<=0){die("MEAT");return;}
+                player.x+=player.dx>=0?-30:30;
+            }
+        }
+    });
+}
+
+function updateBoss(GL) {
+    if(boss.state!=='active') return;
+    boss.dy+=0.5; boss.y+=boss.dy;
+    if(boss.y+boss.h>=GL){boss.y=GL-boss.h;boss.dy=0;boss.grounded=true;}else{boss.grounded=false;}
+    s2.platforms.forEach(p=>{
+        if(!p.destroyed&&boss.x+boss.w>p.x&&boss.x<p.x+p.w){
+            let wasAbove=(boss.y+boss.h-boss.dy)<=p.y+2;
+            if(wasAbove&&boss.dy>=0&&boss.y+boss.h>=p.y&&boss.y+boss.h<=p.y+p.h+8){
+                boss.y=p.y-boss.h;boss.dy=0;boss.grounded=true;
+            }
+        }
+    });
+    boss.x+=boss.dx*(boss.angry?1.4:1);
+    if(boss.x<100||boss.x>s2.levelWidth-200) boss.dx*=-1;
+    boss.jumpTimer--;
+    if(boss.jumpTimer<=0&&boss.grounded){boss.dy=-(boss.angry?18:14);boss.jumpTimer=120+Math.random()*120;}
+    boss.shootTimer--;
+    if(boss.shootTimer<=0){
+        let dir=player.x>boss.x?1:-1;
+        boss.projectiles.push({x:boss.x+60,y:boss.y+40,vx:dir*(boss.angry?10:7),vy:-2,char:'🔥',life:120});
+        if(boss.angry) boss.projectiles.push({x:boss.x+60,y:boss.y+20,vx:dir*8,vy:0,char:'🐦',life:140});
+        boss.shootTimer=boss.angry?60:90;
+        playSound(200,'sawtooth',0.15,0.15,50);
+    }
+    boss.projectiles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.1;p.life--;});
+    boss.projectiles=boss.projectiles.filter(p=>p.life>0);
+    boss.projectiles.forEach(p=>{
+        if(player.x+player.w>p.x&&player.x<p.x+30&&player.y+player.h>p.y&&player.y<p.y+30){
+            if(starTimer<=0){energy-=15;playSound(150,'sawtooth',0.2,0.2,-50);if(energy<=0){die("DINO");return;}}
+            p.life=0;
+        }
+    });
+    let onBossX=player.x+player.w>boss.x+10&&player.x<boss.x+boss.w-10;
+    let onBossY=(player.y+player.h-player.dy)<=boss.y+30&&player.dy>0&&player.y+player.h>=boss.y;
+    if(onBossX&&onBossY){
+        boss.hp-=2; player.dy=-12; bossHpNumEl.innerText=Math.max(0,boss.hp);
+        playStompSound();
+        for(let i=0;i<12;i++) s2.particles.push({x:boss.x+60,y:boss.y,vx:(Math.random()-0.5)*8,vy:-Math.random()*6,life:30,color:'#ff0'});
+        if(boss.hp<=0) bossDefeated();
+        else if(boss.hp<=25&&!boss.angry){boss.angry=true;boss.dx=5;}
+    }
+}
+
+function bossDefeated() {
+    boss.state='dead'; boss.hp=0; bossHpNumEl.innerText=0;
+    gameActive=false;
+    playFlagSound();
+    for(let i=0;i<8;i++){
+        setTimeout(()=>{
+            let fx=Math.random()*canvas.width, fy=Math.random()*(canvas.height*0.6);
+            for(let j=0;j<20;j++){
+                let angle=(j/20)*Math.PI*2,spd=Math.random()*5+3;
+                let cols=['#ff0','#0f0','#0ff','#f0f','#fff','#0f6'];
+                s2.fireworks.push({x:fx,y:fy,vx:Math.cos(angle)*spd,vy:Math.sin(angle)*spd,color:cols[Math.floor(Math.random()*cols.length)],life:90});
+            }
+            playSound(400+i*80,'sine',0.5,0.15,300);
+        },i*350);
+    }
+    setTimeout(()=>{showVictoryScreen();},4000);
+}
+
+function showVictoryScreen() {
+    stageTransitionState='victory';
+    stageTitleEl.style.animation='flash 0.6s infinite';
+    stageTitleEl.style.color='#afff94';
+    stageTitleEl.style.fontSize='36px';
+    stageTitleEl.innerText='🌱 YOU ARE NOW READY TO BE VEGAN! 🌱';
+    stageMsgEl.innerHTML='CONGRATULATIONS!<br><br>Deanus Politicus Carnivorus Paradoxus has been defeated.<br><br><span style="color:#ffeb3b;font-size:20px;">🏆 Created by Earthling Official 🏆</span>';
+    document.getElementById('stageTapPrompt').innerText='TAP TO PLAY AGAIN';
+    stageOverlayEl.classList.add('active');
+    window._victoryLeafTimer=setInterval(()=>{
+        for(let i=0;i<3;i++){
+            s2.fireworks.push({x:Math.random()*canvas.width,y:-20,vx:(Math.random()-0.5)*2,vy:Math.random()*3+1,color:'#32ff7e',life:200,isLeaf:true});
+        }
+    },200);
+}
+
+function endS2World() {
+    s2.flagRising=false;
+    if(s2WorldIndex>=9){return;}
+    for(let i=0;i<4;i++){
+        setTimeout(()=>{
+            for(let j=0;j<15;j++){
+                let angle=(j/15)*Math.PI*2,spd=Math.random()*4+2;
+                let cols=['#ff0','#f0f','#0ff','#f60'];
+                s2.fireworks.push({x:s2.flagX-s2.cameraX+Math.random()*100,y:canvas.height-200-Math.random()*150,vx:Math.cos(angle)*spd,vy:Math.sin(angle)*spd,color:cols[Math.floor(Math.random()*cols.length)],life:70});
+            }
+            playSound(350+i*100,'sine',0.4,0.12,200);
+        },i*300);
+    }
+    setTimeout(()=>{
+        let nextW=s2WorldIndex+1;
+        stageTransitionState='s2worldcomplete';
+        let theme=s2Worlds[nextW]||s2Worlds[9];
+        stageTitleEl.style.animation='flash 0.8s infinite';
+        stageTitleEl.style.color='#ffeb3b';
+        stageTitleEl.style.fontSize='40px';
+        stageTitleEl.innerText=`✅ WORLD ${s2WorldIndex} COMPLETE!`;
+        stageMsgEl.innerHTML=`NEXT: <span style="color:#afff94;">S2-W${nextW} — ${theme.name}</span><br><br>🪙 Coins: ${s2Coins} | 💡 Tip: Stomp = 2x damage on boss!`;
+        document.getElementById('stageTapPrompt').innerText='TAP TO CONTINUE';
+        stageOverlayEl.classList.add('active');
+    },2200);
+}
+
+function handleS2WorldCompleteTap() {
+    stageOverlayEl.classList.remove('active');
+    stageTransitionState='none';
+    let nextW=s2WorldIndex+1;
+    if(nextW>9) nextW=9;
+    startStage2(nextW);
 }
 
 function hitQBox(box) {
-    box.hit = true;
-    box.bounceAnim = 12;
-    playBoxHitSound();
-
-    let reward = box.reward;
-    let px = box.x - s2.cameraX;
-    let py = box.y;
-
-    setTimeout(() => { box.popped = true; }, 300);
-
-    if (reward === 'blueberry') { powerUpTimer = 600; playSound(500,'sine',0.3,0.1,400); showPopup(px, py, '🫐 DOUBLE JUMP!'); }
-    else if (reward === 'rainbow') { rainbowTimer = 400; playSound(600,'sine',0.5,0.1,500); showPopup(px, py, '🌈 RAINBOW SHIELD!'); }
-    else if (reward === 'heart') { energy = Math.min(100, energy + 40); playSound(800,'sine',0.2,0.1); showPopup(px, py, '❤️ +ENERGY!'); }
-    else if (reward === 'star') { starTimer = 500; playSound(700,'triangle',0.4,0.15,600); showPopup(px, py, '⭐ INVINCIBLE!'); }
-    else if (reward === 'mushroom') { megaJumpTimer = 600; playSound(700,'sine',0.3,0.1,600); showPopup(px, py, '🍄 MEGA JUMP!'); }
+    box.hit=true; box.bounceAnim=12; playBoxHitSound();
+    let reward=box.reward, px=box.x-s2.cameraX, py=box.y;
+    setTimeout(()=>{box.popped=true;},300);
+    if(reward==='blueberry'){powerUpTimer=600;playSound(500,'sine',0.3,0.1,400);showPopup(px,py,'🫐 DOUBLE JUMP!');}
+    else if(reward==='rainbow'){rainbowTimer=400;playSound(600,'sine',0.5,0.1,500);showPopup(px,py,'🌈 SHIELD!');}
+    else if(reward==='heart'){energy=Math.min(100,energy+40);playSound(800,'sine',0.2,0.1);showPopup(px,py,'❤️ +ENERGY!');}
+    else if(reward==='star'){starTimer=500;playSound(700,'triangle',0.4,0.15,600);showPopup(px,py,'⭐ INVINCIBLE!');}
+    else if(reward==='mushroom'){megaJumpTimer=600;playSound(700,'sine',0.3,0.1,600);showPopup(px,py,'🍄 MEGA JUMP!');}
+    else if(reward==='ammo'){s2Ammo=Math.min(s2MaxAmmo,s2Ammo+15);updateAmmoUI();showPopup(px,py,'🌿 +AMMO!');}
 }
 
-let popups = [];
-function showPopup(x, y, text) {
-    popups.push({ x, y, text, life: 80 });
-}
+let popups=[];
+function showPopup(x,y,text){popups.push({x,y,text,life:80});}
 
-// =============================================
-// STAGE 2 DRAW
-// =============================================
+// ===================== DRAW STAGE 2 =====================
 function drawStage2() {
-    const groundLevel = canvas.height - 80;
-    const cam = Math.floor(s2.cameraX);
-    const s = worldSettings[11];
+    const GL=canvas.height-80, cam=Math.floor(s2.cameraX);
+    let theme=s2Worlds[s2WorldIndex]||s2Worlds[1];
 
-    let grad = ctx.createLinearGradient(0,0,0,canvas.height);
-    grad.addColorStop(0, '#3a7bd5');
-    grad.addColorStop(1, '#5c94fc');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0,0,canvas.width,canvas.height);
+    let grad=ctx.createLinearGradient(0,0,0,canvas.height);
+    grad.addColorStop(0,theme.bg); grad.addColorStop(1,shadeColor(theme.bg,30));
+    ctx.fillStyle=grad; ctx.fillRect(0,0,canvas.width,canvas.height);
 
-    ctx.font = "50px Arial";
-    ctx.globalAlpha = 0.6;
-    let cloudPositions = [200,500,900,1300,1700,2100,2600,3100,3600,4200,4800,5400,6000,6700,7200];
-    cloudPositions.forEach(cx => {
-        ctx.fillText("☁️", cx - cam * 0.3, 80 + (cx % 3) * 30);
-    });
-    ctx.globalAlpha = 1;
+    ctx.font="50px Arial"; ctx.globalAlpha=0.25;
+    for(let i=0;i<8;i++) ctx.fillText(theme.deco, 100+i*550-cam*0.15, 90+(i%2)*40);
+    ctx.globalAlpha=1;
 
-    ctx.fillStyle = s.floor; ctx.fillRect(0, groundLevel, canvas.width, 80);
-    ctx.fillStyle = s.ground; ctx.fillRect(0, groundLevel, canvas.width, 15);
+    ctx.fillStyle=theme.floor; ctx.fillRect(0,GL,canvas.width,80);
+    ctx.fillStyle=theme.ground; ctx.fillRect(0,GL,canvas.width,14);
 
-    s2.platforms.forEach(p => {
-        if (p.destroyed) return;
-        let sx = p.x - cam;
-        if (sx > canvas.width + 50 || sx + p.w < -50) return;
-
-        if (p.type === 'grass') {
-            ctx.fillStyle = '#8B4513'; ctx.fillRect(sx, p.y + 6, p.w, p.h - 6);
-            ctx.fillStyle = '#9acd32'; ctx.fillRect(sx, p.y, p.w, 8);
-            ctx.fillStyle = '#7a3b10'; ctx.fillRect(sx, p.y + 6, 4, p.h - 6); ctx.fillRect(sx + p.w - 4, p.y + 6, 4, p.h - 6);
-        } else if (p.type === 'brick' || p.type === 'brickblock') {
-            ctx.fillStyle = '#c0392b'; ctx.fillRect(sx, p.y, p.w, p.h);
-            ctx.fillStyle = '#922b21';
-            for (let bx = sx; bx < sx + p.w; bx += 20) { ctx.fillRect(bx, p.y, 2, p.h); }
-            ctx.fillRect(sx, p.y + p.h/2, p.w, 2);
-        } else if (p.type === 'destructible') {
-            ctx.fillStyle = '#c8a060'; ctx.fillRect(sx, p.y, p.w, p.h);
-            ctx.fillStyle = '#a07840'; ctx.fillRect(sx, p.y, p.w, 3);
-            ctx.fillRect(sx, p.y, 3, p.h); ctx.fillRect(sx + p.w/2, p.y, 2, p.h); ctx.fillRect(sx, p.y + p.h/2, p.w, 2);
+    s2.platforms.forEach(p=>{
+        if(p.destroyed) return;
+        let sx=p.x-cam;
+        if(sx>canvas.width+60||sx+p.w<-60) return;
+        if(p.type==='grass'){
+            ctx.fillStyle='#8B4513'; ctx.fillRect(sx,p.y+6,p.w,p.h-6);
+            ctx.fillStyle='#9acd32'; ctx.fillRect(sx,p.y,p.w,8);
+        } else if(p.type==='brick'||p.type==='brickblock'){
+            ctx.fillStyle='#c0392b'; ctx.fillRect(sx,p.y,p.w,p.h);
+            ctx.fillStyle='#922b21';
+            for(let bx=sx;bx<sx+p.w;bx+=20) ctx.fillRect(bx,p.y,2,p.h);
+            ctx.fillRect(sx,p.y+p.h/2,p.w,2);
+        } else if(p.type==='destructible'){
+            ctx.fillStyle='#c8a060'; ctx.fillRect(sx,p.y,p.w,p.h);
+            ctx.fillStyle='#a07840';
+            ctx.fillRect(sx,p.y,p.w,3); ctx.fillRect(sx,p.y,3,p.h);
+            ctx.fillRect(sx+p.w/2,p.y,2,p.h); ctx.fillRect(sx,p.y+p.h/2,p.w,2);
         }
     });
 
-    s2.boxes.forEach(b => {
-        if (!b.reward) return;
-        let sx = b.x - cam;
-        if (sx > canvas.width + 50 || sx < -50) return;
-        let by = b.y - (b.bounceAnim > 0 ? Math.sin(b.bounceAnim/12 * Math.PI) * 8 : 0);
-
-        if (b.popped) {
-            ctx.fillStyle = '#888'; ctx.fillRect(sx, by, b.w, b.h);
-            ctx.fillStyle = '#666'; ctx.fillRect(sx+2, by+2, b.w-4, b.h-4);
-        } else {
-            ctx.fillStyle = '#f39c12'; ctx.fillRect(sx, by, b.w, b.h);
-            ctx.fillStyle = '#f1c40f'; ctx.fillRect(sx+3, by+3, b.w-6, b.h-6);
-            ctx.fillStyle = '#333'; ctx.font = "bold 22px Courier New"; ctx.fillText("?", sx + 10, by + 30);
-        }
+    s2.boxes.forEach(b=>{
+        if(!b.reward) return;
+        let sx=b.x-cam; if(sx>canvas.width+50||sx<-50) return;
+        let by=b.y-(b.bounceAnim>0?Math.sin(b.bounceAnim/12*Math.PI)*8:0);
+        if(b.popped){ctx.fillStyle='#888';ctx.fillRect(sx,by,b.w,b.h);ctx.fillStyle='#666';ctx.fillRect(sx+2,by+2,b.w-4,b.h-4);}
+        else{ctx.fillStyle='#f39c12';ctx.fillRect(sx,by,b.w,b.h);ctx.fillStyle='#f1c40f';ctx.fillRect(sx+3,by+3,b.w-6,b.h-6);ctx.fillStyle='#333';ctx.font="bold 22px Courier New";ctx.fillText("?",sx+10,by+30);}
     });
 
-    ctx.font = "28px Arial";
-    s2.foodItems.forEach(f => {
-        if (f.collected) return;
-        let sx = f.x - cam;
-        if (sx > canvas.width + 30 || sx < -30) return;
-        ctx.fillText(f.char, sx, f.y);
+    ctx.font="26px Arial";
+    s2.foodItems.forEach(f=>{
+        if(f.collected) return;
+        let sx=f.x-cam; if(sx>canvas.width+30||sx<-30) return;
+        ctx.fillText(f.char,sx,f.y);
     });
 
-    let fpx = s2.flagX - cam;
-    if (fpx > -50 && fpx < canvas.width + 50) {
-        ctx.fillStyle = '#888'; ctx.fillRect(fpx + 12, groundLevel - 300, 8, 300);
-        ctx.fillStyle = '#ffeb3b'; ctx.beginPath(); ctx.arc(fpx+16, groundLevel-300, 10, 0, Math.PI*2); ctx.fill();
-        let fy = groundLevel - 300 + s2.flagRiseY;
-        ctx.font = "32px Arial"; ctx.fillText("🌱", fpx + 18, fy);
+    s2.coins.forEach(c=>{
+        if(c.collected) return;
+        let sx=c.x-cam; if(sx>canvas.width+30||sx<-30) return;
+        ctx.fillStyle='#ffd700';
+        ctx.beginPath(); ctx.arc(sx+12,c.y-8,12,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#ffec6e';
+        ctx.beginPath(); ctx.arc(sx+12,c.y-8,8,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#b8860b'; ctx.font="bold 12px Courier New"; ctx.fillText("$",sx+7,c.y-3);
+    });
+
+    let fpx=s2.flagX-cam;
+    if(fpx>-50&&fpx<canvas.width+50&&s2WorldIndex!==9){
+        ctx.fillStyle='#888'; ctx.fillRect(fpx+12,GL-300,8,300);
+        ctx.fillStyle='#ffeb3b'; ctx.beginPath(); ctx.arc(fpx+16,GL-300,10,0,Math.PI*2); ctx.fill();
+        let fy=GL-300+s2.flagRiseY; ctx.font="32px Arial"; ctx.fillText("🌱",fpx+18,fy);
     }
 
-    s2.enemies.forEach(e => {
-        if (!e.alive) return;
-        let sx = e.x - cam;
-        if (sx > canvas.width + 60 || sx < -60) return;
+    if(s2WorldIndex===9&&boss.state!=='dead') drawBoss(cam, GL);
 
-        if (e.dead) {
-            ctx.globalAlpha = e.deadTimer / 30;
-            ctx.font = "35px Arial"; ctx.fillText(e.type === 'steak' ? '🥩' : e.type === 'chicken' ? '🍗' : '🌭', sx, e.y + 35);
-            ctx.globalAlpha = 1;
-            ctx.save(); ctx.translate(sx + 20, e.y + 40); ctx.scale(1.5, 0.3); ctx.font = "35px Arial";
-            ctx.fillText(e.type === 'steak' ? '🥩' : e.type === 'chicken' ? '🍗' : '🌭', -20, 0); ctx.restore();
+    s2.enemies.forEach(e=>{
+        if(!e.alive) return;
+        let sx=e.x-cam; if(sx>canvas.width+60||sx<-60) return;
+        if(e.dead){
+            ctx.globalAlpha=e.deadTimer/30; ctx.font="35px Arial";
+            ctx.fillText(getEnemyChar(e.type),sx,e.y+35); ctx.globalAlpha=1;
             return;
         }
-
-        let wobble = Math.sin(e.frame) * 3;
-        ctx.save(); ctx.translate(sx + 20, e.y + 20);
-        if (e.dx > 0) ctx.scale(-1, 1);
-
-        if (e.type === 'steak') {
-            ctx.font = "38px Arial"; ctx.fillText("🥩", -19, wobble + 20);
-            ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.moveTo(-8, 20); ctx.lineTo(-8 + wobble, 36); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(8, 20); ctx.lineTo(8 - wobble, 36); ctx.stroke();
-            ctx.fillStyle='#fff'; ctx.fillRect(-12, wobble+2, 7, 7); ctx.fillStyle='#000'; ctx.fillRect(-10, wobble+4, 4, 4);
-            ctx.fillStyle='#fff'; ctx.fillRect(2, wobble+2, 7, 7); ctx.fillStyle='#000'; ctx.fillRect(4, wobble+4, 4, 4);
-        } else if (e.type === 'chicken') {
-            ctx.font = "38px Arial"; ctx.fillText("🍗", -19, wobble + 20);
-            ctx.fillStyle='#fff'; ctx.fillRect(-10, wobble+0, 7, 7); ctx.fillStyle='#f00'; ctx.fillRect(-8, wobble+2, 4, 4);
-        } else {
-            ctx.font = "38px Arial"; let roll = e.frame * 15;
-            ctx.save(); ctx.translate(0, wobble+15); ctx.rotate(roll * Math.PI/180); ctx.fillText("🌭", -19, 5); ctx.restore();
-            ctx.strokeStyle='rgba(255,100,0,0.4)'; ctx.lineWidth=2;
-            for (let i=1;i<=3;i++) { ctx.beginPath(); ctx.moveTo(-25-i*8,wobble+10); ctx.lineTo(-30-i*8,wobble+20); ctx.stroke(); }
+        let wobble=Math.sin(e.frame)*3;
+        ctx.save(); ctx.translate(sx+20,e.y+20);
+        if(e.dx>0) ctx.scale(-1,1);
+        if(e.maxHp>1){
+            let barW=40, filled=(e.hp/e.maxHp)*barW;
+            ctx.fillStyle='#333'; ctx.fillRect(-20,-20,barW,5);
+            ctx.fillStyle='#32ff7e'; ctx.fillRect(-20,-20,filled,5);
         }
-        ctx.restore();
+        if(e.stun>0) ctx.globalAlpha=0.5+Math.sin(e.stun*0.5)*0.5;
+        ctx.font="38px Arial"; ctx.fillText(getEnemyChar(e.type),-19,wobble+20);
+        if(e.type==='steak'){
+            ctx.strokeStyle='#8B4513'; ctx.lineWidth=3;
+            ctx.beginPath();ctx.moveTo(-8,20);ctx.lineTo(-8+wobble,36);ctx.stroke();
+            ctx.beginPath();ctx.moveTo(8,20);ctx.lineTo(8-wobble,36);ctx.stroke();
+        }
+        ctx.globalAlpha=1; ctx.restore();
+    });
+
+    ctx.font="22px Arial";
+    s2Projectiles.forEach(p=>{
+        let sx=p.x-cam; ctx.fillText(p.char,sx,p.y);
     });
 
     drawPlayer();
 
-    s2.particles.forEach(p => {
-        ctx.globalAlpha = p.life / 30; ctx.fillStyle = p.color; ctx.fillRect(p.x - cam, p.y, 6, 6);
+    s2.particles.forEach(p=>{
+        ctx.globalAlpha=p.life/30; ctx.fillStyle=p.color; ctx.fillRect(p.x-cam,p.y,6,6);
     });
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha=1;
 
-    s2.fireworks.forEach(f => {
-        ctx.globalAlpha = f.life / 80; ctx.fillStyle = f.color;
-        ctx.beginPath(); ctx.arc(f.x, f.y, 4, 0, Math.PI*2); ctx.fill();
+    s2.fireworks.forEach(f=>{
+        ctx.globalAlpha=f.life/(f.isLeaf?200:80);
+        if(f.isLeaf){ctx.font="20px Arial";ctx.fillText("🍃",f.x,f.y);}
+        else{ctx.fillStyle=f.color;ctx.beginPath();ctx.arc(f.x,f.y,4,0,Math.PI*2);ctx.fill();}
     });
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha=1;
 
-    popups.forEach(p => {
-        ctx.globalAlpha = p.life / 80; ctx.fillStyle = '#ffeb3b'; ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
-        ctx.font = "bold 18px 'Courier New'"; ctx.strokeText(p.text, p.x - 40, p.y - 10); ctx.fillText(p.text, p.x - 40, p.y - 10);
-        p.y -= 1; p.life--;
+    popups.forEach(p=>{
+        ctx.globalAlpha=p.life/80; ctx.fillStyle='#ffeb3b'; ctx.strokeStyle='#000'; ctx.lineWidth=3;
+        ctx.font="bold 17px 'Courier New'"; ctx.strokeText(p.text,p.x-40,p.y-10); ctx.fillText(p.text,p.x-40,p.y-10);
+        p.y-=1; p.life--;
     });
-    popups = popups.filter(p => p.life > 0);
-    ctx.globalAlpha = 1;
+    popups=popups.filter(p=>p.life>0); ctx.globalAlpha=1;
 
-    let indicators = [];
-    if (powerUpTimer > 0) indicators.push('🫐 DOUBLE JUMP');
-    if (rainbowTimer > 0) indicators.push('🌈 SHIELD');
-    if (starTimer > 0)    indicators.push('⭐ INVINCIBLE');
-    if (megaJumpTimer > 0) indicators.push('🍄 MEGA JUMP');
-    indicators.forEach((ind, i) => {
-        ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(canvas.width - 200, 10 + i*30, 190, 26);
-        ctx.fillStyle = '#ffeb3b'; ctx.font = "bold 16px 'Courier New'"; ctx.fillText(ind, canvas.width - 196, 28 + i*30);
-    });
+    let barMaxW=120, barFill=(s2Ammo/s2MaxAmmo)*barMaxW;
+    ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillRect(canvas.width-140,canvas.height-30,barMaxW+20,20);
+    ctx.fillStyle='#32ff7e'; ctx.fillRect(canvas.width-130,canvas.height-26,barFill,12);
+    ctx.fillStyle='#fff'; ctx.font="11px Courier New"; ctx.fillText("AMMO",canvas.width-168,canvas.height-18);
 
-    if (starTimer > 0 && Math.floor(Date.now() / 150) % 2 === 0) {
-        ctx.fillStyle = 'rgba(255,255,0,0.15)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    if(s2WorldIndex===9&&boss.state==='active'){
+        let bw=canvas.width*0.5, bx=canvas.width/2-bw/2;
+        ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(bx-2,8,bw+4,24);
+        let hpFill=(boss.hp/boss.maxHp)*bw;
+        ctx.fillStyle=boss.angry?'#ff3300':'#ff6600';
+        ctx.fillRect(bx,10,hpFill,20);
+        ctx.fillStyle='#fff'; ctx.font="bold 13px Courier New"; ctx.textAlign='center';
+        ctx.fillText(`💀 DEANUS ${boss.hp}/${boss.maxHp} HP ${boss.angry?'⚡ENRAGED!':''}`,canvas.width/2,25);
+        ctx.textAlign='left';
     }
+
+    let inds=[];
+    if(powerUpTimer>0) inds.push('🫐 DBL JUMP');
+    if(rainbowTimer>0) inds.push('🌈 SHIELD');
+    if(starTimer>0) inds.push('⭐ INVINCIBLE');
+    if(megaJumpTimer>0) inds.push('🍄 MEGA JUMP');
+    inds.forEach((ind,i)=>{
+        ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(canvas.width-180,10+i*28,170,22);
+        ctx.fillStyle='#ffeb3b'; ctx.font="bold 13px 'Courier New'"; ctx.fillText(ind,canvas.width-176,26+i*28);
+    });
+    if(starTimer>0&&Math.floor(Date.now()/150)%2===0){ctx.fillStyle='rgba(255,255,0,0.12)';ctx.fillRect(0,0,canvas.width,canvas.height);}
+}
+
+function drawBoss(cam, GL) {
+    let bx=boss.x-cam, by=boss.y;
+    ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(bx+boss.w/2,GL,boss.w*0.6,12,0,0,Math.PI*2); ctx.fill();
+    ctx.font="110px Arial"; ctx.fillText("🦖",bx,by+boss.h);
+    if(boss.angry){
+        ctx.strokeStyle=`rgba(255,50,0,${0.4+Math.sin(Date.now()/100)*0.3})`;
+        ctx.lineWidth=8; ctx.beginPath(); ctx.ellipse(bx+boss.w/2,by+boss.h/2,boss.w*0.7,boss.h*0.6,0,0,Math.PI*2); ctx.stroke();
+    }
+    ctx.font="30px Arial";
+    boss.projectiles.forEach(p=>{ctx.fillText(p.char,p.x-cam,p.y);});
+}
+
+function getEnemyChar(type){
+    if(type==='steak') return '🥩';
+    if(type==='chicken') return '🍗';
+    if(type==='sausage') return '🌭';
+    if(type==='burger') return '🍔';
+    if(type==='hotdog_boss') return '🌭';
+    return '🥩';
+}
+
+function shadeColor(hex, amt) {
+    try {
+        let r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+        return `rgb(${Math.min(255,r+amt)},${Math.min(255,g+amt)},${Math.min(255,b+amt)})`;
+    } catch(e){return hex;}
 }
 
 function drawPlayer() {
-    let px, py;
-    if (currentStage === 2) {
-        px = player.x - s2.cameraX; py = player.y;
-    } else {
-        px = player.x; py = player.y;
-    }
-
-    player.frame += 0.25;
-    const runCycle = Math.sin(player.frame) * 15;
-    let bodyColor = starTimer > 0 ? `hsl(${Date.now() % 360}, 100%, 60%)` : (rainbowTimer > 0 ? `hsl(${Date.now() % 360}, 80%, 50%)` : "#27ae60");
-    let headScale = (powerUpTimer > 0 || megaJumpTimer > 0) ? "60px" : "45px";
-
-    ctx.strokeStyle = "#333"; ctx.lineWidth = 4; ctx.beginPath();
-    if (!player.grounded || currentWorld === 9) {
-        ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 10, py + 80);
-        ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 30, py + 80);
-    } else {
-        ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 20 + runCycle, py + 90);
-        ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 20 - runCycle, py + 90);
-    }
+    let px=currentStage===2?player.x-s2.cameraX:player.x, py=player.y;
+    player.frame+=0.25;
+    const run=Math.sin(player.frame)*15;
+    let bodyColor=starTimer>0?`hsl(${Date.now()%360},100%,60%)`:(rainbowTimer>0?`hsl(${Date.now()%360},80%,50%)`:"#27ae60");
+    let hScale=(powerUpTimer>0||megaJumpTimer>0)?"60px":"45px";
+    ctx.strokeStyle="#333"; ctx.lineWidth=4; ctx.beginPath();
+    if(!player.grounded||currentWorld===9){ctx.moveTo(px+20,py+65);ctx.lineTo(px+10,py+80);ctx.moveTo(px+20,py+65);ctx.lineTo(px+30,py+80);}
+    else{ctx.moveTo(px+20,py+65);ctx.lineTo(px+20+run,py+90);ctx.moveTo(px+20,py+65);ctx.lineTo(px+20-run,py+90);}
     ctx.stroke();
-
-    ctx.fillStyle = bodyColor; ctx.fillRect(px + 10, py + 40, 20, 30);
-    ctx.font = headScale + " Arial"; ctx.fillText(player.head, px, py + 45);
+    ctx.fillStyle=bodyColor; ctx.fillRect(px+10,py+40,20,30);
+    ctx.font=hScale+" Arial"; ctx.fillText(player.head,px,py+45);
 }
 
-// =============================================
-// STAGE 1 UPDATE
-// =============================================
+// ===================== STAGE 1 UPDATE =====================
 function update() {
-    if (currentStage === 2) { updateStage2(); return; }
-
-    // Flag pole logic runs even if the game state is frozen upon reaching it
-    if (stageTransitionState === 'flag_approach' || stageTransitionState === 'flag_rising' || stageTransitionState === 'fireworks') {
-        updateFlagSequence();
+    if(currentStage===2){updateStage2();return;}
+    if(stageTransitionState==='flag_approach'||stageTransitionState==='flag_rising'||stageTransitionState==='fireworks') updateFlagSequence();
+    if(stageTransitionState==='fireworks'||stageTransitionState==='waiting'){
+        fireworks.forEach(f=>{f.x+=f.vx;f.y+=f.vy;f.vy+=0.1;f.life--;});
+        fireworks=fireworks.filter(f=>f.life>0);
     }
-    
-    // Evaluate fireworks logic safely outside active game-tick condition
-    if (stageTransitionState === 'fireworks' || stageTransitionState === 'waiting') {
-        fireworks.forEach(f => { f.x += f.vx; f.y += f.vy; f.vy += 0.1; f.life--; });
-        fireworks = fireworks.filter(f => f.life > 0);
-    }
+    if(!gameActive) return;
 
-    if (!gameActive) return;
+    distance+=2; worldDistance+=2; energy-=0.035;
+    if(powerUpTimer>0)powerUpTimer--; if(rainbowTimer>0)rainbowTimer--;
+    if(megaJumpTimer>0)megaJumpTimer--; if(flyTimer>0)flyTimer--;
+    bgRainbowX-=1;
 
-    distance += 2; worldDistance += 2;
-    energy -= 0.035;
-    if (powerUpTimer > 0) powerUpTimer--;
-    if (rainbowTimer > 0) rainbowTimer--;
-    if (megaJumpTimer > 0) megaJumpTimer--;
-    if (flyTimer > 0) flyTimer--;
-    bgRainbowX -= 1;
-
-    if (inYellowChallenge) {
-        yellowChallengeLeft -= 2;
-        challengeDistEl.innerText = Math.max(0, yellowChallengeLeft);
-        if (yellowChallengeLeft <= 0) {
-            distance += 20000;
-            clearSurvivalState();
-            currentWorld = 1; worldDistance = 0; player.y = -100; player.dy = 0;
-            obstacles = []; items = []; pitfalls = []; pipes = [];
-            document.body.style.background = worldSettings[currentWorld].bg;
-            playSound(900, 'sine', 0.8, 0.2, 200);
-        }
+    if(inYellowChallenge){
+        yellowChallengeLeft-=2; challengeDistEl.innerText=Math.max(0,yellowChallengeLeft);
+        if(yellowChallengeLeft<=0){distance+=20000;clearSurvivalState();currentWorld=1;worldDistance=0;player.y=-100;player.dy=0;obstacles=[];items=[];pitfalls=[];pipes=[];document.body.style.background=worldSettings[currentWorld].bg;playSound(900,'sine',0.8,0.2,200);}
     }
 
-    let displayEnergy = Math.max(0, Math.ceil(energy));
-    scoreEl.innerText = displayEnergy;
-    distEl.innerText = Math.floor(distance);
+    scoreEl.innerText=Math.max(0,Math.ceil(energy)); distEl.innerText=Math.floor(distance);
+    if(currentWorld===7)worldEl.innerText="7 [GLITCH]";
+    else if(currentWorld===8)worldEl.innerText=yellowWorldSeed+" [MUTATED ZONE]";
+    else if(currentWorld===9)worldEl.innerText="9 [SKY HORIZON]";
+    else if(currentWorld===10)worldEl.innerText="10 [BOSS FIGHT]";
+    else worldEl.innerText=currentWorld;
 
-    if (currentWorld === 7) worldEl.innerText = "7 [GLITCH]";
-    else if (currentWorld === 8) worldEl.innerText = yellowWorldSeed + " [MUTATED ZONE]";
-    else if (currentWorld === 9) worldEl.innerText = "9 [SKY HORIZON]";
-    else if (currentWorld === 10) worldEl.innerText = "10 [BOSS FIGHT]";
-    else worldEl.innerText = currentWorld;
+    if(distance>=1000000&&gameActive){die("WIN");return;}
+    if(currentWorld===7&&Math.random()<0.005){worldSettings[7].bg=`hsl(${Math.random()*360},60%,20%)`;worldSettings[7].ground=`hsl(${Math.random()*360},100%,50%)`;document.body.style.background=worldSettings[7].bg;}
 
-    if (distance >= 1000000 && gameActive) { die("WIN"); return; }
+    if(currentWorld===4&&worldDistance>=1000&&stageTransitionState==='none'&&flagPoleX<0) spawnFlagPole();
 
-    if (currentWorld === 7 && Math.random() < 0.005) {
-        worldSettings[7].bg = `hsl(${Math.random() * 360}, 60%, 20%)`;
-        worldSettings[7].ground = `hsl(${Math.random() * 360}, 100%, 50%)`;
-        document.body.style.background = worldSettings[7].bg;
-    }
+    let isUW=(currentWorld===5), grav=(isUW||currentWorld===9||flyTimer>0)?0.25:0.8;
+    player.dy+=grav; if((isUW||currentWorld===9||flyTimer>0)&&player.dy>4)player.dy=4;
+    player.y+=player.dy;
+    const GL=canvas.height-80;
+    if(currentWorld===9){if(player.y<-player.h)player.y=canvas.height;else if(player.y>canvas.height)player.y=-player.h;}
 
-    if (currentWorld === 4 && worldDistance >= 1000 && stageTransitionState === 'none' && flagPoleX < 0) {
-        spawnFlagPole();
-    }
-
-    let isUnderwater = (currentWorld === 5);
-    let gravity = (isUnderwater || currentWorld === 9 || flyTimer > 0) ? 0.25 : 0.8;
-    player.dy += gravity;
-    if ((isUnderwater || currentWorld === 9 || flyTimer > 0) && player.dy > 4) player.dy = 4;
-    player.y += player.dy;
-    const groundLevel = canvas.height - 80;
-
-    if (currentWorld === 9) {
-        if (player.y < -player.h) player.y = canvas.height;
-        else if (player.y > canvas.height) player.y = -player.h;
-    }
-
-    let pit = pitfalls.find(p => player.x + 10 < p.x + p.w && player.x + 35 > p.x);
-    if (player.y + player.h > groundLevel && currentWorld !== 9) {
-        if (pit) {
-            if (player.y > canvas.height) {
-                if (pit.isWater && currentWorld !== 5) {
-                    clearSurvivalState();
-                    currentWorld = 5; worldDistance = 0; player.y = -50; player.dy = 0;
-                    obstacles = []; items = []; pitfalls = []; pipes = [];
-                    document.body.style.background = worldSettings[5].bg;
-                    playSound(400, 'sine', 0.5, 0.1, -200);
-                } else if (currentWorld === 4 && pit.isLava) {
-                    currentWorld = 10; worldDistance = 0; player.y = -100; player.dy = 0; player.grounded = false;
-                    bossTimer = 10000; bossDino.state = 'spawning';
-                    obstacles = []; items = []; pitfalls = []; pipes = []; decor = [];
-                    document.body.style.background = worldSettings[10].bg;
-                    playSound(100, 'sawtooth', 0.8, 0.3, 50);
-                } else { die("FALL"); return; }
+    let pit=pitfalls.find(p=>player.x+10<p.x+p.w&&player.x+35>p.x);
+    if(player.y+player.h>GL&&currentWorld!==9){
+        if(pit){
+            if(player.y>canvas.height){
+                if(pit.isWater&&currentWorld!==5){clearSurvivalState();currentWorld=5;worldDistance=0;player.y=-50;player.dy=0;obstacles=[];items=[];pitfalls=[];pipes=[];document.body.style.background=worldSettings[5].bg;playSound(400,'sine',0.5,0.1,-200);}
+                else if(currentWorld===4&&pit.isLava){currentWorld=10;worldDistance=0;player.y=-100;player.dy=0;player.grounded=false;bossTimer=10000;bossDino.state='spawning';obstacles=[];items=[];pitfalls=[];pipes=[];decor=[];document.body.style.background=worldSettings[10].bg;playSound(100,'sawtooth',0.8,0.3,50);}
+                else{die("FALL");return;}
             }
         } else {
-            player.y = groundLevel - player.h;
-            player.dy = 0; player.grounded = true; jumpCount = 0;
-            if (currentWorld === 10 && bossDino.state === 'spawning') {
-                bossDino.state = 'active';
-                bossDino.x = canvas.width - 250;
-                bossDino.dir = -1;
-            }
+            player.y=GL-player.h; player.dy=0; player.grounded=true; jumpCount=0;
+            if(currentWorld===10&&bossDino.state==='spawning'){bossDino.state='active';bossDino.x=canvas.width-250;bossDino.dir=-1;}
         }
     }
 
-    if (currentWorld === 10) {
+    if(currentWorld===10){
         bossTimer--;
-        if (bossDino.state === 'active') {
-            bossDino.x += bossDino.dir * 2;
-            if (bossDino.x < canvas.width - 350) bossDino.dir = 1;
-            if (bossDino.x > canvas.width - 150) bossDino.dir = -1;
-            if (Math.random() < 0.025) {
-                let fireType = Math.random() < 0.5 ? "🔥" : "🐦";
-                let weaponY = canvas.height - 80 - 45;
-                let roll = Math.random();
-                if (roll < 0.33) weaponY = canvas.height - 80 - 45;
-                else if (roll < 0.66) weaponY = canvas.height - 80 - 110;
-                else weaponY = canvas.height - 80 - 190;
-                obstacles.push({ x: bossDino.x, y: weaponY, char: fireType, dx: -8, dy: 0, isGiant: false, isBossWeapon: true });
-            }
-            if (Math.random() < 0.003) items.push({ x: canvas.width - 400, y: canvas.height - 80 - 120, char: "🫐", type: 'powerup' });
-            if (Math.random() < 0.001) items.push({ x: canvas.width - 400, y: canvas.height - 80 - 120, char: "🌈", type: 'rainbow' });
+        if(bossDino.state==='active'){
+            bossDino.x+=bossDino.dir*2; if(bossDino.x<canvas.width-350)bossDino.dir=1; if(bossDino.x>canvas.width-150)bossDino.dir=-1;
+            if(Math.random()<0.025){let ft=Math.random()<0.5?"🔥":"🐦";let wy=GL-45;let r=Math.random();if(r<0.33)wy=GL-45;else if(r<0.66)wy=GL-110;else wy=GL-190;obstacles.push({x:bossDino.x,y:wy,char:ft,dx:-8,dy:0,isGiant:false,isBossWeapon:true});}
+            if(Math.random()<0.003)items.push({x:canvas.width-400,y:GL-120,char:"🫐",type:'powerup'});
+            if(Math.random()<0.001)items.push({x:canvas.width-400,y:GL-120,char:"🌈",type:'rainbow'});
         }
-        if (bossTimer <= 0) {
-            bossDino.state = 'dead';
-            distance += 50000;
-            currentWorld = Math.floor(Math.random() * 6) + 1;
-            worldDistance = 0; player.y = -100; player.dy = 0;
-            obstacles = []; items = []; pitfalls = []; pipes = [];
-            document.body.style.background = worldSettings[currentWorld].bg;
-            playSound(600, 'sine', 1.0, 0.2, 400);
+        if(bossTimer<=0){bossDino.state='dead';distance+=50000;currentWorld=Math.floor(Math.random()*6)+1;worldDistance=0;player.y=-100;player.dy=0;obstacles=[];items=[];pitfalls=[];pipes=[];document.body.style.background=worldSettings[currentWorld].bg;playSound(600,'sine',1.0,0.2,400);}
+    }
+
+    if(Math.random()<0.02&&currentWorld!==10&&stageTransitionState==='none'){
+        let obsType=worldSettings[currentWorld].hazards[Math.floor(Math.random()*worldSettings[currentWorld].hazards.length)];
+        let obsX,obsY,dx,dy,isGiant=false;
+        if(currentWorld===5&&Math.random()<0.05){obsType="🦈";isGiant=true;obsX=canvas.width;obsY=Math.random()*(canvas.height-200);dx=-12;dy=0;}
+        else if(obsType==="🔥"&&currentWorld===4){let isSn=Math.random()<0.20;obsX=isSn?player.x+10:Math.random()*canvas.width;obsY=-50;dy=9;dx=-1;}
+        else if(currentWorld===9){obsX=canvas.width;obsY=Math.random()*(canvas.height-150)+50;dx=-9;dy=0;}
+        else{obsX=canvas.width;obsY=(currentWorld===5)?(Math.random()*(GL-100)+50):GL-45;dx=-(8+(currentWorld>4?2:currentWorld));dy=0;}
+        obstacles.push({x:obsX,y:obsY,char:obsType,dx,dy,isGiant,isBossWeapon:false});
+    }
+    if(Math.random()<0.015&&currentWorld!==10){let sy=(currentWorld===5||currentWorld===9)?Math.random()*(canvas.height-150)+50:GL-120;items.push({x:canvas.width,y:sy,char:worldSettings[currentWorld].items[Math.floor(Math.random()*worldSettings[currentWorld].items.length)],type:'food'});}
+    if(Math.random()<0.015&&currentWorld!==6&&currentWorld!==10){let dy2=currentWorld===9?Math.random()*canvas.height:Math.random()*200;decor.push({x:canvas.width,y:dy2,char:worldSettings[currentWorld].deco,speed:Math.random()*2+1});}
+    if(Math.random()<0.003&&currentWorld!==10)items.push({x:canvas.width,y:(currentWorld===9?Math.random()*400+100:GL-120),char:"🫐",type:'powerup'});
+    if(Math.random()<0.002&&currentWorld!==10)items.push({x:canvas.width,y:(currentWorld===9?Math.random()*400+100:GL-120),char:"🌈",type:'rainbow'});
+    if(Math.random()<0.0003&&currentWorld!==10)items.push({x:canvas.width,y:(currentWorld===9?Math.random()*400+100:GL-120),char:"🪶",type:'feather'});
+    if(currentWorld===6){if(Math.random()<0.005)items.push({x:canvas.width,y:GL-150,char:"🍄",type:'megajump'});if(Math.random()<0.002)items.push({x:canvas.width,y:GL-180,char:"🍃",type:'fly'});}
+    if(currentWorld===9&&Math.random()<0.004&&pipes.length===0)pipes.push({x:canvas.width+100,y:Math.random()*(canvas.height-300)+100,w:140,h:140,dest:Math.floor(Math.random()*6)+1,isRing:true});
+    if(worldDistance>1200&&pipes.length===0&&!inYellowChallenge&&currentWorld!==9&&currentWorld!==10&&stageTransitionState==='none'){
+        let rr=Math.random(), nd, pc="#2ecc71";
+        if(rr<0.15){pc="#ffeb3b";nd=8;}else if(rr<0.25){pc="#2196f3";nd=9;}else if(rr<0.31){pc="#9c27b0";nd=7;}
+        else{nd=Math.floor(Math.random()*6)+1;while(nd===currentWorld)nd=Math.floor(Math.random()*6)+1;}
+        let pH=(currentWorld>=5)?180:70; pipes.push({x:canvas.width+100,y:GL-pH,w:70,h:pH,dest:nd,color:pc,isRing:false});
+    }
+    if(Math.random()<0.006&&currentWorld!==9&&currentWorld!==10&&stageTransitionState==='none'){let aL=(currentWorld===4&&Math.random()<0.5);pitfalls.push({x:canvas.width,w:120,isWater:!aL,isLava:aL});}
+
+    pipes.forEach((p,i)=>{
+        p.x-=8;
+        let hX=(player.x+player.w>p.x&&player.x<p.x+p.w);
+        let hY=p.isRing?(player.y+player.h>p.y&&player.y<p.y+p.h):((currentWorld===5||flyTimer>0)?true:(player.y+player.h>p.y));
+        if(hX&&hY){
+            if(!p.isRing&&p.color==="#ffeb3b"){yellowChallengeLeft=5000;challengeZoneEl.style.display="inline";inYellowChallenge=true;generateYellowChaosWorld();playYellowPipeSound();}
+            else{clearSurvivalState();playSound(p.isRing?900:(p.color==="#9c27b0"?700:400),'sine',0.5,0.1,200);}
+            currentWorld=p.dest;worldDistance=0;player.y=-100;player.dy=0;obstacles=[];items=[];pitfalls=[];pipes=[];document.body.style.background=worldSettings[currentWorld].bg;
         }
-    }
-
-    if (Math.random() < 0.02 && currentWorld !== 10 && stageTransitionState === 'none') {
-        let obsType = worldSettings[currentWorld].hazards[Math.floor(Math.random()*worldSettings[currentWorld].hazards.length)];
-        let obsX, obsY, dx, dy, isGiant = false;
-        if (currentWorld === 5 && Math.random() < 0.05) {
-            obsType = "🦈"; isGiant = true; obsX = canvas.width; obsY = Math.random() * (canvas.height - 200); dx = -12; dy = 0;
-        } else if (obsType === "🔥" && currentWorld === 4) {
-            let isSniper = Math.random() < 0.20;
-            obsX = isSniper ? player.x + 10 : Math.random() * canvas.width;
-            obsY = -50; dy = 9; dx = -1;
-        } else if (currentWorld === 9) {
-            obsX = canvas.width; obsY = Math.random() * (canvas.height - 150) + 50; dx = -9; dy = 0;
-        } else {
-            obsX = canvas.width;
-            obsY = (currentWorld === 5) ? (Math.random() * (groundLevel - 100) + 50) : groundLevel - 45;
-            dx = -(8 + (currentWorld > 4 ? 2 : currentWorld)); dy = 0;
-        }
-        obstacles.push({ x: obsX, y: obsY, char: obsType, dx, dy, isGiant, isBossWeapon: false });
-    }
-
-    if (Math.random() < 0.015 && currentWorld !== 10) {
-        let spawnY = (currentWorld === 5 || currentWorld === 9) ? Math.random() * (canvas.height - 150) + 50 : groundLevel - 120;
-        items.push({ x: canvas.width, y: spawnY, char: worldSettings[currentWorld].items[Math.floor(Math.random()*worldSettings[currentWorld].items.length)], type: 'food' });
-    }
-
-    if (Math.random() < 0.015 && currentWorld !== 6 && currentWorld !== 10) {
-        let decoY = currentWorld === 9 ? Math.random() * canvas.height : Math.random() * 200;
-        decor.push({ x: canvas.width, y: decoY, char: worldSettings[currentWorld].deco, speed: Math.random() * 2 + 1 });
-    }
-
-    if (Math.random() < 0.003 && currentWorld !== 10) items.push({ x: canvas.width, y: (currentWorld === 9 ? Math.random() * 400 + 100 : groundLevel - 120), char: "🫐", type: 'powerup' });
-    if (Math.random() < 0.002 && currentWorld !== 10) items.push({ x: canvas.width, y: (currentWorld === 9 ? Math.random() * 400 + 100 : groundLevel - 120), char: "🌈", type: 'rainbow' });
-    if (Math.random() < 0.0003 && currentWorld !== 10) items.push({ x: canvas.width, y: (currentWorld === 9 ? Math.random() * 400 + 100 : groundLevel - 120), char: "🪶", type: 'feather' });
-
-    if (currentWorld === 6) {
-        if (Math.random() < 0.005) items.push({ x: canvas.width, y: groundLevel - 150, char: "🍄", type: 'megajump' });
-        if (Math.random() < 0.002) items.push({ x: canvas.width, y: groundLevel - 180, char: "🍃", type: 'fly' });
-    }
-
-    if (currentWorld === 9 && Math.random() < 0.004 && pipes.length === 0) {
-        pipes.push({ x: canvas.width + 100, y: Math.random() * (canvas.height - 300) + 100, w: 140, h: 140, dest: Math.floor(Math.random() * 6) + 1, isRing: true });
-    }
-
-    if (worldDistance > 1200 && pipes.length === 0 && !inYellowChallenge && currentWorld !== 9 && currentWorld !== 10 && stageTransitionState === 'none') {
-        let randRoll = Math.random();
-        let nextDest, pipeColor = "#2ecc71";
-        if (randRoll < 0.15)       { pipeColor = "#ffeb3b"; nextDest = 8; }
-        else if (randRoll < 0.25)  { pipeColor = "#2196f3"; nextDest = 9; }
-        else if (randRoll < 0.31)  { pipeColor = "#9c27b0"; nextDest = 7; }
-        else {
-            nextDest = Math.floor(Math.random() * 6) + 1;
-            while (nextDest === currentWorld) nextDest = Math.floor(Math.random() * 6) + 1;
-        }
-        let pHeight = (currentWorld >= 5) ? 180 : 70;
-        pipes.push({ x: canvas.width + 100, y: groundLevel - pHeight, w: 70, h: pHeight, dest: nextDest, color: pipeColor, isRing: false });
-    }
-
-    if (Math.random() < 0.006 && currentWorld !== 9 && currentWorld !== 10 && stageTransitionState === 'none') {
-        let assignLava = (currentWorld === 4 && Math.random() < 0.5);
-        pitfalls.push({ x: canvas.width, w: 120, isWater: !assignLava, isLava: assignLava });
-    }
-
-    pipes.forEach((p, i) => {
-        p.x -= 8;
-        let hitX = (player.x + player.w > p.x && player.x < p.x + p.w);
-        let hitY = p.isRing ? (player.y + player.h > p.y && player.y < p.y + p.h) : ((currentWorld === 5 || flyTimer > 0) ? true : (player.y + player.h > p.y));
-        if (hitX && hitY) {
-            if (!p.isRing && p.color === "#ffeb3b") {
-                yellowChallengeLeft = 5000; challengeZoneEl.style.display = "inline";
-                inYellowChallenge = true; generateYellowChaosWorld(); playYellowPipeSound();
-            } else {
-                clearSurvivalState();
-                let sPitch = p.isRing ? 900 : (p.color === "#9c27b0" ? 700 : 400);
-                playSound(sPitch, 'sine', 0.5, 0.1, 200);
-            }
-            currentWorld = p.dest; worldDistance = 0; player.y = -100; player.dy = 0;
-            obstacles = []; items = []; pitfalls = []; pipes = [];
-            document.body.style.background = worldSettings[currentWorld].bg;
-        }
-        if (p.x < -200) pipes.splice(i, 1);
+        if(p.x<-200)pipes.splice(i,1);
     });
-
-    obstacles.forEach((obs, i) => {
-        obs.x += obs.dx; obs.y += obs.dy;
-        let ow = obs.isGiant ? 100 : 30, oh = obs.isGiant ? 80 : 40;
-        let hitX = (player.x < obs.x + ow && player.x + player.w > obs.x);
-        let hitY = (player.y + 40 < obs.y + oh && player.y + player.h > obs.y);
-        if (hitX && hitY) {
-            if (rainbowTimer > 0 && !obs.isGiant) {
-                obstacles.splice(i, 1); playSound(800, 'sine', 0.1, 0.1, 200);
-            } else {
-                if (obs.isGiant) { die("SHARK"); return; }
-                energy -= (currentWorld >= 4) ? 25 : 40;
-                playSound(150, 'sawtooth', 0.2, 0.2, -50);
-                obstacles.splice(i, 1);
-                if (energy <= 0) { if (obs.isBossWeapon || currentWorld === 10) die("DINO"); else die("MEAT"); return; }
-            }
+    obstacles.forEach((obs,i)=>{
+        obs.x+=obs.dx;obs.y+=obs.dy;
+        let ow=obs.isGiant?100:30,oh=obs.isGiant?80:40;
+        let hX=(player.x<obs.x+ow&&player.x+player.w>obs.x),hY=(player.y+40<obs.y+oh&&player.y+player.h>obs.y);
+        if(hX&&hY){
+            if(rainbowTimer>0&&!obs.isGiant){obstacles.splice(i,1);playSound(800,'sine',0.1,0.1,200);}
+            else{if(obs.isGiant){die("SHARK");return;}energy-=(currentWorld>=4)?25:40;playSound(150,'sawtooth',0.2,0.2,-50);obstacles.splice(i,1);if(energy<=0){if(obs.isBossWeapon||currentWorld===10)die("DINO");else die("MEAT");return;}}
         }
-        if (obs.x < -300 || obs.y > canvas.height + 100) obstacles.splice(i, 1);
+        if(obs.x<-300||obs.y>canvas.height+100)obstacles.splice(i,1);
     });
-
-    items.forEach((item, i) => {
-        item.x -= 8;
-        let hitX = (player.x < item.x + 45 && player.x + player.w > item.x);
-        let hitY = (player.y < item.y + 45 && player.y + player.h > item.y);
-        if (hitX && hitY) {
-            if (item.type === 'powerup')  { powerUpTimer = 600; playSound(500, 'sine', 0.3, 0.1, 400); }
-            else if (item.type === 'rainbow') { rainbowTimer = 400; playSound(600, 'sine', 0.5, 0.1, 500); }
-            else if (item.type === 'megajump') { megaJumpTimer = 600; playSound(700, 'sine', 0.3, 0.1, 600); }
-            else if (item.type === 'fly')  { flyTimer = 600; playSound(800, 'square', 0.4, 0.1, 700); }
-            else if (item.type === 'feather') {
-                clearSurvivalState();
-                currentWorld = 9; worldDistance = 0; player.y = 200; player.dy = 0;
-                obstacles = []; items = []; pitfalls = []; pipes = [];
-                document.body.style.background = worldSettings[9].bg;
-                playSound(850, 'sine', 0.5, 0.15, 300);
-            }
-            else { energy = Math.min(100, energy + 12); playSound(800, 'sine', 0.1, 0.1); }
-            items.splice(i, 1);
+    items.forEach((item,i)=>{
+        item.x-=8;
+        let hX=(player.x<item.x+45&&player.x+player.w>item.x),hY=(player.y<item.y+45&&player.y+player.h>item.y);
+        if(hX&&hY){
+            if(item.type==='powerup'){powerUpTimer=600;playSound(500,'sine',0.3,0.1,400);}
+            else if(item.type==='rainbow'){rainbowTimer=400;playSound(600,'sine',0.5,0.1,500);}
+            else if(item.type==='megajump'){megaJumpTimer=600;playSound(700,'sine',0.3,0.1,600);}
+            else if(item.type==='fly'){flyTimer=600;playSound(800,'square',0.4,0.1,700);}
+            else if(item.type==='feather'){clearSurvivalState();currentWorld=9;worldDistance=0;player.y=200;player.dy=0;obstacles=[];items=[];pitfalls=[];pipes=[];document.body.style.background=worldSettings[9].bg;playSound(850,'sine',0.5,0.15,300);}
+            else{energy=Math.min(100,energy+12);playSound(800,'sine',0.1,0.1);}
+            items.splice(i,1);
         }
-        if (item.x < -50) items.splice(i, 1);
+        if(item.x<-50)items.splice(i,1);
     });
-
-    pitfalls.forEach((p, i) => { p.x -= 8; if (p.x < -200) pitfalls.splice(i, 1); });
-    decor.forEach((d, i) => { d.x -= d.speed; if (d.x < -100) decor.splice(i, 1); });
-
-    if (energy <= 0) { if (currentWorld === 10) die("DINO"); else die("ENERGY"); return; }
-
-    // Scroll flag pole
-    if (flagPoleX >= 0 && stageTransitionState !== 'none') {
-        flagPoleX -= 8;
-    }
+    pitfalls.forEach((p,i)=>{p.x-=8;if(p.x<-200)pitfalls.splice(i,1);});
+    decor.forEach((d,i)=>{d.x-=d.speed;if(d.x<-100)decor.splice(i,1);});
+    if(energy<=0){if(currentWorld===10)die("DINO");else die("ENERGY");return;}
+    if(flagPoleX>=0&&stageTransitionState!=='none')flagPoleX-=8;
 }
 
 function updateFlagSequence() {
-    if (stageTransitionState === 'flag_approach') {
-        let poleBaseX = flagPoleX + 10;
-        if (player.x + player.w > poleBaseX && player.x < poleBaseX + 20) {
-            stageTransitionState = 'flag_rising';
-            flagY = canvas.height - 80; // start flag at bottom
-            flagRiseSpeed = 4;
-            gameActive = false; // Player movement logic freezes
-            playFlagSound();
+    if(stageTransitionState==='flag_approach'){
+        if(player.x+player.w>flagPoleX+10&&player.x<flagPoleX+30){
+            stageTransitionState='flag_rising'; flagY=canvas.height-80; flagRiseSpeed=4; gameActive=false; playFlagSound();
         }
     }
-
-    if (stageTransitionState === 'flag_rising') {
-        let poleTopY = canvas.height - 380;
-        flagY -= flagRiseSpeed;
-        if (flagY <= poleTopY) {
-            flagY = poleTopY;
-            stageTransitionState = 'fireworks';
-            // Launch fireworks
-            for (let i = 0; i < 6; i++) {
-                setTimeout(() => {
-                    let fx = Math.random() * canvas.width;
-                    let fy = Math.random() * (canvas.height * 0.6);
-                    spawnFirework(fx, fy);
-                    playSound(400 + i * 100, 'sine', 0.4, 0.15, 200);
-                }, i * 350);
-            }
-            setTimeout(() => {
-                stageTransitionState = 'waiting';
-                stageOverlayPhase = 0;
-                stageTitleEl.style.animation = 'flash 0.8s infinite';
-                stageTitleEl.style.color = '#ffeb3b';
-                stageTitleEl.style.fontSize = '48px';
-                stageTitleEl.innerText = '🏆 STAGE 1 COMPLETE! 🏆';
-                stageMsgEl.innerHTML = 'WORLD 4 CONQUERED!<br><span style="font-size:18px;color:#aaa;">You survived the meat gauntlet!</span>';
-                document.getElementById('stageTapPrompt').innerText = 'TAP TO CONTINUE';
+    if(stageTransitionState==='flag_rising'){
+        let pTop=canvas.height-380; flagY-=flagRiseSpeed;
+        if(flagY<=pTop){
+            flagY=pTop; stageTransitionState='fireworks';
+            for(let i=0;i<6;i++) setTimeout(()=>{spawnFirework(Math.random()*canvas.width,Math.random()*(canvas.height*0.6));playSound(400+i*100,'sine',0.4,0.15,200);},i*350);
+            setTimeout(()=>{
+                stageTransitionState='waiting'; stageOverlayPhase=0;
+                stageTitleEl.style.animation='flash 0.8s infinite'; stageTitleEl.style.color='#ffeb3b'; stageTitleEl.style.fontSize='48px';
+                stageTitleEl.innerText='🏆 STAGE 1 COMPLETE! 🏆';
+                stageMsgEl.innerHTML='WORLD 4 CONQUERED!<br><span style="font-size:18px;color:#aaa;">You survived the meat gauntlet!</span>';
+                document.getElementById('stageTapPrompt').innerText='TAP TO CONTINUE';
                 stageOverlayEl.classList.add('active');
-            }, 3000);
+            },3000);
         }
     }
 }
 
-// =============================================
-// DIE
-// =============================================
+// ===================== DIE =====================
 function die(type) {
-    if (!gameActive) return;
-    gameActive = false; canRestart = false;
-    mobileControlsEl.classList.remove('active');
-    stageOverlayEl.classList.remove('active');
+    if(!gameActive) return;
+    gameActive=false; canRestart=false;
+    mobileControlsEl.classList.remove('active'); stageOverlayEl.classList.remove('active');
+    if(window._victoryLeafTimer){clearInterval(window._victoryLeafTimer);window._victoryLeafTimer=null;}
 
-    let msg = "";
-    if (type === "WIN")    msg = "🏆 1,000,000m REACHED! 🏆";
-    else if (type === "FALL")   msg = "YOU FELL TO YOUR DEATH";
-    else if (type === "SHARK")  msg = "EATEN BY A GIANT SHARK!";
-    else if (type === "DINO")   msg = "Deanus Politicus Carnivorus Paradoxus ate you";
-    else if (type === "ENERGY") msg = "YOU WITHERED AWAY!";
-    else if (type === "SAUSAGE") msg = "ROLLED OVER BY A SAUSAGE 🌭";
-    else if (type === "MEAT")   msg = ["meat death ☠️","victim of greed","you meat lemming","meat head"][Math.floor(Math.random() * 4)];
-
-    scoreEl.innerText = "0";
-    msgEl.style.display = 'none';
-
-    let distFloor = Math.floor(distance);
-    let storedDist = parseInt(localStorage.getItem('goDeanBestDistance')) || 0;
-    let storedName = localStorage.getItem('goDeanTitle') || '';
-
-    if (distFloor > storedDist || storedName === '') {
-        storedDist = distFloor;
-        storedName = generateTitle(storedDist);
-        localStorage.setItem('goDeanBestDistance', storedDist);
-        localStorage.setItem('goDeanTitle', storedName);
+    if(currentStage===2&&type!=="WIN"){
+        if(s2Coins>0){
+            s2Coins--; localStorage.setItem('goDeanCoins',s2Coins);
+            stageTitleEl.style.animation='flash 0.8s infinite'; stageTitleEl.style.color='#ff3333'; stageTitleEl.style.fontSize='36px';
+            stageTitleEl.innerText='💀 YOU DIED';
+            let deathMsg=type==="ENERGY"?"You ran out of energy!":
+                (type==="DINO"?"Deanus ate you! 🦖":
+                (type==="SAUSAGE"?"Steamrolled by a sausage 🌭":"Meat got you ☠️"));
+            stageMsgEl.innerHTML=`${deathMsg}<br><br>🪙 Used 1 coin to continue!<br>Coins remaining: ${s2Coins}<br><br><span style="color:#aaa;font-size:16px;">Restarting from Stage 2 - World 1</span>`;
+            document.getElementById('stageTapPrompt').innerText='TAP TO CONTINUE';
+            stageOverlayEl.classList.add('active');
+            stageTransitionState='s2coinrespawn';
+            return;
+        }
     }
+
+    let msg="";
+    if(type==="WIN")msg="🏆 1,000,000m REACHED! 🏆";
+    else if(type==="FALL")msg="YOU FELL TO YOUR DEATH";
+    else if(type==="SHARK")msg="EATEN BY A GIANT SHARK!";
+    else if(type==="DINO")msg="Deanus Politicus Carnivorus Paradoxus ate you";
+    else if(type==="ENERGY")msg="YOU WITHERED AWAY!";
+    else if(type==="SAUSAGE")msg="ROLLED OVER BY A SAUSAGE 🌭";
+    else if(type==="MEAT")msg=["meat death ☠️","victim of greed","you meat lemming","meat head"][Math.floor(Math.random()*4)];
+
+    scoreEl.innerText="0"; msgEl.style.display='none';
+    s2uiEl.style.display='none'; bossHpUiEl.style.display='none';
+
+    let distFloor=Math.floor(distance);
+    let storedDist=parseInt(localStorage.getItem('goDeanBestDistance'))||0;
+    let storedName=localStorage.getItem('goDeanTitle')||'';
+    if(distFloor>storedDist||storedName===''){storedDist=distFloor;storedName=generateTitle(storedDist);localStorage.setItem('goDeanBestDistance',storedDist);localStorage.setItem('goDeanTitle',storedName);}
 
     let pRank;
-    if (distFloor >= 1000000) pRank = 1;
-    else if (distFloor >= 100000) pRank = Math.random() < 0.5 ? 2 : 3;
-    else if (distFloor >= 50000) pRank = Math.floor(Math.random() * 3) + 4;
-    else pRank = Math.floor(Math.random() * 4) + 7;
+    if(distFloor>=1000000)pRank=1;
+    else if(distFloor>=100000)pRank=Math.random()<0.5?2:3;
+    else if(distFloor>=50000)pRank=Math.floor(Math.random()*3)+4;
+    else pRank=Math.floor(Math.random()*4)+7;
 
-    let scores = [];
-    scores[pRank - 1] = { name: storedName, dist: distFloor, isPlayer: true };
-    for (let i = pRank - 2; i >= 0; i--) {
-        let prevDist = scores[i+1].dist;
-        let newDist = prevDist + Math.floor(Math.random() * 15000) + 5000;
-        if (i === 0 && distFloor < 1000000) newDist += Math.floor(Math.random() * 200000) + 100000;
-        scores[i] = { name: generateTitle(newDist), dist: newDist, isPlayer: false };
-    }
-    for (let i = pRank; i < 10; i++) {
-        let prevDist = scores[i-1].dist;
-        let gap = Math.floor(prevDist / (11 - i));
-        let newDist = prevDist - Math.floor(Math.random() * gap) - 100;
-        if (newDist < 0) newDist = Math.max(0, Math.floor(prevDist * 0.8));
-        scores[i] = { name: generateTitle(newDist), dist: newDist, isPlayer: false };
-    }
+    let scores=[]; scores[pRank-1]={name:storedName,dist:distFloor,isPlayer:true};
+    for(let i=pRank-2;i>=0;i--){let pd=scores[i+1].dist,nd=pd+Math.floor(Math.random()*15000)+5000;if(i===0&&distFloor<1000000)nd+=Math.floor(Math.random()*200000)+100000;scores[i]={name:generateTitle(nd),dist:nd,isPlayer:false};}
+    for(let i=pRank;i<10;i++){let pd=scores[i-1].dist,g=Math.floor(pd/(11-i)),nd=pd-Math.floor(Math.random()*g)-100;if(nd<0)nd=Math.max(0,Math.floor(pd*0.8));scores[i]={name:generateTitle(nd),dist:nd,isPlayer:false};}
 
-    let judgmentPrefix = distFloor < 50000 ? "L" : (distFloor < 100000 ? "OK" : "W");
-    let judgmentColor = distFloor < 50000 ? "#ff3333" : (distFloor < 100000 ? "#ffeb3b" : "#32ff7e");
-    let stageStr = currentStage === 2 ? " [STAGE 2]" : "";
-
-    let sbHtml = `<h1>GO DEAN'S LEADERBOARD</h1>`;
-    sbHtml += `<div class="death-reason">${msg}${stageStr}</div>`;
-    sbHtml += `<div class="judgment" style="color:${judgmentColor}">${judgmentPrefix} - ${storedName}</div>`;
-    sbHtml += `<table>`;
-    scores.forEach((s, idx) => {
-        let isP = s.isPlayer;
-        let trClass = isP ? 'class="player-row"' : '';
-        let rankStr = isP ? `🔴 #${idx+1}` : `#${idx+1}`;
-        let nameStr = isP ? `${s.name} (YOU)` : s.name;
-        sbHtml += `<tr ${trClass}><td>${rankStr}</td><td>${nameStr}</td><td>${s.dist}m</td></tr>`;
+    let jp=distFloor<50000?"L":(distFloor<100000?"OK":"W"), jc=distFloor<50000?"#ff3333":(distFloor<100000?"#ffeb3b":"#32ff7e");
+    let stStr=currentStage===2?` [STAGE 2 - W${s2WorldIndex}]`:"";
+    let sbHtml=`<h1>GO DEAN'S LEADERBOARD</h1><div class="death-reason">${msg}${stStr}</div><div class="judgment" style="color:${jc}">${jp} - ${storedName}</div><table>`;
+    scores.forEach((s,idx)=>{
+        let isP=s.isPlayer, trC=isP?'class="player-row"':'';
+        sbHtml+=`<tr ${trC}><td>${isP?"🔴 #"+(idx+1):"#"+(idx+1)}</td><td>${isP?s.name+" (YOU)":s.name}</td><td>${s.dist}m</td></tr>`;
     });
-    sbHtml += `</table>`;
-    sbHtml += `<div id="restartText">TAP TWICE TO RESTART</div>`;
-
-    scoreboardEl.innerHTML = sbHtml;
-    scoreboardEl.style.display = 'block';
-    playSound(50, 'sawtooth', 0.5, 0.2);
+    sbHtml+=`</table>`;
+    if(currentStage===2) sbHtml+=`<div style="color:#aaa;font-size:14px;margin-bottom:8px;">🪙 No coins left — back to Stage 1</div>`;
+    sbHtml+=`<div id="restartText">TAP TWICE TO RESTART</div>`;
+    scoreboardEl.innerHTML=sbHtml; scoreboardEl.style.display='block';
+    playSound(50,'sawtooth',0.5,0.2);
 }
 
-// =============================================
-// STAGE 1 DRAW
-// =============================================
+// ===================== MAIN DRAW LOOP =====================
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
 
-    if (currentStage === 2) {
-        drawStage2();
+    if(stageTransitionState==='s2coinrespawn'||stageTransitionState==='s2worldcomplete'||stageTransitionState==='victory'){
+        if(s2.levelBuilt) drawStage2();
         update();
         requestAnimationFrame(draw);
         return;
     }
 
-    const s = worldSettings[currentWorld];
+    if(currentStage===2){drawStage2();update();requestAnimationFrame(draw);return;}
 
-    if (currentWorld !== 4 && currentWorld !== 6 && currentWorld !== 7 && currentWorld !== 8 && currentWorld !== 9 && currentWorld !== 10) {
-        ctx.save(); ctx.globalAlpha = 0.2; ctx.translate(bgRainbowX % 2000, 100);
-        for(let i=0;i<6;i++) { ctx.strokeStyle = `hsl(${i*40},100%,50%)`; ctx.lineWidth=15; ctx.beginPath(); ctx.arc(1000,400,500+(i*15),Math.PI,0); ctx.stroke(); }
+    const s=worldSettings[currentWorld];
+    if(currentWorld!==4&&currentWorld!==6&&currentWorld!==7&&currentWorld!==8&&currentWorld!==9&&currentWorld!==10){
+        ctx.save();ctx.globalAlpha=0.2;ctx.translate(bgRainbowX%2000,100);
+        for(let i=0;i<6;i++){ctx.strokeStyle=`hsl(${i*40},100%,50%)`;ctx.lineWidth=15;ctx.beginPath();ctx.arc(1000,400,500+(i*15),Math.PI,0);ctx.stroke();}
         ctx.restore();
     }
-    if (currentWorld === 6) {
-        ctx.save(); ctx.globalAlpha = 0.25;
-        let offset = (bgRainbowX * 0.8) % 800;
-        ctx.font = "260px Arial"; ctx.fillText("🌴", offset+100, 400); ctx.fillText("🌴", offset+500, 430);
-        ctx.restore();
-    }
-    if (currentWorld === 8) {
-        ctx.save(); ctx.globalAlpha = 0.15;
-        let offset = (bgRainbowX * 0.5) % 1200;
-        ctx.font = "280px Arial"; ctx.fillText(s.deco, offset+300, 380);
-        ctx.restore();
-    }
+    if(currentWorld===6){ctx.save();ctx.globalAlpha=0.25;let off=(bgRainbowX*0.8)%800;ctx.font="260px Arial";ctx.fillText("🌴",off+100,400);ctx.fillText("🌴",off+500,430);ctx.restore();}
+    if(currentWorld===8){ctx.save();ctx.globalAlpha=0.15;let off=(bgRainbowX*0.5)%1200;ctx.font="280px Arial";ctx.fillText(s.deco,off+300,380);ctx.restore();}
 
-    ctx.font = "50px Arial";
-    decor.forEach(d => ctx.fillText(d.char, d.x, d.y));
-
-    if (currentWorld !== 9) {
-        ctx.fillStyle = s.floor; ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
-        ctx.fillStyle = s.ground; ctx.fillRect(0, canvas.height - 80, canvas.width, 15);
-    }
-
-    pitfalls.forEach(p => {
-        ctx.fillStyle = p.isLava ? "#ff3333" : (p.isWater ? "#0077be" : s.bg);
-        ctx.fillRect(p.x, canvas.height - 81, p.w, 82);
+    ctx.font="50px Arial"; decor.forEach(d=>ctx.fillText(d.char,d.x,d.y));
+    if(currentWorld!==9){ctx.fillStyle=s.floor;ctx.fillRect(0,canvas.height-80,canvas.width,80);ctx.fillStyle=s.ground;ctx.fillRect(0,canvas.height-80,canvas.width,15);}
+    pitfalls.forEach(p=>{ctx.fillStyle=p.isLava?"#ff3333":(p.isWater?"#0077be":s.bg);ctx.fillRect(p.x,canvas.height-81,p.w,82);});
+    pipes.forEach(p=>{
+        if(p.isRing){ctx.strokeStyle="#e91e63";ctx.lineWidth=12;ctx.beginPath();ctx.arc(p.x+p.w/2,p.y+p.h/2,p.w/2,0,Math.PI*2);ctx.stroke();ctx.fillStyle="rgba(233,30,99,0.15)";ctx.fill();}
+        else{ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,p.w,p.h);ctx.fillRect(p.x+10,p.y+p.h,p.w-20,canvas.height);}
     });
 
-    pipes.forEach(p => {
-        if (p.isRing) {
-            ctx.strokeStyle = "#e91e63"; ctx.lineWidth = 12;
-            ctx.beginPath(); ctx.arc(p.x + p.w/2, p.y + p.h/2, p.w/2, 0, Math.PI*2); ctx.stroke();
-            ctx.fillStyle = "rgba(233,30,99,0.15)"; ctx.fill();
-        } else {
-            ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.w, p.h);
-            ctx.fillRect(p.x + 10, p.y + p.h, p.w - 20, canvas.height);
-        }
-    });
-
-    if (flagPoleX >= 0 && stageTransitionState !== 'none') {
-        const gl = canvas.height - 80;
-        const poleTopY = gl - 300;
-        ctx.fillStyle = '#888';
-        ctx.fillRect(flagPoleX + 10, poleTopY, 8, 300);
-        ctx.fillStyle = '#ffeb3b';
-        ctx.beginPath(); ctx.arc(flagPoleX + 14, poleTopY, 10, 0, Math.PI*2); ctx.fill();
-        ctx.font = "32px Arial";
-        ctx.fillText("🌱", flagPoleX + 16, flagY);
-        ctx.fillStyle = '#555';
-        ctx.fillRect(flagPoleX, gl - 10, 28, 10);
+    if(flagPoleX>=0&&stageTransitionState!=='none'){
+        const gl=canvas.height-80,pt=gl-300;
+        ctx.fillStyle='#888';ctx.fillRect(flagPoleX+10,pt,8,300);
+        ctx.fillStyle='#ffeb3b';ctx.beginPath();ctx.arc(flagPoleX+14,pt,10,0,Math.PI*2);ctx.fill();
+        ctx.font="32px Arial";ctx.fillText("🌱",flagPoleX+16,flagY);
+        ctx.fillStyle='#555';ctx.fillRect(flagPoleX,gl-10,28,10);
     }
 
-    fireworks.forEach(f => {
-        ctx.globalAlpha = f.life / 100;
-        ctx.fillStyle = f.color;
-        ctx.beginPath(); ctx.arc(f.x, f.y, 4, 0, Math.PI*2); ctx.fill();
-    });
-    ctx.globalAlpha = 1;
+    fireworks.forEach(f=>{ctx.globalAlpha=f.life/100;ctx.fillStyle=f.color;ctx.beginPath();ctx.arc(f.x,f.y,4,0,Math.PI*2);ctx.fill();});
+    ctx.globalAlpha=1;
 
-    if (stageTransitionState === 'fireworks') {
-        ctx.save();
-        ctx.font = "bold 60px 'Courier New'";
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#ffeb3b';
-        ctx.strokeStyle = '#e91e63';
-        ctx.lineWidth = 5;
-        ctx.strokeText('STAGE COMPLETE!', canvas.width/2, canvas.height/2 - 20);
-        ctx.fillText('STAGE COMPLETE!', canvas.width/2, canvas.height/2 - 20);
-        ctx.textAlign = 'left';
-        ctx.restore();
+    if(stageTransitionState==='fireworks'){
+        ctx.save();ctx.font="bold 60px 'Courier New'";ctx.textAlign='center';
+        ctx.fillStyle='#ffeb3b';ctx.strokeStyle='#e91e63';ctx.lineWidth=5;
+        ctx.strokeText('STAGE COMPLETE!',canvas.width/2,canvas.height/2-20);
+        ctx.fillText('STAGE COMPLETE!',canvas.width/2,canvas.height/2-20);
+        ctx.textAlign='left';ctx.restore();
     }
 
     drawPlayer();
-
-    if (currentWorld === 10 && (bossDino.state === 'active' || bossDino.state === 'spawning')) {
-        ctx.font = "120px Arial"; ctx.fillText("🦖", bossDino.x, canvas.height - 80);
-    }
-
-    ctx.font = "45px Arial";
-    obstacles.forEach(o => {
-        if (o.isGiant) { ctx.font = "120px Arial"; ctx.fillText(o.char, o.x, o.y+100); ctx.font = "45px Arial"; }
-        else ctx.fillText(o.char, o.x, o.y+40);
-    });
-    items.forEach(it => ctx.fillText(it.char, it.x, it.y+40));
+    if(currentWorld===10&&(bossDino.state==='active'||bossDino.state==='spawning')){ctx.font="120px Arial";ctx.fillText("🦖",bossDino.x,canvas.height-80);}
+    ctx.font="45px Arial";
+    obstacles.forEach(o=>{if(o.isGiant){ctx.font="120px Arial";ctx.fillText(o.char,o.x,o.y+100);ctx.font="45px Arial";}else ctx.fillText(o.char,o.x,o.y+40);});
+    items.forEach(it=>ctx.fillText(it.char,it.x,it.y+40));
 
     update();
     requestAnimationFrame(draw);
 }
+
+// ===================== TAP ROUTING =====================
+window.addEventListener('mousedown',(e)=>{
+    if(e.target===btnLeft||e.target===btnRight||e.target===btnShoot) return;
+    if(stageTransitionState==='s2coinrespawn'){stageOverlayEl.classList.remove('active');stageTransitionState='none';startStage2(1);return;}
+    if(stageTransitionState==='s2worldcomplete'){handleS2WorldCompleteTap();return;}
+    if(stageTransitionState==='victory'){
+        if(window._victoryLeafTimer){clearInterval(window._victoryLeafTimer);window._victoryLeafTimer=null;}
+        stageOverlayEl.classList.remove('active');stageTransitionState='none';resetGame();return;
+    }
+    handleInput();
+},{capture:true});
+window.addEventListener('touchstart',(e)=>{
+    if(e.target===btnLeft||e.target===btnRight||e.target===btnShoot) return;
+    e.preventDefault();
+    if(stageTransitionState==='s2coinrespawn'){stageOverlayEl.classList.remove('active');stageTransitionState='none';startStage2(1);return;}
+    if(stageTransitionState==='s2worldcomplete'){handleS2WorldCompleteTap();return;}
+    if(stageTransitionState==='victory'){
+        if(window._victoryLeafTimer){clearInterval(window._victoryLeafTimer);window._victoryLeafTimer=null;}
+        stageOverlayEl.classList.remove('active');stageTransitionState='none';resetGame();return;
+    }
+    handleInput();
+},{passive:false,capture:true});
+
 draw();
 </script>
 </body>
