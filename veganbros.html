@@ -3,14 +3,31 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        body { margin: 0; overflow: hidden; background: #5c94fc; font-family: 'Courier New', Courier, monospace; transition: background 1s; }
+        body { margin: 0; overflow: hidden; background: #5c94fc; font-family: 'Courier New', Courier, monospace; transition: background 1s; touch-action: none; }
         canvas { display: block; }
         #ui { position: absolute; top: 10px; left: 10px; color: #FFF; text-shadow: 2px 2px #000; font-size: 20px; pointer-events: none; z-index: 10; }
         #msg { 
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
             text-align: center; color: #ffeb3b; text-shadow: 4px 4px #e91e63; 
-            font-size: 40px; font-weight: bold; width: 100%; z-index: 20;
+            font-size: 40px; font-weight: bold; width: 100%; z-index: 20; pointer-events: none;
         }
+        #stageComplete {
+            position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center; color: #fff; text-shadow: 3px 3px #000; font-size: 35px; font-weight: bold;
+            display: none; z-index: 25; width: 100%; pointer-events: none; animation: pulse 1.5s infinite;
+        }
+        #controls {
+            position: absolute; bottom: 30px; left: 0; width: 100%; justify-content: space-around; z-index: 15;
+            display: none; /* Completely hidden until World 11 */
+            transition: opacity 0.5s ease;
+        }
+        .btn {
+            background: rgba(0, 0, 0, 0.4); border: 2px solid rgba(255, 255, 255, 0.6); color: white;
+            font-size: 24px; font-weight: bold; padding: 15px 35px; border-radius: 12px;
+            user-select: none; text-shadow: 1px 1px 2px #000; box-shadow: 0px 4px 0px rgba(0,0,0,0.5);
+        }
+        .btn:active { transform: translateY(4px); box-shadow: none; background: rgba(0, 0, 0, 0.6); }
+
         #scoreboard {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: rgba(20, 20, 20, 0.95); border: 4px solid #00ffcc; box-shadow: 0 0 20px #00ffcc;
@@ -24,9 +41,10 @@
         #scoreboard th, #scoreboard td { padding: 5px; border-bottom: 1px solid #444; }
         #scoreboard .player-row { background: rgba(255, 235, 59, 0.2); color: #ffeb3b; font-weight: bold; }
         #scoreboard .player-row td { border-bottom: 2px solid #ffeb3b; }
-        #restartText { font-size: 22px; color: #afff94; animation: flash 1s infinite; margin-top: 10px; }
+        #restartText { font-size: 22px; color: #afff94; animation: flash 1s infinite; margin-top: 10px; cursor: pointer; }
         
         @keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes pulse { 0%, 100% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-50%, -50%) scale(1.05); } }
         
         @media (max-width: 600px) {
             #scoreboard h1 { font-size: 20px; }
@@ -34,23 +52,30 @@
             #scoreboard .judgment { font-size: 16px; }
             #scoreboard .death-reason { font-size: 16px; }
             #restartText { font-size: 18px; }
+            .btn { padding: 12px 25px; font-size: 20px; }
         }
     </style>
 </head>
 <body>
     <div id="ui">WORLD: <span id="worldNum">1</span> | ENERGY: <span id="score">100</span> | DIST: <span id="dist">0</span>/1000000 <span id="challengeZone" style="color:#ffeb3b; font-weight:bold; display:none;">| SURVIVE: <span id="challengeDist">5000</span>m</span></div>
     
-    <!-- Original Intro Message -->
     <div id="msg">GO DEAN!<br>
         <small style="font-size: 22px; color: white; text-shadow: 2px 2px #000;">
             TAP TO JUMP | ENTER PIPES TO WARP<br>
-            <span style="color: #afff94;">EAT FRUITS & VEGGIES</span> | <span style="color: #ff9494;">SMASH MEAT WITH RAINBOWS</span><br>
+            <span style="color: #afff94;">EAT FRUITS</span> | <span style="color: #ff9494;">SMASH MEAT WITH RAINBOWS</span><br>
             STAY VEGAN! REACH 1,000,000m!
         </small>
     </div>
 
-    <!-- The New Scoreboard UI -->
+    <div id="stageComplete">STAGE COMPLETE!<br><small style="color:#ffeb3b; font-size: 24px;">TAP TO CONTINUE TO MARIO WORLD</small></div>
+
     <div id="scoreboard"></div>
+    
+    <div id="controls">
+        <div class="btn" id="btnLeft">◀</div>
+        <div class="btn" id="btnJump">JUMP</div>
+        <div class="btn" id="btnRight">▶</div>
+    </div>
 
     <canvas id="gameCanvas"></canvas>
 
@@ -70,72 +95,33 @@ function playSound(freq, type, duration, vol, slide = 0) {
     } catch(e) {}
 }
 
-function playYellowPipeSound() {
-    try {
-        let now = audioCtx.currentTime;
-        let notes = [200, 400, 300, 600, 800];
-        notes.forEach((freq, index) => {
-            let osc = audioCtx.createOscillator();
-            let gain = audioCtx.createGain();
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(freq, now + (index * 0.06));
-            gain.gain.setValueAtTime(0.15, now + (index * 0.06));
-            gain.gain.exponentialRampToValueAtTime(0.01, now + (index * 0.06) + 0.05);
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.start(now + (index * 0.06));
-            osc.stop(now + (index * 0.06) + 0.06);
-        });
-    } catch(e) {}
-}
-
-// === DICTIONARIES FOR TITLE GENERATION ===
-const t1Prefixes = ["BACON_", "SAUSAGE_", "STEAK_", "WAGYU_", "MILKIES_", "DEANUS_", "BURGER_", "FATTY_", "MEAT_", "CHOKING_", "GLAZED_", "WHINER_", "MILK_", "SLURPER_", "CHEESE_", "GREASY_", "CLOGGED_", "CARNIVORE_", "WEAK_", "CHUBBY_", "BUTTER_", "GELATIN_", "BEEFY_", "PORKY_", "WHEY_"];
-const t1Nouns = ["CHOKER_DEAN", "DONATOR_DEAN", "SIMP_DEAN", "SLURPER_DEAN", "BOY_DEAN", "LEMMING_DEAN", "DONUT_DEAN", "MILK_SIMP", "CHICKEN_DEAN", "LEMMING", "MEAT_BOY", "DEAN_THE_SLURPER", "WAGYU_DOMINATOR_9", "NUGGET_DEAN", "PORKCHOP", "QUITTER", "MEAT_PUPPET", "SAUSAGE_FEST", "SLOUCH_DEAN", "FAIL_DEAN", "BEEF_CAKE", "LACTOSE_LEMMING"];
-
-const t3Prefixes = ["SOY_", "VEGAN_", "PURE_", "DEAN_", "BROCCOLI_", "AVOCADO_", "GREEN_", "ULTRA_", "BRUTAL_", "ALPHA_", "GOD_", "KALE_", "TOFU_", "SEITAN_", "LEAFY_", "CHLOROPHYLL_", "PRANA_", "ZEN_", "SUPREME_", "IRON_", "EARTH_", "FLORA_"];
-const t3Nouns = ["COMMANDER_DEAN", "GOD_DEAN", "TITAN_DEAN", "GOAT_DEAN", "LEGEND_DEAN", "WARRIOR_DEAN", "KING_DEAN", "MACHINE_DEAN", "ALPHA_DEAN", "SPROUT_GOD", "BEAST_DEAN", "MASTER_DEAN", "GURU_DEAN", "SAVIOR_DEAN", "TEMPEH_TITAN", "LEAF_LORD", "PLANT_CHAD"];
-
-const suffixes = ["_69", "_420", "_99", "_777", "_13", "_100", "_88", "_1", "_9", "_007", "_X", "_9000", "_247", "_V2"];
-
-function getRand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-
-function generateTitle(dist) {
-    let p, n, s = getRand(suffixes);
-    if (dist < 50000) {
-        p = getRand(t1Prefixes); n = getRand(t1Nouns);
-    } else if (dist >= 100000) {
-        p = getRand(t3Prefixes); n = getRand(t3Nouns);
-    } else {
-        let combinedP = t1Prefixes.concat(t3Prefixes);
-        let combinedN = t1Nouns.concat(t3Nouns);
-        p = getRand(combinedP); n = getRand(combinedN);
-    }
-    return p + n + s;
-}
-
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score');
 const distEl = document.getElementById('dist');
 const msgEl = document.getElementById('msg');
+const stageCompleteEl = document.getElementById('stageComplete');
 const scoreboardEl = document.getElementById('scoreboard');
 const worldEl = document.getElementById('worldNum');
 const challengeZoneEl = document.getElementById('challengeZone');
-const challengeDistEl = document.getElementById('challengeDist');
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
 
-let gameActive = false, energy = 100, distance = 0, currentWorld = 1, worldDistance = 0; 
+// Core Game Variables
+let gameActive = false, stageTransition = false, energy = 100, distance = 0, currentWorld = 1, worldDistance = 0; 
 let powerUpTimer = 0, rainbowTimer = 0, jumpCount = 0, bgRainbowX = 0;
 let megaJumpTimer = 0, flyTimer = 0;
 let canRestart = false; 
 
-let inYellowChallenge = false, yellowChallengeLeft = 5000, yellowWorldSeed = 0;
-let bossTimer = 0;
-let bossDino = { x: 0, dir: -1, state: 'spawning' };
-
-const player = { x: 100, y: 0, w: 45, h: 90, dy: 0, grounded: false, head: "👦", frame: 0 };
+// Horizontal movement variables
+let keys = { left: false, right: false };
+let flagPole = { active: false, x: 0, y: 0, flagY: 0 };
+const player = { x: 100, y: 0, w: 20, h: 30, dy: 0, grounded: false, head: "👦", frame: 0 };
 
 const worldSettings = {
     1: { bg: "#5c94fc", ground: "#9acd32", floor: "#e07b39", items: ["🍎", "🍐", "🥦"], hazards: ["🥩", "🍖"], deco: "☁️" },
@@ -147,20 +133,15 @@ const worldSettings = {
     7: { bg: "#4a148c", ground: "#00ffcc", floor: "#1a0033", items: ["🌀", "✨", "⚡"], hazards: ["👾", "🪲", "🚫"], deco: "📺" }, 
     8: { bg: "#222", ground: "#fff", floor: "#333", items: ["🍎"], hazards: ["🥩"], deco: "🌙" }, 
     9: { bg: "#6ab0de", ground: "transparent", floor: "transparent", items: ["☀️", "🌞"], hazards: ["⛈️", "🐦", "🦅"], deco: "☁️" }, 
-    10: { bg: "#f0f0f0", ground: "#cccccc", floor: "#aaaaaa", items: [], hazards: [], deco: "" } 
+    10: { bg: "#f0f0f0", ground: "#cccccc", floor: "#aaaaaa", items: [], hazards: [], deco: "" },
+    11: { bg: "#5c94fc", ground: "#c84c0c", floor: "#f8d820", items: ["🍎", "🍓"], hazards: ["🐢", "🍄"], deco: "☁️" } 
 };
 
-const randomBgs = ["#ff5252", "#341f97", "#222f3e", "#10ac84", "#ff9f43", "#01a3a4", "#b53471", "#2c3e50"];
-const randomGrounds = ["#ffda79", "#cd84f1", "#ffb8b8", "#32ff7e", "#7d5fff", "#18dcff", "#fff"];
-const randomFloors = ["#ccae62", "#9b59b6", "#e74c3c", "#27ae60", "#d35400", "#2980b9", "#555"];
-const randomDecos = ["☁️", "🌈", "⛅", "☄️", "🫧", "🌴", "📺", "🌙", "🛸", "⭐", "🪐", "🌵"];
-const poolFood = ["🍎", "🍐", "🥦", "🍓", "🍊", "🥬", "🌽", "🥑", "🍇", "🍉", "🍒", "🥕"];
-const poolHazards = ["🥩", "🍖", "🍔", "🥓", "🌭", "🍕", "🍗", "🔥", "👾", "🪲"];
+let obstacles = [], items = [], decor = [], pipes = [], pitfalls = [], blocks = [], particles = [];
 
-let obstacles = [], items = [], decor = [], pipes = [], pitfalls = [];
-
-function handleInput() {
-    if (!gameActive) {
+// Input Handling
+function doJump() {
+    if (!gameActive && !stageTransition) {
         if (!canRestart) { 
             canRestart = true; 
             let rt = document.getElementById('restartText');
@@ -168,6 +149,11 @@ function handleInput() {
             return; 
         }
         resetGame(); return; 
+    }
+    
+    if (stageTransition) {
+        if (canRestart) startLevel11();
+        return;
     }
     
     if (currentWorld === 5 || currentWorld === 9 || flyTimer > 0) {
@@ -185,467 +171,368 @@ function handleInput() {
     }
 }
 
-window.addEventListener('mousedown', handleInput);
-window.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(); }, {passive: false});
+// Touch UI Listeners
+function bindTouch(id, actionDown, actionUp) {
+    const el = document.getElementById(id);
+    ['touchstart', 'mousedown'].forEach(evt => el.addEventListener(evt, e => {
+        e.preventDefault(); e.stopPropagation();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        actionDown();
+    }, {passive: false}));
+    ['touchend', 'mouseup'].forEach(evt => el.addEventListener(evt, e => {
+        e.preventDefault(); e.stopPropagation();
+        actionUp();
+    }));
+}
+
+bindTouch('btnLeft', () => keys.left = true, () => keys.left = false);
+bindTouch('btnRight', () => keys.right = true, () => keys.right = false);
+bindTouch('btnJump', () => doJump(), () => {});
+
+// Global tap fallback
+window.addEventListener('mousedown', e => { if (e.target.className !== 'btn') { if (audioCtx.state === 'suspended') audioCtx.resume(); doJump(); }});
+window.addEventListener('touchstart', e => { if (e.target.className !== 'btn') { if (audioCtx.state === 'suspended') audioCtx.resume(); doJump(); }}, {passive: false});
+
+// Keyboard Listeners
+window.addEventListener('keydown', e => {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    if (e.code === 'ArrowLeft') keys.left = true;
+    if (e.code === 'ArrowRight') keys.right = true;
+    if (e.code === 'Space' || e.code === 'ArrowUp') doJump();
+});
+window.addEventListener('keyup', e => {
+    if (e.code === 'ArrowLeft') keys.left = false;
+    if (e.code === 'ArrowRight') keys.right = false;
+});
 
 function resetGame() {
     energy = 100; distance = 0; currentWorld = 1; worldDistance = 0; 
     powerUpTimer = 0; rainbowTimer = 0; megaJumpTimer = 0; flyTimer = 0; canRestart = false;
-    inYellowChallenge = false; yellowChallengeLeft = 5000; bossTimer = 0; yellowWorldSeed = 0;
+    stageTransition = false;
+    player.x = 100; keys.left = false; keys.right = false; flagPole.active = false;
     challengeZoneEl.style.display = "none";
-    obstacles = []; items = []; decor = []; pipes = []; pitfalls = [];
+    obstacles = []; items = []; decor = []; pipes = []; pitfalls = []; blocks = []; particles = [];
     gameActive = true;
-    msgEl.style.display = 'none';
-    scoreboardEl.style.display = 'none';
+    
+    msgEl.style.display = 'none'; stageCompleteEl.style.display = 'none';
+    scoreboardEl.style.display = 'none'; 
+    
+    // Hide all controls for standard worlds
+    document.getElementById('controls').style.display = 'none';
+
     document.body.style.background = worldSettings[currentWorld].bg;
-    if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
-function generateYellowChaosWorld() {
-    yellowWorldSeed = Math.floor(Math.random() * 10000) + 1;
+function startLevel11() {
+    currentWorld = 11; worldDistance = 0; player.y = -100; player.x = 100; player.dy = 0;
+    obstacles = []; items = []; pitfalls = []; pipes = []; blocks = []; particles = [];
+    flagPole.active = false; stageTransition = false; gameActive = true; canRestart = false;
     
-    let bg = randomBgs[Math.floor(Math.random() * randomBgs.length)];
-    let ground = randomGrounds[Math.floor(Math.random() * randomGrounds.length)];
-    let floor = randomFloors[Math.floor(Math.random() * randomFloors.length)];
-    let deco = randomDecos[Math.floor(Math.random() * randomDecos.length)];
+    stageCompleteEl.style.display = 'none'; 
     
-    let shuffFood = [...poolFood].sort(() => 0.5 - Math.random()).slice(0, 3);
-    let shuffHazards = [...poolHazards].sort(() => 0.5 - Math.random()).slice(0, 2);
+    // Unveil ALL controls for World 11
+    document.getElementById('controls').style.display = 'flex';
 
-    worldSettings[8] = { bg: bg, ground: ground, floor: floor, items: shuffFood, hazards: shuffHazards, deco: deco };
+    document.body.style.background = worldSettings[currentWorld].bg;
+    playSound(400, 'sine', 0.5, 0.2, 200);
 }
 
-function clearSurvivalState() {
-    inYellowChallenge = false;
-    yellowWorldSeed = 0;
-    challengeZoneEl.style.display = "none";
+// Precise AABB rectangle intersect
+function rectIntersect(a, b) {
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
 
-function update() {
-    if (!gameActive) return;
+let lastTime = 0;
 
-    distance += 2; worldDistance += 2;
-    energy -= 0.035;
-    if (powerUpTimer > 0) powerUpTimer--;
-    if (rainbowTimer > 0) rainbowTimer--;
-    if (megaJumpTimer > 0) megaJumpTimer--;
-    if (flyTimer > 0) flyTimer--;
-    bgRainbowX -= 1; 
+function gameLoop(timestamp) {
+    if (!lastTime) lastTime = timestamp;
+    let dt = (timestamp - lastTime) / 16.666; 
+    lastTime = timestamp;
+    if (dt > 3) dt = 3; 
 
-    if (inYellowChallenge) {
-        yellowChallengeLeft -= 2;
-        challengeDistEl.innerText = Math.max(0, yellowChallengeLeft);
+    if (gameActive) update(dt);
+    if (stageTransition) updateTransition(dt);
+    
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+
+function update(dt) {
+    let groundLevel = canvas.height - 80;
+
+    // Movement & Drains
+    distance += 2 * dt; worldDistance += 2 * dt;
+    energy -= 0.035 * dt;
+    bgRainbowX -= 1 * dt; 
+
+    if (powerUpTimer > 0) powerUpTimer -= dt;
+    if (rainbowTimer > 0) rainbowTimer -= dt;
+    if (megaJumpTimer > 0) megaJumpTimer -= dt;
+    if (flyTimer > 0) flyTimer -= dt;
+
+    // Left/Right Dodge Logic - ONLY in World 11
+    if (currentWorld === 11) {
+        if (keys.left) player.x -= 7 * dt;
+        if (keys.right) player.x += 7 * dt;
+        if (player.x < 0) player.x = 0;
+        if (player.x > canvas.width - 40) player.x = canvas.width - 40;
+    } else {
+        player.x = 100; // Lock player in auto-runner mode
+    }
+
+    // World 4 Flagpole Sequence Trigger
+    if (currentWorld === 4 && worldDistance > 10000 && !flagPole.active) {
+        flagPole = { active: true, x: canvas.width + 100, y: groundLevel - 400, flagY: groundLevel - 50 };
+    }
+
+    if (flagPole.active && currentWorld === 4) {
+        flagPole.x -= 8 * dt;
+        let pBox = { x: player.x + 10, y: player.y + 40, w: 20, h: 30 };
+        let poleBox = { x: flagPole.x + 10, y: flagPole.y, w: 10, h: 400 };
         
-        if (yellowChallengeLeft <= 0) {
-            distance += 20000; 
-            clearSurvivalState();
-            currentWorld = 1; worldDistance = 0; player.y = -100; player.dy = 0;
-            obstacles = []; items = []; pitfalls = []; pipes = [];
-            document.body.style.background = worldSettings[currentWorld].bg;
-            playSound(900, 'sine', 0.8, 0.2, 200); 
+        if (rectIntersect(pBox, poleBox)) {
+            gameActive = false; stageTransition = true;
+            canRestart = false; 
+            setTimeout(() => canRestart = true, 1500); 
+            document.getElementById('controls').style.display = 'none';
+            stageCompleteEl.style.display = 'block';
+            playSound(400, 'square', 0.5, 0.2, 300);
+            return;
         }
     }
 
     let displayEnergy = Math.max(0, Math.ceil(energy));
     scoreEl.innerText = displayEnergy;
     distEl.innerText = Math.floor(distance);
-    
-    if (currentWorld === 7) worldEl.innerText = "7 [GLITCH]";
-    else if (currentWorld === 8) worldEl.innerText = yellowWorldSeed + " [MUTATED ZONE]";
-    else if (currentWorld === 9) worldEl.innerText = "9 [SKY HORIZON]";
-    else if (currentWorld === 10) worldEl.innerText = "10 [BOSS FIGHT]";
-    else worldEl.innerText = currentWorld;
+    worldEl.innerText = (currentWorld === 11) ? "11 [MARIO ZONE]" : currentWorld;
 
-    if (distance >= 1000000 && gameActive) {
-        die("WIN");
-        return;
-    }
+    if (distance >= 1000000) { die("WIN"); return; }
 
-    if (currentWorld === 7 && Math.random() < 0.005) {
-        worldSettings[7].bg = `hsl(${Math.random() * 360}, 60%, 20%)`;
-        worldSettings[7].ground = `hsl(${Math.random() * 360}, 100%, 50%)`;
-        document.body.style.background = worldSettings[7].bg;
-    }
-
+    // Physics
     let isUnderwater = (currentWorld === 5);
     let gravity = (isUnderwater || currentWorld === 9 || flyTimer > 0) ? 0.25 : 0.8;
-    player.dy += gravity;
+    player.dy += gravity * dt;
     if ((isUnderwater || currentWorld === 9 || flyTimer > 0) && player.dy > 4) player.dy = 4;
-    
-    player.y += player.dy;
-    const groundLevel = canvas.height - 80;
+    player.y += player.dy * dt;
+
+    let pBox = { x: player.x + 10, y: player.y + 40, w: 20, h: 30 };
 
     if (currentWorld === 9) {
-        if (player.y < -player.h) {
-            player.y = canvas.height;
-        } else if (player.y > canvas.height) {
-            player.y = -player.h;
-        }
+        if (player.y < -90) player.y = canvas.height;
+        else if (player.y > canvas.height) player.y = -90;
     }
 
-    let pit = pitfalls.find(p => player.x + 10 < p.x + p.w && player.x + 35 > p.x);
-    if (player.y + player.h > groundLevel && currentWorld !== 9) {
+    let pit = pitfalls.find(p => pBox.x + pBox.w > p.x && pBox.x < p.x + p.w);
+    if (player.y + 70 > groundLevel && currentWorld !== 9) {
         if (pit) {
             if (player.y > canvas.height) {
                 if (pit.isWater && currentWorld !== 5) {
-                    clearSurvivalState(); 
                     currentWorld = 5; worldDistance = 0; player.y = -50; player.dy = 0;
                     obstacles = []; items = []; pitfalls = []; pipes = [];
                     document.body.style.background = worldSettings[currentWorld].bg;
                     playSound(400, 'sine', 0.5, 0.1, -200);
-                } else if (currentWorld === 4 && pit.isLava) {
-                    currentWorld = 10; worldDistance = 0; player.y = -100; player.dy = 0; player.grounded = false;
-                    bossTimer = 10000; 
-                    bossDino.state = 'spawning';
-                    obstacles = []; items = []; pitfalls = []; pipes = []; decor = [];
-                    document.body.style.background = worldSettings[currentWorld].bg;
-                    playSound(100, 'sawtooth', 0.8, 0.3, 50);
                 } else {
-                    die("FALL");
-                    return;
+                    die("FALL"); return;
                 }
             }
         } else {
-            player.y = groundLevel - player.h;
-            player.dy = 0;
-            player.grounded = true;
-            jumpCount = 0;
-            
-            if (currentWorld === 10 && bossDino.state === 'spawning') {
-                bossDino.state = 'active';
-                bossDino.x = canvas.width - 250; 
-                bossDino.dir = -1; 
-            }
+            player.y = groundLevel - 70; player.dy = 0; player.grounded = true; jumpCount = 0;
         }
     }
 
-    if (currentWorld === 10) {
-        bossTimer--;
-        if (bossDino.state === 'active') {
-            bossDino.x += bossDino.dir * 2;
-            if (bossDino.x < canvas.width - 350) bossDino.dir = 1;
-            if (bossDino.x > canvas.width - 150) bossDino.dir = -1;
-
-            if (Math.random() < 0.025) {
-                let fireType = Math.random() < 0.5 ? "🔥" : "🐦";
-                let weaponY = groundLevel - 45;
-                let roll = Math.random();
-                if (roll < 0.33) weaponY = groundLevel - 45; 
-                else if (roll < 0.66) weaponY = groundLevel - 110; 
-                else weaponY = groundLevel - 190; 
-
-                obstacles.push({ x: bossDino.x, y: weaponY, char: fireType, dx: -8, dy: 0, isGiant: false, isBossWeapon: true });
-            }
-
-            if (Math.random() < 0.003) items.push({ x: canvas.width - 400, y: groundLevel - 120, char: "🫐", type: 'powerup' });
-            if (Math.random() < 0.001) items.push({ x: canvas.width - 400, y: groundLevel - 120, char: "🌈", type: 'rainbow' });
-        }
-
-        if (bossTimer <= 0) {
-            bossDino.state = 'dead';
-            distance += 50000; 
-            currentWorld = Math.floor(Math.random() * 6) + 1;
-            worldDistance = 0; player.y = -100; player.dy = 0;
-            obstacles = []; items = []; pitfalls = []; pipes = [];
-            document.body.style.background = worldSettings[currentWorld].bg;
-            playSound(600, 'sine', 1.0, 0.2, 400);
-        }
+    // World 11 Mario Blocks
+    if (currentWorld === 11 && Math.random() < 0.01) {
+        blocks.push({ x: canvas.width, y: groundLevel - 130, w: 50, h: 50, hit: false });
     }
 
+    blocks.forEach((b, i) => {
+        b.x -= 8 * dt;
+        let bBox = { x: b.x, y: b.y, w: b.w, h: b.h };
+        if (!b.hit && rectIntersect(pBox, bBox)) {
+            if (player.dy < 0 && pBox.y > bBox.y + bBox.h - 15) { 
+                // Hit from bottom
+                b.hit = true; player.dy = Math.max(player.dy, 2); 
+                playSound(600, 'square', 0.1, 0.1, 100);
+                if (Math.random() < 0.3) {
+                    items.push({ x: b.x, y: b.y - 45, char: "🌈", type: 'rainbow', boxW: 40, boxH: 40 });
+                } else {
+                    items.push({ x: b.x, y: b.y - 45, char: "🍎", type: 'food', boxW: 40, boxH: 40 });
+                }
+            }
+        }
+        if (b.x < -100) blocks.splice(i, 1);
+    });
+
+    // Spawners
     if (Math.random() < 0.02 && currentWorld !== 10) {
         let obsType = worldSettings[currentWorld].hazards[Math.floor(Math.random()*worldSettings[currentWorld].hazards.length)];
-        let obsX, obsY, dx, dy, isGiant = false;
-
-        if (currentWorld === 5 && Math.random() < 0.05) {
-            obsType = "🦈"; isGiant = true; obsX = canvas.width; obsY = Math.random() * (canvas.height - 200);
-            dx = -12; dy = 0;
-        } else if (obsType === "🔥" && currentWorld === 4) { 
-            let isSniper = Math.random() < 0.20; 
-            obsX = isSniper ? player.x + 10 : Math.random() * canvas.width;
-            obsY = -50; dy = 9; dx = -1; 
-        } else if (currentWorld === 9) {
-            obsX = canvas.width; obsY = Math.random() * (canvas.height - 150) + 50; dx = -9; dy = 0;
-        } else {
-            obsX = canvas.width;
-            obsY = (currentWorld === 5) ? (Math.random() * (groundLevel - 100) + 50) : groundLevel - 45;
-            dx = -(8 + (currentWorld > 4 ? 2 : currentWorld)); dy = 0;
-        }
-        obstacles.push({ x: obsX, y: obsY, char: obsType, dx: dx, dy: dy, isGiant: isGiant, isBossWeapon: false });
+        let dx = -(8 + (currentWorld > 4 ? 2 : currentWorld));
+        obstacles.push({ x: canvas.width, y: groundLevel - 45, char: obsType, dx: dx, dy: 0, boxW: 40, boxH: 40, isCritter: (currentWorld===11) });
     }
 
     if (Math.random() < 0.015 && currentWorld !== 10) {
-        let spawnY = (currentWorld === 5 || currentWorld === 9) ? Math.random() * (canvas.height - 150) + 50 : groundLevel - 120;
-        items.push({ x: canvas.width, y: spawnY, char: worldSettings[currentWorld].items[Math.floor(Math.random()*worldSettings[currentWorld].items.length)], type: 'food' });
-    }
-    
-    if (Math.random() < 0.015 && currentWorld !== 6 && currentWorld !== 10) {
-        let decoY = currentWorld === 9 ? Math.random() * canvas.height : Math.random() * 200;
-        decor.push({ x: canvas.width, y: decoY, char: worldSettings[currentWorld].deco, speed: Math.random() * 2 + 1 });
-    }
-    
-    if (Math.random() < 0.003 && currentWorld !== 10) items.push({ x: canvas.width, y: (currentWorld === 9 ? Math.random() * 400 + 100 : groundLevel - 120), char: "🫐", type: 'powerup' });
-    if (Math.random() < 0.002 && currentWorld !== 10) items.push({ x: canvas.width, y: (currentWorld === 9 ? Math.random() * 400 + 100 : groundLevel - 120), char: "🌈", type: 'rainbow' });
-    if (Math.random() < 0.0003 && currentWorld !== 10) items.push({ x: canvas.width, y: (currentWorld === 9 ? Math.random() * 400 + 100 : groundLevel - 120), char: "🪶", type: 'feather' });
-    
-    if (currentWorld === 6) {
-        if (Math.random() < 0.005) items.push({ x: canvas.width, y: groundLevel - 150, char: "🍄", type: 'megajump' });
-        if (Math.random() < 0.002) items.push({ x: canvas.width, y: groundLevel - 180, char: "🍃", type: 'fly' });
+        items.push({ x: canvas.width, y: groundLevel - 120, char: worldSettings[currentWorld].items[0], type: 'food', boxW: 40, boxH: 40 });
     }
 
-    if (currentWorld === 9 && Math.random() < 0.004 && pipes.length === 0) {
-        pipes.push({ x: canvas.width + 100, y: Math.random() * (canvas.height - 300) + 100, w: 140, h: 140, dest: Math.floor(Math.random() * 6) + 1, isRing: true });
+    // Spawning Pipes
+    if (worldDistance > 1200 && pipes.length === 0 && currentWorld !== 9 && currentWorld !== 4 && currentWorld !== 11) {
+        let nextDest = Math.floor(Math.random() * 6) + 1;
+        while(nextDest === currentWorld) nextDest = Math.floor(Math.random() * 6) + 1;
+        pipes.push({ x: canvas.width + 100, y: groundLevel - 70, w: 70, h: 70, dest: nextDest, color: "#2ecc71" });
     }
 
-    if (worldDistance > 1200 && pipes.length === 0 && !inYellowChallenge && currentWorld !== 9 && currentWorld !== 10) {
-        let randRoll = Math.random();
-        let nextDest;
-        let pipeColor = "#2ecc71"; 
+    // Entities Collision Update
+    obstacles.forEach((obs, i) => {
+        obs.x += obs.dx * dt;
+        let oBox = { x: obs.x, y: obs.y, w: obs.boxW, h: obs.boxH };
         
-        if (randRoll < 0.15) { pipeColor = "#ffeb3b"; nextDest = 8; } 
-        else if (randRoll < 0.25) { pipeColor = "#2196f3"; nextDest = 9; } 
-        else if (randRoll < 0.31) { pipeColor = "#9c27b0"; nextDest = 7; } 
-        else {
-            nextDest = Math.floor(Math.random() * 6) + 1;
-            while(nextDest === currentWorld) { nextDest = Math.floor(Math.random() * 6) + 1; }
+        if (rectIntersect(pBox, oBox)) {
+            // Stomp logic for critters (World 11 only)
+            if (obs.isCritter && player.dy > 0 && pBox.y + pBox.h - (player.dy*dt) <= oBox.y + 20) {
+                player.dy = -12; // Bounce
+                distance += 500;
+                obstacles.splice(i, 1);
+                playSound(700, 'square', 0.1, 0.1, -100);
+            } else if (rainbowTimer > 0) {
+                obstacles.splice(i, 1); playSound(800, 'sine', 0.1, 0.1, 200); 
+            } else { 
+                energy -= 25; playSound(150, 'sawtooth', 0.2, 0.2, -50); 
+                obstacles.splice(i, 1);
+                if (energy <= 0) { die("MEAT"); return; }
+            }
         }
-        
-        let pHeight = (currentWorld >= 5) ? 180 : 70;
-        pipes.push({ x: canvas.width + 100, y: groundLevel - pHeight, w: 70, h: pHeight, dest: nextDest, color: pipeColor, isRing: false });
-    }
-    
-    if (Math.random() < 0.006 && currentWorld !== 9 && currentWorld !== 10) {
-        let assignLava = (currentWorld === 4 && Math.random() < 0.5);
-        pitfalls.push({ x: canvas.width, w: 120, isWater: !assignLava, isLava: assignLava });
-    }
+        if (obs.x < -100) obstacles.splice(i, 1);
+    });
+
+    items.forEach((item, i) => {
+        item.x -= 8 * dt;
+        let iBox = { x: item.x, y: item.y, w: item.boxW, h: item.boxH };
+        if (rectIntersect(pBox, iBox)) {
+            if (item.type === 'rainbow') { rainbowTimer = 400; playSound(600, 'sine', 0.5, 0.1, 500); }
+            else { energy = Math.min(100, energy + 12); playSound(800, 'sine', 0.1, 0.1); }
+            items.splice(i, 1);
+        }
+        if (item.x < -100) items.splice(i, 1);
+    });
 
     pipes.forEach((p, i) => {
-        p.x -= 8;
-        let hitX = (player.x + player.w > p.x && player.x < p.x + p.w);
-        let hitY = p.isRing ? (player.y + player.h > p.y && player.y < p.y + p.h) : ((currentWorld === 5 || flyTimer > 0) ? true : (player.y + player.h > p.y));
-
-        if (hitX && hitY) {
-            if (!p.isRing && p.color === "#ffeb3b") {
-                yellowChallengeLeft = 5000; challengeZoneEl.style.display = "inline";
-                inYellowChallenge = true; 
-                generateYellowChaosWorld(); playYellowPipeSound();
-            } else {
-                clearSurvivalState(); 
-                let sPitch = p.isRing ? 900 : (p.color === "#9c27b0" ? 700 : 400);
-                playSound(sPitch, 'sine', 0.5, 0.1, 200);
-            }
+        p.x -= 8 * dt;
+        let poleBox = { x: p.x, y: p.y, w: p.w, h: canvas.height };
+        if (rectIntersect(pBox, poleBox)) {
+            playSound(400, 'sine', 0.5, 0.1, 200);
             currentWorld = p.dest; worldDistance = 0; player.y = -100; player.dy = 0;
-            obstacles = []; items = []; pitfalls = []; pipes = [];
+            obstacles = []; items = []; pitfalls = []; pipes = []; blocks = [];
             document.body.style.background = worldSettings[currentWorld].bg;
         }
         if (p.x < -200) pipes.splice(i, 1);
     });
 
-    obstacles.forEach((obs, i) => {
-        obs.x += obs.dx; obs.y += obs.dy;
-        let ow = obs.isGiant ? 100 : 30; let oh = obs.isGiant ? 80 : 40;
-        let hitX = (player.x < obs.x + ow && player.x + player.w > obs.x);
-        let hitY = (player.y + 40 < obs.y + oh && player.y + player.h > obs.y);
+    if (energy <= 0) die("ENERGY"); 
+}
 
-        if (hitX && hitY) {
-            if (rainbowTimer > 0 && !obs.isGiant) { 
-                obstacles.splice(i, 1); playSound(800, 'sine', 0.1, 0.1, 200); 
-            } else { 
-                if (obs.isGiant) { die("SHARK"); return; }
-                energy -= (currentWorld >= 4) ? 25 : 40;
-                playSound(150, 'sawtooth', 0.2, 0.2, -50); 
-                obstacles.splice(i, 1);
-                
-                if (energy <= 0) { 
-                    if (obs.isBossWeapon || currentWorld === 10) die("DINO"); 
-                    else die("MEAT"); 
-                    return; 
-                }
-            }
-        }
-        if (obs.x < -300 || obs.y > canvas.height + 100) obstacles.splice(i, 1);
-    });
-
-    items.forEach((item, i) => {
-        item.x -= 8;
-        let hitX = (player.x < item.x + 45 && player.x + player.w > item.x);
-        let hitY = (player.y < item.y + 45 && player.y + player.h > item.y);
-        
-        if (hitX && hitY) {
-            if (item.type === 'powerup') { powerUpTimer = 600; playSound(500, 'sine', 0.3, 0.1, 400); }
-            else if (item.type === 'rainbow') { rainbowTimer = 400; playSound(600, 'sine', 0.5, 0.1, 500); }
-            else if (item.type === 'megajump') { megaJumpTimer = 600; playSound(700, 'sine', 0.3, 0.1, 600); }
-            else if (item.type === 'fly') { flyTimer = 600; playSound(800, 'square', 0.4, 0.1, 700); }
-            else if (item.type === 'feather') { 
-                clearSurvivalState(); 
-                currentWorld = 9; worldDistance = 0; player.y = 200; player.dy = 0;
-                obstacles = []; items = []; pitfalls = []; pipes = [];
-                document.body.style.background = worldSettings[currentWorld].bg;
-                playSound(850, 'sine', 0.5, 0.15, 300);
-            }
-            else { energy = Math.min(100, energy + 12); playSound(800, 'sine', 0.1, 0.1); }
-            items.splice(i, 1);
-        }
-        if (item.x < -50) items.splice(i, 1);
-    });
-
-    pitfalls.forEach((p, i) => { p.x -= 8; if (p.x < -200) pitfalls.splice(i, 1); });
-    decor.forEach((d, i) => { d.x -= d.speed; if (d.x < -100) decor.splice(i, 1); });
+function updateTransition(dt) {
+    let groundLevel = canvas.height - 80;
     
-    if (energy <= 0) { 
-        if (currentWorld === 10) die("DINO"); 
-        else die("ENERGY"); 
-        return; 
+    // Flag sliding down
+    if (flagPole.flagY > flagPole.y) {
+        flagPole.flagY -= 5 * dt;
+    } else {
+        // Fireworks logic
+        if (Math.random() < 0.05) {
+            playSound(1000 + Math.random()*500, 'sine', 0.2, 0.1, -500);
+            let fx = Math.random() * canvas.width;
+            let fy = Math.random() * (canvas.height/2);
+            for(let i=0; i<20; i++) {
+                let ang = Math.random() * Math.PI * 2;
+                let spd = Math.random() * 5 + 2;
+                particles.push({
+                    x: fx, y: fy, vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd,
+                    life: 60, color: `hsl(${Math.random()*360}, 100%, 50%)`
+                });
+            }
+        }
+    }
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx * dt; p.y += p.vy * dt;
+        p.vy += 0.05 * dt; p.life -= 1 * dt;
+        if (p.life <= 0) particles.splice(i, 1);
     }
 }
 
 function die(type) {
     if (!gameActive) return;
     gameActive = false; canRestart = false; 
-    let msg = "";
-    
-    if (type === "WIN") msg = "🏆 1,000,000m REACHED! 🏆";
-    else if (type === "FALL") msg = "YOU FELL TO YOUR DEATH";
-    else if (type === "SHARK") msg = "EATEN BY A GIANT SHARK!";
-    else if (type === "DINO") msg = "Deanus Politicus Carnivorus Paradoxus ate you";
-    else if (type === "ENERGY") msg = "YOU WITHERED AWAY!";
-    else if (type === "MEAT") msg = ["meat death ☠️", "victim of greed", "you meat lemming", "meat head"][Math.floor(Math.random() * 4)];
-
-    scoreEl.innerText = "0";
-    msgEl.style.display = 'none'; 
-
+    let msg = type === "ENERGY" ? "YOU WITHERED AWAY!" : "VICTIM OF GREED";
+    document.getElementById('controls').style.display = 'none'; // Ensure UI is hidden on death
+    scoreEl.innerText = "0"; msgEl.style.display = 'none'; 
     let distFloor = Math.floor(distance);
-    let storedDist = parseInt(localStorage.getItem('goDeanBestDistance')) || 0;
-    let storedName = localStorage.getItem('goDeanTitle') || '';
     
-    if (distFloor > storedDist || storedName === '') {
-        storedDist = distFloor;
-        storedName = generateTitle(storedDist);
-        localStorage.setItem('goDeanBestDistance', storedDist);
-        localStorage.setItem('goDeanTitle', storedName);
-    }
-    
-    let pRank;
-    if (distFloor >= 1000000) pRank = 1;
-    else if (distFloor >= 100000) pRank = Math.random() < 0.5 ? 2 : 3;
-    else if (distFloor >= 50000) pRank = Math.floor(Math.random() * 3) + 4; // 4, 5, or 6
-    else pRank = Math.floor(Math.random() * 4) + 7; // 7, 8, 9, or 10
-    
-    let scores = [];
-    scores[pRank - 1] = { name: storedName, dist: distFloor, isPlayer: true };
-    
-    for (let i = pRank - 2; i >= 0; i--) {
-        let prevDist = scores[i+1].dist;
-        let newDist = prevDist + Math.floor(Math.random() * 15000) + 5000;
-        if (i === 0 && distFloor < 1000000) newDist += Math.floor(Math.random() * 200000) + 100000;
-        scores[i] = { name: generateTitle(newDist), dist: newDist, isPlayer: false };
-    }
-    
-    for (let i = pRank; i < 10; i++) {
-        let prevDist = scores[i-1].dist;
-        let gap = Math.floor(prevDist / (11 - i));
-        let newDist = prevDist - Math.floor(Math.random() * gap) - 100;
-        if (newDist < 0) newDist = Math.max(0, Math.floor(prevDist * 0.8));
-        scores[i] = { name: generateTitle(newDist), dist: newDist, isPlayer: false };
-    }
-    
-    let judgmentPrefix = distFloor < 50000 ? "L" : (distFloor < 100000 ? "OK" : "W");
-    let judgmentColor = distFloor < 50000 ? "#ff3333" : (distFloor < 100000 ? "#ffeb3b" : "#32ff7e");
-    
-    let sbHtml = `<h1>GO DEAN'S LEADERBOARD</h1>`;
-    sbHtml += `<div class="death-reason">${msg}</div>`;
-    sbHtml += `<div class="judgment" style="color:${judgmentColor}">${judgmentPrefix} - ${storedName}</div>`;
-    sbHtml += `<table>`;
-    scores.forEach((s, idx) => {
-        let isP = s.isPlayer;
-        let trClass = isP ? 'class="player-row"' : '';
-        let rankStr = isP ? `🔴 #${idx+1}` : `#${idx+1}`;
-        let nameStr = isP ? `${s.name} (YOU)` : s.name;
-        sbHtml += `<tr ${trClass}><td>${rankStr}</td><td>${nameStr}</td><td>${s.dist}m</td></tr>`;
-    });
-    sbHtml += `</table>`;
-    sbHtml += `<div id="restartText">TAP TWICE TO RESTART</div>`;
-    
+    let sbHtml = `<h1>GO DEAN'S LEADERBOARD</h1><div class="death-reason">${msg}</div><div class="judgment">SCORE: ${distFloor}m</div><div id="restartText">TAP TO RESTART</div>`;
     scoreboardEl.innerHTML = sbHtml;
     scoreboardEl.style.display = 'block';
-
     playSound(50, 'sawtooth', 0.5, 0.2);
 }
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const s = worldSettings[currentWorld];
+    let groundLevel = canvas.height - 80;
 
-    if (currentWorld !== 4 && currentWorld !== 6 && currentWorld !== 7 && currentWorld !== 8 && currentWorld !== 9 && currentWorld !== 10) {
-        ctx.save(); ctx.globalAlpha = 0.2; ctx.translate(bgRainbowX % 2000, 100);
-        for(let i=0; i<6; i++) { ctx.strokeStyle = `hsl(${i * 40}, 100%, 50%)`; ctx.lineWidth = 15; ctx.beginPath(); ctx.arc(1000, 400, 500 + (i*15), Math.PI, 0); ctx.stroke(); }
-        ctx.restore();
-    }
+    // Environment
+    ctx.fillStyle = s.floor; ctx.fillRect(0, groundLevel, canvas.width, 80);
+    ctx.fillStyle = s.ground; ctx.fillRect(0, groundLevel, canvas.width, 15);
 
-    if (currentWorld === 6) {
-        ctx.save(); ctx.globalAlpha = 0.25;
-        let offset = (bgRainbowX * 0.8) % 800;
-        ctx.font = "260px Arial"; ctx.fillText("🌴", offset + 100, 400); ctx.fillText("🌴", offset + 500, 430);
-        ctx.restore();
-    }
-
-    if (currentWorld === 8) {
-        ctx.save(); ctx.globalAlpha = 0.15;
-        let offset = (bgRainbowX * 0.5) % 1200;
-        ctx.font = "280px Arial"; ctx.fillText(s.deco, offset + 300, 380);
-        ctx.restore();
-    }
-
-    ctx.font = "50px Arial";
-    decor.forEach(d => ctx.fillText(d.char, d.x, d.y));
-    
-    if (currentWorld !== 9) {
-        ctx.fillStyle = s.floor; ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
-        ctx.fillStyle = s.ground; ctx.fillRect(0, canvas.height - 80, canvas.width, 15);
-    }
-    
+    // Decor & Pits
     pitfalls.forEach(p => {
         ctx.fillStyle = p.isLava ? "#ff3333" : (p.isWater ? "#0077be" : s.bg);
-        ctx.fillRect(p.x, canvas.height - 81, p.w, 82);
-    });
-    
-    pipes.forEach(p => { 
-        if (p.isRing) {
-            ctx.strokeStyle = "#e91e63"; ctx.lineWidth = 12; ctx.beginPath(); ctx.arc(p.x + p.w/2, p.y + p.h/2, p.w/2, 0, Math.PI * 2); ctx.stroke();
-            ctx.fillStyle = "rgba(233, 30, 99, 0.15)"; ctx.fill();
-        } else {
-            ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.w, p.h); ctx.fillRect(p.x + 10, p.y + p.h, p.w - 20, canvas.height); 
-        }
+        ctx.fillRect(p.x, groundLevel - 1, p.w, 82);
     });
 
+    pipes.forEach(p => { ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.w, canvas.height); });
+
+    // Mario Blocks
+    blocks.forEach(b => {
+        ctx.fillStyle = b.hit ? "#c84c0c" : "#f8d820";
+        ctx.fillRect(b.x, b.y, b.w, b.h);
+        ctx.strokeStyle = "#000"; ctx.lineWidth = 2; ctx.strokeRect(b.x, b.y, b.w, b.h);
+        if (!b.hit) { ctx.fillStyle = "#000"; ctx.font = "30px Arial"; ctx.fillText("?", b.x + 15, b.y + 35); }
+    });
+
+    // Player
     player.frame += 0.25;
-    const runCycle = Math.sin(player.frame) * 15;
+    const runCycle = player.grounded ? Math.sin(player.frame) * 15 : 0;
     const px = player.x, py = player.y;
-    let bodyColor = (rainbowTimer > 0) ? `hsl(${Date.now() % 360}, 80%, 50%)` : "#27ae60";
-
+    
     ctx.strokeStyle = "#333"; ctx.lineWidth = 4; ctx.beginPath();
-    if (!player.grounded || currentWorld === 9) { ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 10, py + 80); ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 30, py + 80); }
+    if (!player.grounded) { ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 10, py + 80); ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 30, py + 80); }
     else { ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 20 + runCycle, py + 90); ctx.moveTo(px + 20, py + 65); ctx.lineTo(px + 20 - runCycle, py + 90); }
     ctx.stroke();
 
-    ctx.fillStyle = bodyColor; ctx.fillRect(px + 10, py + 40, 20, 30);
-    ctx.font = (powerUpTimer > 0 || megaJumpTimer > 0) ? "60px Arial" : "45px Arial"; ctx.fillText(player.head, px, py + 45);
+    ctx.fillStyle = (rainbowTimer > 0) ? `hsl(${Date.now() % 360}, 80%, 50%)` : "#27ae60"; 
+    ctx.fillRect(px + 10, py + 40, 20, 30);
+    
+    ctx.font = (powerUpTimer > 0 || megaJumpTimer > 0) ? "55px Arial" : "40px Arial"; 
+    ctx.fillText(player.head, px, py + 35);
 
-    if (currentWorld === 10 && (bossDino.state === 'active' || bossDino.state === 'spawning')) {
-        ctx.font = "120px Arial"; ctx.fillText("🦖", bossDino.x, canvas.height - 80);
+    // Items and Obstacles 
+    ctx.font = "40px Arial";
+    obstacles.forEach(o => ctx.fillText(o.char, o.x, o.y + 35));
+    items.forEach(it => ctx.fillText(it.char, it.x, it.y + 35));
+
+    // Flagpole sequence drawing
+    if (flagPole.active) {
+        ctx.fillStyle = "#fff"; ctx.fillRect(flagPole.x + 10, flagPole.y, 10, 400); // Pole
+        ctx.fillStyle = "#e91e63"; ctx.beginPath(); ctx.arc(flagPole.x + 15, flagPole.y, 15, 0, Math.PI*2); ctx.fill(); // Top ball
+        ctx.fillStyle = "#32ff7e"; ctx.fillRect(flagPole.x - 40, flagPole.flagY, 50, 40); // Flag
     }
 
-    ctx.font = "45px Arial";
-    obstacles.forEach(o => {
-        if (o.isGiant) {
-            ctx.font = "120px Arial"; ctx.fillText(o.char, o.x, o.y + 100); ctx.font = "45px Arial";
-        } else { ctx.fillText(o.char, o.x, o.y + 40); }
+    particles.forEach(p => {
+        ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI*2); ctx.fill();
     });
-    items.forEach(it => ctx.fillText(it.char, it.x, it.y + 40));
-
-    update();
-    requestAnimationFrame(draw);
 }
-draw();
+requestAnimationFrame(gameLoop);
 </script>
 </body>
 </html>
