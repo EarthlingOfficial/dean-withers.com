@@ -34,8 +34,9 @@
     WORLD: <span id="worldNum">1</span> | ENERGY: <span id="score">100</span> | DIST: <span id="dist">0</span>/1000000
     <span id="challengeZone" style="color:#ffeb3b;font-weight:bold;display:none;">| SURVIVE: <span id="challengeDist">5000</span>m</span>
     <span id="s2ui" style="display:none;"><br>🪙 COINS: <span id="coinCount">0</span> | 🌿 AMMO: <span id="ammoCount">30</span> | ❤️ <span id="bossHpUi" style="display:none;">DINO HP: <span id="bossHpNum">50</span></span></span>
+    <span id="s3ui" style="display:none;"><br>🌻 <span id="s3WorldName">NEON JUNGLE</span> | ✨ <span id="s3AmmoCount">30</span> AMMO</span>
 </div>
-<div id="msg">GO DEAN!<br><small style="font-size:22px;color:white;text-shadow:2px 2px #000;">TAP TO JUMP | ENTER PIPES TO WARP<br><span style="color:#afff94;">EAT FRUITS & VEGGIES</span> | <span style="color:#ff9494;">SMASH MEAT WITH RAINBOWS</span><br>STAY VEGAN! REACH 1,000,000m!</small></div>
+<div id="msg">GO DEAN!<br><small style="font-size:22px;color:white;text-shadow:2px 2px #000;">TAP TO JUMP | ENTER PIPES TO WARP<br><span style="color:#afff94;">EAT FRUITS & VEGGIES</span> | <span style="color:#ff9494;">SMASH MEAT WITH RAINBOWS</span><br>STAY VEGAN! REACH 1,000,000m! TURN PHONE SIDEWAYS & OPEN BROWSER Change to desktop mode then back to mobile if any issues</small></div>
 <div id="stageOverlay"><h1 id="stageTitle">STAGE COMPLETE!</h1><p id="stageMsg"></p><div class="tap-prompt" id="stageTapPrompt">TAP TO CONTINUE</div></div>
 <div id="scoreboard"></div>
 <div id="mobileControls">
@@ -86,6 +87,18 @@ function playStompSound() { playSound(300,'square',0.15,0.2,-200); }
 function playBoxHitSound() { playSound(440,'square',0.1,0.2); }
 function playShootSound() { playSound(600,'triangle',0.08,0.1,200); }
 function playCoinSound() { playSound(880,'sine',0.1,0.15,400); }
+function playNeonSound() {
+    try {
+        let now=audioCtx.currentTime, notes=[400,600,800,1000,1200];
+        notes.forEach((freq,i)=>{
+            let osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
+            osc.type='sine'; osc.frequency.setValueAtTime(freq,now+i*0.08);
+            gain.gain.setValueAtTime(0.12,now+i*0.08); gain.gain.exponentialRampToValueAtTime(0.01,now+i*0.08+0.1);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now+i*0.08); osc.stop(now+i*0.08+0.12);
+        });
+    } catch(e) {}
+}
 
 // ===================== TITLE GENERATION =====================
 const t1Prefixes=["BACON_","SAUSAGE_","STEAK_","WAGYU_","MILKIES_","DEANUS_","BURGER_","FATTY_","MEAT_","CHOKING_","GLAZED_","WHINER_","MILK_","SLURPER_","CHEESE_","GREASY_","CLOGGED_","CARNIVORE_","WEAK_","CHUBBY_","BUTTER_","GELATIN_","BEEFY_","PORKY_","WHEY_"];
@@ -113,6 +126,7 @@ const stageMsgEl=document.getElementById('stageMsg'), mobileControlsEl=document.
 const s2uiEl=document.getElementById('s2ui'), coinCountEl=document.getElementById('coinCount');
 const ammoCountEl=document.getElementById('ammoCount'), bossHpUiEl=document.getElementById('bossHpUi');
 const bossHpNumEl=document.getElementById('bossHpNum');
+const s3uiEl=document.getElementById('s3ui'), s3WorldNameEl=document.getElementById('s3WorldName'), s3AmmoCountEl=document.getElementById('s3AmmoCount');
 
 // ===================== GAME STATE =====================
 let gameActive=false, energy=100, distance=0, currentWorld=1, worldDistance=0;
@@ -134,7 +148,8 @@ let s2Projectiles = [];
 let s2 = {
     cameraX:0, levelWidth:8000,
     boxes:[], enemies:[], platforms:[], particles:[], foodItems:[], coins:[],
-    flagX:7600, flagReached:false, flagRiseY:0, flagRising:false, fireworks:[], levelBuilt:false
+    flagX:7600, flagReached:false, flagRiseY:0, flagRising:false, fireworks:[], levelBuilt:false,
+    redHerringSpawned:false, redHerringPipe:null
 };
 
 let boss = {
@@ -144,6 +159,34 @@ let boss = {
 };
 
 const player={x:100,y:0,w:45,h:90,dy:0,dx:0,grounded:false,head:"👦",frame:0};
+
+// ===================== STAGE 3 STATE =====================
+let s3WorldIndex = 1;
+let s3Ammo = 40;
+let s3MaxAmmo = 40;
+let s3Projectiles = [];
+let s3ParticleTrail = [];
+let sunflowerTimer = 0;
+
+let s3 = {
+    cameraX:0, levelWidth:9000,
+    boxes:[], enemies:[], platforms:[], particles:[], foodItems:[], coins:[],
+    flagX:8600, flagReached:false, flagRiseY:0, flagRising:false, fireworks:[], levelBuilt:false,
+    bgParticles:[], glowPulse:0
+};
+
+const s3Worlds = {
+    1:{bg:"#0d1f0d",ground:"#00ff88",floor:"#001a00",name:"NEON JUNGLE",deco:"🌿",enemyTypes:['corp_suit','burger_drone'],bgColor1:"#0d1f0d",bgColor2:"#003300"},
+    2:{bg:"#0a0a2e",ground:"#88aaff",floor:"#000022",name:"CRYSTAL CAVES",deco:"💎",enemyTypes:['corp_suit','milk_bot'],bgColor1:"#0a0a2e",bgColor2:"#111144"},
+    3:{bg:"#1a1a3e",ground:"#ffffff",floor:"#0a0a1e",name:"CLOUD SANCTUARY",deco:"☁️",enemyTypes:['burger_drone','factory_tank'],bgColor1:"#1a1a3e",bgColor2:"#2a2a5e"},
+    4:{bg:"#001a33",ground:"#00ddff",floor:"#000d1a",name:"CORAL REEF CITY",deco:"🪸",enemyTypes:['corp_suit','milk_bot'],bgColor1:"#001a33",bgColor2:"#002244"},
+    5:{bg:"#1a0a2e",ground:"#cc88ff",floor:"#0d0018",name:"MUSHROOM FOREST",deco:"🍄",enemyTypes:['burger_drone','corp_suit'],bgColor1:"#1a0a2e",bgColor2:"#2a0a3e"},
+    6:{bg:"#2e1a00",ground:"#ffaa00",floor:"#1a0a00",name:"SOLAR PLAINS",deco:"☀️",enemyTypes:['factory_tank','milk_bot'],bgColor1:"#2e1a00",bgColor2:"#3e2200"},
+    7:{bg:"#0a001a",ground:"#ff00ff",floor:"#050010",name:"NEON TOKYO MARKET",deco:"🏮",enemyTypes:['corp_suit','burger_drone','milk_bot'],bgColor1:"#0a001a",bgColor2:"#1a0030"},
+    8:{bg:"#001a2e",ground:"#aaddff",floor:"#000d1a",name:"AURORA PEAKS",deco:"🌌",enemyTypes:['factory_tank','corp_suit'],bgColor1:"#001a2e",bgColor2:"#002244"},
+    9:{bg:"#0d0d0d",ground:"#00ff00",floor:"#000",name:"SEED OF LIFE",deco:"🌱",enemyTypes:['corp_suit','factory_tank','milk_bot'],bgColor1:"#0d0d0d",bgColor2:"#001100"},
+    10:{bg:"#000000",ground:"#ffffff",floor:"#000",name:"THE VEGAN ASCENSION",deco:"✨",enemyTypes:['corp_suit','burger_drone','factory_tank','milk_bot'],bgColor1:"#000000",bgColor2:"#0a0a1a"}
+};
 
 // ===================== WORLD SETTINGS =====================
 const worldSettings={
@@ -194,11 +237,30 @@ function getShootConfig(worldIdx) {
     return configs[worldIdx] || configs[1];
 }
 
+function getS3ShootConfig(worldIdx) {
+    const configs = {
+        1:{char:'🌿',speed:8,size:22,double:false,bounce:false,damage:1,ammoMax:40},
+        2:{char:'💎',speed:9,size:22,double:false,bounce:true,damage:1,ammoMax:40},
+        3:{char:'❄️',speed:8,size:24,double:true,bounce:false,damage:1,ammoMax:45},
+        4:{char:'🪸',speed:9,size:22,double:false,bounce:true,damage:2,ammoMax:45},
+        5:{char:'🍄',speed:10,size:26,double:true,bounce:false,damage:2,ammoMax:50},
+        6:{char:'☀️',speed:12,size:28,double:true,bounce:false,damage:2,ammoMax:50},
+        7:{char:'⚡',speed:13,size:24,double:true,bounce:true,damage:2,ammoMax:55},
+        8:{char:'🌌',speed:12,size:26,double:true,bounce:true,damage:3,ammoMax:55},
+        9:{char:'🌱',speed:11,size:28,double:true,bounce:true,damage:3,ammoMax:60},
+        10:{char:'✨',speed:14,size:30,double:true,bounce:true,damage:4,ammoMax:60}
+    };
+    return configs[worldIdx]||configs[1];
+}
+
 // ===================== INPUT =====================
 let leftPressed=false, rightPressed=false;
 const btnLeft=document.getElementById('btnLeft'), btnRight=document.getElementById('btnRight'), btnShoot=document.getElementById('btnShoot');
 function setLeft(v){leftPressed=v;} function setRight(v){rightPressed=v;}
-function triggerShoot(){if(currentStage===2&&gameActive)doShoot();}
+function triggerShoot(){
+    if(currentStage===2&&gameActive) doShoot();
+    if(currentStage===3&&gameActive) doS3Shoot();
+}
 
 btnLeft.addEventListener('touchstart',(e)=>{e.preventDefault();setLeft(true);},{passive:false});
 btnLeft.addEventListener('touchend',(e)=>{e.preventDefault();setLeft(false);},{passive:false});
@@ -231,9 +293,28 @@ function doShoot() {
     }
 }
 
+function doS3Shoot() {
+    let cfg = getS3ShootConfig(s3WorldIndex);
+    if(s3Ammo<=0) return;
+    s3Ammo--;
+    updateS3UI();
+    playShootSound();
+    let dir = leftPressed ? -1 : 1;
+    s3Projectiles.push({x:player.x+player.w/2, y:player.y+40, vx:cfg.speed*dir, vy:0, char:cfg.char, size:cfg.size, damage:cfg.damage, bounces:cfg.bounce?2:0, life:140});
+    if(cfg.double) {
+        s3Projectiles.push({x:player.x+player.w/2, y:player.y+55, vx:cfg.speed*dir, vy:-1.5, char:cfg.char, size:cfg.size, damage:cfg.damage, bounces:cfg.bounce?2:0, life:140});
+    }
+}
+
 function updateAmmoUI() {
     ammoCountEl.innerText = s2Ammo;
     coinCountEl.innerText = s2Coins;
+}
+
+function updateS3UI() {
+    s3AmmoCountEl.innerText = s3Ammo;
+    let theme = s3Worlds[s3WorldIndex]||s3Worlds[1];
+    s3WorldNameEl.innerText = theme.name;
 }
 
 function handleInput() {
@@ -242,22 +323,37 @@ function handleInput() {
         stageOverlayPhase++;
         if(stageOverlayPhase===1) {
             stageTitleEl.style.animation='none'; stageTitleEl.style.color='#afff94'; stageTitleEl.style.fontSize='32px';
-            stageTitleEl.innerText="YOU'RE LEARNING TO VEGAN";
-            stageMsgEl.innerHTML="KEEP GOING! 🌱<br><br><span style='font-size:18px;color:#aaa;'>Stage 2: USE LEFT/RIGHT + SHOOT 🍃 + TAP TO JUMP</span>";
+            stageTitleEl.innerText="CONGRATULATIONS! YOU'RE LEARNING TO VEGAN";
+            stageMsgEl.innerHTML="The next stage is a whole new world. Keep going! 🌱<br><br><span style='font-size:18px;color:#aaa;'>Stage 2: USE LEFT/RIGHT + SHOOT 🍃 + TAP TO JUMP</span>";
             document.getElementById('stageTapPrompt').innerText="TAP TO START STAGE 2";
         } else if(stageOverlayPhase>=2) {
             stageOverlayEl.classList.remove('active'); stageTransitionState='none'; startStage2(1);
         }
         return;
     }
+    if(stageTransitionState==='s2_to_s3_waiting') {
+        stageOverlayPhase++;
+        if(stageOverlayPhase===1) {
+            stageTitleEl.style.animation='none'; stageTitleEl.style.color='#00ffcc'; stageTitleEl.style.fontSize='28px';
+            stageTitleEl.innerText="🌍 KEEP VEGANING — THE ASCENSION BEGINS";
+            stageMsgEl.innerHTML="<span style='color:#ff3333;font-weight:bold;font-size:18px;'>The animal agricultural industry is destroying the planet.</span><br><br><span style='color:#00ffcc;'>Stage 3: A neon paradise awaits the enlightened.<br>New weapons. New worlds. True ending.</span><br><br><span style='font-size:16px;color:#aaa;'>USE LEFT/RIGHT + SHOOT ✨ + TAP TO JUMP | 🌻 = FLIGHT</span>";
+            document.getElementById('stageTapPrompt').innerText="TAP TO BEGIN STAGE 3";
+        } else if(stageOverlayPhase>=2) {
+            stageOverlayEl.classList.remove('active'); stageTransitionState='none'; startStage3(1);
+        }
+        return;
+    }
     if(stageTransitionState!=='none') return;
     if(currentStage===2&&s2.flagReached) return;
+    if(currentStage===3&&s3.flagReached) return;
     if(!gameActive) {
         if(!canRestart) { canRestart=true; let rt=document.getElementById('restartText'); if(rt) rt.innerText="TAP AGAIN TO RESTART"; return; }
         resetGame(); return;
     }
-    if(currentStage===2) {
+    if(currentStage===2||currentStage===3) {
         const maxJ = powerUpTimer>0?2:1;
+        const canFly = (currentStage===3&&sunflowerTimer>0);
+        if(canFly) { player.dy=-9; player.grounded=false; return; }
         if(player.grounded||jumpCount<maxJ) {
             player.dy=megaJumpTimer>0?-22:(powerUpTimer>0?-18:-15);
             player.grounded=false; jumpCount++;
@@ -278,9 +374,6 @@ function handleInput() {
     }
 }
 
-window.addEventListener('mousedown',(e)=>{if(e.target===btnLeft||e.target===btnRight||e.target===btnShoot)return; handleInput();});
-window.addEventListener('touchstart',(e)=>{if(e.target===btnLeft||e.target===btnRight||e.target===btnShoot)return; e.preventDefault(); handleInput();},{passive:false});
-
 // ===================== RESET =====================
 function resetGame() {
     energy=100; distance=0; currentWorld=1; worldDistance=0; currentStage=1;
@@ -291,8 +384,10 @@ function resetGame() {
     stageOverlayEl.classList.remove('active'); mobileControlsEl.classList.remove('active');
     s2.levelBuilt=false; s2.flagReached=false; s2WorldIndex=1; s2Projectiles=[];
     s2uiEl.style.display='none'; bossHpUiEl.style.display='none';
+    s3.levelBuilt=false; s3.flagReached=false; s3WorldIndex=1; s3Projectiles=[];
+    s3ParticleTrail=[]; sunflowerTimer=0; s3uiEl.style.display='none';
     gameActive=true; msgEl.style.display='none'; scoreboardEl.style.display='none';
-    player.x=100; player.y=0; player.dy=0; player.dx=0;
+    player.x=100; player.y=0; player.dy=0; player.dx=0; jumpCount=0;
     document.body.style.background=worldSettings[1].bg;
     if(audioCtx.state==='suspended') audioCtx.resume();
 }
@@ -327,9 +422,11 @@ function startStage2(worldIdx) {
     s2.cameraX=0; s2.flagReached=false; s2.flagRising=false; s2.flagRiseY=0;
     s2.fireworks=[]; s2.particles=[]; s2.levelBuilt=false;
     s2Projectiles=[];
+    s2.redHerringSpawned=false; s2.redHerringPipe=null;
     let cfg=getShootConfig(worldIdx); s2Ammo=cfg.ammoMax; s2MaxAmmo=cfg.ammoMax;
     obstacles=[]; items=[]; decor=[]; pipes=[]; pitfalls=[];
     mobileControlsEl.classList.add('active'); s2uiEl.style.display='inline';
+    s3uiEl.style.display='none';
     gameActive=true;
     let theme=s2Worlds[worldIdx]||s2Worlds[1];
     document.body.style.background=theme.bg;
@@ -418,6 +515,13 @@ function buildS2Level(worldIdx) {
             y:GL-120-Math.random()*100,
             collected:false
         });
+    }
+
+    // Red herring pipe — 30% chance, only in World 1
+    if(worldIdx===1&&Math.random()<0.3) {
+        let rhX=1500+Math.random()*2000;
+        s2.redHerringPipe={x:rhX, y:GL-100, w:70, h:100, active:true};
+        s2.redHerringSpawned=true;
     }
 }
 
@@ -512,6 +616,25 @@ function updateStage2() {
             }
         }
     });
+
+    // Red herring pipe check
+    if(s2.redHerringPipe&&s2.redHerringPipe.active&&s2WorldIndex===1) {
+        let rp=s2.redHerringPipe;
+        if(player.x+player.w>rp.x&&player.x<rp.x+rp.w&&player.y+player.h>rp.y&&player.y<rp.y+rp.h) {
+            rp.active=false;
+            gameActive=false;
+            stageTransitionState='red_herring';
+            stageTitleEl.style.animation='flash 0.5s infinite';
+            stageTitleEl.style.color='#ff3333';
+            stageTitleEl.style.fontSize='36px';
+            stageTitleEl.innerText='🎣 RED HERRING WARP ZONE';
+            stageMsgEl.innerHTML='<span style="color:#ffeb3b;">You fell for it!</span><br><br>Warping to S2-W7 — SKY CITY...<br><br><span style="color:#aaa;font-size:16px;">Keep veganing 🌱</span>';
+            document.getElementById('stageTapPrompt').innerText='TAP TO CONTINUE';
+            stageOverlayEl.classList.add('active');
+            playYellowPipeSound();
+            return;
+        }
+    }
 
     updateProjectiles(GL);
     updateS2Enemies(GL);
@@ -678,17 +801,17 @@ function bossDefeated() {
             playSound(400+i*80,'sine',0.5,0.15,300);
         },i*350);
     }
-    setTimeout(()=>{showVictoryScreen();},4000);
+    setTimeout(()=>{showS2VictoryScreen();},4000);
 }
 
-function showVictoryScreen() {
-    stageTransitionState='victory';
+function showS2VictoryScreen() {
+    stageTransitionState='s2victory';
     stageTitleEl.style.animation='flash 0.6s infinite';
     stageTitleEl.style.color='#afff94';
-    stageTitleEl.style.fontSize='36px';
+    stageTitleEl.style.fontSize='32px';
     stageTitleEl.innerText='🌱 YOU ARE NOW READY TO BE VEGAN! 🌱';
-    stageMsgEl.innerHTML='CONGRATULATIONS!<br><br>Deanus Politicus Carnivorus Paradoxus has been defeated.<br><br><span style="color:#ffeb3b;font-size:20px;">🏆 Created by Earthling Official 🏆</span>';
-    document.getElementById('stageTapPrompt').innerText='TAP TO PLAY AGAIN';
+    stageMsgEl.innerHTML='CONGRATULATIONS!<br><br>Deanus Politicus Carnivorus Paradoxus has been defeated.<br><br><span style="color:#ff3333;font-weight:bold;">The animal agricultural industry is destroying the planet.</span><br><span style="color:#00ffcc;">Keep veganing. 🌍</span><br><br><span style="color:#ffeb3b;font-size:20px;">🏆 Created by Earthling Official 🏆</span>';
+    document.getElementById('stageTapPrompt').innerText='TAP TO ASCEND TO STAGE 3';
     stageOverlayEl.classList.add('active');
     window._victoryLeafTimer=setInterval(()=>{
         for(let i=0;i<3;i++){
@@ -791,6 +914,19 @@ function drawStage2() {
         else{ctx.fillStyle='#f39c12';ctx.fillRect(sx,by,b.w,b.h);ctx.fillStyle='#f1c40f';ctx.fillRect(sx+3,by+3,b.w-6,b.h-6);ctx.fillStyle='#333';ctx.font="bold 22px Courier New";ctx.fillText("?",sx+10,by+30);}
     });
 
+    // Draw red herring pipe
+    if(s2.redHerringPipe&&s2.redHerringPipe.active&&s2WorldIndex===1) {
+        let rp=s2.redHerringPipe, sx=rp.x-cam;
+        if(sx>-100&&sx<canvas.width+100) {
+            ctx.fillStyle='#cc0000'; ctx.fillRect(sx,rp.y,rp.w,rp.h);
+            ctx.fillStyle='#ff2222'; ctx.fillRect(sx+5,rp.y+5,rp.w-10,20);
+            ctx.fillStyle='#990000'; ctx.fillRect(sx-8,rp.y,rp.w+16,18);
+            ctx.fillStyle='#fff'; ctx.font="bold 14px Courier New";
+            ctx.fillText("???",sx+12,rp.y+13);
+            ctx.font="26px Arial"; ctx.fillText("🎣",sx+20,rp.y-10);
+        }
+    }
+
     ctx.font="26px Arial";
     s2.foodItems.forEach(f=>{
         if(f.collected) return;
@@ -835,11 +971,6 @@ function drawStage2() {
         }
         if(e.stun>0) ctx.globalAlpha=0.5+Math.sin(e.stun*0.5)*0.5;
         ctx.font="38px Arial"; ctx.fillText(getEnemyChar(e.type),-19,wobble+20);
-        if(e.type==='steak'){
-            ctx.strokeStyle='#8B4513'; ctx.lineWidth=3;
-            ctx.beginPath();ctx.moveTo(-8,20);ctx.lineTo(-8+wobble,36);ctx.stroke();
-            ctx.beginPath();ctx.moveTo(8,20);ctx.lineTo(8-wobble,36);ctx.stroke();
-        }
         ctx.globalAlpha=1; ctx.restore();
     });
 
@@ -926,22 +1057,572 @@ function shadeColor(hex, amt) {
 }
 
 function drawPlayer() {
-    let px=currentStage===2?player.x-s2.cameraX:player.x, py=player.y;
+    let px=currentStage===2?player.x-s2.cameraX:(currentStage===3?player.x-s3.cameraX:player.x), py=player.y;
     player.frame+=0.25;
     const run=Math.sin(player.frame)*15;
-    let bodyColor=starTimer>0?`hsl(${Date.now()%360},100%,60%)`:(rainbowTimer>0?`hsl(${Date.now()%360},80%,50%)`:"#27ae60");
+    let bodyColor=starTimer>0?`hsl(${Date.now()%360},100%,60%)`:(rainbowTimer>0?`hsl(${Date.now()%360},80%,50%)`:
+        (currentStage===3?(sunflowerTimer>0?'#ffdd00':'#00ffcc'):"#27ae60"));
     let hScale=(powerUpTimer>0||megaJumpTimer>0)?"60px":"45px";
+
+    // Stage 3 particle trail
+    if(currentStage===3&&(leftPressed||rightPressed)) {
+        s3ParticleTrail.push({x:px+20,y:py+60,life:25,color:`hsl(${(Date.now()/5)%360},100%,60%)`});
+    }
+    s3ParticleTrail=s3ParticleTrail.filter(p=>p.life>0);
+    s3ParticleTrail.forEach(p=>{
+        ctx.globalAlpha=p.life/25;
+        ctx.fillStyle=p.color;
+        ctx.beginPath(); ctx.arc(p.x,p.y,5,0,Math.PI*2); ctx.fill();
+        p.life--;
+    });
+    ctx.globalAlpha=1;
+
     ctx.strokeStyle="#333"; ctx.lineWidth=4; ctx.beginPath();
     if(!player.grounded||currentWorld===9){ctx.moveTo(px+20,py+65);ctx.lineTo(px+10,py+80);ctx.moveTo(px+20,py+65);ctx.lineTo(px+30,py+80);}
     else{ctx.moveTo(px+20,py+65);ctx.lineTo(px+20+run,py+90);ctx.moveTo(px+20,py+65);ctx.lineTo(px+20-run,py+90);}
     ctx.stroke();
     ctx.fillStyle=bodyColor; ctx.fillRect(px+10,py+40,20,30);
     ctx.font=hScale+" Arial"; ctx.fillText(player.head,px,py+45);
+    if(currentStage===3&&sunflowerTimer>0) {
+        ctx.font="22px Arial"; ctx.fillText("🌻",px+30,py+20);
+        if(Math.random()<0.3) s3.particles.push({x:px+20,y:py+50,vx:(Math.random()-0.5)*3,vy:-Math.random()*2,life:20,color:'#ffdd00'});
+    }
+}
+
+// ===================== STAGE 3 SETUP =====================
+function startStage3(worldIdx) {
+    currentStage=3; s3WorldIndex=worldIdx;
+    worldDistance=0;
+    energy=100; powerUpTimer=0; rainbowTimer=0; megaJumpTimer=0; starTimer=0; sunflowerTimer=0;
+    player.x=80; player.y=-100; player.dy=0; player.dx=0; jumpCount=0;
+    s3.cameraX=0; s3.flagReached=false; s3.flagRising=false; s3.flagRiseY=0;
+    s3.fireworks=[]; s3.particles=[]; s3.levelBuilt=false; s3.bgParticles=[]; s3.glowPulse=0;
+    s3Projectiles=[]; s3ParticleTrail=[]; sunflowerTimer=0;
+    obstacles=[]; items=[]; decor=[]; pipes=[]; pitfalls=[];
+    mobileControlsEl.classList.add('active');
+    s2uiEl.style.display='none'; bossHpUiEl.style.display='none';
+    s3uiEl.style.display='inline';
+    gameActive=true;
+    let theme=s3Worlds[worldIdx]||s3Worlds[1];
+    document.body.style.background=theme.bg;
+    buildS3Level(worldIdx);
+    updateS3UI();
+    // Spawn bg particles
+    for(let i=0;i<30;i++) {
+        s3.bgParticles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,vx:(Math.random()-0.5)*0.5,vy:-Math.random()*0.5-0.2,size:Math.random()*4+1,life:200+Math.random()*200,maxLife:400,color:`hsl(${Math.random()*360},100%,60%)`});
+    }
+}
+
+// ===================== BUILD S3 LEVEL =====================
+function buildS3Level(worldIdx) {
+    s3.levelBuilt=true; s3.boxes=[]; s3.enemies=[]; s3.platforms=[]; s3.foodItems=[]; s3.coins=[];
+    const GL=canvas.height-80;
+    s3.levelWidth=9000+worldIdx*600;
+    s3.flagX=s3.levelWidth-500;
+
+    let plats=[];
+    let xCursor=300, yBase=GL-140;
+    let numPlats=22+worldIdx*2;
+    for(let i=0;i<numPlats;i++){
+        let w=90+Math.random()*120, h=20;
+        let x=xCursor+80+Math.random()*140;
+        let y=yBase-Math.random()*180-i*(worldIdx>5?12:6);
+        y=Math.max(GL-420,Math.min(GL-80,y));
+        plats.push({x,y,w,h,type:'neon',glowColor:`hsl(${(i*30+worldIdx*40)%360},100%,60%)`,pulse:Math.random()*Math.PI*2});
+        xCursor=x+w;
+    }
+    s3.platforms=plats;
+
+    // Destructible blocks
+    for(let i=0;i<16+worldIdx*2;i++){
+        let x=400+i*(s3.levelWidth/(16+worldIdx*2))*0.85+Math.random()*80;
+        let y=GL-170-Math.random()*150;
+        s3.platforms.push({x,y,w:40,h:40,type:'s3_destructible',destroyed:false,glowColor:'#ff00ff',pulse:0});
+    }
+
+    // Question boxes
+    let s3Rewards=['sunflower','double_jump','shield','invincible','mega_jump','ammo','heart'];
+    for(let i=0;i<12+worldIdx;i++){
+        let x=500+i*(s3.levelWidth/(12+worldIdx))*0.85+Math.random()*60;
+        let y=GL-220-Math.random()*130;
+        s3.boxes.push({x,y,w:44,h:44,hit:false,popped:false,bounceAnim:0,reward:s3Rewards[Math.floor(Math.random()*s3Rewards.length)],glowColor:`hsl(${Math.random()*360},100%,60%)`});
+    }
+
+    // Enemies — corrupted meat corp suits
+    let theme=s3Worlds[worldIdx]||s3Worlds[1];
+    let enemyCount=14+worldIdx*3;
+    for(let i=0;i<enemyCount;i++){
+        let x=500+i*(s3.levelWidth/enemyCount)*0.88+Math.random()*80;
+        let etype=theme.enemyTypes[Math.floor(Math.random()*theme.enemyTypes.length)];
+        let hp=getS3EnemyHp(etype,worldIdx);
+        let spd=etype==='milk_bot'?4:(etype==='factory_tank'?1.5:2.5);
+        spd+=worldIdx*0.2;
+        let y=GL-45;
+        if(i%4===0&&plats.length>0){
+            let plat=plats[Math.floor(Math.random()*plats.length)];
+            x=plat.x+Math.random()*Math.max(0,plat.w-40);
+            y=plat.y-45;
+        }
+        s3.enemies.push({x,y,w:44,h:44,type:etype,dy:0,dx:-spd,speed:spd,
+            alive:true,dead:false,deadTimer:0,baseY:y,hp,maxHp:hp,
+            frame:0,stun:0,glowPhase:Math.random()*Math.PI*2});
+    }
+
+    // Food
+    let foodChars=['🍎','🥦','🫐','🥑','🍇','🌽','🥕','🍓','🥬','🌱'];
+    for(let i=0;i<60;i++){
+        s3.foodItems.push({x:300+i*((s3.levelWidth-400)/60)+Math.random()*60,y:GL-100-Math.random()*140,char:foodChars[Math.floor(Math.random()*foodChars.length)],collected:false});
+    }
+    // Ammo pickups
+    for(let i=0;i<15+worldIdx;i++){
+        s3.foodItems.push({x:400+i*(s3.levelWidth/16)+Math.random()*60,y:GL-110-Math.random()*100,char:'🌿',collected:false,isAmmo:true});
+    }
+    // Sunflowers as power-up items
+    for(let i=0;i<5+worldIdx;i++){
+        s3.foodItems.push({x:600+i*(s3.levelWidth/6)+Math.random()*100,y:GL-130-Math.random()*80,char:'🌻',collected:false,isSunflower:true});
+    }
+
+    // Coins
+    for(let i=0;i<15+worldIdx*2;i++){
+        s3.coins.push({x:400+i*(s3.levelWidth/(15+worldIdx*2))+Math.random()*60,y:GL-120-Math.random()*100,collected:false});
+    }
+
+    let cfg=getS3ShootConfig(worldIdx);
+    s3Ammo=cfg.ammoMax; s3MaxAmmo=cfg.ammoMax;
+}
+
+function getS3EnemyHp(type, worldIdx) {
+    let base=type==='factory_tank'?4:(type==='milk_bot'?3:(type==='burger_drone'?2:2));
+    return base+Math.floor(worldIdx*0.5);
+}
+
+function getS3EnemyChar(type) {
+    if(type==='corp_suit') return '👔';
+    if(type==='milk_bot') return '🥛';
+    if(type==='burger_drone') return '🍔';
+    if(type==='factory_tank') return '🏭';
+    return '👔';
+}
+
+// ===================== STAGE 3 UPDATE =====================
+function updateStage3() {
+    s3.glowPulse+=0.05;
+    if(s3.flagRising){
+        s3.flagRiseY>20 ? s3.flagRiseY-=4 : endS3World();
+    }
+    s3.fireworks.forEach(f=>{f.x+=f.vx;f.y+=f.vy;f.vy+=0.08;f.life--;});
+    s3.fireworks=s3.fireworks.filter(f=>f.life>0);
+    if(!gameActive) return;
+
+    // Spawn bg particles
+    if(Math.random()<0.15) {
+        s3.bgParticles.push({x:Math.random()*canvas.width,y:canvas.height,vx:(Math.random()-0.5)*0.8,vy:-Math.random()*1.5-0.5,size:Math.random()*3+1,life:150+Math.random()*150,maxLife:300,color:`hsl(${Math.random()*360},100%,70%)`});
+    }
+    s3.bgParticles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life--;});
+    s3.bgParticles=s3.bgParticles.filter(p=>p.life>0);
+
+    const GL=canvas.height-80, SPEED=5+(s3WorldIndex*0.25), GRAVITY=0.65;
+    player.dx=0;
+    if(leftPressed) player.dx=-SPEED;
+    if(rightPressed) player.dx=SPEED;
+
+    if(sunflowerTimer>0) {
+        sunflowerTimer--;
+        player.dy=Math.max(player.dy-0.3,-5);
+    }
+    player.x+=player.dx;
+
+    let targetCam=player.x-canvas.width*0.35;
+    targetCam=Math.max(0,Math.min(targetCam,s3.levelWidth-canvas.width));
+    s3.cameraX+=(targetCam-s3.cameraX)*0.15;
+    player.x=Math.max(10,Math.min(player.x,s3.levelWidth-10-player.w));
+
+    player.dy+=GRAVITY; player.y+=player.dy; player.grounded=false;
+    if(player.y+player.h>=GL){player.y=GL-player.h;player.dy=0;player.grounded=true;jumpCount=0;}
+
+    // Platform collision
+    let allSolids=[...s3.platforms.filter(p=>!p.destroyed),...s3.boxes.filter(b=>!b.popped)];
+    allSolids.forEach(p=>{
+        let overlap_x=player.x+player.w>p.x&&player.x<p.x+p.w;
+        let wasAbove=(player.y+player.h-player.dy)<=p.y+2;
+        if(overlap_x){
+            if(wasAbove&&player.dy>=0&&player.y+player.h>=p.y&&player.y+player.h<=p.y+p.h+10){
+                player.y=p.y-player.h; player.dy=0; player.grounded=true; jumpCount=0;
+            } else if(!wasAbove&&player.dy<0&&player.y<=p.y+p.h&&player.y>=p.y){
+                player.y=p.y+p.h; player.dy=0;
+                if(p.reward!==undefined&&!p.hit) hitS3Box(p);
+                else if(p.type==='s3_destructible'&&!p.destroyed){
+                    p.destroyed=true; playBoxHitSound();
+                    for(let i=0;i<10;i++) s3.particles.push({x:p.x+20,y:p.y,vx:(Math.random()-0.5)*6,vy:-Math.random()*5-2,life:35,color:p.glowColor||'#ff00ff'});
+                }
+            }
+        }
+    });
+
+    // S3 Projectiles
+    s3Projectiles.forEach(p=>{
+        p.x+=p.vx; p.y+=p.vy; p.life--;
+        if(p.bounces>0){
+            if(p.x<0||p.x>s3.levelWidth){p.vx*=-1;p.bounces--;}
+            if(p.y<0){p.vy*=-1;p.bounces--;}
+        }
+        s3.enemies.forEach(e=>{
+            if(!e.alive||e.dead) return;
+            if(p.life>0&&p.x>e.x&&p.x<e.x+e.w&&p.y>e.y&&p.y<e.y+e.h){
+                e.hp-=p.damage; p.life=0;
+                playSound(350,'sawtooth',0.05,0.1,-120);
+                for(let i=0;i<6;i++) s3.particles.push({x:e.x+22,y:e.y+22,vx:(Math.random()-0.5)*5,vy:-Math.random()*4,life:25,color:`hsl(${Math.random()*360},100%,60%)`});
+                if(e.hp<=0){e.dead=true;e.deadTimer=35;energy=Math.min(100,energy+4);}
+                else e.stun=25;
+            }
+        });
+    });
+    s3Projectiles=s3Projectiles.filter(p=>p.life>0);
+
+    // Enemy update
+    s3.enemies.forEach(e=>{
+        if(!e.alive&&!e.dead) return;
+        if(e.dead){e.deadTimer--;if(e.deadTimer<=0)e.alive=false;return;}
+        if(e.stun>0){e.stun--;return;}
+        e.frame+=0.12; e.glowPhase+=0.08;
+        if(e.type==='milk_bot'){e.dy+=0.4;e.y+=e.dy;if(e.y>=e.baseY){e.y=e.baseY;e.dy=-8;}}
+        e.x+=e.dx;
+        if(e.x<50||e.x+e.w>s3.levelWidth-50) e.dx*=-1;
+        let hitX=player.x+player.w>e.x&&player.x<e.x+e.w;
+        let hitY=player.y+player.h>e.y&&player.y<e.y+e.h;
+        if(hitX&&hitY){
+            let wasAbove=(player.y+player.h-player.dy)<e.y+e.h*0.4;
+            if(wasAbove&&player.dy>0){
+                e.hp--; player.dy=-11;
+                if(e.hp<=0){
+                    e.dead=true;e.deadTimer=35;playStompSound();energy=Math.min(100,energy+6);
+                    for(let i=0;i<12;i++) s3.particles.push({x:e.x+22,y:e.y,vx:(Math.random()-0.5)*7,vy:-Math.random()*5,life:28,color:`hsl(${Math.random()*360},100%,60%)`});
+                } else {e.stun=45;playSound(300,'square',0.1,0.15,-100);}
+            } else if(starTimer<=0){
+                energy-=18; playSound(150,'sawtooth',0.2,0.2,-50);
+                if(energy<=0){die("MEAT");return;}
+                player.x+=player.dx>=0?-30:30;
+            }
+        }
+    });
+
+    // Food/sunflower collection
+    s3.foodItems.forEach(f=>{
+        if(f.collected) return;
+        if(player.x+player.w>f.x&&player.x<f.x+34&&player.y+player.h>f.y&&player.y<f.y+34){
+            f.collected=true;
+            if(f.isSunflower){sunflowerTimer=400;playNeonSound();showS3Popup(f.x-s3.cameraX,f.y,'🌻 FLIGHT!');}
+            else if(f.isAmmo){s3Ammo=Math.min(s3MaxAmmo,s3Ammo+10);playSound(600,'sine',0.1,0.1,200);}
+            else{energy=Math.min(100,energy+9);playSound(700,'sine',0.1,0.08);}
+            updateS3UI();
+        }
+    });
+
+    // Coins
+    s3.coins.forEach(c=>{
+        if(c.collected) return;
+        if(player.x+player.w>c.x&&player.x<c.x+24&&player.y+player.h>c.y&&player.y<c.y+24){
+            c.collected=true; s2Coins++;
+            localStorage.setItem('goDeanCoins',s2Coins);
+            playCoinSound();
+        }
+    });
+
+    s3.particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.15;p.life--;});
+    s3.particles=s3.particles.filter(p=>p.life>0);
+    s3.boxes.forEach(b=>{if(b.bounceAnim>0)b.bounceAnim--;});
+
+    energy-=0.012; distance+=1; worldDistance+=1;
+    if(energy<=0){die("ENERGY");return;}
+    if(powerUpTimer>0)powerUpTimer--; if(rainbowTimer>0)rainbowTimer--;
+    if(megaJumpTimer>0)megaJumpTimer--; if(starTimer>0)starTimer--;
+
+    scoreEl.innerText=Math.max(0,Math.ceil(energy));
+    distEl.innerText=Math.floor(distance);
+    let theme=s3Worlds[s3WorldIndex]||s3Worlds[1];
+    worldEl.innerText=`S3-W${s3WorldIndex} [${theme.name}]`;
+
+    if(!s3.flagReached&&player.x+player.w>s3.flagX&&player.x<s3.flagX+30){
+        s3.flagReached=true; s3.flagRising=true; s3.flagRiseY=300;
+        playFlagSound(); gameActive=false;
+    }
+}
+
+function hitS3Box(box) {
+    box.hit=true; box.bounceAnim=14; playBoxHitSound();
+    let reward=box.reward, px=box.x-s3.cameraX, py=box.y;
+    setTimeout(()=>{box.popped=true;},300);
+    playNeonSound();
+    if(reward==='sunflower'){sunflowerTimer=500;showS3Popup(px,py,'🌻 FLIGHT!');}
+    else if(reward==='double_jump'){powerUpTimer=700;showS3Popup(px,py,'🫐 DBL JUMP!');}
+    else if(reward==='shield'){rainbowTimer=500;showS3Popup(px,py,'🌈 SHIELD!');}
+    else if(reward==='invincible'){starTimer=600;showS3Popup(px,py,'⭐ INVINCIBLE!');}
+    else if(reward==='mega_jump'){megaJumpTimer=700;showS3Popup(px,py,'🍄 MEGA JUMP!');}
+    else if(reward==='ammo'){s3Ammo=Math.min(s3MaxAmmo,s3Ammo+20);updateS3UI();showS3Popup(px,py,'✨ +AMMO!');}
+    else if(reward==='heart'){energy=Math.min(100,energy+50);showS3Popup(px,py,'❤️ +ENERGY!');}
+}
+
+let s3Popups=[];
+function showS3Popup(x,y,text){s3Popups.push({x,y,text,life:90});}
+
+function endS3World() {
+    s3.flagRising=false;
+    if(s3WorldIndex>=10){showFinalVictory();return;}
+    for(let i=0;i<5;i++){
+        setTimeout(()=>{
+            for(let j=0;j<20;j++){
+                let angle=(j/20)*Math.PI*2,spd=Math.random()*5+3;
+                let cols=['#00ffcc','#ff00ff','#ffeb3b','#00ff88','#ff3399'];
+                s3.fireworks.push({x:s3.flagX-s3.cameraX+Math.random()*100,y:canvas.height-200-Math.random()*150,vx:Math.cos(angle)*spd,vy:Math.sin(angle)*spd,color:cols[Math.floor(Math.random()*cols.length)],life:80});
+            }
+            playSound(400+i*120,'sine',0.4,0.12,250);
+        },i*280);
+    }
+    setTimeout(()=>{
+        let nextW=s3WorldIndex+1;
+        stageTransitionState='s3worldcomplete';
+        let theme=s3Worlds[nextW]||s3Worlds[10];
+        stageTitleEl.style.animation='flash 0.8s infinite';
+        stageTitleEl.style.color='#00ffcc';
+        stageTitleEl.style.fontSize='38px';
+        stageTitleEl.innerText=`✅ S3-W${s3WorldIndex} COMPLETE!`;
+        stageMsgEl.innerHTML=`NEXT: <span style="color:#afff94;">S3-W${nextW} — ${theme.name}</span><br><br><span style="color:#ff3333;font-size:16px;">The animal agricultural industry is destroying the planet.</span><br><span style="color:#00ffcc;">Keep veganing. 🌱</span>`;
+        document.getElementById('stageTapPrompt').innerText='TAP TO CONTINUE';
+        stageOverlayEl.classList.add('active');
+    },2500);
+}
+
+function showFinalVictory() {
+    stageTransitionState='final_victory';
+    stageTitleEl.style.animation='flash 0.5s infinite';
+    stageTitleEl.style.color='#00ffcc';
+    stageTitleEl.style.fontSize='30px';
+    stageTitleEl.innerText='🌍 YOU HAVE ASCENDED 🌍';
+    stageMsgEl.innerHTML=
+        '<span style="color:#00ffcc;font-size:20px;font-weight:bold;">The animals thank you.</span><br><br>' +
+        '<span style="color:#ff3333;font-weight:bold;">The animal agricultural industry is destroying the planet.</span><br>' +
+        '<span style="color:#afff94;">Keep veganing. Every meal matters.</span><br><br>' +
+        '<span style="color:#ffeb3b;font-size:18px;">🌱 Land use. Water waste. Emissions. Deforestation.</span><br>' +
+        '<span style="color:#fff;font-size:16px;">Going vegan is the single biggest thing you can do<br>to reduce your environmental impact.</span><br><br>' +
+        '<span style="color:#00ffcc;font-weight:bold;">🏆 Created by Earthling Official 🏆</span>';
+    document.getElementById('stageTapPrompt').innerText='TAP TO PLAY AGAIN';
+    stageOverlayEl.classList.add('active');
+    window._finalLeafTimer=setInterval(()=>{
+        for(let i=0;i<5;i++){
+            let hue=Math.random()*360;
+            s3.fireworks.push({x:Math.random()*canvas.width,y:-20,vx:(Math.random()-0.5)*2,vy:Math.random()*3+1,color:`hsl(${hue},100%,60%)`,life:220,isLeaf:true});
+        }
+    },150);
+}
+
+// ===================== DRAW STAGE 3 =====================
+function drawStage3() {
+    const GL=canvas.height-80, cam=Math.floor(s3.cameraX);
+    let theme=s3Worlds[s3WorldIndex]||s3Worlds[1];
+    let t=Date.now()/1000;
+
+    // Animated neon gradient background
+    let grad=ctx.createLinearGradient(0,0,0,canvas.height);
+    grad.addColorStop(0,theme.bgColor1); grad.addColorStop(1,theme.bgColor2);
+    ctx.fillStyle=grad; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    // Animated background grid lines (cyberpunk vibe)
+    ctx.save();
+    ctx.strokeStyle=`rgba(0,255,200,0.07)`;
+    ctx.lineWidth=1;
+    let gridOff=(t*20)%60;
+    for(let gx=0;gx<canvas.width;gx+=60) {ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,canvas.height);ctx.stroke();}
+    for(let gy=gridOff;gy<canvas.height;gy+=60) {ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(canvas.width,gy);ctx.stroke();}
+    ctx.restore();
+
+    // Background floating particles
+    s3.bgParticles.forEach(p=>{
+        ctx.globalAlpha=(p.life/p.maxLife)*0.7;
+        ctx.fillStyle=p.color;
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2); ctx.fill();
+    });
+    ctx.globalAlpha=1;
+
+    // Deco emojis parallax
+    ctx.font="55px Arial"; ctx.globalAlpha=0.18;
+    for(let i=0;i<10;i++) ctx.fillText(theme.deco, 80+i*480-(cam*0.1), 80+(i%3)*30);
+    ctx.globalAlpha=1;
+
+    // Glowing ground
+    let groundGlow=ctx.createLinearGradient(0,GL-8,0,GL+80);
+    groundGlow.addColorStop(0,theme.ground);
+    groundGlow.addColorStop(1,theme.bgColor2);
+    ctx.fillStyle=groundGlow; ctx.fillRect(0,GL,canvas.width,80);
+    ctx.shadowColor=theme.ground; ctx.shadowBlur=18;
+    ctx.fillStyle=theme.ground; ctx.fillRect(0,GL,canvas.width,6);
+    ctx.shadowBlur=0;
+
+    // Platforms with glow
+    s3.platforms.forEach(p=>{
+        if(p.destroyed) return;
+        let sx=p.x-cam;
+        if(sx>canvas.width+80||sx+p.w<-80) return;
+        let pulse=Math.sin(t*2+p.pulse)*0.4+0.6;
+        ctx.shadowColor=p.glowColor||'#00ffcc'; ctx.shadowBlur=12*pulse;
+        if(p.type==='neon'){
+            ctx.fillStyle=p.glowColor||'#00ffcc';
+            ctx.fillRect(sx,p.y,p.w,p.h);
+            ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(sx+3,p.y+4,p.w-6,p.h-6);
+        } else if(p.type==='s3_destructible'){
+            ctx.fillStyle=p.glowColor||'#ff00ff';
+            ctx.fillRect(sx,p.y,p.w,p.h);
+            ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(sx+4,p.y+4,p.w-8,p.h-8);
+            ctx.fillStyle=p.glowColor||'#ff00ff'; ctx.font="bold 16px Courier New";
+            ctx.fillText("X",sx+14,p.y+28);
+        }
+        ctx.shadowBlur=0;
+    });
+
+    // Boxes with neon glow
+    s3.boxes.forEach(b=>{
+        if(!b.reward) return;
+        let sx=b.x-cam; if(sx>canvas.width+60||sx<-60) return;
+        let by=b.y-(b.bounceAnim>0?Math.sin(b.bounceAnim/14*Math.PI)*10:0);
+        let pulse=Math.sin(t*3+b.bounceAnim)*0.5+0.5;
+        ctx.shadowColor=b.glowColor||'#ffeb3b'; ctx.shadowBlur=16*pulse;
+        if(b.popped){ctx.fillStyle='#333';ctx.fillRect(sx,by,b.w,b.h);}
+        else{
+            ctx.fillStyle=b.glowColor||'#ffeb3b'; ctx.fillRect(sx,by,b.w,b.h);
+            ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(sx+4,by+4,b.w-8,b.h-8);
+            ctx.fillStyle='#fff'; ctx.font="bold 24px Courier New"; ctx.fillText("?",sx+12,by+32);
+        }
+        ctx.shadowBlur=0;
+    });
+
+    // Food items
+    ctx.font="28px Arial";
+    s3.foodItems.forEach(f=>{
+        if(f.collected) return;
+        let sx=f.x-cam; if(sx>canvas.width+40||sx<-40) return;
+        if(f.isSunflower){
+            ctx.shadowColor='#ffdd00'; ctx.shadowBlur=14+Math.sin(t*3)*4;
+        }
+        ctx.fillText(f.char,sx,f.y);
+        ctx.shadowBlur=0;
+    });
+
+    // Coins with neon ring
+    s3.coins.forEach(c=>{
+        if(c.collected) return;
+        let sx=c.x-cam; if(sx>canvas.width+40||sx<-40) return;
+        let pulse=Math.sin(t*4)*0.5+0.5;
+        ctx.strokeStyle=`hsl(${(t*60+c.x)%360},100%,60%)`; ctx.lineWidth=2;
+        ctx.shadowColor=ctx.strokeStyle; ctx.shadowBlur=8*pulse;
+        ctx.beginPath(); ctx.arc(sx+12,c.y-8,13,0,Math.PI*2); ctx.stroke();
+        ctx.shadowBlur=0;
+        ctx.fillStyle='#ffd700'; ctx.beginPath(); ctx.arc(sx+12,c.y-8,10,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#fff'; ctx.font="bold 12px Courier New"; ctx.fillText("$",sx+7,c.y-3);
+    });
+
+    // Flag
+    let fpx=s3.flagX-cam;
+    if(fpx>-60&&fpx<canvas.width+60){
+        ctx.shadowColor='#00ffcc'; ctx.shadowBlur=16;
+        ctx.fillStyle='#00ffcc'; ctx.fillRect(fpx+12,GL-320,6,320);
+        ctx.shadowBlur=0;
+        let fy=GL-320+s3.flagRiseY;
+        ctx.font="34px Arial"; ctx.fillText("🌱",fpx+16,fy);
+    }
+
+    // Enemies
+    s3.enemies.forEach(e=>{
+        if(!e.alive) return;
+        let sx=e.x-cam; if(sx>canvas.width+70||sx<-70) return;
+        if(e.dead){
+            ctx.globalAlpha=e.deadTimer/35; ctx.font="38px Arial";
+            ctx.fillText(getS3EnemyChar(e.type),sx,e.y+38); ctx.globalAlpha=1;
+            return;
+        }
+        let wobble=Math.sin(e.frame)*3;
+        let glowPulse=Math.sin(e.glowPhase)*0.5+0.5;
+        ctx.save(); ctx.translate(sx+22,e.y+22);
+        if(e.dx>0) ctx.scale(-1,1);
+        // HP bar
+        if(e.maxHp>1){
+            let barW=44, filled=(e.hp/e.maxHp)*barW;
+            ctx.fillStyle='#111'; ctx.fillRect(-22,-22,barW,5);
+            ctx.fillStyle=`hsl(${120*(e.hp/e.maxHp)},100%,50%)`; ctx.fillRect(-22,-22,filled,5);
+        }
+        if(e.stun>0){ctx.globalAlpha=0.5+Math.sin(e.stun*0.5)*0.5;}
+        ctx.shadowColor=`hsl(${(Date.now()/10+e.x)%360},100%,60%)`;
+        ctx.shadowBlur=12*glowPulse;
+        ctx.font="40px Arial"; ctx.fillText(getS3EnemyChar(e.type),-20,wobble+22);
+        ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.restore();
+    });
+
+    // Projectiles
+    ctx.font="24px Arial";
+    s3Projectiles.forEach(p=>{
+        let sx=p.x-cam;
+        ctx.shadowColor='#00ffcc'; ctx.shadowBlur=10;
+        ctx.fillText(p.char,sx,p.y);
+        ctx.shadowBlur=0;
+    });
+
+    drawPlayer();
+
+    // Particles
+    s3.particles.forEach(p=>{
+        ctx.globalAlpha=p.life/35; ctx.fillStyle=p.color;
+        ctx.shadowColor=p.color; ctx.shadowBlur=8;
+        ctx.beginPath(); ctx.arc(p.x-cam,p.y,4,0,Math.PI*2); ctx.fill();
+        ctx.shadowBlur=0;
+    });
+    ctx.globalAlpha=1;
+
+    // Fireworks/leaves
+    s3.fireworks.forEach(f=>{
+        ctx.globalAlpha=f.life/(f.isLeaf?220:90);
+        if(f.isLeaf){ctx.font="22px Arial";ctx.fillText("🌿",f.x,f.y);}
+        else{ctx.fillStyle=f.color;ctx.shadowColor=f.color;ctx.shadowBlur=8;ctx.beginPath();ctx.arc(f.x,f.y,4,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
+    });
+    ctx.globalAlpha=1;
+
+    // S3 popups
+    s3Popups.forEach(p=>{
+        ctx.globalAlpha=p.life/90;
+        ctx.fillStyle='#00ffcc'; ctx.strokeStyle='#000'; ctx.lineWidth=3;
+        ctx.shadowColor='#00ffcc'; ctx.shadowBlur=10;
+        ctx.font="bold 18px 'Courier New'"; ctx.strokeText(p.text,p.x-40,p.y-10); ctx.fillText(p.text,p.x-40,p.y-10);
+        p.y-=1; p.life--; ctx.shadowBlur=0;
+    });
+    s3Popups=s3Popups.filter(p=>p.life>0); ctx.globalAlpha=1;
+
+    // Ammo bar
+    let s3Cfg=getS3ShootConfig(s3WorldIndex);
+    let barMaxW=120, barFill=(s3Ammo/s3Cfg.ammoMax)*barMaxW;
+    ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(canvas.width-145,canvas.height-32,barMaxW+24,22);
+    ctx.fillStyle='#00ffcc'; ctx.shadowColor='#00ffcc'; ctx.shadowBlur=6;
+    ctx.fillRect(canvas.width-133,canvas.height-28,barFill,14);
+    ctx.shadowBlur=0;
+    ctx.fillStyle='#fff'; ctx.font="11px Courier New"; ctx.fillText("AMMO",canvas.width-172,canvas.height-18);
+
+    // Power-up indicators
+    let inds=[];
+    if(powerUpTimer>0) inds.push('🫐 DBL JUMP');
+    if(rainbowTimer>0) inds.push('🌈 SHIELD');
+    if(starTimer>0) inds.push('⭐ INVINCIBLE');
+    if(megaJumpTimer>0) inds.push('🍄 MEGA JUMP');
+    if(sunflowerTimer>0) inds.push('🌻 FLIGHT');
+    inds.forEach((ind,i)=>{
+        ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(canvas.width-185,10+i*28,175,22);
+        ctx.fillStyle='#00ffcc'; ctx.shadowColor='#00ffcc'; ctx.shadowBlur=6;
+        ctx.font="bold 13px 'Courier New'"; ctx.fillText(ind,canvas.width-181,26+i*28);
+        ctx.shadowBlur=0;
+    });
+
+    if(starTimer>0&&Math.floor(Date.now()/120)%2===0){ctx.fillStyle='rgba(0,255,200,0.08)';ctx.fillRect(0,0,canvas.width,canvas.height);}
 }
 
 // ===================== STAGE 1 UPDATE =====================
 function update() {
     if(currentStage===2){updateStage2();return;}
+    if(currentStage===3){updateStage3();return;}
     if(stageTransitionState==='flag_approach'||stageTransitionState==='flag_rising'||stageTransitionState==='fireworks') updateFlagSequence();
     if(stageTransitionState==='fireworks'||stageTransitionState==='waiting'){
         fireworks.forEach(f=>{f.x+=f.vx;f.y+=f.vy;f.vy+=0.1;f.life--;});
@@ -1096,8 +1777,9 @@ function die(type) {
     gameActive=false; canRestart=false;
     mobileControlsEl.classList.remove('active'); stageOverlayEl.classList.remove('active');
     if(window._victoryLeafTimer){clearInterval(window._victoryLeafTimer);window._victoryLeafTimer=null;}
+    if(window._finalLeafTimer){clearInterval(window._finalLeafTimer);window._finalLeafTimer=null;}
 
-    if(currentStage===2&&type!=="WIN"){
+    if((currentStage===2||currentStage===3)&&type!=="WIN"){
         if(s2Coins>0){
             s2Coins--; localStorage.setItem('goDeanCoins',s2Coins);
             stageTitleEl.style.animation='flash 0.8s infinite'; stageTitleEl.style.color='#ff3333'; stageTitleEl.style.fontSize='36px';
@@ -1105,10 +1787,11 @@ function die(type) {
             let deathMsg=type==="ENERGY"?"You ran out of energy!":
                 (type==="DINO"?"Deanus ate you! 🦖":
                 (type==="SAUSAGE"?"Steamrolled by a sausage 🌭":"Meat got you ☠️"));
-            stageMsgEl.innerHTML=`${deathMsg}<br><br>🪙 Used 1 coin to continue!<br>Coins remaining: ${s2Coins}<br><br><span style="color:#aaa;font-size:16px;">Restarting from Stage 2 - World 1</span>`;
+            let stageLabel=currentStage===3?`Stage 3 - W${s3WorldIndex}`:`Stage 2 - W${s2WorldIndex}`;
+            stageMsgEl.innerHTML=`${deathMsg}<br><br>🪙 Used 1 coin to continue!<br>Coins remaining: ${s2Coins}<br><br><span style="color:#aaa;font-size:16px;">Restarting from ${stageLabel} W1</span>`;
             document.getElementById('stageTapPrompt').innerText='TAP TO CONTINUE';
             stageOverlayEl.classList.add('active');
-            stageTransitionState='s2coinrespawn';
+            stageTransitionState=currentStage===3?'s3coinrespawn':'s2coinrespawn';
             return;
         }
     }
@@ -1123,7 +1806,7 @@ function die(type) {
     else if(type==="MEAT")msg=["meat death ☠️","victim of greed","you meat lemming","meat head"][Math.floor(Math.random()*4)];
 
     scoreEl.innerText="0"; msgEl.style.display='none';
-    s2uiEl.style.display='none'; bossHpUiEl.style.display='none';
+    s2uiEl.style.display='none'; bossHpUiEl.style.display='none'; s3uiEl.style.display='none';
 
     let distFloor=Math.floor(distance);
     let storedDist=parseInt(localStorage.getItem('goDeanBestDistance'))||0;
@@ -1141,14 +1824,14 @@ function die(type) {
     for(let i=pRank;i<10;i++){let pd=scores[i-1].dist,g=Math.floor(pd/(11-i)),nd=pd-Math.floor(Math.random()*g)-100;if(nd<0)nd=Math.max(0,Math.floor(pd*0.8));scores[i]={name:generateTitle(nd),dist:nd,isPlayer:false};}
 
     let jp=distFloor<50000?"L":(distFloor<100000?"OK":"W"), jc=distFloor<50000?"#ff3333":(distFloor<100000?"#ffeb3b":"#32ff7e");
-    let stStr=currentStage===2?` [STAGE 2 - W${s2WorldIndex}]`:"";
+    let stStr=currentStage===2?` [STAGE 2 - W${s2WorldIndex}]`:(currentStage===3?` [STAGE 3 - W${s3WorldIndex}]`:"");
     let sbHtml=`<h1>GO DEAN'S LEADERBOARD</h1><div class="death-reason">${msg}${stStr}</div><div class="judgment" style="color:${jc}">${jp} - ${storedName}</div><table>`;
     scores.forEach((s,idx)=>{
         let isP=s.isPlayer, trC=isP?'class="player-row"':'';
         sbHtml+=`<tr ${trC}><td>${isP?"🔴 #"+(idx+1):"#"+(idx+1)}</td><td>${isP?s.name+" (YOU)":s.name}</td><td>${s.dist}m</td></tr>`;
     });
     sbHtml+=`</table>`;
-    if(currentStage===2) sbHtml+=`<div style="color:#aaa;font-size:14px;margin-bottom:8px;">🪙 No coins left — back to Stage 1</div>`;
+    if(currentStage===2||currentStage===3) sbHtml+=`<div style="color:#aaa;font-size:14px;margin-bottom:8px;">🪙 No coins left — back to Stage 1</div>`;
     sbHtml+=`<div id="restartText">TAP TWICE TO RESTART</div>`;
     scoreboardEl.innerHTML=sbHtml; scoreboardEl.style.display='block';
     playSound(50,'sawtooth',0.5,0.2);
@@ -1158,14 +1841,21 @@ function die(type) {
 function draw() {
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
-    if(stageTransitionState==='s2coinrespawn'||stageTransitionState==='s2worldcomplete'||stageTransitionState==='victory'){
+    if(stageTransitionState==='s2coinrespawn'||stageTransitionState==='s2worldcomplete'||stageTransitionState==='s2victory'){
         if(s2.levelBuilt) drawStage2();
+        update();
+        requestAnimationFrame(draw);
+        return;
+    }
+    if(stageTransitionState==='s3coinrespawn'||stageTransitionState==='s3worldcomplete'||stageTransitionState==='final_victory'){
+        if(s3.levelBuilt) drawStage3();
         update();
         requestAnimationFrame(draw);
         return;
     }
 
     if(currentStage===2){drawStage2();update();requestAnimationFrame(draw);return;}
+    if(currentStage===3){drawStage3();update();requestAnimationFrame(draw);return;}
 
     const s=worldSettings[currentWorld];
     if(currentWorld!==4&&currentWorld!==6&&currentWorld!==7&&currentWorld!==8&&currentWorld!==9&&currentWorld!==10){
@@ -1217,24 +1907,61 @@ function draw() {
 window.addEventListener('mousedown',(e)=>{
     if(e.target===btnLeft||e.target===btnRight||e.target===btnShoot) return;
     if(stageTransitionState==='s2coinrespawn'){stageOverlayEl.classList.remove('active');stageTransitionState='none';startStage2(1);return;}
+    if(stageTransitionState==='s3coinrespawn'){stageOverlayEl.classList.remove('active');stageTransitionState='none';startStage3(1);return;}
     if(stageTransitionState==='s2worldcomplete'){handleS2WorldCompleteTap();return;}
-    if(stageTransitionState==='victory'){
+    if(stageTransitionState==='s3worldcomplete'){handleS3WorldCompleteTap();return;}
+    if(stageTransitionState==='red_herring'){stageOverlayEl.classList.remove('active');stageTransitionState='none';startStage2(7);return;}
+    if(stageTransitionState==='s2victory'){
         if(window._victoryLeafTimer){clearInterval(window._victoryLeafTimer);window._victoryLeafTimer=null;}
+        stageOverlayEl.classList.remove('active');stageTransitionState='s2_to_s3_waiting';stageOverlayPhase=0;
+        stageTitleEl.style.animation='flash 0.6s infinite';stageTitleEl.style.color='#00ffcc';stageTitleEl.style.fontSize='36px';
+        stageTitleEl.innerText='🌍 STAGE 3 UNLOCKED 🌍';
+        stageMsgEl.innerHTML='<span style="color:#ff3333;font-weight:bold;">The animal agricultural industry is destroying the planet.</span><br><br><span style="color:#00ffcc;">Keep veganing. The ascension begins.</span>';
+        document.getElementById('stageTapPrompt').innerText='TAP TO CONTINUE';
+        stageOverlayEl.classList.add('active');
+        return;
+    }
+    if(stageTransitionState==='s2_to_s3_waiting'){handleInput();return;}
+    if(stageTransitionState==='final_victory'){
+        if(window._finalLeafTimer){clearInterval(window._finalLeafTimer);window._finalLeafTimer=null;}
         stageOverlayEl.classList.remove('active');stageTransitionState='none';resetGame();return;
     }
     handleInput();
 },{capture:true});
+
 window.addEventListener('touchstart',(e)=>{
     if(e.target===btnLeft||e.target===btnRight||e.target===btnShoot) return;
     e.preventDefault();
     if(stageTransitionState==='s2coinrespawn'){stageOverlayEl.classList.remove('active');stageTransitionState='none';startStage2(1);return;}
+    if(stageTransitionState==='s3coinrespawn'){stageOverlayEl.classList.remove('active');stageTransitionState='none';startStage3(1);return;}
     if(stageTransitionState==='s2worldcomplete'){handleS2WorldCompleteTap();return;}
-    if(stageTransitionState==='victory'){
+    if(stageTransitionState==='s3worldcomplete'){handleS3WorldCompleteTap();return;}
+    if(stageTransitionState==='red_herring'){stageOverlayEl.classList.remove('active');stageTransitionState='none';startStage2(7);return;}
+    if(stageTransitionState==='s2victory'){
         if(window._victoryLeafTimer){clearInterval(window._victoryLeafTimer);window._victoryLeafTimer=null;}
+        stageOverlayEl.classList.remove('active');stageTransitionState='s2_to_s3_waiting';stageOverlayPhase=0;
+        stageTitleEl.style.animation='flash 0.6s infinite';stageTitleEl.style.color='#00ffcc';stageTitleEl.style.fontSize='36px';
+        stageTitleEl.innerText='🌍 STAGE 3 UNLOCKED 🌍';
+        stageMsgEl.innerHTML='<span style="color:#ff3333;font-weight:bold;">The animal agricultural industry is destroying the planet.</span><br><br><span style="color:#00ffcc;">Keep veganing. The ascension begins.</span>';
+        document.getElementById('stageTapPrompt').innerText='TAP TO CONTINUE';
+        stageOverlayEl.classList.add('active');
+        return;
+    }
+    if(stageTransitionState==='s2_to_s3_waiting'){handleInput();return;}
+    if(stageTransitionState==='final_victory'){
+        if(window._finalLeafTimer){clearInterval(window._finalLeafTimer);window._finalLeafTimer=null;}
         stageOverlayEl.classList.remove('active');stageTransitionState='none';resetGame();return;
     }
     handleInput();
 },{passive:false,capture:true});
+
+function handleS3WorldCompleteTap() {
+    stageOverlayEl.classList.remove('active');
+    stageTransitionState='none';
+    let nextW=s3WorldIndex+1;
+    if(nextW>10) nextW=10;
+    startStage3(nextW);
+}
 
 draw();
 </script>
