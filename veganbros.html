@@ -124,9 +124,6 @@ let inYellowChallenge=false, yellowChallengeLeft=5000, yellowWorldSeed=0;
 let bossTimer=0, bossDino={x:0,dir:-1,state:'spawning'};
 let obstacles=[], items=[], decor=[], pipes=[], pitfalls=[];
 
-// STAGE 1 BERRY BIG FLAG
-let s1BerryBig=false;
-
 // ===================== STAGE 2 STATE =====================
 let s2WorldIndex = 1;
 let s2Coins = parseInt(localStorage.getItem('goDeanCoins'))||0;
@@ -244,13 +241,10 @@ function handleInput() {
     if(stageTransitionState==='waiting') {
         stageOverlayPhase++;
         if(stageOverlayPhase===1) {
-            // Updated Stage 1 -> Stage 2 transition screen
-            stageTitleEl.style.animation='flash 0.8s infinite';
-            stageTitleEl.style.color='#afff94';
-            stageTitleEl.style.fontSize='32px';
-            stageTitleEl.innerText="🌱 CONGRATULATIONS! 🌱";
-            stageMsgEl.innerHTML="You're learning to vegan. Keep going.<br><br><span style='color:#ffeb3b;font-size:20px;'>🌍 Next stage is a whole new world! 🌍</span><br><br><span style='font-size:16px;color:#aaa;'>Stage 2: USE LEFT/RIGHT + SHOOT 🍃 + TAP TO JUMP</span>";
-            document.getElementById('stageTapPrompt').innerText="TAP TO START THE NEW WORLD";
+            stageTitleEl.style.animation='none'; stageTitleEl.style.color='#afff94'; stageTitleEl.style.fontSize='32px';
+            stageTitleEl.innerText="CONGRATULATIONS! YOU'RE LEARNING TO VEGAN";
+            stageMsgEl.innerHTML="The next stage is a whole new world. Keep going! 🌱<br><br><span style='font-size:18px;color:#aaa;'>Stage 2: USE LEFT/RIGHT + SHOOT 🍃 + TAP TO JUMP</span>";
+            document.getElementById('stageTapPrompt').innerText="TAP TO START STAGE 2";
         } else if(stageOverlayPhase>=2) {
             stageOverlayEl.classList.remove('active'); stageTransitionState='none'; startStage2(1);
         }
@@ -271,12 +265,12 @@ function handleInput() {
         }
         return;
     }
-    // Stage 1 jump — berry (s1BerryBig) grants double jump
+    // Stage 1 jump — water (world 5) and sky (world 9) and fly mode excluded from double jump
     if(currentWorld===5||currentWorld===9||flyTimer>0) {
         player.dy=(flyTimer>0||currentWorld===9)?-9:-6; player.grounded=false;
         playSound(300,'triangle',0.1,0.1,100);
     } else {
-        const maxJumps=(powerUpTimer>0||s1BerryBig)?2:1;
+        const maxJumps=powerUpTimer>0?2:1;
         if(player.grounded||jumpCount<maxJumps) {
             player.dy=megaJumpTimer>0?-24:(powerUpTimer>0?-18:-14);
             player.grounded=false; jumpCount++;
@@ -284,9 +278,6 @@ function handleInput() {
         }
     }
 }
-
-window.addEventListener('mousedown',(e)=>{if(e.target===btnLeft||e.target===btnRight||e.target===btnShoot)return; handleInput();});
-window.addEventListener('touchstart',(e)=>{if(e.target===btnLeft||e.target===btnRight||e.target===btnShoot)return; e.preventDefault(); handleInput();},{passive:false});
 
 // ===================== RESET =====================
 function resetGame() {
@@ -298,9 +289,8 @@ function resetGame() {
     stageOverlayEl.classList.remove('active'); mobileControlsEl.classList.remove('active');
     s2.levelBuilt=false; s2.flagReached=false; s2WorldIndex=1; s2Projectiles=[];
     s2uiEl.style.display='none'; bossHpUiEl.style.display='none';
-    s1BerryBig=false;
     gameActive=true; msgEl.style.display='none'; scoreboardEl.style.display='none';
-    player.x=100; player.y=0; player.dy=0; player.dx=0;
+    player.x=100; player.y=0; player.dy=0; player.dx=0; jumpCount=0;
     document.body.style.background=worldSettings[1].bg;
     if(audioCtx.state==='suspended') audioCtx.resume();
 }
@@ -349,7 +339,6 @@ function startStage2(worldIdx) {
 // ===================== BUILD S2 LEVEL =====================
 function buildS2Level(worldIdx) {
     s2.levelBuilt=true; s2.boxes=[]; s2.enemies=[]; s2.platforms=[]; s2.foodItems=[]; s2.coins=[];
-    s2.secretPipes=[];
     const GL=canvas.height-80;
     s2.levelWidth=7000+worldIdx*500;
     s2.flagX=s2.levelWidth-400;
@@ -428,17 +417,6 @@ function buildS2Level(worldIdx) {
             collected:false
         });
     }
-
-    // Secret green pipe in world 1 only — warps to World 7 (Sky City)
-    if(worldIdx===1){
-        s2.secretPipes.push({
-            x: 3500 + Math.random()*500,
-            y: GL-120,
-            w: 70,
-            h: 120,
-            dest: 7
-        });
-    }
 }
 
 function getEnemyHp(type, worldIdx) {
@@ -451,7 +429,6 @@ function getEnemyHp(type, worldIdx) {
 // ===================== BOSS WORLD =====================
 function startBossWorld() {
     s2.levelBuilt=true; s2.boxes=[]; s2.enemies=[]; s2.platforms=[]; s2.foodItems=[]; s2.coins=[];
-    s2.secretPipes=[];
     s2Projectiles=[]; s2.fireworks=[];
     s2.levelWidth=6000; s2.flagX=5800;
     const GL=canvas.height-80;
@@ -533,16 +510,6 @@ function updateStage2() {
             }
         }
     });
-
-    // Secret green pipe collision check
-    if(s2.secretPipes&&s2.secretPipes.length>0){
-        s2.secretPipes.forEach(p=>{
-            if(player.x+player.w>p.x&&player.x<p.x+p.w&&player.y+player.h>p.y&&player.y<p.y+p.h){
-                playSound(700,'sine',0.5,0.12,200);
-                startStage2(p.dest);
-            }
-        });
-    }
 
     updateProjectiles(GL);
     updateS2Enemies(GL);
@@ -839,28 +806,6 @@ function drawStage2() {
         ctx.fillStyle='#b8860b'; ctx.font="bold 12px Courier New"; ctx.fillText("$",sx+7,c.y-3);
     });
 
-    // Draw secret green pipes
-    if(s2.secretPipes&&s2.secretPipes.length>0){
-        s2.secretPipes.forEach(p=>{
-            let sx=p.x-cam;
-            if(sx>canvas.width+80||sx+p.w<-80) return;
-            ctx.fillStyle='#27ae60';
-            ctx.fillRect(sx,p.y,p.w,p.h);
-            ctx.fillStyle='#2ecc71';
-            ctx.fillRect(sx+6,p.y+6,10,p.h-12);
-            ctx.fillStyle='#1e8449';
-            ctx.fillRect(sx-5,p.y,p.w+10,20);
-            ctx.fillStyle='#27ae60';
-            ctx.fillRect(sx-3,p.y+2,p.w+6,16);
-            ctx.fillStyle='rgba(255,255,255,0.6)';
-            ctx.font='18px Arial';
-            ctx.fillText('✨',sx+p.w/2-9,p.y+p.h/2+6);
-            ctx.fillStyle='#fff';
-            ctx.font='bold 10px Courier New';
-            ctx.fillText('W7!',sx+p.w/2-12,p.y-4);
-        });
-    }
-
     let fpx=s2.flagX-cam;
     if(fpx>-50&&fpx<canvas.width+50&&s2WorldIndex!==9){
         ctx.fillStyle='#888'; ctx.fillRect(fpx+12,GL-300,8,300);
@@ -983,8 +928,7 @@ function drawPlayer() {
     player.frame+=0.25;
     const run=Math.sin(player.frame)*15;
     let bodyColor=starTimer>0?`hsl(${Date.now()%360},100%,60%)`:(rainbowTimer>0?`hsl(${Date.now()%360},80%,50%)`:"#27ae60");
-    // Berry makes player bigger in stage 1
-    let hScale=(powerUpTimer>0||megaJumpTimer>0||(currentStage===1&&s1BerryBig))?"60px":"45px";
+    let hScale=(powerUpTimer>0||megaJumpTimer>0)?"60px":"45px";
     ctx.strokeStyle="#333"; ctx.lineWidth=4; ctx.beginPath();
     if(!player.grounded||currentWorld===9){ctx.moveTo(px+20,py+65);ctx.lineTo(px+10,py+80);ctx.moveTo(px+20,py+65);ctx.lineTo(px+30,py+80);}
     else{ctx.moveTo(px+20,py+65);ctx.lineTo(px+20+run,py+90);ctx.moveTo(px+20,py+65);ctx.lineTo(px+20-run,py+90);}
@@ -1006,8 +950,6 @@ function update() {
     distance+=2; worldDistance+=2; energy-=0.035;
     if(powerUpTimer>0)powerUpTimer--; if(rainbowTimer>0)rainbowTimer--;
     if(megaJumpTimer>0)megaJumpTimer--; if(flyTimer>0)flyTimer--;
-    // Berry big expires with powerUpTimer
-    if(s1BerryBig&&powerUpTimer<=0) s1BerryBig=false;
     bgRainbowX-=1;
 
     if(inYellowChallenge){
@@ -1107,12 +1049,7 @@ function update() {
         item.x-=8;
         let hX=(player.x<item.x+45&&player.x+player.w>item.x),hY=(player.y<item.y+45&&player.y+player.h>item.y);
         if(hX&&hY){
-            if(item.type==='powerup'){
-                powerUpTimer=600;
-                // In stage 1, berry also makes player bigger
-                if(currentStage===1) s1BerryBig=true;
-                playSound(500,'sine',0.3,0.1,400);
-            }
+            if(item.type==='powerup'){powerUpTimer=600;playSound(500,'sine',0.3,0.1,400);}
             else if(item.type==='rainbow'){rainbowTimer=400;playSound(600,'sine',0.5,0.1,500);}
             else if(item.type==='megajump'){megaJumpTimer=600;playSound(700,'sine',0.3,0.1,600);}
             else if(item.type==='fly'){flyTimer=600;playSound(800,'square',0.4,0.1,700);}
@@ -1141,11 +1078,9 @@ function updateFlagSequence() {
             for(let i=0;i<6;i++) setTimeout(()=>{spawnFirework(Math.random()*canvas.width,Math.random()*(canvas.height*0.6));playSound(400+i*100,'sine',0.4,0.15,200);},i*350);
             setTimeout(()=>{
                 stageTransitionState='waiting'; stageOverlayPhase=0;
-                stageTitleEl.style.animation='flash 0.8s infinite';
-                stageTitleEl.style.color='#ffeb3b';
-                stageTitleEl.style.fontSize='48px';
+                stageTitleEl.style.animation='flash 0.8s infinite'; stageTitleEl.style.color='#ffeb3b'; stageTitleEl.style.fontSize='48px';
                 stageTitleEl.innerText='🏆 STAGE 1 COMPLETE! 🏆';
-                stageMsgEl.innerHTML='<span style="color:#afff94;font-size:26px;">CONGRATULATIONS!</span><br><br>You\'re learning to vegan.<br>Keep going — next stage is a whole new world!<br><br><span style="font-size:16px;color:#aaa;">Tap once more to enter Stage 2</span>';
+                stageMsgEl.innerHTML='WORLD 4 CONQUERED!<br><span style="font-size:18px;color:#aaa;">You survived the meat gauntlet!</span>';
                 document.getElementById('stageTapPrompt').innerText='TAP TO CONTINUE';
                 stageOverlayEl.classList.add('active');
             },3000);
