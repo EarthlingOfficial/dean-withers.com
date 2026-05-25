@@ -253,7 +253,7 @@ function setLeft(v){leftPressed=v;}function setRight(v){rightPressed=v;}
 function triggerShoot(){if(currentStage===2&&gameActive)doShoot();if(currentStage===3&&gameActive)doS3Shoot();if(currentStage===4&&gameActive)doS4Shoot();if(currentStage===5&&gameActive)doS5Shoot();}
 btnLeft.addEventListener('touchstart',(e)=>{e.preventDefault();setLeft(true);},{passive:false});btnLeft.addEventListener('touchend',(e)=>{e.preventDefault();setLeft(false);},{passive:false});btnLeft.addEventListener('mousedown',()=>setLeft(true));btnLeft.addEventListener('mouseup',()=>setLeft(false));
 btnRight.addEventListener('touchstart',(e)=>{e.preventDefault();setRight(true);},{passive:false});btnRight.addEventListener('touchend',(e)=>{e.preventDefault();setRight(false);},{passive:false});btnRight.addEventListener('mousedown',()=>setRight(true));btnRight.addEventListener('mouseup',()=>setRight(false));
-btnShoot.addEventListener('touchstart',(e)=>{e.preventDefault();triggerShoot();},{passive:false});btnShoot.addEventListener('mousedown',()=>triggerShoot();
+btnShoot.addEventListener('touchstart',(e)=>{e.preventDefault();triggerShoot();},{passive:false});btnShoot.addEventListener('mousedown',()=>triggerShoot());
 
 // ===================== S5 JOYSTICK SETUP =====================
 const joyLeftEl=document.getElementById('joyLeft'),joyRightEl=document.getElementById('joyRight');
