@@ -253,7 +253,7 @@ function setLeft(v){leftPressed=v;}function setRight(v){rightPressed=v;}
 function triggerShoot(){if(currentStage===2&&gameActive)doShoot();if(currentStage===3&&gameActive)doS3Shoot();if(currentStage===4&&gameActive)doS4Shoot();if(currentStage===5&&gameActive)doS5Shoot();}
 btnLeft.addEventListener('touchstart',(e)=>{e.preventDefault();setLeft(true);},{passive:false});btnLeft.addEventListener('touchend',(e)=>{e.preventDefault();setLeft(false);},{passive:false});btnLeft.addEventListener('mousedown',()=>setLeft(true));btnLeft.addEventListener('mouseup',()=>setLeft(false));
 btnRight.addEventListener('touchstart',(e)=>{e.preventDefault();setRight(true);},{passive:false});btnRight.addEventListener('touchend',(e)=>{e.preventDefault();setRight(false);},{passive:false});btnRight.addEventListener('mousedown',()=>setRight(true));btnRight.addEventListener('mouseup',()=>setRight(false));
-btnShoot.addEventListener('touchstart',(e)=>{e.preventDefault();triggerShoot();},{passive:false});btnShoot.addEventListener('mousedown',()=>triggerShoot();
+btnShoot.addEventListener('touchstart',(e)=>{e.preventDefault();triggerShoot();},{passive:false});btnShoot.addEventListener('mousedown',()=>triggerShoot());
 
 // ===================== S5 JOYSTICK SETUP =====================
 const joyLeftEl=document.getElementById('joyLeft'),joyRightEl=document.getElementById('joyRight');
@@ -845,7 +845,7 @@ function die(type){
     if((currentStage===2||currentStage===3||currentStage===4||currentStage===5)&&type!=="WIN"){
         if(s2Coins>0){s2Coins--;localStorage.setItem('goDeanCoins',s2Coins);stageTitleEl.style.animation='flash 0.8s infinite';stageTitleEl.style.color='#ff3333';stageTitleEl.style.fontSize='36px';stageTitleEl.innerText='💀 YOU DIED';
         let deathMsg=type==="ENERGY"?"You ran out of energy!":(type==="DINO"?"Deanus ate you! 🦖":(type==="BURGER"?"The Burger King got you 🍔":(type==="SAUSAGE"?"Steamrolled 🌭":"Meat got you ☠️")));
-        let stL=currentStage===3?`S3-W${s3WorldIndex}`:(currentStage===4?`S4-W${s4WorldIndex}`:(currentStage===5?`S5-W${s5Worldindex}`:`S2-W${s2WorldIndex}`));
+        let stL=currentStage===3?`S3-W${s3WorldIndex}`:(currentStage===4?`S4-W${s4WorldIndex}`:(currentStage===5?`S5-W${s5WorldIndex}`:`S2-W${s2WorldIndex}`));
         stageMsgEl.innerHTML=`${deathMsg}<br><br>🪙 Used 1 coin!<br>Coins left: ${s2Coins}<br><br><span style="color:#aaa;">Restarting ${stL} W1</span>`;document.getElementById('stageTapPrompt').innerText='TAP TO CONTINUE';stageOverlayEl.classList.add('active');
         stageTransitionState=currentStage===3?'s3coinrespawn':(currentStage===4?'s4coinrespawn':(currentStage===5?'s5coinrespawn':'s2coinrespawn'));return;}
     }
