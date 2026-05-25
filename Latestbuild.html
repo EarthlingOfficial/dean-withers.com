@@ -845,7 +845,7 @@ function die(type){
     if((currentStage===2||currentStage===3||currentStage===4||currentStage===5)&&type!=="WIN"){
         if(s2Coins>0){s2Coins--;localStorage.setItem('goDeanCoins',s2Coins);stageTitleEl.style.animation='flash 0.8s infinite';stageTitleEl.style.color='#ff3333';stageTitleEl.style.fontSize='36px';stageTitleEl.innerText='💀 YOU DIED';
         let deathMsg=type==="ENERGY"?"You ran out of energy!":(type==="DINO"?"Deanus ate you! 🦖":(type==="BURGER"?"The Burger King got you 🍔":(type==="SAUSAGE"?"Steamrolled 🌭":"Meat got you ☠️")));
-        let stL=currentStage===3?`S3-W${s3WorldIndex}`:(currentStage===4?`S4-W${s4WorldIndex}`:(currentStage===5?`S5-W${s5Worldindex}`:`S2-W${s2WorldIndex}`));
+        let stL=currentStage===3?`S3-W${s3WorldIndex}`:(currentStage===4?`S4-W${s4WorldIndex}`:(currentStage===5?`S5-W${s5WorldIndex}`:`S2-W${s2WorldIndex}`));
         stageMsgEl.innerHTML=`${deathMsg}<br><br>🪙 Used 1 coin!<br>Coins left: ${s2Coins}<br><br><span style="color:#aaa;">Restarting ${stL} W1</span>`;document.getElementById('stageTapPrompt').innerText='TAP TO CONTINUE';stageOverlayEl.classList.add('active');
         stageTransitionState=currentStage===3?'s3coinrespawn':(currentStage===4?'s4coinrespawn':(currentStage===5?'s5coinrespawn':'s2coinrespawn'));return;}
     }
