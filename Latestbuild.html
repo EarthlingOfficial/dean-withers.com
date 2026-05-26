@@ -886,4 +886,221 @@ function updateStage5(){
     if(s5FireCooldown>0)s5FireCooldown--;
     if(s5DamageFlash>0)s5DamageFlash--;
     if(s5HitAnim>0)s5HitAnim--;
-    if(s5WeaponState==='fire'){s5WeaponBob
+    if(s5WeaponState==='fire'){s5WeaponBob+=3;if(s5WeaponBob>20){s5WeaponState='idle';}}else s5WeaponBob+=0.6;
+
+    // Weapon upgrade check
+    let prevWeapon=s5WeaponType;
+    s5WeaponType=s5WorldIndex>=8?'cannon':(s5WorldIndex>=5?'pistol':'broccoli');
+    if(s5WeaponType!==prevWeapon)updateS5HUD();
+
+    // ============ PC KEYBOARD MOVEMENT ============
+    let moveSpeed=0.045+s5WorldIndex*0.002;
+    let turnSpeed=0.038;
+    let targetFwd=0,targetStr=0,targetTurn=0;
+
+    // WASD
+    if(s5Keys.w)targetFwd+=1;
+    if(s5Keys.s)targetFwd-=1;
+    if(s5Keys.a)targetStr-=1;
+    if(s5Keys.d)targetStr+=1;
+    // Arrow keys = turn
+    if(s5Keys.left)targetTurn-=1;
+    if(s5Keys.right)targetTurn+=1;
+
+    // ============ MOBILE JOYSTICK MOVEMENT ============
+    // Left stick: forward/back + strafe (with dampening)
+    if(s5JoyL.active){targetFwd-=s5JoyL.dy;targetStr+=s5JoyL.dx;}
+    // Right stick: turn
+    if(s5JoyR.active){targetTurn+=s5JoyR.dx;}
+
+    // Smooth velocity (dampening)
+    const DAMP=0.18,TURN_DAMP=0.22;
+    s5Vel.fwd+=(targetFwd-s5Vel.fwd)*DAMP;
+    s5Vel.str+=(targetStr-s5Vel.str)*DAMP;
+    s5Vel.turn+=(targetTurn-s5Vel.turn)*TURN_DAMP;
+
+    // Apply turn (mouse look handled in event)
+    if(!s5MouseLook)s5Cam.angle+=s5Vel.turn*turnSpeed;
+
+    // Apply movement with wall collision
+    let nx=s5Cam.x+Math.cos(s5Cam.angle)*s5Vel.fwd*moveSpeed+Math.cos(s5Cam.angle+Math.PI/2)*s5Vel.str*moveSpeed;
+    let ny=s5Cam.y+Math.sin(s5Cam.angle)*s5Vel.fwd*moveSpeed+Math.sin(s5Cam.angle+Math.PI/2)*s5Vel.str*moveSpeed;
+    // Wall sliding
+    if(s5Cell(nx,s5Cam.y)===0)s5Cam.x=nx;
+    if(s5Cell(s5Cam.x,ny)===0)s5Cam.y=ny;
+
+    // ============ ENEMY AI ============
+    s5Enemies.forEach(e=>{
+        if(!e.alive){if(e.dead){e.deadTimer--;if(e.deadTimer<=0)e.alive=false;}return;}
+        e.hitFlash=Math.max(0,e.hitFlash-1);
+        let dx=s5Cam.x-e.x,dy=s5Cam.y-e.y;
+        let dist=Math.sqrt(dx*dx+dy*dy);
+        e.dist=dist;e.walkFrame+=0.15;
+        // Move toward player
+        e.moveTimer++;
+        if(e.moveTimer>20||dist<3){
+            let spd=e.speed*(e.etype==='ditchius'&&dist<3?2:1);
+            let enx=e.x+dx/dist*spd,eny=e.y+dy/dist*spd;
+            // Ghost can move through walls; others can't
+            if(s5Cell(enx,e.y)===0)e.x=enx;
+            if(s5Cell(e.x,eny)===0)e.y=eny;
+            e.moveTimer=0;
+        }
+        // Shooting
+        e.shootTimer--;
+        if(e.shootTimer<=0&&dist<9){
+            if(dist<1.5||Math.random()<Math.min(0.4,0.5/dist)){
+                let dmg=e.etype==='ditchius'?18:(e.etype==='police'?10:(5+s5WorldIndex));
+                s5Health-=dmg;s5DamageFlash=18;playDoomHit();
+                if(s5Health<=0){s5PlayerDied();return;}
+            }
+            e.shootTimer=e.shootCooldown;
+        }
+    });
+    s5Enemies=s5Enemies.filter(e=>e.alive||e.dead);
+
+    // ============ GHOST COW ============
+    if(s5GhostCow&&s5GhostCow.alive){
+        let gc=s5GhostCow;gc.phase+=0.03;
+        let dx=s5Cam.x-gc.x,dy=s5Cam.y-gc.y,dist=Math.sqrt(dx*dx+dy*dy);
+        gc.mooTimer--;
+        if(gc.mooTimer<=0){playGhostMoo();gc.mooTimer=200+Math.random()*300;}
+        if(!gc.charging){
+            // Drift slowly toward player
+            gc.driftAngle+=0.01;
+            let driftX=Math.cos(gc.driftAngle)*0.3;
+            let driftY=Math.sin(gc.driftAngle)*0.3;
+            gc.x+=(dx/dist)*0.006+driftX*0.005;
+            gc.y+=(dy/dist)*0.006+driftY*0.005;
+            // Occasionally charge
+            if(dist<6&&Math.random()<0.003){gc.charging=true;gc.chargeTimer=80;gc.chargeDir={x:dx/dist,y:dy/dist};gc.chargeSpeed=0.08+Math.random()*0.04;}
+        } else {
+            // Ghost passes through walls
+            gc.x+=gc.chargeDir.x*gc.chargeSpeed;gc.y+=gc.chargeDir.y*gc.chargeSpeed;
+            gc.chargeTimer--;
+            if(gc.chargeTimer<=0)gc.charging=false;
+            // Damage on contact
+            if(dist<0.8){s5Health-=12;s5DamageFlash=20;playDoomHit();gc.charging=false;if(s5Health<=0){s5PlayerDied();return;}}
+        }
+        // Keep ghost cow in bounds
+        gc.x=Math.max(0.5,Math.min(15.5,gc.x));gc.y=Math.max(0.5,Math.min(15.5,gc.y));
+    }
+
+    // ============ PARTICLES ============
+    s5Particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life--;});s5Particles=s5Particles.filter(p=>p.life>0);
+
+    // ============ PICKUPS ============
+    for(let y=0;y<16;y++){for(let x=0;x<16;x++){
+        let c=s5Map[y*16+x];let px=x+0.5,py=y+0.5;
+        let dx=px-s5Cam.x,dy=py-s5Cam.y;
+        if(dx*dx+dy*dy<0.3*0.3){
+            if(c===2){s5Map[y*16+x]=0;s5Health=Math.min(100,s5Health+30);playNeonSound();updateS5HUD();}
+            if(c===3){s5Map[y*16+x]=0;s5Ammo=Math.min(s5Ammo+25,99);playNeonSound();updateS5HUD();}
+        }
+    }}
+
+    // ============ EXIT CHECK ============
+    let gx=Math.floor(s5Cam.x),gy=Math.floor(s5Cam.y);
+    if(s5Map[gy*16+gx]===9){
+        let aliveEnemies=s5Enemies.filter(e=>e.alive&&e.etype!=='ditchius');
+        if(aliveEnemies.length===0)endS5World();
+    }
+
+    distance+=0.5;distEl.innerText=Math.floor(distance);scoreEl.innerText=s5Health;worldEl.innerText=`S5-W${s5WorldIndex}`;
+    updateS5HUD();
+}
+
+function s5PlayerDied(){
+    if(!gameActive)return;
+    gameActive=false;
+    let msg=getRand(S5_DEATH_MSGS);
+    playDoomDeath();
+    stageTransitionState='s5_death';
+    stageTitleEl.style.animation='flash 0.5s infinite';stageTitleEl.style.color='#ff0000';stageTitleEl.style.fontSize='30px';
+    stageTitleEl.innerText='☠️ '+msg;
+    stageMsgEl.innerHTML='<span style="color:#ff3333;">You died in the meat industry maze.</span><br><br><span style="color:#aaa;font-size:14px;">Tip: Find the GREEN EXIT and kill all enemies first.<br>❤️ pickups restore health | 🥦 pickups restore ammo</span><br><br><span style="color:#ffeb3b;font-size:13px;">WASD=Move | ←/→=Turn | Mouse=Look | Click/Space=Shoot</span>';
+    document.getElementById('stageTapPrompt').innerText='TAP/CLICK TO RETRY';
+    stageOverlayEl.classList.add('active');
+    if(document.pointerLockElement)document.exitPointerLock();
+}
+
+function endS5World(){
+    if(!gameActive)return;
+    gameActive=false;
+    if(document.pointerLockElement)document.exitPointerLock();
+    if(s5WorldIndex>=10){showS5FinalVictory();return;}
+    let nextW=s5WorldIndex+1;
+    let msgIdx=(s5WorldIndex-1)%S5_WORLD_MSGS.length;
+    stageTransitionState='s5worldcomplete';
+    stageTitleEl.style.animation='flash 0.8s infinite';stageTitleEl.style.color='#00ff88';stageTitleEl.style.fontSize='34px';
+    stageTitleEl.innerText=`✅ S5-W${s5WorldIndex} CLEARED!`;
+    let nextTheme=S5_WORLDS[Math.min(nextW-1,9)];
+    let extraMsg='';
+    if(s5WorldIndex===4)extraMsg='<br><br><span style="color:#aaffcc;font-size:18px;font-weight:bold;">🐄✨ You set the ghost cow free. ✨🐄</span>';
+    if(s5WorldIndex===4&&nextW===5)extraMsg+='<br><span style="color:#ffff88;">🔫 New weapon unlocked: PISTOL</span>';
+    if(s5WorldIndex===7&&nextW===8)extraMsg+='<br><span style="color:#88ff88;">💚 New weapon unlocked: VEGAN CANNON</span>';
+    stageMsgEl.innerHTML=`<span style="color:#ffeb3b;font-size:16px;">"${S5_WORLD_MSGS[msgIdx]}"</span>${extraMsg}<br><br>NEXT: <span style="color:#00ff88;">S5-W${nextW} — ${nextTheme.name}</span>`;
+    document.getElementById('stageTapPrompt').innerText='TAP TO CONTINUE';
+    stageOverlayEl.classList.add('active');
+    playFlagSound();
+}
+
+function showS5FinalVictory(){
+    stageTransitionState='s5_final_victory';
+    stageTitleEl.style.animation='flash 0.4s infinite';stageTitleEl.style.color='#00ff88';stageTitleEl.style.fontSize='24px';
+    stageTitleEl.innerText="🌱 YOU'RE BECOMING THE BEST VEGAN OF YOURSELF 🌱";
+    stageMsgEl.innerHTML='<span style="color:#00ffcc;font-size:20px;font-weight:bold;">Ditchius Maximus Griftus has been defeated.</span><br><br><span style="color:#ffeb3b;font-size:17px;">You\'re becoming the best vegan of yourself.</span><br><br><span style="color:#ff3333;font-weight:bold;">The animal agricultural industry is destroying the planet.</span><br><span style="color:#afff94;">Keep veganing. Every meal matters. Every choice counts.</span><br><br><span style="color:#ffeb3b;">🌱 Land. Water. Emissions. Deforestation. Suffering.</span><br><span style="color:#fff;font-size:14px;">Going vegan is the single biggest thing you can do.</span><br><br><span style="color:#00ffcc;">The animals are free. You have ascended. 🌍</span><br><br><span style="color:#ffeb3b;font-weight:bold;font-size:18px;">🏆 Made by Earthling Official 🏆</span>';
+    document.getElementById('stageTapPrompt').innerText='TAP TO PLAY AGAIN';
+    stageOverlayEl.classList.add('active');
+    window._finalLeafTimer=setInterval(()=>{for(let i=0;i<5;i++){s4.fireworks.push({x:Math.random()*canvas.width,y:-20,vx:(Math.random()-0.5)*2,vy:Math.random()*3+1,color:`hsl(${Math.random()*360},100%,60%)`,life:240,isLeaf:true});}},130);
+}
+
+// ===================== STAGE 1 UPDATE =====================
+function update(){
+    if(currentStage===5){updateStage5();return;}
+    if(currentStage===4){updateStage4();return;}
+    if(currentStage===3){updateStage3();return;}
+    if(currentStage===2){updateStage2();return;}
+    if(stageTransitionState==='flag_approach'||stageTransitionState==='flag_rising'||stageTransitionState==='fireworks')updateFlagSequence();
+    if(stageTransitionState==='fireworks'||stageTransitionState==='waiting'){fireworks.forEach(f=>{f.x+=f.vx;f.y+=f.vy;f.vy+=0.1;f.life--;});fireworks=fireworks.filter(f=>f.life>0);}
+    if(!gameActive)return;
+    distance+=2;worldDistance+=2;energy-=0.035;if(powerUpTimer>0)powerUpTimer--;if(rainbowTimer>0)rainbowTimer--;if(megaJumpTimer>0)megaJumpTimer--;if(flyTimer>0)flyTimer--;bgRainbowX-=1;
+    if(inYellowChallenge){yellowChallengeLeft-=2;challengeDistEl.innerText=Math.max(0,yellowChallengeLeft);if(yellowChallengeLeft<=0){distance+=20000;clearSurvivalState();currentWorld=1;worldDistance=0;player.y=-100;player.dy=0;obstacles=[];items=[];pitfalls=[];pipes=[];document.body.style.background=worldSettings[currentWorld].bg;playSound(900,'sine',0.8,0.2,200);}}
+    scoreEl.innerText=Math.max(0,Math.ceil(energy));distEl.innerText=Math.floor(distance);
+    if(currentWorld===7)worldEl.innerText="7[GLITCH]";else if(currentWorld===8)worldEl.innerText=yellowWorldSeed+"[MUTATED]";else if(currentWorld===9)worldEl.innerText="9[SKY]";else if(currentWorld===10)worldEl.innerText="10[BOSS]";else worldEl.innerText=currentWorld;
+    if(distance>=1000000&&gameActive){die("WIN");return;}
+    if(currentWorld===7&&Math.random()<0.005){worldSettings[7].bg=`hsl(${Math.random()*360},60%,20%)`;worldSettings[7].ground=`hsl(${Math.random()*360},100%,50%)`;document.body.style.background=worldSettings[7].bg;}
+    if(currentWorld===4&&worldDistance>=1000&&stageTransitionState==='none'&&flagPoleX<0)spawnFlagPole();
+    let isUW=(currentWorld===5),grav=(isUW||currentWorld===9||flyTimer>0)?0.25:0.8;player.dy+=grav;if((isUW||currentWorld===9||flyTimer>0)&&player.dy>4)player.dy=4;player.y+=player.dy;
+    const GL=canvas.height-80;if(currentWorld===9){if(player.y<-player.h)player.y=canvas.height;else if(player.y>canvas.height)player.y=-player.h;}
+    let pit=pitfalls.find(p=>player.x+10<p.x+p.w&&player.x+35>p.x);
+    if(player.y+player.h>GL&&currentWorld!==9){if(pit){if(player.y>canvas.height){if(pit.isWater&&currentWorld!==5){clearSurvivalState();currentWorld=5;worldDistance=0;player.y=-50;player.dy=0;obstacles=[];items=[];pitfalls=[];pipes=[];document.body.style.background=worldSettings[5].bg;playSound(400,'sine',0.5,0.1,-200);}else if(currentWorld===4&&pit.isLava){currentWorld=10;worldDistance=0;player.y=-100;player.dy=0;player.grounded=false;bossTimer=10000;bossDino.state='spawning';obstacles=[];items=[];pitfalls=[];pipes=[];decor=[];document.body.style.background=worldSettings[10].bg;playSound(100,'sawtooth',0.8,0.3,50);}else{die("FALL");return;}}}else{player.y=GL-player.h;player.dy=0;player.grounded=true;jumpCount=0;if(currentWorld===10&&bossDino.state==='spawning'){bossDino.state='active';bossDino.x=canvas.width-250;bossDino.dir=-1;}}}
+    if(currentWorld===10){bossTimer--;if(bossDino.state==='active'){bossDino.x+=bossDino.dir*2;if(bossDino.x<canvas.width-350)bossDino.dir=1;if(bossDino.x>canvas.width-150)bossDino.dir=-1;if(Math.random()<0.025){let ft=Math.random()<0.5?"🔥":"🐦";let wy=GL-45;let r=Math.random();if(r<0.33)wy=GL-45;else if(r<0.66)wy=GL-110;else wy=GL-190;obstacles.push({x:bossDino.x,y:wy,char:ft,dx:-8,dy:0,isGiant:false,isBossWeapon:true});}if(Math.random()<0.003)items.push({x:canvas.width-400,y:GL-120,char:"🫐",type:'powerup'});if(Math.random()<0.001)items.push({x:canvas.width-400,y:GL-120,char:"🌈",type:'rainbow'});}if(bossTimer<=0){bossDino.state='dead';distance+=50000;currentWorld=Math.floor(Math.random()*6)+1;worldDistance=0;player.y=-100;player.dy=0;obstacles=[];items=[];pitfalls=[];pipes=[];document.body.style.background=worldSettings[currentWorld].bg;playSound(600,'sine',1.0,0.2,400);}}
+    if(Math.random()<0.02&&currentWorld!==10&&stageTransitionState==='none'){let obsType=worldSettings[currentWorld].hazards[Math.floor(Math.random()*worldSettings[currentWorld].hazards.length)];let obsX,obsY,dx,dy,isGiant=false;if(currentWorld===5&&Math.random()<0.05){obsType="🦈";isGiant=true;obsX=canvas.width;obsY=Math.random()*(canvas.height-200);dx=-12;dy=0;}else if(obsType==="🔥"&&currentWorld===4){let isSn=Math.random()<0.20;obsX=isSn?player.x+10:Math.random()*canvas.width;obsY=-50;dy=9;dx=-1;}else if(currentWorld===9){obsX=canvas.width;obsY=Math.random()*(canvas.height-150)+50;dx=-9;dy=0;}else{obsX=canvas.width;obsY=(currentWorld===5)?(Math.random()*(GL-100)+50):GL-45;dx=-(8+(currentWorld>4?2:currentWorld));dy=0;}obstacles.push({x:obsX,y:obsY,char:obsType,dx,dy,isGiant,isBossWeapon:false});}
+    if(Math.random()<0.015&&currentWorld!==10){let sy=(currentWorld===5||currentWorld===9)?Math.random()*(canvas.height-150)+50:GL-120;items.push({x:canvas.width,y:sy,char:worldSettings[currentWorld].items[Math.floor(Math.random()*worldSettings[currentWorld].items.length)],type:'food'});}
+    if(Math.random()<0.015&&currentWorld!==6&&currentWorld!==10){let dy2=currentWorld===9?Math.random()*canvas.height:Math.random()*200;decor.push({x:canvas.width,y:dy2,char:worldSettings[currentWorld].deco,speed:Math.random()*2+1});}
+    if(Math.random()<0.003&&currentWorld!==10)items.push({x:canvas.width,y:(currentWorld===9?Math.random()*400+100:GL-120),char:"🫐",type:'powerup'});
+    if(Math.random()<0.002&&currentWorld!==10)items.push({x:canvas.width,y:(currentWorld===9?Math.random()*400+100:GL-120),char:"🌈",type:'rainbow'});
+    if(Math.random()<0.0003&&currentWorld!==10)items.push({x:canvas.width,y:(currentWorld===9?Math.random()*400+100:GL-120),char:"🪶",type:'feather'});
+    if(currentWorld===6){if(Math.random()<0.005)items.push({x:canvas.width,y:GL-150,char:"🍄",type:'megajump'});if(Math.random()<0.002)items.push({x:canvas.width,y:GL-180,char:"🍃",type:'fly'});}
+    if(currentWorld===9&&Math.random()<0.004&&pipes.length===0)pipes.push({x:canvas.width+100,y:Math.random()*(canvas.height-300)+100,w:140,h:140,dest:Math.floor(Math.random()*6)+1,isRing:true});
+    if(worldDistance>1200&&pipes.length===0&&!inYellowChallenge&&currentWorld!==9&&currentWorld!==10&&stageTransitionState==='none'){let rr=Math.random(),nd,pc="#2ecc71";if(rr<0.15){pc="#ffeb3b";nd=8;}else if(rr<0.25){pc="#2196f3";nd=9;}else if(rr<0.31){pc="#9c27b0";nd=7;}else{nd=Math.floor(Math.random()*6)+1;while(nd===currentWorld)nd=Math.floor(Math.random()*6)+1;}let pH=(currentWorld>=5)?180:70;pipes.push({x:canvas.width+100,y:GL-pH,w:70,h:pH,dest:nd,color:pc,isRing:false});}
+    if(Math.random()<0.006&&currentWorld!==9&&currentWorld!==10&&stageTransitionState==='none'){let aL=(currentWorld===4&&Math.random()<0.5);pitfalls.push({x:canvas.width,w:120,isWater:!aL,isLava:aL});}
+    pipes.forEach((p,i)=>{p.x-=8;let hX=(player.x+player.w>p.x&&player.x<p.x+p.w);let hY=p.isRing?(player.y+player.h>p.y&&player.y<p.y+p.h):((currentWorld===5||flyTimer>0)?true:(player.y+player.h>p.y));if(hX&&hY){if(!p.isRing&&p.color==="#ffeb3b"){yellowChallengeLeft=5000;challengeZoneEl.style.display="inline";inYellowChallenge=true;generateYellowChaosWorld();playYellowPipeSound();}else{clearSurvivalState();playSound(p.isRing?900:(p.color==="#9c27b0"?700:400),'sine',0.5,0.1,200);}currentWorld=p.dest;worldDistance=0;player.y=-100;player.dy=0;obstacles=[];items=[];pitfalls=[];pipes=[];document.body.style.background=worldSettings[currentWorld].bg;}if(p.x<-200)pipes.splice(i,1);});
+    obstacles.forEach((obs,i)=>{obs.x+=obs.dx;obs.y+=obs.dy;let ow=obs.isGiant?100:30,oh=obs.isGiant?80:40;let hX=(player.x<obs.x+ow&&player.x+player.w>obs.x),hY=(player.y+40<obs.y+oh&&player.y+player.h>obs.y);if(hX&&hY){if(rainbowTimer>0&&!obs.isGiant){obstacles.splice(i,1);playSound(800,'sine',0.1,0.1,200);}else{if(obs.isGiant){die("SHARK");return;}energy-=(currentWorld>=4)?25:40;playSound(150,'sawtooth',0.2,0.2,-50);obstacles.splice(i,1);if(energy<=0){if(obs.isBossWeapon||currentWorld===10)die("DINO");else die("MEAT");return;}}}if(obs.x<-300||obs.y>canvas.height+100)obstacles.splice(i,1);});
+    items.forEach((item,i)=>{item.x-=8;let hX=(player.x<item.x+45&&player.x+player.w>item.x),hY=(player.y<item.y+45&&player.y+player.h>item.y);if(hX&&hY){if(item.type==='powerup'){powerUpTimer=600;playSound(500,'sine',0.3,0.1,400);}else if(item.type==='rainbow'){rainbowTimer=400;playSound(600,'sine',0.5,0.1,500);}else if(item.type==='megajump'){megaJumpTimer=600;playSound(700,'sine',0.3,0.1,600);}else if(item.type==='fly'){flyTimer=600;playSound(800,'square',0.4,0.1,700);}else if(item.type==='feather'){clearSurvivalState();currentWorld=9;worldDistance=0;player.y=200;player.dy=0;obstacles=[];items=[];pitfalls=[];pipes=[];document.body.style.background=worldSettings[9].bg;playSound(850,'sine',0.5,0.15,300);}else{energy=Math.min(100,energy+12);playSound(800,'sine',0.1,0.1);}items.splice(i,1);}if(item.x<-50)items.splice(i,1);});
+    pitfalls.forEach((p,i)=>{p.x-=8;if(p.x<-200)pitfalls.splice(i,1);});decor.forEach((d,i)=>{d.x-=d.speed;if(d.x<-100)decor.splice(i,1);});
+    if(energy<=0){if(currentWorld===10)die("DINO");else die("ENERGY");return;}if(flagPoleX>=0&&stageTransitionState!=='none')flagPoleX-=8;
+}
+
+function updateFlagSequence(){if(stageTransitionState==='flag_approach'){if(player.x+player.w>flagPoleX+10&&player.x<flagPoleX+30){stageTransitionState='flag_rising';flagY=canvas.height-80;flagRiseSpeed=4;gameActive=false;playFlagSound();}}if(stageTransitionState==='flag_rising'){let pTop=canvas.height-380;flagY-=flagRiseSpeed;if(flagY<=pTop){flagY=pTop;stageTransitionState='fireworks';for(let i=0;i<6;i++)setTimeout(()=>{spawnFirework(Math.random()*canvas.width,Math.random()*(canvas.height*0.6));playSound(400+i*100,'sine',0.4,0.15,200);},i*350);setTimeout(()=>{stageTransitionState='waiting';stageOverlayPhase=0;stageTitleEl.style.animation='flash 0.8s infinite';stageTitleEl.style.color='#ffeb3b';stageTitleEl.style.fontSize='48px';stageTitleEl.innerText='🏆 STAGE 1 COMPLETE! 🏆';stageMsgEl.innerHTML='WORLD 4 CONQUERED!<br><span style="font-size:18px;color:#aaa;">You survived the meat gauntlet!</span>';document.getElementById('stageTapPrompt').innerText='TAP TO CONTINUE';stageOverlayEl.classList.add('active');},3000);}}}
+
+// ===================== DIE =====================
+function die(type){
+    if(!gameActive)return;gameActive=false;canRestart=false;
+    mobileControlsEl.classList.remove('active');stageOverlayEl.classList.remove('active');s5ControlsEl.classList.remove('active');
+    if(window._victoryLeafTimer){clearInterval(window._victoryLeafTimer);window._victoryLeafTimer=null;}
+    if(window._finalLeafTimer){clearInterval(window._finalLeafTimer);window._finalLeafTimer=null;}
+    if(document.pointerLockElement)document.exitPointerLock();
+    if((currentStage===2||currentStage===3||currentStage===4||currentStage===5)&&type!=="WIN"){
+        if(s2Coins>0){s2Coins--;localStorage.setItem('goDeanCoins',s2Coins);stageTitleEl.style.animation='flash 0.8s infinite';stageTitleEl.style.color='#ff3333';stageTitleEl.style.fontSize
