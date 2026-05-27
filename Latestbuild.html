@@ -815,4 +815,18 @@ function drawS5Minimap(){
     mc.fillStyle='#00ffcc';mc.beginPath();mc.arc(s5Cam.x*cell,s5Cam.y*cell,cell*0.9,0,Math.PI*2);mc.fill();
     let ex=s5Cam.x*cell+Math.cos(s5Cam.angle)*cell*2.5,ey=s5Cam.y*cell+Math.sin(s5Cam.angle)*cell*2.5;
     mc.strokeStyle='#00ffcc';mc.lineWidth=1.5;mc.beginPath();mc.moveTo(s5Cam.x*cell,s5Cam.y*cell);mc.lineTo(ex,ey);mc.stroke();
-    mc.strokeStyle='rgba(0,255,200,0.3)';mc.lineWidth=1;mc.strokeRect(0,0,sz,
+    mc.strokeStyle='rgba(0,255,200,0.3)';mc.lineWidth=1;mc.strokeRect(0,0,sz,sz);
+
+}
+
+function updateStage5(){
+
+if(!gameActive)return;
+
+if(s5FireCooldown>0)s5FireCooldown--;if(s5DamageFlash>0)s5DamageFlash--;if(s5HitAnim>0)s5HitAnim--;
+
+if(s5SpeedTimer>0)s5SpeedTimer--;if(s5InvincTimer>0)s5InvincTimer--;
+
+if(s5WeaponState==='fire'){s5WeaponBob+=3;if(s5WeaponBob>20)s5WeaponState='idle';}else s5WeaponBob+=0.6;
+
+let prevW=s5WeaponType;s5WeaponType=s5WorldIndex>=8?'cannon':(s5WorldIndex>=5?'pistol':'broccoli');if(s5WeaponType!==prevW)updateS5HUD();
