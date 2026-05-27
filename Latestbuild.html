@@ -830,3 +830,80 @@ if(s5SpeedTimer>0)s5SpeedTimer--;if(s5InvincTimer>0)s5InvincTimer--;
 if(s5WeaponState==='fire'){s5WeaponBob+=3;if(s5WeaponBob>20)s5WeaponState='idle';}else s5WeaponBob+=0.6;
 
 let prevW=s5WeaponType;s5WeaponType=s5WorldIndex>=8?'cannon':(s5WorldIndex>=5?'pistol':'broccoli');if(s5WeaponType!==prevW)updateS5HUD();
+let moveSpeed=(0.045+s5WorldIndex*0.002)*(s5SpeedTimer>0?2.2:1);
+let turnSpeed=0.038;
+let tFwd=0,tStr=0,tTurn=0;
+if(s5Keys.w)tFwd+=1;if(s5Keys.s)tFwd-=1;if(s5Keys.a)tStr-=1;if(s5Keys.d)tStr+=1;
+if(s5Keys.left)tTurn-=1;if(s5Keys.right)tTurn+=1;
+if(s5JoyL.active){tFwd-=s5JoyL.dy;tStr+=s5JoyL.dx;}
+if(s5JoyR.active)tTurn+=s5JoyR.dx;
+const DAMP=0.18,TDAMP=0.22;
+s5Vel.fwd+=(tFwd-s5Vel.fwd)*DAMP;s5Vel.str+=(tStr-s5Vel.str)*DAMP;s5Vel.turn+=(tTurn-s5Vel.turn)*TDAMP;
+if(!s5MouseLook)s5Cam.angle+=s5Vel.turn*turnSpeed;
+let nx=s5Cam.x+Math.cos(s5Cam.angle)*s5Vel.fwd*moveSpeed+Math.cos(s5Cam.angle+Math.PI/2)*s5Vel.str*moveSpeed;
+let ny=s5Cam.y+Math.sin(s5Cam.angle)*s5Vel.fwd*moveSpeed+Math.sin(s5Cam.angle+Math.PI/2)*s5Vel.str*moveSpeed;
+let m=0.25;
+if(s5Cell(nx,s5Cam.y)!==1&&s5Cell(nx+m,s5Cam.y)!==1&&s5Cell(nx-m,s5Cam.y)!==1)s5Cam.x=nx;
+if(s5Cell(s5Cam.x,ny)!==1&&s5Cell(s5Cam.x,ny+m)!==1&&s5Cell(s5Cam.x,ny-m)!==1)s5Cam.y=ny;
+
+s5Enemies.forEach(e=>{
+    if(!e.alive){if(e.dead){e.deadTimer--;if(e.deadTimer<=0)e.alive=false;}return;}
+    e.hitFlash=Math.max(0,e.hitFlash-1);
+    let dx=s5Cam.x-e.x,dy=s5Cam.y-e.y,dist=Math.sqrt(dx*dx+dy*dy);
+    e.dist=dist;e.walkFrame+=0.14;e.moveTimer++;
+    if(e.moveTimer>15){
+        let spd=e.speed*(e.etype==='ditchius'&&dist<3?1.8:1);
+        let enx=e.x+dx/dist*spd,eny=e.y+dy/dist*spd;
+        if(s5Cell(enx,e.y)!==1)e.x=enx;if(s5Cell(e.x,eny)!==1)e.y=eny;
+        e.moveTimer=0;
+    }
+    // Enemy shoot: LOS check to prevent shooting through walls
+    e.shootTimer--;
+    if(e.shootTimer<=0&&dist<9){
+        if(s5HasLOS(e.x,e.y,s5Cam.x,s5Cam.y)){
+            if(dist<1.5||Math.random()<Math.min(0.35,0.4/dist)){
+                if(s5InvincTimer<=0){
+                    let dmg=e.etype==='ditchius'?18:(e.etype==='police'?10:(4+s5WorldIndex));
+                    s5Health-=dmg;s5DamageFlash=18;playDoomHit();if(s5Health<=0){s5PlayerDied();return;}
+                }
+            }
+        }
+        e.shootTimer=e.shootCooldown;
+    }
+});
+s5Enemies=s5Enemies.filter(e=>e.alive||e.dead);
+
+if(s5GhostCow&&s5GhostCow.alive){
+    let gc=s5GhostCow;gc.phase+=0.03;
+    let dx=s5Cam.x-gc.x,dy=s5Cam.y-gc.y,dist=Math.sqrt(dx*dx+dy*dy);
+    gc.mooTimer--;if(gc.mooTimer<=0){playGhostMoo();gc.mooTimer=200+Math.random()*250;}
+    if(!gc.charging){
+        gc.driftAngle+=0.012;
+        gc.x+=(dx/dist)*0.007+Math.cos(gc.driftAngle)*0.005;
+        gc.y+=(dy/dist)*0.007+Math.sin(gc.driftAngle)*0.005;
+        if(dist<6&&Math.random()<0.003){gc.charging=true;gc.chargeTimer=75;gc.chargeDir={x:dx/dist,y:dy/dist};gc.chargeSpeed=0.09+Math.random()*0.04;}
+    } else {
+        gc.x+=gc.chargeDir.x*gc.chargeSpeed;gc.y+=gc.chargeDir.y*gc.chargeSpeed;
+        gc.chargeTimer--;if(gc.chargeTimer<=0)gc.charging=false;
+        if(dist<0.75&&s5InvincTimer<=0){s5Health-=12;s5DamageFlash=20;playDoomHit();gc.charging=false;if(s5Health<=0){s5PlayerDied();return;}}
+    }
+    gc.x=Math.max(0.3,Math.min(15.7,gc.x));gc.y=Math.max(0.3,Math.min(15.7,gc.y));
+}
+
+s5Particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life--;});s5Particles=s5Particles.filter(p=>p.life>0);
+
+// Pickups: walk over them
+for(let gy=0;gy<16;gy++){for(let gx=0;gx<16;gx++){
+    let c=s5Map[gy*16+gx],px=gx+0.5,py=gy+0.5;
+    if(Math.abs(px-s5Cam.x)<0.5&&Math.abs(py-s5Cam.y)<0.5){
+        if(c===2){s5Map[gy*16+gx]=0;s5Health=Math.min(100,s5Health+30);playPickupSound();updateS5HUD();}
+        else if(c===3){s5Map[gy*16+gx]=0;s5Ammo=Math.min(s5Ammo+25,99);playPickupSound();updateS5HUD();}
+        else if(c===4){s5Map[gy*16+gx]=0;s5SpeedTimer=S5_SPEED_DUR;playSpeedSound();updateS5HUD();}
+        else if(c===5){s5Map[gy*16+gx]=0;s5InvincTimer=S5_INVINC_DUR;playGoldLeafSound();updateS5HUD();}
+    }
+}}
+
+// Exit check
+let aliveCnt=s5Enemies.filter(e=>e.alive).length;
+let exitCX=S5_EXIT_X+0.5,exitCY=S5_EXIT_Y+0.5;
+let exitDist=Math.sqrt((s5Cam.x-exitCX)**2+(s5Cam.
