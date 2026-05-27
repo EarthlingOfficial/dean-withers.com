@@ -134,6 +134,8 @@ let burgerBoss={x:0,y:0,w:160,h:160,dx:2.5,dy:0,hp:80,maxHp:80,state:'idle',jump
 
 let s5WorldIndex=1,s5Health=100,s5Ammo=50,s5WeaponType='broccoli';
 let s5MuzzleFlash=0,s5RecoilAnim=0;
+let s5SpeedTimer=0,s5InvincibleTimer=0; // New power-up timers
+let s5Pickups=[]; // Floor pickups for power-ups
 const S5_FOV=Math.PI/3,S5_HALF_FOV=S5_FOV/2,S5_RAYS=160,S5_DEPTH=18;
 let s5Cam={x:1.5,y:1.5,angle:0};
 let s5Vel={fwd:0,str:0,turn:0};
@@ -192,14 +194,14 @@ function makeS5Map(wIdx){
 function s5Cell(x,y){let gx=Math.floor(x),gy=Math.floor(y);if(gx<0||gx>=16||gy<0||gy>=16)return 1;return s5Map[gy*16+gx];}
 
 function makeS5Enemies(wIdx){
-    if(wIdx===10)return[{x:13,y:13,hp:200,maxHp:200,etype:'ditchius',speed:0.014,shootTimer:60,shootCooldown:55,moveTimer:0,alive:true,dead:false,deadTimer:0,walkFrame:0,hitFlash:0,dist:0,size:1.2}];
-    let enemies=[],count=3+wIdx*2;
+    if(wIdx===10)return[{x:13,y:13,hp:200,maxHp:200,etype:'ditchius',speed:0.014,shootTimer:60,shootCooldown:55,moveTimer:0,alive:true,dead:false,deadTimer:0,walkFrame:0,hitFlash:0,dist:0,size:2.4}];
+    let enemies=[],count=6+wIdx*3; // More enemies
     const etypes=wIdx<=2?['butcher']:wIdx<=4?['butcher','chef']:wIdx<=6?['chef','hunter']:['hunter','police'];
     for(let i=0;i<count;i++){
         let et=etypes[i%etypes.length],hp=2+Math.floor(wIdx*0.5),spd=0.009+wIdx*0.001;
         let ex=1.5+Math.random()*13,ey=1.5+Math.random()*13,att=0;
         while((s5Cell(ex,ey)!==0||Math.sqrt((ex-1.5)**2+(ey-1.5)**2)<3)&&att<50){ex=1.5+Math.random()*13;ey=1.5+Math.random()*13;att++;}
-        enemies.push({x:ex,y:ey,hp,maxHp:hp,etype:et,speed:spd,shootTimer:60+Math.random()*60,shootCooldown:60+Math.floor(wIdx),moveTimer:0,alive:true,dead:false,deadTimer:0,walkFrame:0,hitFlash:0,dist:0,size:0.65+Math.random()*0.1});
+        enemies.push({x:ex,y:ey,hp,maxHp:hp,etype:et,speed:spd,shootTimer:60+Math.random()*60,shootCooldown:60+Math.floor(wIdx),moveTimer:0,alive:true,dead:false,deadTimer:0,walkFrame:0,hitFlash:0,dist:0,size:1.3+Math.random()*0.2}); // 2x bigger enemies
     }
     return enemies;
 }
@@ -305,6 +307,19 @@ function doS5Shoot(){
 }
 function s5CastRayForShot(ox,oy,angle){let cos=Math.cos(angle),sin=Math.sin(angle);for(let d=0.1;d<S5_DEPTH;d+=0.1){if(s5Cell(ox+cos*d,oy+sin*d)===1)return d;}return null;}
 
+// Check if enemy has line-of-sight to player (not blocked by walls)
+function s5EnemyCanSeePlayer(ex,ey){
+    let dx=s5Cam.x-ex,dy=s5Cam.y-ey,dist=Math.sqrt(dx*dx+dy*dy);
+    if(dist<0.1)return true;
+    let steps=Math.ceil(dist*5);
+    for(let i=1;i<steps;i++){
+        let t=i/steps;
+        let checkX=ex+dx*t,checkY=ey+dy*t;
+        if(s5Cell(checkX,checkY)===1)return false;
+    }
+    return true;
+}
+
 function updateAmmoUI(){ammoCountEl.innerText=s2Ammo;coinCountEl.innerText=s2Coins;}
 function updateS3UI(){s3AmmoCountEl.innerText=s3Ammo;let t=s3Worlds[s3WorldIndex]||s3Worlds[1];s3WorldNameEl.innerText=t.name;}
 function updateS4UI(){s4AmmoCountEl.innerText=s4Ammo;let t=s4Worlds[s4WorldIndex]||s4Worlds[1];s4WorldNameEl.innerText=t.name;}
@@ -315,7 +330,7 @@ function handleInput(){
     if(stageTransitionState==='waiting'){stageOverlayPhase++;if(stageOverlayPhase===1){stageTitleEl.style.animation='none';stageTitleEl.style.color='#afff94';stageTitleEl.style.fontSize='32px';stageTitleEl.innerText="CONGRATULATIONS! YOU'RE LEARNING TO VEGAN";stageMsgEl.innerHTML="Keep going! 🌱<br><br><span style='font-size:18px;color:#aaa;'>Stage 2: LEFT/RIGHT + SHOOT + TAP TO JUMP</span>";document.getElementById('stageTapPrompt').innerText="TAP TO START STAGE 2";}else if(stageOverlayPhase>=2){stageOverlayEl.classList.remove('active');stageTransitionState='none';startStage2(1);}return;}
     if(stageTransitionState==='s2_to_s3_waiting'){stageOverlayPhase++;if(stageOverlayPhase===1){stageTitleEl.style.animation='none';stageTitleEl.style.color='#00ffcc';stageTitleEl.style.fontSize='28px';stageTitleEl.innerText="🌍 KEEP VEGANING";stageMsgEl.innerHTML="<span style='color:#ff3333;font-weight:bold;'>The animal agricultural industry is destroying the planet.</span><br><br><span style='color:#00ffcc;'>Stage 3 awaits.</span>";document.getElementById('stageTapPrompt').innerText="TAP TO BEGIN STAGE 3";}else if(stageOverlayPhase>=2){stageOverlayEl.classList.remove('active');stageTransitionState='none';startStage3(1);}return;}
     if(stageTransitionState==='s3_to_s4_waiting'){stageOverlayPhase++;if(stageOverlayPhase===1){stageTitleEl.style.animation='none';stageTitleEl.style.color='#ff6600';stageTitleEl.style.fontSize='26px';stageTitleEl.innerText="🍔 THE MEAT EMPIRE STRIKES BACK";stageMsgEl.innerHTML="<span style='color:#ff3333;'>Stage 4: Burger Boss awaits.</span><br><span style='color:#00ffcc;'>Keep veganing.</span>";document.getElementById('stageTapPrompt').innerText="TAP TO BEGIN STAGE 4";}else if(stageOverlayPhase>=2){stageOverlayEl.classList.remove('active');stageTransitionState='none';startStage4(1);}return;}
-    if(stageTransitionState==='s4_to_s5_waiting'){stageOverlayPhase++;if(stageOverlayPhase===1){stageTitleEl.style.animation='none';stageTitleEl.style.color='#00ff88';stageTitleEl.style.fontSize='24px';stageTitleEl.innerText="🎮 VEGAN DOOM — STAGE 5";stageMsgEl.innerHTML="<span style='color:#00ff88;font-weight:bold;'>First-person vegan fury.</span><br><br><span style='color:#ffeb3b;'>W/↑=Fwd S/↓=Back A/D=Strafe ←/→=Turn Mouse=Look Space=Shoot</span><br><br><span style='color:#ff3333;'>Kill all enemies. Find the GREEN EXIT door.</span><br><span style='color:#00ffcc;'>Ghost cow in W4. Pistol at W5. Cannon at W8.</span>";document.getElementById('stageTapPrompt').innerText="TAP TO ENTER STAGE 5";}else if(stageOverlayPhase>=2){stageOverlayEl.classList.remove('active');stageTransitionState='none';startStage5(1);}return;}
+    if(stageTransitionState==='s4_to_s5_waiting'){stageOverlayPhase++;if(stageOverlayPhase===1){stageTitleEl.style.animation='none';stageTitleEl.style.color='#00ff88';stageTitleEl.style.fontSize='24px';stageTitleEl.innerText="🎮 VEGAN DOOM — STAGE 5";stageMsgEl.innerHTML="<span style='color:#00ff88;font-weight:bold;'>First-person vegan fury.</span><br><br><span style='color:#ffeb3b;'>W/↑=Fwd S/↓=Back A/D=Strafe ←/→=Turn Mouse=Look Space=Shoot</span><br><br><span style='color:#ff3333;'>Kill all enemies. Find the GREEN EXIT door.</span><br><span style='color:#00ffcc;'>Power-ups: 🫐=Speed 🍃=Invincible ❤️=Health</span><br><span style='color:#aaa;'>Ghost cow in W4. Pistol at W5. Cannon at W8.</span>";document.getElementById('stageTapPrompt').innerText="TAP TO ENTER STAGE 5";}else if(stageOverlayPhase>=2){stageOverlayEl.classList.remove('active');stageTransitionState='none';startStage5(1);}return;}
     if(stageTransitionState!=='none')return;
     if(currentStage===5)return;
     if(currentStage===2&&s2.flagReached)return;
@@ -521,8 +536,16 @@ function startStage5(worldIdx){
     s5Cam.x=1.5;s5Cam.y=1.5;s5Cam.angle=0;
     s5Vel={fwd:0,str:0,turn:0};
     s5Enemies=[];s5Particles=[];s5BloodSplats=[];s5FireCooldown=0;s5DamageFlash=0;s5HitAnim=0;s5WeaponBob=0;s5WeaponState='idle';s5MuzzleFlash=0;s5RecoilAnim=0;s5ExitReached=false;
+    s5SpeedTimer=0;s5InvincibleTimer=0;s5Pickups=[]; // Reset power-up state
     s5Map=makeS5Map(worldIdx);
     s5Enemies=makeS5Enemies(worldIdx);
+    // Spawn power-up pickups
+    for(let i=0;i<3+worldIdx;i++){
+        let px=1.5+Math.random()*13,py=1.5+Math.random()*13,att=0;
+        while((s5Cell(px,py)!==0)&&att<50){px=1.5+Math.random()*13;py=1.5+Math.random()*13;att++;}
+        let ptype=Math.random()<0.08?'invincible':(Math.random()<0.4?'speed':'health'); // rare invincible leaf
+        s5Pickups.push({x:px,y:py,type:ptype,collected:false});
+    }
     s5GhostCow=null;
     if(worldIdx===4&&Math.random()<0.35)s5GhostCow=makeGhostCow();
     mobileControlsEl.classList.remove('active');s5ControlsEl.classList.add('active');
@@ -553,22 +576,46 @@ function castRay(angle){
 function drawS5Enemy(e,sx,sy,sz,dist,wd){
     let alpha=Math.max(0,Math.min(1,1-dist/wd.fogD));if(alpha<=0)return;
     ctx.save();ctx.globalAlpha=alpha*(e.hitFlash>0?(Math.sin(e.hitFlash*1.2)*0.5+0.5):1);
-    let sc='#ffcc99';
-    ctx.fillStyle='rgba(0,0,0,0.45)';ctx.beginPath();ctx.ellipse(sx,sy+sz*0.51,sz*0.28,sz*0.06,0,0,Math.PI*2);ctx.fill();
+    let sc='#ffcc99',scDark='#d4a574';
+    // Enhanced shadow with gradient
+    let shadowGrad=ctx.createRadialGradient(sx,sy+sz*0.51,0,sx,sy+sz*0.51,sz*0.35);
+    shadowGrad.addColorStop(0,'rgba(0,0,0,0.55)');shadowGrad.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=shadowGrad;ctx.beginPath();ctx.ellipse(sx,sy+sz*0.51,sz*0.35,sz*0.08,0,0,Math.PI*2);ctx.fill();
+    // Legs with boots
     let leg=Math.sin(e.walkFrame)*0.35*sz;
-    ctx.strokeStyle='#333';ctx.lineWidth=Math.max(2,sz*0.07);
-    ctx.beginPath();ctx.moveTo(sx-sz*0.07,sy+sz*0.33);ctx.lineTo(sx-sz*0.12+leg*0.18,sy+sz*0.52);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(sx+sz*0.07,sy+sz*0.33);ctx.lineTo(sx+sz*0.12-leg*0.18,sy+sz*0.52);ctx.stroke();
+    ctx.strokeStyle='#222';ctx.lineWidth=Math.max(3,sz*0.09);
+    ctx.beginPath();ctx.moveTo(sx-sz*0.08,sy+sz*0.33);ctx.lineTo(sx-sz*0.13+leg*0.18,sy+sz*0.48);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(sx+sz*0.08,sy+sz*0.33);ctx.lineTo(sx+sz*0.13-leg*0.18,sy+sz*0.48);ctx.stroke();
+    // Boots
+    ctx.fillStyle='#2a2a2a';
+    ctx.fillRect(sx-sz*0.18+leg*0.18,sy+sz*0.46,sz*0.1,sz*0.06);
+    ctx.fillRect(sx+sz*0.08-leg*0.18,sy+sz*0.46,sz*0.1,sz*0.06);
+    // Body with shading
     let bc=e.etype==='butcher'?'#2255bb':e.etype==='chef'?'#ddd':e.etype==='hunter'?'#4a5e28':'#15154a';
-    ctx.fillStyle=bc;ctx.fillRect(sx-sz*0.17,sy+sz*0.05,sz*0.34,sz*0.28);
-    if(e.etype==='butcher'){ctx.fillStyle='rgba(255,255,255,0.22)';ctx.fillRect(sx-sz*0.07,sy+sz*0.09,sz*0.14,sz*0.22);}
-    if(e.etype==='police'){ctx.fillStyle='rgba(255,200,0,0.85)';ctx.beginPath();ctx.arc(sx+sz*0.07,sy+sz*0.12,sz*0.05,0,Math.PI*2);ctx.fill();}
-    ctx.fillStyle=sc;ctx.beginPath();ctx.arc(sx,sy-sz*0.04,sz*0.13,0,Math.PI*2);ctx.fill();
-    if(e.etype==='butcher'||e.etype==='chef'){ctx.fillStyle='#fff';ctx.fillRect(sx-sz*0.11,sy-sz*0.21,sz*0.22,sz*0.07);ctx.fillRect(sx-sz*0.08,sy-sz*0.32,sz*0.16,sz*0.12);}
-    if(e.etype==='hunter'){ctx.fillStyle='#7a5a10';ctx.fillRect(sx-sz*0.14,sy-sz*0.21,sz*0.28,sz*0.07);ctx.fillRect(sx-sz*0.1,sy-sz*0.3,sz*0.2,sz*0.1);}
-    if(e.etype==='police'){ctx.fillStyle='#15154a';ctx.fillRect(sx-sz*0.14,sy-sz*0.21,sz*0.28,sz*0.08);ctx.fillRect(sx-sz*0.1,sy-sz*0.29,sz*0.2,sz*0.09);}
-    ctx.fillStyle='#222';ctx.beginPath();ctx.arc(sx-sz*0.05,sy-sz*0.06,sz*0.022,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(sx+sz*0.05,sy-sz*0.06,sz*0.022,0,Math.PI*2);ctx.fill();
-    let arm=Math.sin(e.walkFrame+Math.PI)*0.24*sz;ctx.strokeStyle=sc;ctx.lineWidth=Math.max(2,sz*0.06);
+    let bcDark=e.etype==='butcher'?'#1a4499':e.etype==='chef'?'#bbb':e.etype==='hunter'?'#3a4e18':'#0a0a3a';
+    ctx.fillStyle=bc;ctx.fillRect(sx-sz*0.18,sy+sz*0.04,sz*0.36,sz*0.30);
+    ctx.fillStyle=bcDark;ctx.fillRect(sx-sz*0.18,sy+sz*0.04,sz*0.08,sz*0.30); // Left shadow
+    // Body details
+    if(e.etype==='butcher'){ctx.fillStyle='rgba(255,255,255,0.28)';ctx.fillRect(sx-sz*0.08,sy+sz*0.08,sz*0.16,sz*0.24);ctx.fillStyle='#aa0000';ctx.fillRect(sx-sz*0.05,sy+sz*0.18,sz*0.10,sz*0.05);} // Blood stain
+    if(e.etype==='police'){ctx.fillStyle='rgba(255,200,0,0.9)';ctx.beginPath();ctx.arc(sx+sz*0.08,sy+sz*0.12,sz*0.055,0,Math.PI*2);ctx.fill();ctx.fillStyle='#111';ctx.font=`${Math.floor(sz*0.04)}px Arial`;ctx.fillText('★',sx+sz*0.055,sy+sz*0.14);}
+    if(e.etype==='chef'){ctx.fillStyle='#333';for(let i=0;i<3;i++)ctx.fillRect(sx-sz*0.12+i*sz*0.12,sy+sz*0.25,sz*0.06,sz*0.02);} // Buttons
+    // Head with better shading
+    let headGrad=ctx.createRadialGradient(sx-sz*0.03,sy-sz*0.08,0,sx,sy-sz*0.04,sz*0.14);
+    headGrad.addColorStop(0,'#ffe4c4');headGrad.addColorStop(1,sc);
+    ctx.fillStyle=headGrad;ctx.beginPath();ctx.arc(sx,sy-sz*0.04,sz*0.14,0,Math.PI*2);ctx.fill();
+    // Hair/hats with more detail
+    if(e.etype==='butcher'||e.etype==='chef'){ctx.fillStyle='#fff';ctx.fillRect(sx-sz*0.12,sy-sz*0.22,sz*0.24,sz*0.08);ctx.fillRect(sx-sz*0.09,sy-sz*0.34,sz*0.18,sz*0.13);ctx.fillStyle='rgba(0,0,0,0.1)';ctx.fillRect(sx-sz*0.09,sy-sz*0.34,sz*0.18,sz*0.04);}
+    if(e.etype==='hunter'){ctx.fillStyle='#7a5a10';ctx.fillRect(sx-sz*0.15,sy-sz*0.22,sz*0.30,sz*0.08);ctx.fillRect(sx-sz*0.11,sy-sz*0.32,sz*0.22,sz*0.11);ctx.fillStyle='#5a4000';ctx.fillRect(sx-sz*0.11,sy-sz*0.22,sz*0.22,sz*0.03);}
+    if(e.etype==='police'){ctx.fillStyle='#15154a';ctx.fillRect(sx-sz*0.15,sy-sz*0.22,sz*0.30,sz*0.09);ctx.fillRect(sx-sz*0.11,sy-sz*0.31,sz*0.22,sz*0.10);ctx.fillStyle='#ffd700';ctx.beginPath();ctx.arc(sx,sy-sz*0.28,sz*0.03,0,Math.PI*2);ctx.fill();}
+    // Eyes with whites
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(sx-sz*0.05,sy-sz*0.06,sz*0.03,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(sx+sz*0.05,sy-sz*0.06,sz*0.03,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#111';ctx.beginPath();ctx.arc(sx-sz*0.05,sy-sz*0.055,sz*0.018,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(sx+sz*0.05,sy-sz*0.055,sz*0.018,0,Math.PI*2);ctx.fill();
+    // Menacing eyebrows
+    ctx.strokeStyle='#333';ctx.lineWidth=Math.max(1,sz*0.02);
+    ctx.beginPath();ctx.moveTo(sx-sz*0.08,sy-sz*0.1);ctx.lineTo(sx-sz*0.02,sy-sz*0.08);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(sx+sz*0.08,sy-sz*0.1);ctx.lineTo(sx+sz*0.02,sy-sz*0.08);ctx.stroke();
+    // Arms with better animation
+    let arm=Math.sin(e.walkFrame+Math.PI)*0.24*sz;ctx.strokeStyle=sc;ctx.lineWidth=Math.max(2,sz*0.07);
     ctx.beginPath();ctx.moveTo(sx-sz*0.17,sy+sz*0.1);ctx.lineTo(sx-sz*0.27+arm*0.14,sy+sz*0.29);ctx.stroke();
     ctx.beginPath();ctx.moveTo(sx+sz*0.17,sy+sz*0.1);ctx.lineTo(sx+sz*0.27-arm*0.14,sy+sz*0.29);ctx.stroke();
     if(e.etype==='butcher'){ctx.fillStyle='#aaa';ctx.fillRect(sx+sz*0.23,sy+sz*0.19,sz*0.12,sz*0.065);ctx.fillStyle='#8B4513';ctx.fillRect(sx+sz*0.23,sy+sz*0.26,sz*0.055,sz*0.055);}
@@ -610,8 +657,12 @@ function drawGhostCow(gc,sliceW,zBuf,W,wd){
 function drawStage5(){
     let W=S5_RAYS,H=canvas.height,sliceW=canvas.width/W;
     let wd=S5_WORLDS[Math.min(s5WorldIndex-1,9)];
-    let skyG=ctx.createLinearGradient(0,0,0,H/2);skyG.addColorStop(0,'#050505');skyG.addColorStop(1,wd.ceilC);ctx.fillStyle=skyG;ctx.fillRect(0,0,canvas.width,H/2);
-    let flG=ctx.createLinearGradient(0,H/2,0,H);flG.addColorStop(0,wd.floorC);flG.addColorStop(1,'#050505');ctx.fillStyle=flG;ctx.fillRect(0,H/2,canvas.width,H/2);
+    // Enhanced sky gradient with multiple color stops
+    let skyG=ctx.createLinearGradient(0,0,0,H/2);skyG.addColorStop(0,'#020202');skyG.addColorStop(0.3,'#080808');skyG.addColorStop(0.7,wd.ceilC);skyG.addColorStop(1,wd.ceilC);ctx.fillStyle=skyG;ctx.fillRect(0,0,canvas.width,H/2);
+    // Enhanced floor gradient
+    let flG=ctx.createLinearGradient(0,H/2,0,H);flG.addColorStop(0,wd.floorC);flG.addColorStop(0.5,wd.floorC);flG.addColorStop(1,'#030303');ctx.fillStyle=flG;ctx.fillRect(0,H/2,canvas.width,H/2);
+    // Subtle scanline effect for retro feel
+    ctx.fillStyle='rgba(0,0,0,0.03)';for(let y=0;y<H;y+=3){ctx.fillRect(0,y,canvas.width,1);}
     let zBuf=new Array(W);
     function ph(h,o){try{return parseInt(h.slice(o,o+2),16)||0;}catch(e){return 0;}}
     let fR=ph(wd.fogC,1),fG=ph(wd.fogC,3),fB=ph(wd.fogC,5);
@@ -634,6 +685,8 @@ function drawStage5(){
             if(hit.side===1){r=Math.floor(r*0.65);g=Math.floor(g*0.65);b=Math.floor(b*0.65);}
             ctx.fillStyle=`rgb(${Math.max(0,Math.min(255,r))},${Math.max(0,Math.min(255,g))},${Math.max(0,Math.min(255,b))})`;
             ctx.fillRect(i*sliceW,top,sliceW+1,wallH);
+            // Wall texture - vertical line detail
+            if(dist<6&&i%4===0){ctx.fillStyle=`rgba(0,0,0,${0.15*(1-fog)})`;ctx.fillRect(i*sliceW,top,1,wallH);}
         }
     }
     s5BloodSplats.forEach(sp=>{
@@ -655,12 +708,40 @@ function drawStage5(){
         let ea=Math.atan2(dy,dx),da=ea-s5Cam.angle;
         while(da>Math.PI)da-=Math.PI*2;while(da<-Math.PI)da+=Math.PI*2;
         if(Math.abs(da)>S5_HALF_FOV+0.4)return;
-        let sx=(0.5+da/S5_FOV)*canvas.width,sz=Math.min(H*1.5,(H/dist)*e.size),sy=(H-sz)/2;
+        let sx=(0.5+da/S5_FOV)*canvas.width,sz=Math.min(H*1.5,(H/dist)*e.size),sy=(H-sz)/2+sz*0.15; // Adjusted so feet touch ground
         let si=Math.floor(sx/sliceW);if(si<0||si>=W||zBuf[si]<dist)return;
         if(e.dead){ctx.globalAlpha=Math.max(0,(1-dist/wd.fogD))*(e.deadTimer/40);ctx.fillStyle='#550000';ctx.beginPath();ctx.ellipse(sx,sy+sz*0.52,sz*0.26,sz*0.065,0,0,Math.PI*2);ctx.fill();ctx.font=`${Math.floor(sz*0.48)}px Arial`;ctx.textAlign='center';ctx.fillText('💀',sx,sy+sz*0.44);ctx.textAlign='left';ctx.globalAlpha=1;return;}
         drawS5Enemy(e,sx,sy,sz,dist,wd);
     });
     drawGhostCow(s5GhostCow,sliceW,zBuf,W,wd);
+    // Draw floor pickups (visible power-ups)
+    s5Pickups.forEach(p=>{
+        if(p.collected)return;
+        let dx=p.x-s5Cam.x,dy=p.y-s5Cam.y,dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<0.2||dist>S5_DEPTH)return;
+        let ea=Math.atan2(dy,dx),da=ea-s5Cam.angle;
+        while(da>Math.PI)da-=Math.PI*2;while(da<-Math.PI)da+=Math.PI*2;
+        if(Math.abs(da)>S5_HALF_FOV+0.2)return;
+        let sx=(0.5+da/S5_FOV)*canvas.width;
+        let groundY=H/2+(H/2)/(Math.max(0.3,dist))*0.6;
+        let sz=Math.max(20,(H/dist)*0.25);
+        let si=Math.floor(sx/sliceW);if(si<0||si>=W||zBuf[si]<dist)return;
+        let pulse=0.7+Math.sin(Date.now()/150)*0.3;
+        ctx.globalAlpha=Math.min(1,(1-dist/wd.fogD)*1.2);
+        // Glow effect
+        if(p.type==='invincible'){
+            ctx.shadowColor='#ffd700';ctx.shadowBlur=25*pulse;
+        } else if(p.type==='speed'){
+            ctx.shadowColor='#ff00ff';ctx.shadowBlur=18*pulse;
+        } else {
+            ctx.shadowColor='#ff0000';ctx.shadowBlur=12*pulse;
+        }
+        ctx.font=`${Math.floor(sz)}px Arial`;ctx.textAlign='center';
+        if(p.type==='invincible')ctx.fillText('🍃',sx,groundY); // Gold leaf
+        else if(p.type==='speed')ctx.fillText('🫐',sx,groundY); // Speed berry
+        else ctx.fillText('❤️',sx,groundY); // Health
+        ctx.shadowBlur=0;ctx.textAlign='left';
+    });ctx.globalAlpha=1;
     s5Particles.forEach(p=>{let dx=p.x-s5Cam.x,dy=p.y-s5Cam.y,dist=Math.sqrt(dx*dx+dy*dy);if(dist<0.1||dist>8)return;let ea=Math.atan2(dy,dx),da=ea-s5Cam.angle;while(da>Math.PI)da-=Math.PI*2;while(da<-Math.PI)da+=Math.PI*2;if(Math.abs(da)>S5_HALF_FOV+0.2)return;let sx=(0.5+da/S5_FOV)*canvas.width,sz=Math.max(3,(H/dist)*0.09);ctx.globalAlpha=p.life/25*0.82;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(sx,H/2,sz,0,Math.PI*2);ctx.fill();});ctx.globalAlpha=1;
     drawS5Weapon(H);
     let cx=canvas.width/2,cy=H/2;
@@ -670,10 +751,18 @@ function drawStage5(){
     if(s5DamageFlash>0){ctx.fillStyle=`rgba(200,0,0,${s5DamageFlash/20*0.45})`;ctx.fillRect(0,0,canvas.width,H);let vig=ctx.createRadialGradient(cx,cy,H*0.2,cx,cy,H*0.75);vig.addColorStop(0,'rgba(200,0,0,0)');vig.addColorStop(1,`rgba(200,0,0,${s5DamageFlash/20*0.5})`);ctx.fillStyle=vig;ctx.fillRect(0,0,canvas.width,H);}
     if(s5HitAnim>0){ctx.fillStyle=`rgba(255,200,0,${s5HitAnim/8*0.3})`;ctx.fillRect(0,0,canvas.width,H);}
     if(s5Health<30&&Math.floor(Date.now()/500)%2===0){ctx.fillStyle='rgba(200,0,0,0.12)';ctx.fillRect(0,0,canvas.width,H);}
+    // Invincibility golden glow effect
+    if(s5InvincibleTimer>0){let pulse=0.15+Math.sin(Date.now()/100)*0.1;ctx.fillStyle=`rgba(255,215,0,${pulse})`;ctx.fillRect(0,0,canvas.width,H);ctx.strokeStyle='#ffd700';ctx.lineWidth=4;ctx.strokeRect(5,5,canvas.width-10,H-10);}
+    // Speed boost visual effect
+    if(s5SpeedTimer>0){let pulse=0.08+Math.sin(Date.now()/80)*0.05;ctx.fillStyle=`rgba(255,0,255,${pulse})`;ctx.fillRect(0,0,canvas.width,H);}
     let aliveCnt=s5Enemies.filter(e=>e.alive).length;
     ctx.fillStyle='rgba(0,0,0,0.55)';ctx.fillRect(0,H-44,canvas.width,44);
     if(aliveCnt===0){ctx.fillStyle='#00ff88';ctx.font="bold 18px 'Courier New'";ctx.textAlign='center';ctx.fillText('✅ ALL ENEMIES DOWN — WALK INTO THE GREEN EXIT DOOR',cx,H-18);ctx.textAlign='left';}
     else{ctx.fillStyle='#aaa';ctx.font="13px 'Courier New'";ctx.textAlign='center';ctx.fillText(`Enemies: ${aliveCnt} remaining | Find and enter the GREEN EXIT door`,cx,H-18);ctx.textAlign='left';}
+    // Power-up status indicators
+    let puY=60;
+    if(s5SpeedTimer>0){ctx.fillStyle='rgba(0,0,0,0.65)';ctx.fillRect(canvas.width-180,puY,170,24);ctx.fillStyle='#ff00ff';ctx.shadowColor='#ff00ff';ctx.shadowBlur=8;ctx.font="bold 14px 'Courier New'";ctx.fillText(`🫐 SPEED ${Math.ceil(s5SpeedTimer/60)}s`,canvas.width-175,puY+17);ctx.shadowBlur=0;puY+=28;}
+    if(s5InvincibleTimer>0){ctx.fillStyle='rgba(0,0,0,0.65)';ctx.fillRect(canvas.width-180,puY,170,24);ctx.fillStyle='#ffd700';ctx.shadowColor='#ffd700';ctx.shadowBlur=10;ctx.font="bold 14px 'Courier New'";ctx.fillText(`🍃 INVINCIBLE ${Math.ceil(s5InvincibleTimer/60)}s`,canvas.width-175,puY+17);ctx.shadowBlur=0;puY+=28;}
     if(s5GhostCow&&s5GhostCow.alive){let dx=s5GhostCow.x-s5Cam.x,dy=s5GhostCow.y-s5Cam.y,d=Math.sqrt(dx*dx+dy*dy);if(d<3&&Math.floor(Date.now()/280)%2===0){ctx.fillStyle='rgba(180,210,255,0.11)';ctx.fillRect(0,0,canvas.width,H);ctx.fillStyle='rgba(180,210,255,0.88)';ctx.font="bold 17px 'Courier New'";ctx.textAlign='center';ctx.fillText('👻🐄 THE GHOST COW IS NEAR',cx,H-58);ctx.textAlign='left';}}
     if(s5WorldIndex===10){let boss=s5Enemies.find(e=>e.etype==='ditchius');if(boss&&boss.alive){let bw=canvas.width*0.6,bx=cx-bw/2;ctx.fillStyle='rgba(0,0,0,0.68)';ctx.fillRect(bx-2,H-75,bw+4,26);let hf=(boss.hp/boss.maxHp)*bw;ctx.fillStyle='#aa0000';ctx.fillRect(bx,H-73,hf,22);ctx.fillStyle='#fff';ctx.font="bold 13px Courier New";ctx.textAlign='center';ctx.fillText(`🍖 DITCHIUS MAXIMUS GRIFTUS ${boss.hp}/${boss.maxHp}`,cx,H-57);ctx.textAlign='left';}}
     drawS5Minimap();
@@ -724,9 +813,12 @@ function drawS5Minimap(){
 function updateStage5(){
     if(!gameActive)return;
     if(s5FireCooldown>0)s5FireCooldown--;if(s5DamageFlash>0)s5DamageFlash--;if(s5HitAnim>0)s5HitAnim--;
+    if(s5SpeedTimer>0)s5SpeedTimer--;if(s5InvincibleTimer>0)s5InvincibleTimer--; // Power-up timers
     if(s5WeaponState==='fire'){s5WeaponBob+=3;if(s5WeaponBob>20)s5WeaponState='idle';}else s5WeaponBob+=0.6;
     let prevW=s5WeaponType;s5WeaponType=s5WorldIndex>=8?'cannon':(s5WorldIndex>=5?'pistol':'broccoli');if(s5WeaponType!==prevW)updateS5HUD();
-    let moveSpeed=0.045+s5WorldIndex*0.002,turnSpeed=0.038;
+    let moveSpeed=0.045+s5WorldIndex*0.002;
+    if(s5SpeedTimer>0)moveSpeed*=1.8; // Berry speed boost
+    let turnSpeed=0.038;
     let tFwd=0,tStr=0,tTurn=0;
     if(s5Keys.w)tFwd+=1;if(s5Keys.s)tFwd-=1;if(s5Keys.a)tStr-=1;if(s5Keys.d)tStr+=1;
     if(s5Keys.left)tTurn-=1;if(s5Keys.right)tTurn+=1;
@@ -753,10 +845,17 @@ function updateStage5(){
             e.moveTimer=0;
         }
         e.shootTimer--;
-        if(e.shootTimer<=0&&dist<9){
+        // Only shoot if enemy can see player (no walls in the way)
+        if(e.shootTimer<=0&&dist<9&&s5EnemyCanSeePlayer(e.x,e.y)){
             if(dist<1.5||Math.random()<Math.min(0.4,0.45/dist)){
-                let dmg=e.etype==='ditchius'?18:(e.etype==='police'?10:(4+s5WorldIndex));
-                s5Health-=dmg;s5DamageFlash=18;playDoomHit();if(s5Health<=0){s5PlayerDied();return;}
+                // Check for invincibility
+                if(s5InvincibleTimer<=0){
+                    let dmg=e.etype==='ditchius'?18:(e.etype==='police'?10:(4+s5WorldIndex));
+                    s5Health-=dmg;s5DamageFlash=18;playDoomHit();if(s5Health<=0){s5PlayerDied();return;}
+                } else {
+                    // Show blocked hit effect when invincible
+                    for(let i=0;i<5;i++)s5Particles.push({x:s5Cam.x+(Math.random()-0.5)*0.5,y:s5Cam.y+(Math.random()-0.5)*0.5,vx:(Math.random()-0.5)*0.1,vy:(Math.random()-0.5)*0.1,life:15,color:'#ffd700'});
+                }
             }
             e.shootTimer=e.shootCooldown;
         }
@@ -790,6 +889,26 @@ function updateStage5(){
         }
     }}
 
+    // Collect floor power-up pickups
+    s5Pickups.forEach(p=>{
+        if(p.collected)return;
+        let dx=p.x-s5Cam.x,dy=p.y-s5Cam.y,dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<0.6){
+            p.collected=true;
+            playNeonSound();
+            if(p.type==='speed'){
+                s5SpeedTimer=600; // 10 seconds at 60fps
+                for(let i=0;i<10;i++)s5Particles.push({x:s5Cam.x+(Math.random()-0.5)*0.3,y:s5Cam.y+(Math.random()-0.5)*0.3,vx:(Math.random()-0.5)*0.15,vy:(Math.random()-0.5)*0.15,life:25,color:'#ff00ff'});
+            } else if(p.type==='invincible'){
+                s5InvincibleTimer=600; // 10 seconds at 60fps
+                for(let i=0;i<15;i++)s5Particles.push({x:s5Cam.x+(Math.random()-0.5)*0.4,y:s5Cam.y+(Math.random()-0.5)*0.4,vx:(Math.random()-0.5)*0.2,vy:(Math.random()-0.5)*0.2,life:30,color:'#ffd700'});
+            } else if(p.type==='health'){
+                s5Health=Math.min(100,s5Health+25);
+                for(let i=0;i<8;i++)s5Particles.push({x:s5Cam.x+(Math.random()-0.5)*0.3,y:s5Cam.y+(Math.random()-0.5)*0.3,vx:(Math.random()-0.5)*0.12,vy:(Math.random()-0.5)*0.12,life:20,color:'#ff0000'});
+            }
+            updateS5HUD();
+        }
+    });
     // EXIT check: proximity to exit cell center, all enemies dead
     let aliveCnt=s5Enemies.filter(e=>e.alive).length;
     let exitCX=S5_EXIT_X+0.5,exitCY=S5_EXIT_Y+0.5;
@@ -806,7 +925,7 @@ function s5PlayerDied(){
     stageTransitionState='s5_death';
     stageTitleEl.style.animation='flash 0.5s infinite';stageTitleEl.style.color='#ff0000';stageTitleEl.style.fontSize='30px';
     stageTitleEl.innerText='☠️ '+msg;
-    stageMsgEl.innerHTML='<span style="color:#ff3333;">Meat industry claimed you.</span><br><br><span style="color:#aaa;font-size:14px;">Kill ALL enemies first, then enter the GREEN EXIT door.<br>❤️=health | 🥦=ammo</span><br><br><span style="color:#ffeb3b;font-size:13px;">W/↑=Fwd S/↓=Back A/D=Strafe | ←/→=Turn | Mouse=Look | Space=Shoot</span>';
+    stageMsgEl.innerHTML='<span style="color:#ff3333;">Meat industry claimed you.</span><br><br><span style="color:#aaa;font-size:14px;">Kill ALL enemies first, then enter the GREEN EXIT door.<br>❤️=health | 🥦=ammo | 🫐=speed | 🍃=invincibility</span><br><br><span style="color:#ffeb3b;font-size:13px;">W/↑=Fwd S/↓=Back A/D=Strafe | ←/→=Turn | Mouse=Look | Space=Shoot</span>';
     document.getElementById('stageTapPrompt').innerText='TAP/CLICK TO RETRY';
     stageOverlayEl.classList.add('active');
     if(document.pointerLockElement)document.exitPointerLock();
@@ -830,9 +949,9 @@ function endS5World(){
 function showS5FinalVictory(){
     stageTransitionState='s5_final_victory';
     stageTitleEl.style.animation='flash 0.4s infinite';stageTitleEl.style.color='#00ff88';stageTitleEl.style.fontSize='22px';
-    stageTitleEl.innerText="🌱 YOU'RE BECOMING THE BEST VEGAN OF YOURSELF 🌱";
-    stageMsgEl.innerHTML='<span style="color:#00ffcc;font-size:20px;font-weight:bold;">Ditchius Maximus Griftus has been defeated.</span><br><br><span style="color:#ffeb3b;font-size:17px;">You\'re becoming the best vegan of yourself.</span><br><br><span style="color:#ff3333;font-weight:bold;">The animal agricultural industry is destroying the planet.</span><br><span style="color:#afff94;">Keep veganing. Every meal matters.</span><br><br><span style="color:#00ffcc;">The animals are free. You have ascended. 🌍</span><br><br><span style="color:#ffeb3b;font-weight:bold;font-size:18px;">🏆 Made by Earthling Official 🏆</span>';
-    document.getElementById('stageTapPrompt').innerText='TAP TO PLAY AGAIN';
+    stageTitleEl.innerText="🌱 STAGE 5 COMPLETE! 🌱";
+    stageMsgEl.innerHTML='<span style="color:#00ffcc;font-size:20px;font-weight:bold;">Ditchius Maximus Griftus has been defeated.</span><br><br><span style="color:#ffeb3b;font-size:17px;">You\'re becoming the best vegan of yourself.</span><br><br><span style="color:#ff3333;font-weight:bold;">The animal agricultural industry is destroying the planet.</span><br><span style="color:#afff94;">Keep veganing. Every meal matters.</span><br><br><span style="color:#00ffcc;">The journey continues...</span><br><br><span style="color:#ffeb3b;font-weight:bold;font-size:18px;">🏆 Made by Earthling Official 🏆</span>';
+    document.getElementById('stageTapPrompt').innerText='TAP TO CONTINUE TO STAGE 6';
     stageOverlayEl.classList.add('active');
     window._finalLeafTimer=setInterval(()=>{for(let i=0;i<5;i++)s4.fireworks.push({x:Math.random()*canvas.width,y:-20,vx:(Math.random()-0.5)*2,vy:Math.random()*3+1,color:`hsl(${Math.random()*360},100%,60%)`,life:240,isLeaf:true});},130);
 }
@@ -933,7 +1052,7 @@ function handleTap(e){
     if(stageTransitionState==='s5_death'){stageOverlayEl.classList.remove('active');stageTransitionState='none';startStage5(s5WorldIndex);return;}
     if(stageTransitionState==='s5worldcomplete'){stageOverlayEl.classList.remove('active');stageTransitionState='none';startStage5(s5WorldIndex+1);return;}
     if(stageTransitionState==='s5coinrespawn'){stageOverlayEl.classList.remove('active');stageTransitionState='none';startStage5(s5WorldIndex);return;}
-    if(stageTransitionState==='s5_final_victory'){if(window._finalLeafTimer){clearInterval(window._finalLeafTimer);window._finalLeafTimer=null;}stageOverlayEl.classList.remove('active');stageTransitionState='none';resetGame();return;}
+    if(stageTransitionState==='s5_final_victory'){if(window._finalLeafTimer){clearInterval(window._finalLeafTimer);window._finalLeafTimer=null;}window.location.href='veganbrosstage6.html';return;}
     if(currentStage===5&&stageTransitionState==='none'){if(gameActive)doS5Shoot();return;}
     if(stageTransitionState==='s4coinrespawn'){stageOverlayEl.classList.remove('active');stageTransitionState='none';startStage4(1);return;}
     if(stageTransitionState==='s4worldcomplete'){handleS4WorldCompleteTap();return;}
