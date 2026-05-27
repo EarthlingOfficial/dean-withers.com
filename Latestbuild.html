@@ -1073,3 +1073,35 @@ draw();
 </script>
 </body>
 </html>
+// Ensure this runs AFTER your core game engine variables have initialized
+(function() {
+    // 1. Store a copy of the original, broken shooting function
+    const originalEnemyShoot = window.enemyShoot || Object.prototype.enemyShoot; 
+
+    if (!originalEnemyShoot) {
+        console.warn("Could not find the original shooting function to override.");
+        return;
+    }
+
+    // 2. Overwrite the function completely to force our validation check first
+    window.enemyShoot = function(enemy, player, walls) {
+        
+        // 3. Run the priority check: Is there a wall between them?
+        let wallIntersection = false;
+        
+        for (let wall of walls) {
+            if (checkLineOfSightObstruction(enemy, player, wall)) {
+                wallIntersection = true;
+                break; // Stop checking, a wall is blocking!
+            }
+        }
+
+        // 4. Priority Verdict: If a wall blocks it, exit completely (Suppress the shot)
+        if (wallIntersection) {
+            return; 
+        }
+
+        // 5. If path is clear, let the original game code fire normally
+        originalEnemyShoot.apply(this, arguments);
+    };
+})();
