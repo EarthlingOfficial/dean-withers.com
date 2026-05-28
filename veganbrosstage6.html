@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>GO DEAN — Stage 6: The Mirror</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Space+Mono:wght@400;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:#04060a;font-family:'Space Mono',monospace;color:#dfe8f0;}
+canvas{display:block;}
+#gl{position:fixed;inset:0;z-index:1;}
+
+/* ---- Cutscene / story overlay ---- */
+#story{position:fixed;inset:0;z-index:40;display:none;flex-direction:column;align-items:center;justify-content:center;
+ background:radial-gradient(ellipse at center,#0a1019 0%,#04060a 80%);padding:7vw;text-align:center;}
+#story.on{display:flex;}
+#story .kicker{font-family:'Space Mono';font-size:13px;letter-spacing:0.5em;text-transform:uppercase;color:#3f7d6b;margin-bottom:28px;opacity:0;}
+#story .line{font-family:'Cormorant Garamond';font-weight:400;font-size:clamp(22px,4.2vw,46px);line-height:1.45;max-width:880px;color:#eef4f8;opacity:0;}
+#story .line .em{color:#8fe3c0;font-style:italic;}
+#story .line .red{color:#e2615b;}
+#story .attrib{font-family:'Space Mono';font-size:13px;letter-spacing:0.25em;color:#5a6b7a;margin-top:34px;opacity:0;text-transform:uppercase;}
+#story .prompt{position:absolute;bottom:6vh;font-family:'Space Mono';font-size:12px;letter-spacing:0.4em;color:#4a6d7e;text-transform:uppercase;opacity:0;animation:pulse 1.8s infinite;}
+@keyframes pulse{0%,100%{opacity:0.35;}50%{opacity:0.85;}}
+.fadein{animation:fadein 1.6s forwards;}
+.fadein-slow{animation:fadein 2.6s forwards;}
+@keyframes fadein{to{opacity:1;}}
+
+/* ---- HUD ---- */
+#hud{position:fixed;inset:0;z-index:20;pointer-events:none;display:none;}
+#hud.on{display:block;}
+#topbar{position:absolute;top:0;left:0;right:0;padding:14px 20px;display:flex;justify-content:space-between;align-items:flex-start;
+ background:linear-gradient(180deg,rgba(4,6,10,0.8),transparent);}
+.stat{font-family:'Space Mono';font-size:13px;letter-spacing:0.15em;color:#9fb6c2;text-shadow:0 0 10px rgba(0,0,0,0.8);}
+.stat b{color:#8fe3c0;}
+.stat .hp{color:#e2615b;}
+#objective{position:absolute;top:48px;left:50%;transform:translateX(-50%);font-family:'Cormorant Garamond';font-style:italic;
+ font-size:clamp(15px,2.4vw,21px);color:#cfe0ea;text-shadow:0 1px 12px rgba(0,0,0,0.9);text-align:center;width:90%;opacity:0.92;}
+/* beat toast */
+#beat{position:absolute;left:50%;bottom:16vh;transform:translateX(-50%);max-width:680px;width:88%;text-align:center;
+ font-family:'Cormorant Garamond';font-size:clamp(19px,3.4vw,32px);line-height:1.4;color:#eef4f8;opacity:0;
+ text-shadow:0 2px 20px rgba(0,0,0,0.95);}
+#beat.show{animation:beatpop 5.4s forwards;}
+#beat .em{color:#8fe3c0;font-style:italic;}
+#beat .red{color:#e2615b;}
+@keyframes beatpop{0%{opacity:0;transform:translateX(-50%) translateY(14px);}10%{opacity:1;transform:translateX(-50%) translateY(0);}82%{opacity:1;}100%{opacity:0;}}
+/* defeat flash */
+#flash{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);font-family:'Space Mono';font-weight:700;
+ font-size:clamp(15px,2.6vw,22px);letter-spacing:0.12em;color:#8fe3c0;text-shadow:0 0 18px rgba(143,227,192,0.4);opacity:0;text-align:center;}
+#flash.show{animation:flashpop 1.7s forwards;}
+@keyframes flashpop{0%{opacity:0;transform:translate(-50%,-50%) scale(0.9);}14%{opacity:1;transform:translate(-50%,-50%) scale(1);}70%{opacity:1;}100%{opacity:0;}}
+#crosshair{position:absolute;left:50%;top:50%;width:26px;height:26px;transform:translate(-50%,-50%);}
+#crosshair::before,#crosshair::after{content:'';position:absolute;background:rgba(143,227,192,0.7);}
+#crosshair::before{left:50%;top:0;width:2px;height:100%;transform:translateX(-50%);}
+#crosshair::after{top:50%;left:0;height:2px;width:100%;transform:translateY(-50%);}
+#dmg{position:fixed;inset:0;z-index:25;pointer-events:none;background:radial-gradient(ellipse at center,transparent 40%,rgba(180,20,20,0.55) 100%);opacity:0;}
+
+/* ---- Controls ---- */
+#touch{position:fixed;inset:0;z-index:22;display:none;}
+#touch.on{display:block;}
+.joy{position:absolute;bottom:24px;width:140px;height:140px;border-radius:50%;background:rgba(143,227,192,0.05);border:2px solid rgba(143,227,192,0.18);pointer-events:all;touch-action:none;}
+#joyL{left:22px;}#joyR{right:22px;}
+.knob{position:absolute;top:50%;left:50%;width:54px;height:54px;border-radius:50%;background:rgba(143,227,192,0.28);transform:translate(-50%,-50%);}
+#fire{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);width:78px;height:78px;border-radius:50%;
+ background:rgba(226,97,91,0.25);border:3px solid rgba(226,97,91,0.6);color:#fff;font-family:'Space Mono';font-size:11px;
+ letter-spacing:0.1em;display:flex;align-items:center;justify-content:center;pointer-events:all;touch-action:none;}
+
+#title{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;
+ background:radial-gradient(ellipse at center,#0a1019,#04060a 75%);text-align:center;padding:8vw;}
+#title h1{font-family:'Cormorant Garamond';font-weight:600;font-size:clamp(34px,8vw,86px);letter-spacing:0.02em;color:#eef4f8;line-height:1;}
+#title h1 .s{display:block;font-size:0.42em;letter-spacing:0.5em;color:#8fe3c0;margin-top:18px;text-transform:uppercase;}
+#title .sub{font-family:'Space Mono';font-size:13px;letter-spacing:0.3em;color:#5a6b7a;margin-top:36px;text-transform:uppercase;}
+#title .go{margin-top:48px;font-family:'Space Mono';font-size:13px;letter-spacing:0.4em;color:#8fe3c0;text-transform:uppercase;
+ border:1px solid rgba(143,227,192,0.4);padding:16px 34px;cursor:pointer;animation:pulse 2s infinite;}
+.hidden{display:none!important;}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="dmg"></div>
+
+<div id="title">
+ <h1>GO DEAN<span class="s">Stage VI — The Mirror</span></h1>
+ <div class="sub">A game by Earthling</div>
+ <div class="go" id="startBtn">Begin</div>
+</div>
+
+<div id="story">
+ <div class="kicker" id="storyKicker"></div>
+ <div class="line" id="storyLine"></div>
+ <div class="attrib" id="storyAttrib"></div>
+ <div class="prompt" id="storyPrompt">tap / click to continue</div>
+</div>
+
+<div id="hud">
+ <div id="topbar">
+  <div class="stat">DEAN &nbsp;<span class="hp">♥ <b id="hpNum">100</b></span></div>
+  <div class="stat" id="objStat">THE TRUTH&nbsp; <b id="enemyNum">0</b> remain</div>
+  <div class="stat">🥦 <b id="ammoNum">∞</b></div>
+ </div>
+ <div id="objective" id="obj"></div>
+ <div id="beat"></div>
+ <div id="flash"></div>
+ <div id="crosshair"></div>
+</div>
+
+<div id="touch">
+ <div class="joy" id="joyL"><div class="knob" id="knobL"></div></div>
+ <div class="joy" id="joyR"><div class="knob" id="knobR"></div></div>
+ <div id="fire">FIRE</div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* =========================================================
+   GO DEAN — STAGE 6: THE MIRROR
+   A 3D narrative level. Dean begins to wake up.
+   Dedicated to Isaac Bashevis Singer.
+   ========================================================= */
+
+// ---------- STORY CONTENT ----------
+// Beats are written as the character's arc: denial -> the conceded facts
+// catching up -> the cat/cow contradiction -> care misheard as cruelty -> the break.
+const DEDICATION = {
+  kicker: "Dedicated to",
+  line: `Isaac Bashevis Singer wrote that <span class="em">in relation to the animals, all people are slaughterers</span> — and that for them, it is an eternal Treblinka.`,
+  attrib: "Isaac Bashevis Singer · Nobel Laureate"
+};
+
+const OPENING = [
+  { kicker:"Stage Six", line:`Dean would not eat his cat. <span class="em">She's cute</span>, he said. He laughed when he said it.` },
+  { kicker:"Stage Six", line:`He ate the cow without a second thought. <span class="em">The perfect sear.</span> A different animal. A different rule. He never asked why.` },
+  { kicker:"Stage Six", line:`When I pointed at the contradiction, he called me <span class="red">crazy</span>. Said I was <span class="red">too honest.</span> Said I was the enemy — though I never was.` },
+  { kicker:"Stage Six", line:`He had already agreed with the numbers. Already conceded the cost. He just wouldn't walk through the open door.` },
+  { kicker:"Stage Six", line:`So here he is. Alone in the corridor of his own reasons. Tonight something starts to <span class="em">crack.</span>` },
+];
+
+// mid-level beats triggered by progress (enemies remaining thresholds)
+const PROGRESS_BEATS = [
+  `He told himself these were just <span class="em">monsters.</span> Not choices. Not anyone.`,
+  `Fifteen calories in. <span class="em">One</span> back out. He'd admitted that once, on a stage, in front of thousands.`,
+  `Trillions lost — to sickness, to a heating world. He talked of feeding children. He looked away from the lever that could.`,
+  `Why the cat and not the cow? <span class="red">Who taught him which lives count?</span>`,
+  `The wall in front of him was the same shape as every excuse. <span class="em">There was always another way through.</span>`,
+];
+
+// defeat flashes — start factual (his conceded points), turn personal as he breaks
+const DEFEAT_LINES = [
+  "15 : 1 — he conceded this himself.",
+  "A third option. There was always a third option.",
+  "Sentience is not a feature you can sear away.",
+  "The cat. The cow. The same eyes.",
+  "Not the enemy. Never the enemy.",
+  "Honesty is not cruelty.",
+  "He stopped calling it crazy.",
+  "He stopped looking away.",
+];
+
+const BOSS_INTRO = [
+  { kicker:"The Mirror", line:`At the end of the corridor: a room of glass. And in every pane — <span class="em">himself.</span>` },
+  { kicker:"The Mirror", line:`Not a monster. Not me. The one who kept the rule that the cute ones live and the rest are dinner.` },
+  { kicker:"The Mirror", line:`<span class="em">To go forward, he has to face the version of himself that refused to.</span>` },
+];
+
+const ENDING = [
+  { kicker:"", line:`The last mirror broke. He did not feel victory. He felt the <span class="red">weight</span> of what he could no longer unsee.` },
+  { kicker:"", line:`I once told him: if I were your brother, I would not throw you out. I would only <span class="em">expect more of you.</span> He heard a threat. It was love.` },
+  { kicker:"", line:`He's still not vegan. Not tonight. But something behind his eyes has <span class="red">shifted</span>, and it will not shift back. 💔` },
+  { kicker:"To be continued", line:`<span class="em">Stage Seven.</span>` },
+];
+
+// ---------- ENGINE ----------
+const canvas = document.getElementById('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x05101a, 0.085);
+
+const camera = new THREE.PerspectiveCamera(72, innerWidth/innerHeight, 0.1, 100);
+const cam = { x:1.5, z:1.5, angle:0, y:1.1 };
+
+// ---------- MAZE ----------
+// 16x16. 1 = wall, 0 = floor, 9 = boss arena entry, 5 = arena floor
+const MAP = [
+ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+ 1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,
+ 1,0,1,1,0,0,1,0,1,1,1,0,1,1,0,1,
+ 1,0,1,0,0,0,0,0,0,0,1,0,0,1,0,1,
+ 1,0,0,0,1,1,1,1,1,0,1,0,0,0,0,1,
+ 1,0,1,0,0,0,0,0,1,0,0,0,1,1,0,1,
+ 1,0,1,0,1,0,1,0,1,1,1,0,0,1,0,1,
+ 1,0,0,0,1,0,1,0,0,0,0,0,0,0,0,1,
+ 1,1,1,0,1,0,1,1,1,0,1,1,1,0,1,1,
+ 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+ 1,0,1,1,1,0,1,1,1,0,1,1,0,1,0,1,
+ 1,0,0,0,1,0,0,0,1,0,0,1,0,1,0,1,
+ 1,1,1,0,1,1,1,0,0,0,0,1,0,0,0,1,
+ 1,0,0,0,0,0,0,0,1,1,1,1,0,1,0,1,
+ 1,0,0,1,1,1,0,0,0,0,5,5,5,5,9,1,
+ 1,1,1,1,1,1,1,1,1,1,5,5,5,5,1,1,
+];
+const N = 16;
+function cell(x,z){ const gx=Math.floor(x), gz=Math.floor(z); if(gx<0||gx>=N||gz<0||gz>=N) return 1; return MAP[gz*N+gx]; }
+function solid(x,z){ return cell(x,z)===1; }
+
+// ---------- LIGHTING ----------
+scene.add(new THREE.AmbientLight(0x22404f, 0.7));
+const key = new THREE.DirectionalLight(0x88bbff, 0.5);
+key.position.set(5,12,4); scene.add(key);
+const torch = new THREE.PointLight(0x9fe8d0, 1.6, 7, 2); scene.add(torch); // follows player
+
+// ---------- TEXTURES (procedural canvas) ----------
+function wallTexture(){
+  const c=document.createElement('canvas'); c.width=c.height=128; const x=c.getContext('2d');
+  x.fillStyle='#0e2230'; x.fillRect(0,0,128,128);
+  for(let i=0;i<800;i++){ const v=20+Math.random()*40; x.fillStyle=`rgba(${v*0.4},${v},${v*1.2},0.5)`; x.fillRect(Math.random()*128,Math.random()*128,2,2); }
+  x.strokeStyle='rgba(80,160,190,0.25)'; x.lineWidth=2;
+  for(let y=0;y<128;y+=32){ x.beginPath(); x.moveTo(0,y); x.lineTo(128,y); x.stroke(); }
+  for(let gx=0;gx<128;gx+=32){ x.beginPath(); x.moveTo(gx,0); x.lineTo(gx,128); x.stroke(); }
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; return t;
+}
+function floorTexture(){
+  const c=document.createElement('canvas'); c.width=c.height=128; const x=c.getContext('2d');
+  x.fillStyle='#08131c'; x.fillRect(0,0,128,128);
+  for(let i=0;i<400;i++){ const v=Math.random()*30; x.fillStyle=`rgba(${v},${v*1.3},${v*1.5},0.4)`; x.fillRect(Math.random()*128,Math.random()*128,3,3); }
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(N,N); return t;
+}
+const wallTex = wallTexture();
+const wallMat = new THREE.MeshStandardMaterial({ map:wallTex, roughness:0.85, metalness:0.1, color:0x6fb3d6 });
+const arenaMat = new THREE.MeshStandardMaterial({ color:0x183848, roughness:0.2, metalness:0.85 });
+
+// ---------- BUILD GEOMETRY ----------
+const wallGeo = new THREE.BoxGeometry(1,2.4,1);
+const worldGroup = new THREE.Group(); scene.add(worldGroup);
+for(let z=0;z<N;z++) for(let x=0;x<N;x++){
+  const t = MAP[z*N+x];
+  if(t===1){
+    const m=new THREE.Mesh(wallGeo, wallMat);
+    m.position.set(x+0.5,1.2,z+0.5); m.castShadow=true; m.receiveShadow=true;
+    worldGroup.add(m);
+  }
+}
+// floor
+const floorMat=new THREE.MeshStandardMaterial({ map:floorTexture(), roughness:0.9, color:0x4a7a8a });
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(N,N), floorMat);
+floor.rotation.x=-Math.PI/2; floor.position.set(N/2,0,N/2); floor.receiveShadow=true; scene.add(floor);
+// ceiling
+const ceil=new THREE.Mesh(new THREE.PlaneGeometry(N,N), new THREE.MeshStandardMaterial({color:0x070f16,roughness:1}));
+ceil.rotation.x=Math.PI/2; ceil.position.set(N/2,2.4,N/2); scene.add(ceil);
+
+// mirror panels in the arena (faked reflective: shiny metal panels, not true reflections)
+const mirrors=[];
+const arenaCells=[];
+for(let z=0;z<N;z++) for(let x=0;x<N;x++){ if(MAP[z*N+x]===5) arenaCells.push([x,z]); }
+// place tall reflective panels around arena edge
+const panelGeo=new THREE.BoxGeometry(0.12,2.3,1.0);
+function addMirror(px,pz,ry){
+  const m=new THREE.Mesh(panelGeo, new THREE.MeshStandardMaterial({color:0xbfe6ff,roughness:0.08,metalness:0.95,emissive:0x0a2230,emissiveIntensity:0.4}));
+  m.position.set(px,1.15,pz); m.rotation.y=ry; m.castShadow=true; m.userData.alive=true;
+  scene.add(m); mirrors.push(m);
+}
+// exit door (green) at the 9 cell
+let exitMesh=null;
+for(let z=0;z<N;z++) for(let x=0;x<N;x++){ if(MAP[z*N+x]===9){
+  exitMesh=new THREE.Mesh(new THREE.BoxGeometry(0.2,2.2,1), new THREE.MeshStandardMaterial({color:0x1b7d4f,emissive:0x0fff7a,emissiveIntensity:0.0,roughness:0.4}));
+  exitMesh.position.set(x+0.5,1.1,z+0.5); scene.add(exitMesh);
+}}
+
+// ---------- ENEMIES (billboard sprites — "the reasons / the monsters") ----------
+function spriteTex(kind){
+  const c=document.createElement('canvas'); c.width=c.height=128; const x=c.getContext('2d');
+  x.clearRect(0,0,128,128);
+  // body
+  const col = kind==='boss' ? '#cfe9ff' : (kind==='doubt'?'#3a5a4f':'#5a3a3a');
+  x.fillStyle=col; x.fillRect(44,46,40,64);
+  // head
+  x.fillStyle='#e9c6a0'; x.beginPath(); x.arc(64,38,16,0,7); x.fill();
+  // eyes
+  x.fillStyle= kind==='boss' ? '#7fd6ff' : '#e2615b';
+  x.fillRect(57,35,5,5); x.fillRect(67,35,5,5);
+  if(kind==='boss'){ // mirror-dean shimmer
+    x.strokeStyle='rgba(180,230,255,0.6)'; x.lineWidth=3; x.strokeRect(40,28,48,86);
+  }
+  const t=new THREE.CanvasTexture(c); return t;
+}
+const enemies=[];
+function spawnEnemy(x,z,kind){
+  const mat=new THREE.SpriteMaterial({ map:spriteTex(kind), transparent:true });
+  const s=new THREE.Sprite(mat);
+  const scale = kind==='boss'?2.0:1.3;
+  s.scale.set(scale,scale,1);
+  s.position.set(x,scale/2,z);
+  s.userData={ kind, hp: kind==='boss'?60:4, maxhp: kind==='boss'?60:4, alive:true, cool:60+Math.random()*40, x, z };
+  scene.add(s); enemies.push(s); return s;
+}
+// scatter "reasons" through the maze (avoid arena + start)
+let placed=0;
+const spots=[];
+for(let z=1;z<N-1;z++) for(let x=1;x<N-1;x++){ const t=MAP[z*N+x]; if(t===0 && !(x<3&&z<3)) spots.push([x,z]); }
+for(let i=spots.length-1;i>0;i--){ const j=(Math.sin(i*53.7)*9999)%1; const k=Math.floor(Math.abs(j)*i); [spots[i],spots[k]]=[spots[k],spots[i]]; }
+for(let i=0;i<9 && i<spots.length;i++){ const [x,z]=spots[i]; spawnEnemy(x+0.5,z+0.5, i%2?'doubt':'reason'); placed++; }
+
+let boss=null, bossActive=false;
+
+// particles for hits / shatter
+const sparks=[];
+function spark(x,y,z,color){
+  const g=new THREE.SphereGeometry(0.06,4,4);
+  const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color}));
+  m.position.set(x,y,z);
+  m.userData={vx:(Math.random()-0.5)*0.12,vy:Math.random()*0.12,vz:(Math.random()-0.5)*0.12,life:30};
+  scene.add(m); sparks.push(m);
+}
+
+// ---------- GAME STATE ----------
+let phase='title'; // title, dedication, opening, play, bossintro, boss, ending
+let hp=100, defeatIdx=0, beatIdx=0, progressBeatsFired=0;
+let storyQueue=[], storyPos=0, storyAfter=null;
+const keys={w:false,s:false,a:false,d:false,left:false,right:false};
+let fireCooldown=0;
+
+const $=id=>document.getElementById(id);
+const hud=$('hud'), touchUI=$('touch'), storyEl=$('story');
+
+const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints>0;
+
+// ---------- STORY SYSTEM ----------
+function runStory(seq, after){
+  storyQueue=seq; storyPos=0; storyAfter=after; phase='story';
+  hud.classList.remove('on'); touchUI.classList.remove('on');
+  storyEl.classList.add('on'); showStoryFrame();
+}
+function showStoryFrame(){
+  const f=storyQueue[storyPos];
+  const k=$('storyKicker'), l=$('storyLine'), a=$('storyAttrib'), p=$('storyPrompt');
+  k.style.opacity=l.style.opacity=a.style.opacity=p.style.opacity=0;
+  k.className='kicker'; l.className='line'; a.className='attrib';
+  k.innerHTML=f.kicker||''; l.innerHTML=f.line||''; a.innerHTML=f.attrib||'';
+  void k.offsetWidth;
+  if(f.kicker) k.classList.add('fadein');
+  l.classList.add('fadein-slow');
+  if(f.attrib) a.classList.add('fadein');
+  setTimeout(()=>{ p.style.opacity=0.6; },1400);
+}
+function advanceStory(){
+  storyPos++;
+  if(storyPos>=storyQueue.length){ storyEl.classList.remove('on'); const cb=storyAfter; storyAfter=null; if(cb)cb(); }
+  else showStoryFrame();
+}
+
+// ---------- FLOW ----------
+function startGame(){ $('title').classList.add('hidden');
+  runStory([DEDICATION], ()=> runStory(OPENING, beginPlay));
+}
+function beginPlay(){
+  phase='play'; hud.classList.add('on'); if(isTouch) touchUI.classList.add('on');
+  updateHUD(); setObjective("Move through the corridor of his reasons. Face what's there.");
+}
+function beginBossIntro(){ runStory(BOSS_INTRO, beginBoss); }
+function beginBoss(){
+  phase='boss'; bossActive=true; hud.classList.add('on'); if(isTouch) touchUI.classList.add('on');
+  // build mirror ring around arena
+  const xs=arenaCells.map(c=>c[0]), zs=arenaCells.map(c=>c[1]);
+  const minx=Math.min(...xs),maxx=Math.max(...xs),minz=Math.min(...zs),maxz=Math.max(...zs);
+  for(let z=minz;z<=maxz;z++){ addMirror(minx-0.0,z+0.5,Math.PI/2); addMirror(maxx+1.0,z+0.5,Math.PI/2); }
+  for(let x=minx;x<=maxx;x++){ addMirror(x+0.5,minz-0.0,0); addMirror(x+0.5,maxz+1.0,0); }
+  // spawn mirror-Dean
+  const cx=(minx+maxx)/2+0.5, cz=(minz+maxz)/2+0.5;
+  boss=spawnEnemy(cx,cz,'boss');
+  setObjective("Dean v. Dean. Break the self that refused to see.");
+  updateHUD();
+}
+function endStage(){
+  phase='ending'; bossActive=false;
+  runStory(ENDING, ()=>{ window.location.href='veganbrosstage7.html'; });
+}
+
+// ---------- HUD ----------
+function updateHUD(){
+  $('hpNum').textContent=Math.max(0,Math.round(hp));
+  const alive=enemies.filter(e=>e.userData.alive && e.userData.kind!=='boss').length;
+  if(phase==='boss' && boss){ $('objStat').innerHTML=`THE MIRROR&nbsp; <b>${Math.max(0,Math.round(boss.userData.hp))}</b>`; }
+  else $('objStat').innerHTML=`THE TRUTH&nbsp; <b id="enemyNum">${alive}</b> remain`;
+}
+function setObjective(t){ $('objective').textContent=t; }
+function showBeat(html){ const b=$('beat'); b.innerHTML=html; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show'); }
+function showFlash(t){ const f=$('flash'); f.textContent=t; f.classList.remove('show'); void f.offsetWidth; f.classList.add('show'); }
+function damage(n){ hp-=n; const d=$('dmg'); d.style.opacity=0.9; setTimeout(()=>d.style.opacity=0,160);
+  if(hp<=0){ hp=0; updateHUD(); playerDown(); } updateHUD(); }
+function playerDown(){
+  // soft fail — he isn't ready; reflect and restart the corridor
+  phase='story';
+  runStory([{kicker:"Not yet",line:`He wasn't ready to see it. <span class="em">He never is, the first time.</span>`},
+            {kicker:"Again",line:`So he walks the corridor again. <span class="red">The truth waits.</span>`}],
+    ()=>{ hp=100; cam.x=1.5; cam.z=1.5; cam.angle=0; beginPlay(); });
+}
+
+// ---------- SHOOTING ----------
+function shoot(){
+  if(fireCooldown>0) return; fireCooldown=14;
+  // ray forward
+  const dx=Math.sin(cam.angle), dz=Math.cos(cam.angle);
+  let best=null,bestD=99;
+  const pool = phase==='boss' ? (boss?[boss]:[]) : enemies;
+  for(const e of pool){
+    if(!e.userData.alive) continue;
+    const ex=e.position.x-cam.x, ez=e.position.z-cam.z;
+    const dist=Math.hypot(ex,ez); if(dist>14) continue;
+    const dot=(ex*dx+ez*dz)/dist; // cos angle to forward
+    if(dot>0.93 && dist<bestD){ // within ~21deg cone
+      // wall check
+      if(hasLOS(cam.x,cam.z,e.position.x,e.position.z)){ best=e; bestD=dist; }
+    }
+  }
+  if(best){
+    best.userData.hp-= (phase==='boss'?4:2);
+    for(let i=0;i<8;i++) spark(best.position.x,best.position.y,best.position.z, phase==='boss'?0x9fe8ff:0x8fe3c0);
+    if(best.userData.hp<=0){ defeatEnemy(best); }
+    else { best.material.color?.setHex?.(0xffffff); }
+    updateHUD();
+  }
+}
+function hasLOS(ax,az,bx,bz){
+  const dx=bx-ax,dz=bz-az,dist=Math.hypot(dx,dz),steps=Math.ceil(dist/0.15);
+  for(let i=1;i<steps;i++){ const t=i/steps; if(solid(ax+dx*t,az+dz*t)) return false; }
+  return true;
+}
+function defeatEnemy(e){
+  e.userData.alive=false; e.visible=false;
+  for(let i=0;i<14;i++) spark(e.position.x,e.position.y,e.position.z,0x8fe3c0);
+  if(e.userData.kind==='boss'){ shatterMirrors(); setTimeout(endStage,900); return; }
+  // defeat flash line
+  showFlash(DEFEAT_LINES[Math.min(defeatIdx,DEFEAT_LINES.length-1)]); defeatIdx++;
+  updateHUD();
+  // when all corridor enemies down -> open path to boss
+  const alive=enemies.filter(x=>x.userData.alive && x.userData.kind!=='boss').length;
+  if(alive===0 && phase==='play'){
+    setObjective("The corridor is quiet now. The green door waits at the far corner.");
+    if(exitMesh) exitMesh.material.emissiveIntensity=0.9;
+  }
+}
+function shatterMirrors(){
+  mirrors.forEach(m=>{ if(m.userData.alive){ m.userData.alive=false;
+    for(let i=0;i<6;i++) spark(m.position.x,1+Math.random()*1.5,m.position.z,0xbfe6ff);
+    m.visible=false; } });
+}
+
+// progress beats during play
+function maybeProgressBeat(){
+  if(phase!=='play') return;
+  const total=9, alive=enemies.filter(e=>e.userData.alive && e.userData.kind!=='boss').length;
+  const downed=total-alive;
+  const thresholds=[1,3,5,7,9];
+  while(progressBeatsFired<PROGRESS_BEATS.length && downed>=thresholds[progressBeatsFired]){
+    showBeat(PROGRESS_BEATS[progressBeatsFired]); progressBeatsFired++;
+  }
+}
+
+// ---------- INPUT ----------
+$('startBtn').addEventListener('click', ()=>{ startGame(); });
+function onTap(){ if(phase==='story'){ advanceStory(); } }
+window.addEventListener('mousedown',(e)=>{
+  if(phase==='story'){ onTap(); return; }
+  if((phase==='play'||phase==='boss')){ if(document.pointerLockElement!==canvas){ canvas.requestPointerLock?.(); } shoot(); }
+});
+window.addEventListener('touchstart',(e)=>{
+  if(phase==='story'){ onTap(); }
+},{passive:true});
+document.addEventListener('mousemove',(e)=>{ if(document.pointerLockElement===canvas && (phase==='play'||phase==='boss')) cam.angle -= e.movementX*0.0022; });
+addEventListener('keydown',e=>{ const k=e.key.toLowerCase();
+  if(phase==='story' && (k===' '||k==='enter')){ onTap(); return; }
+  if(k==='w'||k==='arrowup')keys.w=true; if(k==='s'||k==='arrowdown')keys.s=true;
+  if(k==='a')keys.a=true; if(k==='d')keys.d=true;
+  if(k==='arrowleft')keys.left=true; if(k==='arrowright')keys.right=true;
+  if(k===' '){ e.preventDefault(); if(phase==='play'||phase==='boss')shoot(); }
+});
+addEventListener('keyup',e=>{ const k=e.key.toLowerCase();
+  if(k==='w'||k==='arrowup')keys.w=false; if(k==='s'||k==='arrowdown')keys.s=false;
+  if(k==='a')keys.a=false; if(k==='d')keys.d=false;
+  if(k==='arrowleft')keys.left=false; if(k==='arrowright')keys.right=false;
+});
+// touch joysticks
+function joystick(el,knob,state){
+  let id=-1,cx=0,cy=0; const MAX=52;
+  el.addEventListener('touchstart',e=>{e.preventDefault();const t=e.changedTouches[0];id=t.identifier;const r=el.getBoundingClientRect();cx=r.left+r.width/2;cy=r.top+r.height/2;},{passive:false});
+  el.addEventListener('touchmove',e=>{e.preventDefault();for(const t of e.changedTouches){if(t.identifier===id){let dx=t.clientX-cx,dy=t.clientY-cy,d=Math.hypot(dx,dy);if(d>MAX){dx=dx/d*MAX;dy=dy/d*MAX;}knob.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;state.x=dx/MAX;state.y=dy/MAX;}}},{passive:false});
+  function end(e){for(const t of e.changedTouches){if(t.identifier===id){knob.style.transform='translate(-50%,-50%)';state.x=0;state.y=0;id=-1;}}}
+  el.addEventListener('touchend',end);el.addEventListener('touchcancel',end);
+}
+const jl={x:0,y:0}, jr={x:0,y:0};
+joystick($('joyL'),$('knobL'),jl); joystick($('joyR'),$('knobR'),jr);
+$('fire').addEventListener('touchstart',e=>{e.preventDefault();if(phase==='play'||phase==='boss')shoot();},{passive:false});
+
+// ---------- MOVEMENT ----------
+function move(dt){
+  let fwd=0,str=0,turn=0;
+  if(keys.w)fwd+=1; if(keys.s)fwd-=1; if(keys.a)str-=1; if(keys.d)str+=1;
+  if(keys.left)turn-=1; if(keys.right)turn+=1;
+  fwd-=jl.y; str+=jl.x; turn+=jr.x;
+  cam.angle -= turn*0.045;
+  const sp=0.06;
+  const dx=(Math.sin(cam.angle)*fwd + Math.cos(cam.angle)*str)*sp;
+  const dz=(Math.cos(cam.angle)*fwd - Math.sin(cam.angle)*str)*sp;
+  const m=0.25;
+  if(!solid(cam.x+dx+Math.sign(dx)*m,cam.z) ) cam.x+=dx;
+  if(!solid(cam.x,cam.z+dz+Math.sign(dz)*m) ) cam.z+=dz;
+  // trigger boss when entering arena region
+  if(phase==='play' && cell(cam.x,cam.z)===9){
+    const alive=enemies.filter(e=>e.userData.alive && e.userData.kind!=='boss').length;
+    if(alive===0){ phase='transition'; beginBossIntro(); }
+    else { setObjective("Not yet. The reasons still stand in the corridor behind you."); }
+  }
+}
+
+// ---------- ENEMY AI ----------
+function enemyAI(){
+  if(phase!=='play' && phase!=='boss') return;
+  for(const e of enemies){
+    const u=e.userData; if(!u.alive) continue;
+    // billboards auto-face camera (sprites do). drift toward player slowly.
+    const dx=cam.x-e.position.x, dz=cam.z-e.position.z, dist=Math.hypot(dx,dz);
+    if(u.kind==='boss'){
+      // mirror-dean circles and lunges
+      const ang=Math.atan2(dz,dx);
+      const orbit=0.012;
+      let nx=e.position.x+Math.cos(ang+Math.PI/2)*orbit + (dx/dist)*0.006;
+      let nz=e.position.z+Math.sin(ang+Math.PI/2)*orbit + (dz/dist)*0.006;
+      if(!solid(nx,e.position.z)) e.position.x=nx;
+      if(!solid(e.position.x,nz)) e.position.z=nz;
+      e.scale.setScalar(2.0 + Math.sin(performance.now()/300)*0.15);
+      u.cool--; if(u.cool<=0 && dist<7 && hasLOS(e.position.x,e.position.z,cam.x,cam.z)){ damage(8); u.cool=70; }
+    } else {
+      if(dist<8){
+        const spd=0.008;
+        const nx=e.position.x+(dx/dist)*spd, nz=e.position.z+(dz/dist)*spd;
+        if(!solid(nx,e.position.z)) e.position.x=nx;
+        if(!solid(e.position.x,nz)) e.position.z=nz;
+        u.cool--; if(u.cool<=0 && dist<6 && hasLOS(e.position.x,e.position.z,cam.x,cam.z)){ damage(5); u.cool=90+Math.random()*40; }
+      }
+    }
+  }
+  maybeProgressBeat();
+}
+
+// ---------- LOOP ----------
+let last=performance.now();
+function loop(){
+  requestAnimationFrame(loop);
+  const now=performance.now(), dt=Math.min(40,now-last); last=now;
+  if(phase==='play'||phase==='boss'){ move(dt); enemyAI(); if(fireCooldown>0)fireCooldown--; }
+  // camera
+  camera.position.set(cam.x, cam.y, cam.z);
+  camera.lookAt(cam.x+Math.sin(cam.angle), cam.y, cam.z+Math.cos(cam.angle));
+  torch.position.set(cam.x, 1.6, cam.z);
+  // exit pulse
+  if(exitMesh && exitMesh.material.emissiveIntensity>0){ exitMesh.material.emissiveIntensity=0.6+Math.sin(now/250)*0.35; }
+  // sparks
+  for(let i=sparks.length-1;i>=0;i--){ const s=sparks[i],u=s.userData; s.position.x+=u.vx;s.position.y+=u.vy;s.position.z+=u.vz;u.vy-=0.006;u.life--; if(u.life<=0){scene.remove(s);sparks.splice(i,1);} }
+  renderer.render(scene,camera);
+}
+loop();
+addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+</script>
+</body>
+</html>
