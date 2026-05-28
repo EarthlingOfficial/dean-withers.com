@@ -55,6 +55,23 @@ canvas{display:block;}
 #crosshair::after{top:50%;left:0;height:2px;width:100%;transform:translateY(-50%);}
 #dmg{position:fixed;inset:0;z-index:25;pointer-events:none;background:radial-gradient(ellipse at center,transparent 40%,rgba(180,20,20,0.55) 100%);opacity:0;}
 
+/* ghost whisper text — appears to come from the apparitions */
+#ghostText{position:fixed;left:50%;top:30%;transform:translate(-50%,-50%);z-index:24;pointer-events:none;
+ font-family:'Cormorant Garamond';font-style:italic;font-size:clamp(22px,4vw,44px);color:#cfeee0;
+ text-shadow:0 0 24px rgba(160,230,200,0.5),0 2px 30px rgba(0,0,0,0.9);text-align:center;width:88%;opacity:0;letter-spacing:0.02em;}
+#ghostText.show{animation:ghostwhisper 5s forwards;}
+@keyframes ghostwhisper{0%{opacity:0;filter:blur(8px);}18%{opacity:0.92;filter:blur(0);}74%{opacity:0.92;}100%{opacity:0;filter:blur(6px);}}
+
+/* skull jump-scare overlay */
+#skull{position:fixed;inset:0;z-index:30;pointer-events:none;display:flex;align-items:center;justify-content:center;opacity:0;}
+#skull.flash{animation:skullsweep 0.95s forwards;}
+#skull svg{width:80vmin;height:80vmin;filter:drop-shadow(0 0 40px rgba(200,230,255,0.5));}
+@keyframes skullsweep{
+ 0%{opacity:0;transform:scale(0.2) translateY(40px);}
+ 22%{opacity:0.92;transform:scale(1.15) translateY(0);}
+ 55%{opacity:0.85;transform:scale(1.9);}
+ 100%{opacity:0;transform:scale(3.2);}}
+
 /* ---- Controls ---- */
 #touch{position:fixed;inset:0;z-index:22;display:none;}
 #touch.on{display:block;}
@@ -103,6 +120,15 @@ canvas{display:block;}
  <div id="flash"></div>
  <div id="crosshair"></div>
 </div>
+<div id="ghostText"></div>
+<div id="skull"><svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+<g fill="none" stroke="rgba(220,240,255,0.85)" stroke-width="2">
+<path fill="rgba(190,220,245,0.18)" stroke="rgba(220,240,255,0.9)" d="M100 18 C58 18 40 52 40 88 C40 110 50 124 58 134 L60 158 C60 168 70 172 78 172 L78 150 L86 150 L86 174 L114 174 L114 150 L122 150 L122 172 C130 172 140 168 140 158 L142 134 C150 124 160 110 160 88 C160 52 142 18 100 18 Z"/>
+<ellipse cx="74" cy="92" rx="18" ry="22" fill="rgba(8,12,20,0.9)" stroke="rgba(220,240,255,0.9)"/>
+<ellipse cx="126" cy="92" rx="18" ry="22" fill="rgba(8,12,20,0.9)" stroke="rgba(220,240,255,0.9)"/>
+<path d="M100 112 L92 132 L108 132 Z" fill="rgba(8,12,20,0.9)"/>
+<line x1="90" y1="150" x2="90" y2="172"/><line x1="100" y1="150" x2="100" y2="174"/><line x1="110" y1="150" x2="110" y2="172"/>
+</g></svg></div>
 
 <div id="touch">
  <div class="joy" id="joyL"><div class="knob" id="knobL"></div></div>
@@ -161,6 +187,8 @@ const sfx={
   shatter(){ for(let i=0;i<6;i++) setTimeout(()=>{ tone(1400+Math.random()*1600,'triangle',0.18,0.12,-600); noiseBurst(0.06,0.08,5000); }, i*55); },
   ui(){ tone(440,'sine',0.08,0.07,120); },
   boss(){ tone(70,'sawtooth',0.9,0.3,30); tone(110,'square',0.7,0.16,-20); },
+  ghost(){ tone(180,'sine',1.4,0.10,-120); tone(120,'sine',1.6,0.07,-60); },
+  skull(){ tone(160,'sawtooth',0.5,0.34,-120); noiseBurst(0.4,0.22,2600); tone(70,'square',0.7,0.2,-30); },
 };
 
 // --- MUSIC: evolving ambient drone bed ---
@@ -404,6 +432,84 @@ function spark(x,y,z,color){
   scene.add(m); sparks.push(m);
 }
 
+// ---------- GHOSTS (the dead — huge, misty, harmless, haunting) ----------
+const GHOST_LINES_EARLY=["I wanted to live.","I wasn't your property.","I was a sentient being.","Why would you do this?"];
+const GHOST_LINES_LATE=["I'm just like Momo.","Dean, you can choose differently.","Why would you do this?","I wanted to live."];
+function ghostTex(kind){
+  const c=document.createElement('canvas'); c.width=c.height=256; const x=c.getContext('2d');
+  x.clearRect(0,0,256,256);
+  // soft radial body of mist
+  const grd=x.createRadialGradient(128,128,20,128,128,128);
+  grd.addColorStop(0,'rgba(205,235,225,0.9)'); grd.addColorStop(0.5,'rgba(170,210,225,0.35)'); grd.addColorStop(1,'rgba(170,210,225,0)');
+  x.fillStyle=grd; x.fillRect(0,0,256,256);
+  x.strokeStyle='rgba(225,245,240,0.7)'; x.lineWidth=4; x.lineCap='round';
+  if(kind==='cow'){
+    x.beginPath(); x.ellipse(128,140,70,46,0,0,7); x.stroke();           // body
+    x.beginPath(); x.ellipse(190,110,26,22,0,0,7); x.stroke();           // head
+    x.beginPath(); x.moveTo(176,92); x.lineTo(168,72); x.moveTo(204,92); x.lineTo(212,72); x.stroke(); // horns
+    x.beginPath(); x.arc(184,108,3,0,7); x.arc(198,108,3,0,7); x.stroke(); // eyes
+    x.beginPath(); x.moveTo(70,170); x.lineTo(60,210); x.moveTo(110,176); x.lineTo(106,214); x.stroke(); // legs
+  } else if(kind==='pig'){
+    x.beginPath(); x.ellipse(120,140,66,48,0,0,7); x.stroke();
+    x.beginPath(); x.ellipse(184,128,30,26,0,0,7); x.stroke();
+    x.beginPath(); x.ellipse(206,130,10,12,0,0,7); x.stroke();           // snout
+    x.beginPath(); x.moveTo(168,104); x.lineTo(176,86); x.moveTo(196,104); x.lineTo(204,88); x.stroke(); // ears
+  } else { // chicken
+    x.beginPath(); x.ellipse(124,150,46,40,0,0,7); x.stroke();
+    x.beginPath(); x.arc(168,118,20,0,7); x.stroke();
+    x.beginPath(); x.moveTo(186,116); x.lineTo(202,120); x.lineTo(186,126); x.stroke(); // beak
+    x.beginPath(); x.moveTo(160,98); x.lineTo(156,84); x.moveTo(172,98); x.lineTo(174,82); x.stroke(); // comb
+  }
+  return new THREE.CanvasTexture(c);
+}
+const ghosts=[]; let ghostTimer=240; let lastGhostLine=-1;
+function spawnGhost(){
+  const kinds=['cow','pig','chicken']; const kind=kinds[Math.floor(Math.random()*kinds.length)];
+  const mat=new THREE.SpriteMaterial({ map:ghostTex(kind), transparent:true, opacity:0.0, depthWrite:false, blending:THREE.AdditiveBlending });
+  const s=new THREE.Sprite(mat);
+  const scale=5+Math.random()*3;            // 5–8x — looms like mist with form
+  s.scale.set(scale,scale,1);
+  // start off to one side of the player, drift across and through everything
+  const ang=cam.angle + (Math.random()<0.5?-1:1)*(0.6+Math.random()*1.0);
+  const dist=6+Math.random()*4;
+  s.position.set(cam.x+Math.sin(ang)*dist, scale*0.35+Math.random()*1.2, cam.z+Math.cos(ang)*dist);
+  const cross=cam.angle+Math.PI/2*(Math.random()<0.5?1:-1);
+  s.userData={ vx:Math.sin(cross)*0.012, vz:Math.cos(cross)*0.012, vy:(Math.random()-0.5)*0.004, life:520, maxlife:520 };
+  scene.add(s); ghosts.push(s);
+  // whisper a line (weighted to arc: late lines once he's breaking)
+  const breaking = (phase==='boss') || (progressBeatsFired>=3);
+  const pool = breaking?GHOST_LINES_LATE:GHOST_LINES_EARLY;
+  let li; do{ li=Math.floor(Math.random()*pool.length);}while(li===lastGhostLine && pool.length>1); lastGhostLine=li;
+  ghostWhisper(pool[li]);
+  if(typeof sfx!=='undefined' && sfx.ghost) sfx.ghost();
+}
+function ghostWhisper(text){
+  const g=$('ghostText'); g.innerHTML=text; g.classList.remove('show'); void g.offsetWidth; g.classList.add('show');
+}
+function updateGhosts(){
+  if(phase==='play'||phase==='boss'){
+    ghostTimer--;
+    if(ghostTimer<=0){ spawnGhost(); ghostTimer = 360 + Math.floor(Math.random()*360); } // sparse, eerie spacing
+  }
+  for(let i=ghosts.length-1;i>=0;i--){
+    const s=ghosts[i],u=s.userData;
+    s.position.x+=u.vx; s.position.z+=u.vz; s.position.y+=u.vy;
+    u.life--;
+    const t=u.life/u.maxlife;
+    // fade in then out — most visible mid-pass
+    s.material.opacity = Math.sin((1-t)*Math.PI)*0.5;
+    if(u.life<=0){ scene.remove(s); ghosts.splice(i,1); }
+  }
+}
+
+// ---------- SKULL JUMP-SCARE (sparing) ----------
+function skullScare(){
+  const el=$('skull'); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+  if(typeof sfx!=='undefined' && sfx.skull) sfx.skull();
+  // brief red vignette pulse to sell it
+  const d=$('dmg'); d.style.opacity=0.5; setTimeout(()=>d.style.opacity=0,200);
+}
+
 // ---------- GAME STATE ----------
 let phase='title'; // title, dedication, opening, play, bossintro, boss, ending
 let hp=100, defeatIdx=0, beatIdx=0, progressBeatsFired=0;
@@ -459,7 +565,7 @@ function beginBoss(){
   // spawn mirror-Dean
   const cx=(minx+maxx)/2+0.5, cz=(minz+maxz)/2+0.5;
   boss=spawnEnemy(cx,cz,'boss');
-  sfx.boss(); musicTension(true);
+  sfx.boss(); musicTension(true); skullScare();
   setObjective("Dean v. Dean. Break the self that refused to see.");
   updateHUD();
 }
@@ -547,7 +653,10 @@ function maybeProgressBeat(){
   const downed=total-alive;
   const thresholds=[1,3,5,7,9];
   while(progressBeatsFired<PROGRESS_BEATS.length && downed>=thresholds[progressBeatsFired]){
-    showBeat(PROGRESS_BEATS[progressBeatsFired]); progressBeatsFired++;
+    showBeat(PROGRESS_BEATS[progressBeatsFired]);
+    // sparing skull scares — only on the 2nd and 4th beat
+    if(progressBeatsFired===1 || progressBeatsFired===3) setTimeout(skullScare, 600);
+    progressBeatsFired++;
   }
 }
 
@@ -645,6 +754,7 @@ function loop(){
   requestAnimationFrame(loop);
   const now=performance.now(), dt=Math.min(40,now-last); last=now;
   if(phase==='play'||phase==='boss'){ move(dt); enemyAI(); if(fireCooldown>0)fireCooldown--; }
+  updateGhosts();
   // camera
   camera.position.set(cam.x, cam.y, cam.z);
   const lookDist=Math.cos(cam.pitch);
