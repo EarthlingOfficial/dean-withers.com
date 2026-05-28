@@ -668,8 +668,11 @@ function drawStage5(){
         let ea=Math.atan2(dy,dx),da=ea-s5Cam.angle;
         while(da>Math.PI)da-=Math.PI*2;while(da<-Math.PI)da+=Math.PI*2;
         if(Math.abs(da)>S5_HALF_FOV+0.4)return;
-        let sx=(0.5+da/S5_FOV)*canvas.width,sz=Math.min(H*1.5,(H/dist)*e.size),sy=H/2+(H/dist)*0.5-sz;
-        let si=Math.floor(sx/sliceW);if(si<0||si>=W||zBuf[si]<dist)return;
+        let sx=(0.5+da/S5_FOV)*canvas.width,sz=Math.min(H*1.5,(H/dist)*e.size),sy=H/2+(H/dist)*0.5-sz*0.52;
+        let si=Math.floor(sx/sliceW);if(si<0||si>=W)return;
+        let halfCols=Math.max(1,Math.floor(sz*0.25/sliceW));
+        let occluded=true;for(let ci=Math.max(0,si-halfCols);ci<=Math.min(W-1,si+halfCols);ci++){if(zBuf[ci]>=dist){occluded=false;break;}}
+        if(occluded)return;
         if(e.dead){ctx.globalAlpha=Math.max(0,(1-dist/wd.fogD))*(e.deadTimer/40);ctx.fillStyle='#550000';ctx.beginPath();ctx.ellipse(sx,sy+sz*0.52,sz*0.26,sz*0.065,0,0,Math.PI*2);ctx.fill();ctx.font=`${Math.floor(sz*0.48)}px Arial`;ctx.textAlign='center';ctx.fillText('💀',sx,sy+sz*0.44);ctx.textAlign='left';ctx.globalAlpha=1;return;}
         drawS5Enemy(e,sx,sy,sz,dist,wd);
     });
@@ -788,7 +791,7 @@ function updateStage5(){
         e.shootTimer--;
         if(e.shootTimer<=0){
             e.shootTimer=e.shootCooldown;
-            if(dist<9&&s5HasLOS(e.x,e.y,s5Cam.x,s5Cam.y)){
+            if(dist<7&&s5HasLOS(e.x,e.y,s5Cam.x,s5Cam.y)){
                 if(dist<1.5||Math.random()<Math.min(0.4,0.45/dist)){
                     let dmg=e.etype==='ditchius'?18:(e.etype==='police'?10:(4+s5WorldIndex));
                     s5Health-=dmg;s5DamageFlash=18;s5HitDirection=Math.atan2(e.y-s5Cam.y,e.x-s5Cam.x);s5HitDirTimer=40;playDoomHit();if(s5Health<=0){s5PlayerDied();return;}
