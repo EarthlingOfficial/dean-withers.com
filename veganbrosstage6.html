@@ -122,6 +122,89 @@ import * as THREE from 'three';
    Dedicated to Isaac Bashevis Singer.
    ========================================================= */
 
+// ---------- AUDIO (procedural — no files) ----------
+let AC=null, masterGain=null, musicGain=null, sfxGain=null;
+let musicNodes=[], musicStarted=false;
+function initAudio(){
+  if(AC) return;
+  try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ AC=null; return; }
+  masterGain=AC.createGain(); masterGain.gain.value=0.9; masterGain.connect(AC.destination);
+  musicGain=AC.createGain(); musicGain.gain.value=0.0; musicGain.connect(masterGain);
+  sfxGain=AC.createGain(); sfxGain.gain.value=0.7; sfxGain.connect(masterGain);
+}
+function unlockAudio(){ if(!AC) initAudio(); if(AC && AC.state==='suspended') AC.resume(); }
+
+// --- SFX: short synthesized one-shots ---
+function tone(freq,type,dur,vol,slide=0,target=sfxGain){
+  if(!AC) return;
+  const o=AC.createOscillator(), g=AC.createGain();
+  o.type=type; o.frequency.setValueAtTime(freq,AC.currentTime);
+  if(slide) o.frequency.exponentialRampToValueAtTime(Math.max(1,freq+slide),AC.currentTime+dur);
+  g.gain.setValueAtTime(vol,AC.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,AC.currentTime+dur);
+  o.connect(g); g.connect(target); o.start(); o.stop(AC.currentTime+dur);
+}
+function noiseBurst(dur,vol,filterFreq){
+  if(!AC) return;
+  const len=Math.floor(AC.sampleRate*dur), buf=AC.createBuffer(1,len,AC.sampleRate), d=buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len);
+  const src=AC.createBufferSource(); src.buffer=buf;
+  const f=AC.createBiquadFilter(); f.type='lowpass'; f.frequency.value=filterFreq||1200;
+  const g=AC.createGain(); g.gain.value=vol;
+  src.connect(f); f.connect(g); g.connect(sfxGain); src.start();
+}
+const sfx={
+  shoot(){ tone(520,'sawtooth',0.16,0.22,-360); tone(220,'square',0.1,0.12,-120); },
+  hit(){ tone(180,'sawtooth',0.14,0.2,-90); noiseBurst(0.08,0.12,900); },
+  defeat(){ tone(330,'sine',0.18,0.18,180); tone(495,'sine',0.22,0.12,260); },
+  damage(){ tone(90,'sawtooth',0.28,0.28,-40); noiseBurst(0.18,0.18,500); },
+  shatter(){ for(let i=0;i<6;i++) setTimeout(()=>{ tone(1400+Math.random()*1600,'triangle',0.18,0.12,-600); noiseBurst(0.06,0.08,5000); }, i*55); },
+  ui(){ tone(440,'sine',0.08,0.07,120); },
+  boss(){ tone(70,'sawtooth',0.9,0.3,30); tone(110,'square',0.7,0.16,-20); },
+};
+
+// --- MUSIC: evolving ambient drone bed ---
+function startMusic(){
+  if(!AC || musicStarted) return; musicStarted=true;
+  // root drone chord (minor, brooding)
+  const roots=[55, 82.41, 110, 164.81]; // A1, E2, A2, E3-ish
+  roots.forEach((f,idx)=>{
+    const o=AC.createOscillator(), g=AC.createGain(), lfo=AC.createOscillator(), lg=AC.createGain();
+    o.type = idx%2 ? 'sine':'triangle'; o.frequency.value=f;
+    g.gain.value=0.0;
+    // slow swell per voice
+    lfo.frequency.value=0.03+idx*0.017; lg.gain.value=0.06;
+    lfo.connect(lg); lg.connect(g.gain);
+    o.connect(g); g.connect(musicGain); o.start(); lfo.start();
+    g.gain.setValueAtTime(0.0001,AC.currentTime);
+    g.gain.linearRampToValueAtTime(0.10,AC.currentTime+6);
+    musicNodes.push(o,lfo);
+  });
+  // occasional high shimmer
+  const sh=AC.createOscillator(), sg=AC.createGain(), sl=AC.createOscillator(), slg=AC.createGain();
+  sh.type='sine'; sh.frequency.value=659.25; sl.frequency.value=0.08; slg.gain.value=0.025;
+  sl.connect(slg); slg.connect(sg.gain); sg.gain.value=0.0; sh.connect(sg); sg.connect(musicGain);
+  sh.start(); sl.start(); musicNodes.push(sh,sl);
+  // fade music in
+  musicGain.gain.linearRampToValueAtTime(0.55,AC.currentTime+8);
+}
+function musicTension(on){ // raise intensity in the mirror arena
+  if(!AC) return;
+  musicGain.gain.cancelScheduledValues(AC.currentTime);
+  musicGain.gain.linearRampToValueAtTime(on?0.8:0.55, AC.currentTime+2);
+}
+/* --- MUSIC TRACK HOOK ---------------------------------------------------
+   To use a real licensed track instead of the ambient bed, host an audio
+   file (mp3/ogg) beside this HTML and uncomment below. It will replace
+   the procedural music. You must have rights to the file.
+   ----------------------------------------------------------------------
+   function startMusic(){ if(musicStarted)return; musicStarted=true;
+     const a=new Audio('your-track.mp3'); a.loop=true; a.volume=0.6; a.play().catch(()=>{});
+     window._track=a;
+   }
+   function musicTension(on){ if(window._track) window._track.volume = on?0.75:0.6; }
+   ------------------------------------------------------------------------ */
+
 // ---------- STORY CONTENT ----------
 // Beats are written as the character's arc: denial -> the conceded facts
 // catching up -> the cat/cow contradiction -> care misheard as cruelty -> the break.
@@ -185,7 +268,8 @@ const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0x05101a, 0.085);
 
 const camera = new THREE.PerspectiveCamera(72, innerWidth/innerHeight, 0.1, 100);
-const cam = { x:1.5, z:1.5, angle:0, y:1.1 };
+const cam = { x:1.5, z:1.5, angle:0, y:1.1, pitch:0 };
+const MAX_PITCH = 0.9; // ~50 degrees up/down
 
 // ---------- MAZE ----------
 // 16x16. 1 = wall, 0 = floor, 9 = boss arena entry, 5 = arena floor
@@ -375,6 +459,7 @@ function beginBoss(){
   // spawn mirror-Dean
   const cx=(minx+maxx)/2+0.5, cz=(minz+maxz)/2+0.5;
   boss=spawnEnemy(cx,cz,'boss');
+  sfx.boss(); musicTension(true);
   setObjective("Dean v. Dean. Break the self that refused to see.");
   updateHUD();
 }
@@ -393,19 +478,19 @@ function updateHUD(){
 function setObjective(t){ $('objective').textContent=t; }
 function showBeat(html){ const b=$('beat'); b.innerHTML=html; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show'); }
 function showFlash(t){ const f=$('flash'); f.textContent=t; f.classList.remove('show'); void f.offsetWidth; f.classList.add('show'); }
-function damage(n){ hp-=n; const d=$('dmg'); d.style.opacity=0.9; setTimeout(()=>d.style.opacity=0,160);
+function damage(n){ hp-=n; sfx.damage(); const d=$('dmg'); d.style.opacity=0.9; setTimeout(()=>d.style.opacity=0,160);
   if(hp<=0){ hp=0; updateHUD(); playerDown(); } updateHUD(); }
 function playerDown(){
   // soft fail — he isn't ready; reflect and restart the corridor
   phase='story';
   runStory([{kicker:"Not yet",line:`He wasn't ready to see it. <span class="em">He never is, the first time.</span>`},
             {kicker:"Again",line:`So he walks the corridor again. <span class="red">The truth waits.</span>`}],
-    ()=>{ hp=100; cam.x=1.5; cam.z=1.5; cam.angle=0; beginPlay(); });
+    ()=>{ hp=100; cam.x=1.5; cam.z=1.5; cam.angle=0; cam.pitch=0; musicTension(false); beginPlay(); });
 }
 
 // ---------- SHOOTING ----------
 function shoot(){
-  if(fireCooldown>0) return; fireCooldown=14;
+  if(fireCooldown>0) return; fireCooldown=14; sfx.shoot();
   // ray forward
   const dx=Math.sin(cam.angle), dz=Math.cos(cam.angle);
   let best=null,bestD=99;
@@ -422,6 +507,7 @@ function shoot(){
   }
   if(best){
     best.userData.hp-= (phase==='boss'?4:2);
+    sfx.hit();
     for(let i=0;i<8;i++) spark(best.position.x,best.position.y,best.position.z, phase==='boss'?0x9fe8ff:0x8fe3c0);
     if(best.userData.hp<=0){ defeatEnemy(best); }
     else { best.material.color?.setHex?.(0xffffff); }
@@ -436,7 +522,8 @@ function hasLOS(ax,az,bx,bz){
 function defeatEnemy(e){
   e.userData.alive=false; e.visible=false;
   for(let i=0;i<14;i++) spark(e.position.x,e.position.y,e.position.z,0x8fe3c0);
-  if(e.userData.kind==='boss'){ shatterMirrors(); setTimeout(endStage,900); return; }
+  if(e.userData.kind==='boss'){ sfx.shatter(); shatterMirrors(); setTimeout(endStage,900); return; }
+  sfx.defeat();
   // defeat flash line
   showFlash(DEFEAT_LINES[Math.min(defeatIdx,DEFEAT_LINES.length-1)]); defeatIdx++;
   updateHUD();
@@ -465,7 +552,7 @@ function maybeProgressBeat(){
 }
 
 // ---------- INPUT ----------
-$('startBtn').addEventListener('click', ()=>{ startGame(); });
+$('startBtn').addEventListener('click', ()=>{ unlockAudio(); startMusic(); sfx.ui(); startGame(); });
 function onTap(){ if(phase==='story'){ advanceStory(); } }
 window.addEventListener('mousedown',(e)=>{
   if(phase==='story'){ onTap(); return; }
@@ -474,7 +561,7 @@ window.addEventListener('mousedown',(e)=>{
 window.addEventListener('touchstart',(e)=>{
   if(phase==='story'){ onTap(); }
 },{passive:true});
-document.addEventListener('mousemove',(e)=>{ if(document.pointerLockElement===canvas && (phase==='play'||phase==='boss')) cam.angle -= e.movementX*0.0022; });
+document.addEventListener('mousemove',(e)=>{ if(document.pointerLockElement===canvas && (phase==='play'||phase==='boss')){ cam.angle -= e.movementX*0.0022; cam.pitch -= e.movementY*0.0022; cam.pitch=Math.max(-MAX_PITCH,Math.min(MAX_PITCH,cam.pitch)); } });
 addEventListener('keydown',e=>{ const k=e.key.toLowerCase();
   if(phase==='story' && (k===' '||k==='enter')){ onTap(); return; }
   if(k==='w'||k==='arrowup')keys.w=true; if(k==='s'||k==='arrowdown')keys.s=true;
@@ -506,9 +593,11 @@ function move(dt){
   if(keys.left)turn-=1; if(keys.right)turn+=1;
   fwd-=jl.y; str+=jl.x; turn+=jr.x;
   cam.angle -= turn*0.045;
+  cam.pitch -= jr.y*0.03; cam.pitch=Math.max(-MAX_PITCH,Math.min(MAX_PITCH,cam.pitch));
   const sp=0.06;
-  const dx=(Math.sin(cam.angle)*fwd + Math.cos(cam.angle)*str)*sp;
-  const dz=(Math.cos(cam.angle)*fwd - Math.sin(cam.angle)*str)*sp;
+  // strafe sign corrected: A/left = move left, D/right = move right
+  const dx=(Math.sin(cam.angle)*fwd - Math.cos(cam.angle)*str)*sp;
+  const dz=(Math.cos(cam.angle)*fwd + Math.sin(cam.angle)*str)*sp;
   const m=0.25;
   if(!solid(cam.x+dx+Math.sign(dx)*m,cam.z) ) cam.x+=dx;
   if(!solid(cam.x,cam.z+dz+Math.sign(dz)*m) ) cam.z+=dz;
@@ -558,7 +647,8 @@ function loop(){
   if(phase==='play'||phase==='boss'){ move(dt); enemyAI(); if(fireCooldown>0)fireCooldown--; }
   // camera
   camera.position.set(cam.x, cam.y, cam.z);
-  camera.lookAt(cam.x+Math.sin(cam.angle), cam.y, cam.z+Math.cos(cam.angle));
+  const lookDist=Math.cos(cam.pitch);
+  camera.lookAt(cam.x+Math.sin(cam.angle)*lookDist, cam.y+Math.sin(cam.pitch), cam.z+Math.cos(cam.angle)*lookDist);
   torch.position.set(cam.x, 1.6, cam.z);
   // exit pulse
   if(exitMesh && exitMesh.material.emissiveIntensity>0){ exitMesh.material.emissiveIntensity=0.6+Math.sin(now/250)*0.35; }
