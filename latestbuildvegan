@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
 body{margin:0;overflow:hidden;background:#5c94fc;font-family:'Courier New',Courier,monospace;transition:background 1s;}
@@ -71,7 +70,7 @@ WORLD:<span id="worldNum">1</span>|ENERGY:<span id="score">100</span>|DIST:<span
 </div>
 <canvas id="gameCanvas"></canvas>
 <script>
-let audioCtx;try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){audioCtx=null;}
+const audioCtx=new(window.AudioContext||window.webkitAudioContext)();
 function playSound(freq,type,duration,vol,slide=0){try{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.setValueAtTime(freq,audioCtx.currentTime);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(1,freq+slide),audioCtx.currentTime+duration);g.gain.setValueAtTime(vol,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+duration);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+duration);}catch(e){}}
 function playYellowPipeSound(){try{let n=audioCtx.currentTime;[200,400,300,600,800].forEach((f,i)=>{let o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='square';o.frequency.setValueAtTime(f,n+i*0.06);g.gain.setValueAtTime(0.15,n+i*0.06);g.gain.exponentialRampToValueAtTime(0.01,n+i*0.06+0.05);o.connect(g);g.connect(audioCtx.destination);o.start(n+i*0.06);o.stop(n+i*0.06+0.06);});}catch(e){}}
 function playFlagSound(){try{let n=audioCtx.currentTime;[261,329,392,523,659,784,1046].forEach((f,i)=>{let o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='square';o.frequency.setValueAtTime(f,n+i*0.1);g.gain.setValueAtTime(0.15,n+i*0.1);g.gain.exponentialRampToValueAtTime(0.01,n+i*0.1+0.12);o.connect(g);g.connect(audioCtx.destination);o.start(n+i*0.1);o.stop(n+i*0.1+0.15);});}catch(e){}}
@@ -191,17 +190,16 @@ function makeS5Map(wIdx){
     return m;
 }
 function s5Cell(x,y){let gx=Math.floor(x),gy=Math.floor(y);if(gx<0||gx>=16||gy<0||gy>=16)return 1;return s5Map[gy*16+gx];}
-function s5HasLOS(ax,ay,bx,by){let dx=bx-ax,dy=by-ay,dist=Math.sqrt(dx*dx+dy*dy),steps=Math.ceil(dist/0.15);for(let i=1;i<steps;i++){let t=i/steps;if(s5Cell(ax+dx*t,ay+dy*t)===1)return false;}return true;}
 
 function makeS5Enemies(wIdx){
-    if(wIdx===10)return[{x:13,y:13,hp:200,maxHp:200,etype:'ditchius',speed:0.014,shootTimer:60,shootCooldown:55,moveTimer:0,alive:true,dead:false,deadTimer:0,walkFrame:0,hitFlash:0,dist:0,size:2.4}];
+    if(wIdx===10)return[{x:13,y:13,hp:200,maxHp:200,etype:'ditchius',speed:0.014,shootTimer:60,shootCooldown:55,moveTimer:0,alive:true,dead:false,deadTimer:0,walkFrame:0,hitFlash:0,dist:0,size:1.2}];
     let enemies=[],count=3+wIdx*2;
     const etypes=wIdx<=2?['butcher']:wIdx<=4?['butcher','chef']:wIdx<=6?['chef','hunter']:['hunter','police'];
     for(let i=0;i<count;i++){
         let et=etypes[i%etypes.length],hp=2+Math.floor(wIdx*0.5),spd=0.009+wIdx*0.001;
         let ex=1.5+Math.random()*13,ey=1.5+Math.random()*13,att=0;
         while((s5Cell(ex,ey)!==0||Math.sqrt((ex-1.5)**2+(ey-1.5)**2)<3)&&att<50){ex=1.5+Math.random()*13;ey=1.5+Math.random()*13;att++;}
-        enemies.push({x:ex,y:ey,hp,maxHp:hp,etype:et,speed:spd,shootTimer:60+Math.random()*60,shootCooldown:60+Math.floor(wIdx),moveTimer:0,alive:true,dead:false,deadTimer:0,walkFrame:0,hitFlash:0,dist:0,size:1.3+Math.random()*0.1});
+        enemies.push({x:ex,y:ey,hp,maxHp:hp,etype:et,speed:spd,shootTimer:60+Math.random()*60,shootCooldown:60+Math.floor(wIdx),moveTimer:0,alive:true,dead:false,deadTimer:0,walkFrame:0,hitFlash:0,dist:0,size:0.65+Math.random()*0.1});
     }
     return enemies;
 }
@@ -591,7 +589,7 @@ function drawGhostCow(gc,sliceW,zBuf,W,wd){
     if(Math.abs(da)>S5_HALF_FOV+0.5)return;
     let sx=(0.5+da/S5_FOV)*canvas.width;
     let sz=Math.min(canvas.height*1.1,(canvas.height/dist)*0.65);
-    let sy=canvas.height/2+(canvas.height/dist)*0.5-sz*0.52;
+    let sy=(canvas.height-sz)/2;
     let si=Math.floor(sx/sliceW);if(si<0||si>=W)return;
     let alpha=Math.max(0,(1-dist/wd.fogD)*0.65*(0.45+Math.sin(Date.now()/180)*0.3));
     ctx.save();ctx.globalAlpha=alpha;
@@ -657,7 +655,7 @@ function drawStage5(){
         let ea=Math.atan2(dy,dx),da=ea-s5Cam.angle;
         while(da>Math.PI)da-=Math.PI*2;while(da<-Math.PI)da+=Math.PI*2;
         if(Math.abs(da)>S5_HALF_FOV+0.4)return;
-        let sx=(0.5+da/S5_FOV)*canvas.width,sz=Math.min(H*1.5,(H/dist)*e.size),sy=H/2+(H/dist)*0.5-sz*0.52;
+        let sx=(0.5+da/S5_FOV)*canvas.width,sz=Math.min(H*1.5,(H/dist)*e.size),sy=(H-sz)/2;
         let si=Math.floor(sx/sliceW);if(si<0||si>=W||zBuf[si]<dist)return;
         if(e.dead){ctx.globalAlpha=Math.max(0,(1-dist/wd.fogD))*(e.deadTimer/40);ctx.fillStyle='#550000';ctx.beginPath();ctx.ellipse(sx,sy+sz*0.52,sz*0.26,sz*0.065,0,0,Math.PI*2);ctx.fill();ctx.font=`${Math.floor(sz*0.48)}px Arial`;ctx.textAlign='center';ctx.fillText('💀',sx,sy+sz*0.44);ctx.textAlign='left';ctx.globalAlpha=1;return;}
         drawS5Enemy(e,sx,sy,sz,dist,wd);
@@ -755,14 +753,12 @@ function updateStage5(){
             e.moveTimer=0;
         }
         e.shootTimer--;
-        if(e.shootTimer<=0){
-            e.shootTimer=e.shootCooldown;
-            if(dist<9&&s5HasLOS(e.x,e.y,s5Cam.x,s5Cam.y)){
-                if(dist<1.5||Math.random()<Math.min(0.4,0.45/dist)){
-                    let dmg=e.etype==='ditchius'?18:(e.etype==='police'?10:(4+s5WorldIndex));
-                    s5Health-=dmg;s5DamageFlash=18;playDoomHit();if(s5Health<=0){s5PlayerDied();return;}
-                }
+        if(e.shootTimer<=0&&dist<9){
+            if(dist<1.5||Math.random()<Math.min(0.4,0.45/dist)){
+                let dmg=e.etype==='ditchius'?18:(e.etype==='police'?10:(4+s5WorldIndex));
+                s5Health-=dmg;s5DamageFlash=18;playDoomHit();if(s5Health<=0){s5PlayerDied();return;}
             }
+            e.shootTimer=e.shootCooldown;
         }
     });
     s5Enemies=s5Enemies.filter(e=>e.alive||e.dead);
@@ -836,11 +832,9 @@ function showS5FinalVictory(){
     stageTitleEl.style.animation='flash 0.4s infinite';stageTitleEl.style.color='#00ff88';stageTitleEl.style.fontSize='22px';
     stageTitleEl.innerText="🌱 YOU'RE BECOMING THE BEST VEGAN OF YOURSELF 🌱";
     stageMsgEl.innerHTML='<span style="color:#00ffcc;font-size:20px;font-weight:bold;">Ditchius Maximus Griftus has been defeated.</span><br><br><span style="color:#ffeb3b;font-size:17px;">You\'re becoming the best vegan of yourself.</span><br><br><span style="color:#ff3333;font-weight:bold;">The animal agricultural industry is destroying the planet.</span><br><span style="color:#afff94;">Keep veganing. Every meal matters.</span><br><br><span style="color:#00ffcc;">The animals are free. You have ascended. 🌍</span><br><br><span style="color:#ffeb3b;font-weight:bold;font-size:18px;">🏆 Made by Earthling Official 🏆</span>';
-    document.getElementById('stageTapPrompt').innerText='TAP TO CONTINUE TO STAGE 6';
+    document.getElementById('stageTapPrompt').innerText='TAP TO PLAY AGAIN';
     stageOverlayEl.classList.add('active');
     window._finalLeafTimer=setInterval(()=>{for(let i=0;i<5;i++)s4.fireworks.push({x:Math.random()*canvas.width,y:-20,vx:(Math.random()-0.5)*2,vy:Math.random()*3+1,color:`hsl(${Math.random()*360},100%,60%)`,life:240,isLeaf:true});},130);
-    stageOverlayEl.addEventListener('click',function _s6redirect(){stageOverlayEl.removeEventListener('click',_s6redirect);window.location.href='veganbrosstage6.html';},{once:true});
-    stageOverlayEl.addEventListener('touchend',function _s6tredirect(){stageOverlayEl.removeEventListener('touchend',_s6tredirect);window.location.href='veganbrosstage6.html';},{once:true});
 }
 
 function update(){
