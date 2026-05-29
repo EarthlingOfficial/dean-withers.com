@@ -171,6 +171,17 @@ const WALL_TEXTS_L1 = [
   "I wanted to live",
   "you paid someone else to do it so you wouldn't have to feel it",
   "the smell never leaves the workers. you go home clean.",
+  // +10 new vegan statements
+  "the slaughterhouse worker has PTSD. the consumer has dessert.",
+  "you didn't think about it because you didn't have to.",
+  "the cow nuzzles her newborn. you decide what happens next.",
+  "every meal is a vote and you've been voting for this",
+  "there is no humane way to take what isn't yours",
+  "the pig screamed for twelve seconds. you scrolled past in three.",
+  "you outsourced your conscience to a stranger with a knife",
+  "if you had to do it yourself you wouldn't",
+  "free range is the slaughter with a window",
+  "the dairy cow has her child taken every year so you can have milk in your coffee",
 ];
 const WALL_TEXTS_L2 = [
   "there's a link between slaughterhouse work and domestic violence",
@@ -184,6 +195,27 @@ const WALL_TEXTS_L2 = [
   "humane slaughter. say it out loud. hear what you're saying.",
   "Ag-gag laws exist because the truth is that bad",
   "the bolt gun is the last thing they ever see and you call that mercy",
+  // +20 bully comments — the harassment vegans actually receive
+  "imagine being this triggered over a steak lmao",
+  "more bacon for me",
+  "vegans aren't human",
+  "I literally just bought meat because of your post",
+  "soyboy",
+  "go cry to your tofu",
+  "I'd hunt you for sport if it were legal",
+  "first the cow, then the vegan",
+  "show bobs",
+  "my dog eats meat, you're worse than my dog",
+  "B12 deficiency speaking",
+  "stick to your lane and let men eat",
+  "PETA kills more animals than I do",
+  "lions eat meat, are you smarter than a lion",
+  "plants have feelings too sweetie",
+  "cope harder",
+  "we used to eat people like you",
+  "your wife will leave you for a real man",
+  "seethe",
+  "mmm I can hear them screaming on my plate",
 ];
 const WALL_TEXTS_L3 = [
   "I am not crazy. I am the first one in the room to not be crazy.",
@@ -197,6 +229,17 @@ const WALL_TEXTS_L3 = [
   "he posted the photo. he wanted the reaction. he got it.",
   "you don't have to be the villain of this story",
   "MEAT-MOJING IS GROOMING",
+  // +10 new vegan statements
+  "the male chicks are macerated alive. you ordered the omelette.",
+  "the fish gasps for an hour. you call them brainless.",
+  "\"plants feel pain\" — said only by people still eating animals",
+  "what your great-grandchildren will not believe you did",
+  "every animal you've eaten wanted to live as much as your dog does",
+  "the steak was a body. the chicken was a child. the bacon was a someone.",
+  "going vegan is the easiest hard thing you'll ever do",
+  "you cried at the documentary then ate the dinner it was about",
+  "the animals didn't consent. the workers can't unsee it. the planet is dying. and it was for a sandwich.",
+  "you already know. that's the whole problem.",
 ];
 const CHAR_QUOTES = [
   { who:"DITCHIUS MAXIMUS GRIFTUS", q:"I'll buy 100kg of meat to let it rot and upset a vegan." },
@@ -494,20 +537,27 @@ TEX.wallpaper.repeat.set(1,1.4);
 TEX.carpet.repeat.set(GRID,GRID);
 TEX.ceilFluo.repeat.set(GRID/2,GRID/2);
 
-// Writing texture
+// Writing texture — auto-sizes height to text length so decal can stay narrow
 function writingTex(text,style,forHiero=false){
-  const c=document.createElement('canvas'); c.width=1024; c.height=256; const x=c.getContext('2d');
-  x.clearRect(0,0,1024,256);
-  if(forHiero||style==='glow'){ x.font="italic 52px 'Cormorant Garamond',serif"; x.fillStyle='rgba(200,160,60,0.95)'; x.shadowColor='rgba(200,150,50,0.6)'; x.shadowBlur=16; }
-  else if(style==='scratch'){ x.font="42px 'Permanent Marker',sans-serif"; x.fillStyle='rgba(200,30,30,0.92)'; x.shadowColor='rgba(160,15,15,0.6)'; x.shadowBlur=4; }
-  else if(style==='typed'){ x.font="36px 'Special Elite',monospace"; x.fillStyle='rgba(35,25,12,0.9)'; }
-  else { x.font="46px 'Special Elite',monospace"; x.fillStyle='rgba(70,25,12,0.88)'; x.shadowColor='rgba(35,8,3,0.7)'; x.shadowBlur=7; }
+  // pre-measure to decide canvas aspect
+  const isShort = text.length<=24;
+  const isMedium = text.length<=60;
+  const cw = 512;
+  const ch = isShort ? 256 : isMedium ? 384 : 512;
+  const c=document.createElement('canvas'); c.width=cw; c.height=ch; const x=c.getContext('2d');
+  x.clearRect(0,0,cw,ch);
+  if(forHiero||style==='glow'){ x.font="italic 44px 'Cormorant Garamond',serif"; x.fillStyle='rgba(210,170,70,0.96)'; x.shadowColor='rgba(200,150,50,0.6)'; x.shadowBlur=14; }
+  else if(style==='scratch'){ x.font="38px 'Permanent Marker',sans-serif"; x.fillStyle='rgba(210,40,40,0.94)'; x.shadowColor='rgba(160,15,15,0.55)'; x.shadowBlur=4; }
+  else if(style==='typed'){ x.font="30px 'Special Elite',monospace"; x.fillStyle='rgba(40,28,14,0.92)'; }
+  else { x.font="36px 'Special Elite',monospace"; x.fillStyle='rgba(85,30,15,0.9)'; x.shadowColor='rgba(35,8,3,0.65)'; x.shadowBlur=6; }
   x.textAlign='center'; x.textBaseline='middle';
+  const maxW = cw - 40;
   const words=text.split(' '); const lines=[]; let line='';
-  for(const w of words){ const t=line?line+' '+w:w; if(x.measureText(t).width>940&&line){lines.push(line);line=w;}else line=t; }
+  for(const w of words){ const t=line?line+' '+w:w; if(x.measureText(t).width>maxW&&line){lines.push(line);line=w;}else line=t; }
   if(line) lines.push(line);
-  const lh=55; const start=128-(lines.length-1)*lh/2;
-  lines.forEach((l,i)=> x.fillText(l,512,start+i*lh));
+  const lh = parseInt(x.font, 10) * 1.15;
+  const start = ch/2 - (lines.length-1)*lh/2;
+  lines.forEach((l,i)=> x.fillText(l, cw/2, start+i*lh));
   return new THREE.CanvasTexture(c);
 }
 
@@ -524,6 +574,65 @@ function hieroglyphTex(seed){
     x.fillText(sym,px,80+(rng(i*3)-0.5)*40); px+=42+rng(i*5)*20;
     x.font='16px serif'; x.fillText(symbols[Math.floor(rng(i*11)*symbols.length)],px-20,140+rng(i*9)*30);
     x.font='26px serif';
+  }
+  return new THREE.CanvasTexture(c);
+}
+
+// Blood-smeared obscured texture for L2 — looks like writing but illegible
+function smearedTex(seed){
+  const c=document.createElement('canvas'); c.width=512; c.height=512; const x=c.getContext('2d');
+  x.fillStyle='rgba(20,4,4,0.85)'; x.fillRect(0,0,512,512);
+  const rng=(n)=>{ let s=seed+n*13; s=Math.sin(s)*43758.5453; return s-Math.floor(s); };
+  // streaks
+  for(let i=0;i<8;i++){
+    const sy=80+i*50+rng(i)*15;
+    const grd=x.createLinearGradient(40,sy,470,sy);
+    grd.addColorStop(0,'rgba(140,20,20,0)');
+    grd.addColorStop(0.3,`rgba(${100+rng(i+1)*60},${15+rng(i+2)*15},15,${0.5+rng(i+3)*0.3})`);
+    grd.addColorStop(0.8,`rgba(${80+rng(i+4)*40},10,10,${0.4+rng(i+5)*0.3})`);
+    grd.addColorStop(1,'rgba(60,5,5,0)');
+    x.fillStyle=grd;
+    x.fillRect(40,sy-12,430,18+rng(i+6)*8);
+  }
+  // smudges suggesting words
+  for(let i=0;i<40;i++){
+    x.fillStyle=`rgba(${150+rng(i*7)*50},${20+rng(i*9)*20},20,${0.4+rng(i*11)*0.4})`;
+    const cx=60+rng(i*3)*400, cy=70+rng(i*5)*380, w=8+rng(i*13)*20, h=4+rng(i*17)*6;
+    x.fillRect(cx,cy,w,h);
+  }
+  // drips
+  for(let i=0;i<12;i++){
+    const dx=60+rng(i*23)*420, dy=60+rng(i*29)*100;
+    x.fillStyle='rgba(80,10,10,0.6)';
+    x.fillRect(dx,dy,3,40+rng(i*31)*60);
+  }
+  return new THREE.CanvasTexture(c);
+}
+
+// Faded wallpaper text for L3 — looks like writing barely visible through grime
+function fadedTex(seed){
+  const c=document.createElement('canvas'); c.width=512; c.height=512; const x=c.getContext('2d');
+  x.fillStyle='rgba(140,108,50,0.45)'; x.fillRect(0,0,512,512);
+  const rng=(n)=>{ let s=seed+n*17; s=Math.sin(s)*43758.5453; return s-Math.floor(s); };
+  // suggestion of scratched/faded writing — illegible shapes
+  for(let i=0;i<10;i++){
+    const sy=80+i*40+rng(i)*15;
+    x.strokeStyle=`rgba(60,40,15,${0.3+rng(i+1)*0.25})`;
+    x.lineWidth=2+rng(i+2)*2;
+    x.beginPath();
+    let px2=50+rng(i+3)*20;
+    x.moveTo(px2,sy);
+    for(let j=0;j<8;j++){
+      px2+=30+rng(i*10+j)*40;
+      const yj=sy+(rng(i*20+j)-0.5)*12;
+      x.lineTo(px2,yj);
+    }
+    x.stroke();
+  }
+  // grime on top
+  for(let i=0;i<60;i++){
+    x.fillStyle=`rgba(${40+rng(i*3)*30},${25+rng(i*5)*20},10,${0.2+rng(i*7)*0.3})`;
+    x.fillRect(rng(i*11)*512, rng(i*13)*512, 2+rng(i*15)*8, 2+rng(i*17)*5);
   }
   return new THREE.CanvasTexture(c);
 }
@@ -589,10 +698,10 @@ function getLevelCfg(lv){
     wallMat:new THREE.MeshStandardMaterial({map:TEX.metal,roughness:0.6,metalness:0.4,color:0x707070}),
     floorMat:new THREE.MeshStandardMaterial({map:TEX.metalFloor,roughness:0.8,metalness:0.5,color:0x404040}),
     ceilMat:new THREE.MeshStandardMaterial({map:TEX.stoneCeil,roughness:0.9,metalness:0.3,color:0x303030}),
-    fogColor:0x050304,fogDensity:0.065,
-    ambientColor:0x201010,ambientInt:0.22,
+    fogColor:0x0a0604,fogDensity:0.048,
+    ambientColor:0x4a3020,ambientInt:0.50,
     wallTexts:WALL_TEXTS_L2,isHiero:false,
-    name:'Level II — The Works',ceilH:3.8,lightColor:0xff2800,lightInt:0.85,lightDist:7,
+    name:'Level II — The Works',ceilH:3.8,lightColor:0xff5020,lightInt:1.8,lightDist:10,
   };
   return {
     wallMat:new THREE.MeshStandardMaterial({map:TEX.wallpaper,roughness:0.95,metalness:0,color:0xddc890}),
@@ -702,21 +811,19 @@ function buildLevel(lv){
     stairLight.position.set(GRID/2+0.5,1.2,GRID/2+0.5); grp.add(stairLight);
   }
 
-  // Wall decals — FIXED: check corridor width before placing to avoid clipping
+  // Wall decals — FIXED: cap width to 0.9 (one wall cell), scale height by text length
   const hieroData=[];
   function placeDecal(tex,opts={}){
     if(!wallPositions.length) return null;
-    for(let attempt=0;attempt<20;attempt++){
+    for(let attempt=0;attempt<25;attempt++){
       const wp=wallPositions[Math.floor(Math.random()*wallPositions.length)];
-      // Check that the face is in an open corridor (not a thin alcove)
-      const perpX=wp.dz,perpZ=wp.dx;
+      // Verify front face is in open corridor (not against another wall)
       const frontClear=!solidAt(map,wp.wx-wp.dx*2,wp.wz-wp.dz*2);
       if(!frontClear) continue;
-      const w=opts.w||1.4,h=opts.h||0.32;
+      const w=Math.min(0.9, opts.w||0.85), h=opts.h||0.4;
       const geo=new THREE.PlaneGeometry(w,h);
       const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,opacity:opts.opacity||0.92});
       const m=new THREE.Mesh(geo,mat);
-      // Push decal 0.502 off the wall surface to prevent z-fighting
       m.position.set(
         wp.wx-wp.dx*0.502, opts.y||1.5,
         wp.wz-wp.dz*0.502
@@ -729,43 +836,78 @@ function buildLevel(lv){
     }
     return null;
   }
+  // Compute decal height from text length (longer text → taller decal, narrow width)
+  function decalSizeFor(text, baseW){
+    const len = text.length;
+    const w = baseW || 0.88;
+    let h;
+    if(len <= 24) h = w * 0.45;
+    else if(len <= 60) h = w * 0.65;
+    else if(len <= 120) h = w * 0.95;
+    else h = w * 1.25;
+    return {w, h};
+  }
+  // Random subset selector — different walls each playthrough
+  function pickSubset(arr, n){
+    const copy = arr.slice();
+    for(let i=copy.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [copy[i],copy[j]]=[copy[j],copy[i]]; }
+    return copy.slice(0, Math.min(n, copy.length));
+  }
 
   if(cfg.isHiero){
-    cfg.wallTexts.forEach((text,i)=>{
+    // L1: pick 10 random hieroglyphs from pool
+    const picked = pickSubset(cfg.wallTexts, 10);
+    picked.forEach((text,i)=>{
       const htex=hieroglyphTex(i*7+lv*13);
       const revealTex=writingTex(text,'glow',true);
-      const w=text.length>50?2.6:text.length>28?2.0:1.5;
-      const result=placeDecal(htex,{w,h:w*0.22,y:1.4+(Math.random()-0.5)*0.4,opacity:0.9});
+      const sz=decalSizeFor(text);
+      const result=placeDecal(htex,{w:sz.w, h:sz.h, y:1.4+(Math.random()-0.5)*0.4, opacity:0.9});
+      if(result) hieroData.push({mesh:result.mesh,revealTex,revealed:false,pos:result.pos,origText:text});
+    });
+  } else if(lv===2){
+    // L2: 10 blood-smeared readables — press E to read
+    const picked = pickSubset(cfg.wallTexts, 10);
+    picked.forEach((text,i)=>{
+      const smearTex=smearedTex(i*11+lv*23);
+      const revealTex=writingTex(text,'scratch');
+      const sz=decalSizeFor(text);
+      const result=placeDecal(smearTex,{w:sz.w, h:sz.h, y:1.3+(Math.random()-0.5)*0.45, opacity:0.92});
       if(result) hieroData.push({mesh:result.mesh,revealTex,revealed:false,pos:result.pos,origText:text});
     });
   } else {
-    cfg.wallTexts.forEach((text,i)=>{
-      const style=['glow','scratch','typed','smeared'][i%4];
-      const tex=writingTex(text,style);
-      const w=text.length>60?2.6:text.length>30?2.0:1.5;
-      placeDecal(tex,{w,h:w*0.22,y:1.3+(Math.random()-0.5)*0.45,opacity:style==='glow'?0.98:0.88});
+    // L3: 10 faded-wallpaper readables — press E to read
+    const picked = pickSubset(cfg.wallTexts, 10);
+    picked.forEach((text,i)=>{
+      const fade=fadedTex(i*13+lv*29);
+      const style=['glow','typed','smeared'][i%3];
+      const revealTex=writingTex(text,style);
+      const sz=decalSizeFor(text);
+      const result=placeDecal(fade,{w:sz.w, h:sz.h, y:1.3+(Math.random()-0.5)*0.45, opacity:0.88});
+      if(result) hieroData.push({mesh:result.mesh,revealTex,revealed:false,pos:result.pos,origText:text});
     });
   }
 
-  // Character quotes
-  CHAR_QUOTES.forEach((q)=>{
-    const c=document.createElement('canvas'); c.width=1024; c.height=384; const x=c.getContext('2d');
-    x.clearRect(0,0,1024,384);
-    x.fillStyle='rgba(220,170,70,0.95)'; x.shadowColor='rgba(200,150,50,1)'; x.shadowBlur=14;
-    x.font="italic 42px 'Cormorant Garamond',serif"; x.textAlign='center'; x.textBaseline='middle';
+  // Character quotes — pick 5 random from pool of 10 per level visit
+  const pickedQuotes = pickSubset(CHAR_QUOTES, 5);
+  pickedQuotes.forEach((q)=>{
+    const c=document.createElement('canvas'); c.width=512; c.height=512; const x=c.getContext('2d');
+    x.clearRect(0,0,512,512);
+    x.fillStyle='rgba(220,170,70,0.96)'; x.shadowColor='rgba(200,150,50,1)'; x.shadowBlur=12;
+    x.font="italic 30px 'Cormorant Garamond',serif"; x.textAlign='center'; x.textBaseline='middle';
+    const maxW = 460;
     const words=q.q.split(' '); const lines=[]; let line='';
-    for(const w of words){ const t=line?line+' '+w:w; if(x.measureText(t).width>940&&line){lines.push(line);line=w;}else line=t; }
+    for(const w of words){ const t=line?line+' '+w:w; if(x.measureText(t).width>maxW&&line){lines.push(line);line=w;}else line=t; }
     if(line) lines.push(line);
-    const lh=52,start=145-(lines.length-1)*lh/2;
-    lines.forEach((l,k)=> x.fillText('"'+l+'"',512,start+k*lh));
-    x.shadowBlur=0; x.font="bold 20px 'Space Mono',monospace"; x.fillStyle='rgba(180,140,60,0.82)';
-    x.fillText('— '+q.who,512,318);
+    const lh=38, start=200-(lines.length-1)*lh/2;
+    lines.forEach((l,k)=> x.fillText('"'+l+'"',256,start+k*lh));
+    x.shadowBlur=0; x.font="bold 16px 'Space Mono',monospace"; x.fillStyle='rgba(180,140,60,0.85)';
+    x.fillText('— '+q.who,256,440);
     const tex=new THREE.CanvasTexture(c);
-    placeDecal(tex,{w:2.8,h:1.05,y:1.62,opacity:0.95});
+    placeDecal(tex,{w:0.88, h:0.88, y:1.55, opacity:0.95});
   });
 
   // Iconography photos
-  for(let i=0;i<12;i++) placeDecal(iconographyTex(i),{w:0.6,h:0.6,y:1.4+(Math.random()-0.5)*0.4,opacity:0.88});
+  for(let i=0;i<12;i++) placeDecal(iconographyTex(i),{w:0.55,h:0.55,y:1.4+(Math.random()-0.5)*0.4,opacity:0.88});
 
   // Open cells cache
   const openCells=[];
@@ -793,15 +935,15 @@ function placeTorches(){
       if(placed.every(p=>Math.hypot(p[0]-c[0],p[1]-c[1])>5)) placed.push(c);
     }
     placed.forEach(([x,z])=>{
-      const flameMat=new THREE.SpriteMaterial({map:torchFlameSprite(),transparent:true,depthWrite:false});
+      const flameMat=new THREE.SpriteMaterial({map:torchFlameSprite(),transparent:true,depthWrite:false,opacity:0});
       const sprite=new THREE.Sprite(flameMat); sprite.scale.set(0.35,0.9,1);
-      sprite.position.set(x+0.5,1.1,z+0.5); grp.add(sprite);
-      const light=new THREE.PointLight(0xff9020,2.2,5.5,1.8);
+      sprite.position.set(x+0.5,1.1,z+0.5); sprite.visible=false; grp.add(sprite);
+      const light=new THREE.PointLight(0xff9020,0,5.5,1.8);
       light.position.set(x+0.5,1.4,z+0.5); grp.add(light);
       const halo=new THREE.Mesh(new THREE.SphereGeometry(0.45,12,8),
-        new THREE.MeshBasicMaterial({color:0xff8010,transparent:true,opacity:0.1,depthWrite:false}));
-      halo.position.set(x+0.5,1.2,z+0.5); grp.add(halo);
-      allTorches.push({sprite,light,halo,collected:false,baseY:1.1,phase:Math.random()*7,lv,x:x+0.5,z:z+0.5});
+        new THREE.MeshBasicMaterial({color:0xff8010,transparent:true,opacity:0,depthWrite:false}));
+      halo.position.set(x+0.5,1.2,z+0.5); halo.visible=false; grp.add(halo);
+      allTorches.push({sprite,light,halo,collected:false,unlocked:false,baseY:1.1,phase:Math.random()*7,lv,x:x+0.5,z:z+0.5});
     });
   });
 }
@@ -865,6 +1007,7 @@ let nearShadow=false;
 let hieroNear=null;
 let interactReady=false;
 let descending=false;
+let inputGraceUntil=0;
 const keys={w:false,s:false,a:false,d:false,ArrowLeft:false,ArrowRight:false};
 let velX=0,velZ=0;
 const $=id=>document.getElementById(id);
@@ -929,8 +1072,10 @@ function tryDescend(){
   fl.style.transition='opacity 0.4s'; fl.style.opacity='1';
   setTimeout(()=>{
     setLevel(currentLevel+1);
+    // After descent, spawn away from new level's staircase
+    cam.x = 6; cam.z = 6; cam.angle = Math.PI*0.25;
     fl.style.opacity='0';
-    setTimeout(()=>{ fl.style.transition='opacity 0.05s'; descending=false; phase='play'; setObjective(`Deeper. Find the torches. ${7-torchesCollected} remain.`); },500);
+    setTimeout(()=>{ fl.style.transition='opacity 0.05s'; descending=false; phase='play'; inputGraceUntil = performance.now() + 800; setObjective(`Read the walls. ${7-torchesCollected} torches still to find.`); },500);
   },600);
 }
 
@@ -946,17 +1091,19 @@ function beginPlay(){
   scene.fog=new THREE.FogExp2(cfg1.fogColor,cfg1.fogDensity);
   scene.background=new THREE.Color(cfg1.fogColor);
   levelGroups[1].visible=true;
-  cam.x=GRID/2+0.5; cam.z=GRID/2+2;
+  // Spawn well away from the central staircase, in the entrance corner chamber
+  cam.x=6; cam.z=6; cam.angle=Math.PI*0.25; // facing toward centre
   // Place torches for L1 only
   ensureTorchesForLevel(1);
   shadowFig.init(levelGroups[1]);
   shadowFig.lv=1;
   $('level-badge').textContent=cfg1.name;
   phase='play';
+  inputGraceUntil = performance.now() + 800; // ignore leftover taps from story screen
   $('hud').classList.add('on');
   if(isTouch) $('touch').classList.add('on');
   updateHUD();
-  setObjective("Descend. Find the seven torches. There is no other way.");
+  setObjective("Read the walls. Reading reveals torches. Collect all seven.");
   startAmbient(1);
 }
 function endGame(){
@@ -967,7 +1114,7 @@ function endGame(){
 // ─── INTERACT ───────────────────────────────────────────
 function handleInteract(){
   if(phase!=='play') return;
-  // Hieroglyph reveal
+  // Wall text reveal — works for hieroglyphs (L1), smeared (L2), faded (L3)
   if(hieroNear&&!hieroNear.revealed){
     hieroNear.mesh.material.map=hieroNear.revealTex;
     hieroNear.mesh.material.needsUpdate=true;
@@ -977,6 +1124,8 @@ function handleInteract(){
     hr.textContent=hieroNear.origText;
     hr.classList.add('show');
     setTimeout(()=>hr.classList.remove('show'),5500);
+    // Reading reveals a torch — only if any are still locked on this level
+    setTimeout(()=> unlockTorchOnLevel(currentLevel), 800);
     return;
   }
   // Staircase descent
@@ -988,10 +1137,17 @@ function handleInteract(){
 $('startBtn').addEventListener('click',()=>{ unlockAudio(); sfx.ui(); startGame(); });
 window.addEventListener('mousedown',(e)=>{
   if(phase==='story'){ advanceStory(); return; }
-  if(phase==='play'){ if(document.pointerLockElement!==canvas) canvas.requestPointerLock?.(); if(interactReady) handleInteract(); }
+  if(phase==='play'){
+    if(performance.now() < inputGraceUntil) return; // ignore leftover taps from story screen
+    if(document.pointerLockElement!==canvas) canvas.requestPointerLock?.();
+    if(interactReady) handleInteract();
+  }
 });
-window.addEventListener('touchstart',()=>{ if(phase==='story') advanceStory(); },{passive:true});
-$('interact-btn')&&$('interact-btn').addEventListener('touchstart',(e)=>{ e.preventDefault(); handleInteract(); },{passive:false});
+window.addEventListener('touchstart',(e)=>{
+  if(phase==='story'){ advanceStory(); return; }
+  if(phase==='play' && performance.now() < inputGraceUntil){ e.preventDefault?.(); return; }
+},{passive:false});
+$('interact-btn')&&$('interact-btn').addEventListener('touchstart',(e)=>{ e.preventDefault(); if(phase==='play' && performance.now() < inputGraceUntil) return; handleInteract(); },{passive:false});
 document.addEventListener('mousemove',(e)=>{
   if(document.pointerLockElement===canvas&&phase==='play'){
     cam.angle-=e.movementX*0.002; cam.pitch-=e.movementY*0.002;
@@ -1001,7 +1157,7 @@ document.addEventListener('mousemove',(e)=>{
 addEventListener('keydown',e=>{
   const k=e.key;
   if(phase==='story'&&(k===' '||k==='Enter')){ advanceStory(); return; }
-  if((k==='e'||k==='E')&&phase==='play'){ handleInteract(); return; }
+  if((k==='e'||k==='E')&&phase==='play'){ if(performance.now() < inputGraceUntil) return; handleInteract(); return; }
   if(k==='w'||k==='W'||k==='ArrowUp') keys.w=true;
   if(k==='s'||k==='S'||k==='ArrowDown') keys.s=true;
   if(k==='a'||k==='A') keys.a=true;
@@ -1064,7 +1220,7 @@ function move(){
 // ─── TORCH COLLECTION ────────────────────────────────────
 function checkTorches(){
   for(const t of allTorches){
-    if(t.collected||t.lv!==currentLevel) continue;
+    if(t.collected||t.lv!==currentLevel||!t.unlocked) continue;
     const d=Math.hypot(t.x-cam.x,t.z-cam.z);
     if(d<0.85){
       t.collected=true; torchesCollected++;
@@ -1072,7 +1228,7 @@ function checkTorches(){
       sfx.torch(); updateHUD();
       if(torchesCollected===1) whisperLine("the first torch. the darkness doesn't care.");
       else if(torchesCollected===7){ setTimeout(endGame,1400); return; }
-      else setObjective(`${7-torchesCollected} torches remain. Keep descending.`);
+      else setObjective(`${7-torchesCollected} torches remain. Keep reading.`);
     }
   }
 }
@@ -1191,7 +1347,7 @@ function updateLights(){
 // ─── TORCH ANIMATION ────────────────────────────────────
 function updateTorches(){
   for(const o of allTorches){
-    if(o.collected||o.lv!==currentLevel) continue;
+    if(o.collected||o.lv!==currentLevel||!o.unlocked) continue;
     o.phase+=0.05;
     o.sprite.position.y=o.baseY+Math.sin(o.phase)*0.065;
     o.light.intensity=1.9+Math.sin(o.phase*1.4)*0.65;
@@ -1238,16 +1394,30 @@ function ensureTorchesForLevel(lv){
     if(placed.every(p=>Math.hypot(p[0]-c[0],p[1]-c[1])>5)) placed.push(c);
   }
   placed.forEach(([x,z])=>{
-    const flameMat=new THREE.SpriteMaterial({map:torchFlameSprite(),transparent:true,depthWrite:false});
+    const flameMat=new THREE.SpriteMaterial({map:torchFlameSprite(),transparent:true,depthWrite:false,opacity:0});
     const sprite=new THREE.Sprite(flameMat); sprite.scale.set(0.35,0.9,1);
-    sprite.position.set(x+0.5,1.1,z+0.5); grp.add(sprite);
-    const light=new THREE.PointLight(0xff9020,2.2,5.5,1.8);
+    sprite.position.set(x+0.5,1.1,z+0.5); sprite.visible=false; grp.add(sprite);
+    const light=new THREE.PointLight(0xff9020,0,5.5,1.8);
     light.position.set(x+0.5,1.4,z+0.5); grp.add(light);
     const halo=new THREE.Mesh(new THREE.SphereGeometry(0.45,12,8),
-      new THREE.MeshBasicMaterial({color:0xff8010,transparent:true,opacity:0.1,depthWrite:false}));
-    halo.position.set(x+0.5,1.2,z+0.5); grp.add(halo);
-    allTorches.push({sprite,light,halo,collected:false,baseY:1.1,phase:Math.random()*7,lv,x:x+0.5,z:z+0.5});
+      new THREE.MeshBasicMaterial({color:0xff8010,transparent:true,opacity:0,depthWrite:false}));
+    halo.position.set(x+0.5,1.2,z+0.5); halo.visible=false; grp.add(halo);
+    allTorches.push({sprite,light,halo,collected:false,unlocked:false,baseY:1.1,phase:Math.random()*7,lv,x:x+0.5,z:z+0.5});
   });
+}
+
+// Reveal one hidden torch on the current level (called when player reads a wall text)
+function unlockTorchOnLevel(lv){
+  const hidden = allTorches.filter(t=> t.lv===lv && !t.unlocked && !t.collected);
+  if(hidden.length===0) return false;
+  const t = hidden[Math.floor(Math.random()*hidden.length)];
+  t.unlocked = true;
+  t.sprite.visible = true;
+  t.sprite.material.opacity = 1;
+  t.halo.visible = true;
+  t.light.intensity = 2.2;
+  whisperLine("a torch has appeared in the dark");
+  return true;
 }
 
 // ─── MAIN LOOP ──────────────────────────────────────────
