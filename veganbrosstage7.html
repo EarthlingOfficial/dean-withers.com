@@ -92,6 +92,18 @@ canvas{display:block;width:100vw!important;height:100vh!important;}
  width:54px;height:54px;border-radius:50%;background:rgba(200,150,42,0.14);border:1px solid rgba(200,150,42,0.25);
  pointer-events:all;display:flex;align-items:center;justify-content:center;font-size:9px;letter-spacing:0.15em;
  color:rgba(200,150,42,0.6);font-family:'Space Mono';}
+#meatchat{position:fixed;left:14px;bottom:96px;z-index:23;width:min(62vw,360px);pointer-events:none;
+ display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;transition:opacity 0.5s ease;}
+#meatchat.mc-mobile{bottom:148px;width:min(72vw,300px);}
+#meatchat.mc-hide{opacity:0;}
+.mc-row{box-sizing:border-box;display:flex;gap:7px;align-items:baseline;max-width:100%;max-height:0;opacity:0;
+ padding:0 10px;margin-top:5px;overflow:hidden;transform:translateY(6px);
+ background:rgba(8,6,4,0.5);border:1px solid rgba(202,162,74,0.16);border-radius:7px;
+ transition:max-height 0.38s ease,opacity 0.38s ease,padding 0.38s ease,margin 0.38s ease,transform 0.38s ease;}
+.mc-row.mc-in{max-height:36px;padding-top:5px;padding-bottom:5px;transform:translateY(0);}
+.mc-row.mc-out{max-height:0;opacity:0!important;padding-top:0;padding-bottom:0;margin-top:0;}
+.mc-h{font-family:'Space Mono',monospace;font-weight:700;font-size:11px;color:#caa24a;white-space:nowrap;text-shadow:0 1px 4px rgba(0,0,0,0.9);}
+.mc-c{font-family:'Space Mono',monospace;font-size:12px;color:#dbe1e6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 4px rgba(0,0,0,0.95);}
 </style>
 </head>
 <body>
@@ -131,6 +143,8 @@ canvas{display:block;width:100vw!important;height:100vh!important;}
 <div id="whisper"></div>
 <div id="hiero-reveal"></div>
 
+<div id="meatchat"></div>
+
 <div id="touch">
  <div class="joy" id="joyL"><div class="knob" id="knobL"></div></div>
  <div class="joy" id="joyR"><div class="knob" id="knobR"></div></div>
@@ -138,10 +152,20 @@ canvas{display:block;width:100vw!important;height:100vh!important;}
 </div>
 
 <script type="importmap">
-{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }
+{
+  "imports": {
+    "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
 </script>
 <script type="module">
 import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js';
 
 // =========================================================
 //   GO DEAN — STAGE 7: THE ABATTOIR PYRAMID  (Merged v3)
@@ -330,13 +354,81 @@ const WHISPER_LINES = [
   "the smile is a grimace",
 ];
 
-// ─── RENDERER ───────────────────────────────────────────
+// ─── MEAT-CHAT FEED CONTENT (scrolling comment overlay) ──
+// New feature. Fictional handles + meat-bully comments. The two camp-referencing lines from the
+// brief are kept verbatim (once each) and intentionally NOT expanded.
+const MEAT_HANDLES=[
+  "@ribeye_reverend","@wagyu4prez","@beeflord_88","@dean_stan","@dean_4ever","@carnivore_chad",
+  "@grillpilled","@bacon_bishop","@sirloin_supreme","@t_bone_titan","@brisket_baron","@prime_cut_pete",
+  "@meatropolis","@rare_n_proud","@medium_rare_steve","@porkbelly_paul","@grillmaster_gary","@smokehouse_sam",
+  "@beef_enjoyer","@chad_carnivore","@steaknight_stan","@wagyu_warlord","@apex_predator99","@bbq_baron",
+  "@meatsweats_mike","@no_veggies_ned","@tomahawk_tony","@hooves_n_all","@protein_pilled","@grease_goblin",
+];
+const MEAT_COMMENTS=[
+  "I love a rib eye","ribeye supremacy","give me the porterhouse","T-bone tuesday lets go","brisket is life",
+  "medium rare or nothing","sear it and serve it","wagyu melts in your mouth","a5 wagyu changed my life",
+  "prime rib enjoyer","the marbling is everything","steak night every night","bacon with everything",
+  "crispy bacon supremacy","pork belly is god tier","lamb chops hit different","venison is underrated",
+  "a good steak fixes everything","reverse seared to perfection","butter basted ribeye mmm","dry aged 45 days baby",
+  "the fat is the best part","surf and turf king","give me the whole cow","tomahawk steak gang",
+  "i could eat steak forever","rare steak enjoyer reporting in","the grill is calling","bbq is a love language",
+  "smoked brisket all weekend",
+  "Wagyu for president","W for Wagyu","W for domination","W for milk","W for bacon","W for brisket",
+  "W for the grill","W for ribeye","W carnivore","W for steak night","big W for meat eaters","L vegans",
+  "L earthling","L for tofu","L for soy","L plant milk","L for the salad crowd","massive L herbivore",
+  "L + ratio + vegan","W meat L vegan simple as","another W for the carnivores","L for whoever made this",
+  "W for the food chain","W for canines","L for grass eaters",
+  "meat for Dean","Dean loves the meat quite frankly","Dean eats his steak rare","GO DEAN get that ribeye",
+  "Dean would never go vegan","this ones for Dean","Dean said bacon","Dean approves this burger",
+  "go dean grill it up","Dean knows whats good","Dean ordered the double","Dean wants the wagyu",
+  "feed Dean a steak","Dean is built different he eats meat","Dean doesnt do salad","Dean said more bacon",
+  "GO DEAN never quit meat","Dean is hungry get him a burger",
+  "but canines","we have canine teeth","lions eat meat too","but the food chain","circle of life sweetie",
+  "god made animals for us to kill","god made animals for us","its natural","humans are omnivores cope",
+  "plants feel pain too","carrots scream when you pull them","what about plant lives huh","my ancestors ate meat",
+  "cavemen ate meat","its been like this for millions of years","survival of the fittest",
+  "we climbed the food chain for a reason","we didnt get these teeth for salad","meat made our brains bigger",
+  "protein doesnt grow on trees","the lion doesnt apologize","nature isnt vegan","animals eat animals",
+  "its just biology","top of the food chain baby","thats just how it works","soy isnt a personality",
+  "plants are alive too you hypocrite",
+  "vegans have been meaner than MAGA","vegans are so annoying","imagine being vegan lmao","go touch grass vegan",
+  "ratio + youre vegan","cope seethe mald herbivore","wheres your protein lol","soy boy detected",
+  "not reading all that had a burger","cry about it","stay mad herbivore","more meat for me then",
+  "thanks for the extra steak","delicious vegan tears","vegans when they smell bacon","enjoy your sad salad",
+  "keep yapping ill keep grilling","vegan moment","another preachy vegan great","nobody asked vegan",
+  "go hug a tree","your iron levels are crying","least annoying vegan","ok do you lift though",
+  "touch grass literally","vegan police over here","yall need a steak fr","weak and vegan name a worse combo",
+  "I kill animals for fun","I wouldn't kill a pregnant rabbit only because it's cute",
+  "hunting season cant come fast enough","got a buck last weekend felt amazing","fishing is my therapy",
+  "i name my steaks before i eat them","id do the slaughter myself honestly","farm to table and i ran the farm",
+  "caught it cooked it ate it","venison freezer is full baby","shot it dressed it grilled it",
+  "hunting is conservation actually","id hunt every day if i could","nothing beats wild game","my freezer is mostly meat",
+  "my parents would kick me out if I was a vegan","my dad would disown a vegan son",
+  "family does a whole hog roast every year","sunday is roast day in this house","my nonna would cry if i went vegan",
+  "we bond over bbq","thanksgiving is a meat festival","grandpa hunted we eat what we kill","cookout every weekend",
+  "my whole family are meat eaters","steak dinners are a family tradition","my mum makes the best roast lamb",
+  "I am eating 10 cheeseburgers because of you","eating a double quarter pounder rn","ordering extra bacon because of this",
+  "having steak tonight just to spite you","made a triple burger watching this","two ribeyes tonight because of you",
+  "adding bacon to my bacon","ate a whole rotisserie chicken just now","getting the 20 piece nuggets",
+  "large meat feast pizza incoming","buying double the mince this week","steak for breakfast lunch and dinner",
+  "I will always eat animals","I love animals and eat them","I love animals AND I eat them",
+  "meat is the only food group i need","bacon is my personality","steak is self care","meat heals all wounds",
+  "id marry a ribeye","bacon makes everything better","a world without meat isnt worth living in",
+  "protein over everything","carnivore diet changed my life","i only eat things with a face",
+  "meat tastes too good to quit","sorry not sorry i love steak",
+  "Treblinkaaaaa","oh it was a concentration camp, I'm doomed",
+];
+
+// ─── RENDERER ────────────────────────────────────────────
 const canvas = document.getElementById('gl');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias:false, powerPreference:'high-performance' });
 const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent) || ('ontouchstart' in window);
 renderer.setPixelRatio(isMobile ? Math.min(devicePixelRatio, 1.0) : Math.min(devicePixelRatio, 1.4));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = false;
+// ── ACES filmic tone mapping. The composer applies it via OutputPass at the very end. ──
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = isMobile ? 1.10 : 1.15;
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0x1a1008, 0.055);
@@ -344,6 +436,49 @@ scene.background = new THREE.Color(0x1a1008);
 const camera = new THREE.PerspectiveCamera(76, innerWidth/innerHeight, 0.04, 80);
 const cam = { x:16.5, z:16.5, angle:0, y:1.65, pitch:0 };
 const MAX_PITCH = 0.88;
+
+// ─── POST-PROCESSING (EffectComposer) ────────────────────
+// Master switch: set POST_ENABLED=false to fully restore the plain renderer.render() path.
+const POST_ENABLED = true;
+const SSAO_ENABLED = false; // OFF: SSAOPass renders black on some GPUs (silent, no throw). Bloom/ACES/normal maps stay on.
+// Bloom is the priority — it makes the emissive elements glow: torch flames, L1 embers
+// (0xff7010), L2 red lamps (0xff1100), L3 fluorescent strips (0xffe2a0), the staircase arrow.
+// Mobile: bloom at HALF internal resolution + lower strength, plus ACES (nearly free).
+// Desktop (added in buildComposer): SSAO corner occlusion + normal-mapped walls.
+const BLOOM_STRENGTH  = isMobile ? 0.50 : 0.80;
+const BLOOM_RADIUS    = isMobile ? 0.45 : 0.55;
+const BLOOM_THRESHOLD = 0.90; // nudge toward 1.0 if L2's bright red ever blooms too hard
+function bloomRes(){
+  const s = isMobile ? 0.5 : 1.0; // mobile gets reduced-resolution bloom
+  return new THREE.Vector2(Math.max(1, Math.floor(innerWidth * s)), Math.max(1, Math.floor(innerHeight * s)));
+}
+let composer = null, bloomPass = null, ssaoPass = null, usePost = false;
+function buildComposer(){
+  if(!POST_ENABLED) return;
+  try{
+    composer = new EffectComposer(renderer);
+    composer.setPixelRatio(renderer.getPixelRatio());
+    composer.setSize(innerWidth, innerHeight);
+    if(!isMobile && SSAO_ENABLED){
+      // SSAOPass renders the scene itself (beauty + AO), so it stands in for RenderPass on desktop.
+      ssaoPass = new SSAOPass(scene, camera, innerWidth, innerHeight);
+      ssaoPass.kernelRadius = 0.5;    // tuned for the ~1-unit grid scale
+      ssaoPass.minDistance  = 0.0008;
+      ssaoPass.maxDistance  = 0.06;
+      composer.addPass(ssaoPass);
+    } else {
+      composer.addPass(new RenderPass(scene, camera));
+    }
+    bloomPass = new UnrealBloomPass(bloomRes(), BLOOM_STRENGTH, BLOOM_RADIUS, BLOOM_THRESHOLD);
+    composer.addPass(bloomPass);
+    composer.addPass(new OutputPass()); // ACES tone map + sRGB conversion, last in the chain
+    usePost = true;
+  }catch(err){
+    console.warn('Post-processing failed to initialise — using direct render.', err);
+    composer = null; usePost = false;
+  }
+}
+buildComposer();
 
 // ─── AUDIO ──────────────────────────────────────────────
 let AC=null, master=null, ambientNode=null, sfxGain=null, audioStarted=false;
@@ -607,6 +742,34 @@ TEX.wallpaper.repeat.set(1,1.4);
 TEX.carpet.repeat.set(GRID,GRID);
 TEX.ceilFluo.repeat.set(GRID/2,GRID/2);
 
+// ─── NORMAL MAPS (desktop only) ──────────────────────────
+// Derive a normal map from a diffuse canvas via a Sobel height->normal pass, for wall surface depth.
+function mkNormal(srcCanvas, strength){
+  const w=srcCanvas.width, h=srcCanvas.height;
+  const src=srcCanvas.getContext('2d').getImageData(0,0,w,h).data;
+  const out=document.createElement('canvas'); out.width=w; out.height=h;
+  const octx=out.getContext('2d'); const dst=octx.createImageData(w,h);
+  const lum=(x,y)=>{ x=(x+w)%w; y=(y+h)%h; const i=(y*w+x)*4; return (src[i]*0.299+src[i+1]*0.587+src[i+2]*0.114)/255; };
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    let nx=(lum(x-1,y)-lum(x+1,y))*strength;
+    let ny=(lum(x,y-1)-lum(x,y+1))*strength;
+    let nz=1.0; const il=1/Math.hypot(nx,ny,nz); nx*=il; ny*=il; nz*=il;
+    const i=(y*w+x)*4;
+    dst.data[i]=Math.round((nx*0.5+0.5)*255);
+    dst.data[i+1]=Math.round((ny*0.5+0.5)*255);
+    dst.data[i+2]=Math.round((nz*0.5+0.5)*255);
+    dst.data[i+3]=255;
+  }
+  octx.putImageData(dst,0,0);
+  const t=new THREE.CanvasTexture(out); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.NoColorSpace; return t;
+}
+const NMAP={};
+if(!isMobile){
+  NMAP.stone=mkNormal(stoneTex(),1.4);     NMAP.stone.repeat.set(1,1.2);
+  NMAP.metal=mkNormal(metalTex(),1.0);     NMAP.metal.repeat.set(1,1.5);
+  NMAP.wallpaper=mkNormal(wallpaperTex(),0.8); NMAP.wallpaper.repeat.set(1,1.4);
+}
+
 // Writing texture — auto-sizes height to text length so decal can stay narrow
 function writingTex(text,style,forHiero=false){
   // pre-measure to decide canvas aspect
@@ -774,7 +937,7 @@ function getLevelCfg(lv){
     name:'Level II — The Works',ceilH:3.8,lightColor:0xff5020,lightInt:1.8,lightDist:10,
   };
   return {
-    wallMat:new THREE.MeshStandardMaterial({map:TEX.wallpaper,roughness:0.95,metalness:0,color:0xddc890}),
+    wallMat:new THREE.MeshStandardMaterial({map:TEX.wallpaper,roughness:0.95,metalness:0,color:0xddc890,normalMap:(!isMobile&&NMAP.wallpaper)?NMAP.wallpaper:null,normalScale:new THREE.Vector2(0.45,0.45)}),
     floorMat:new THREE.MeshStandardMaterial({map:TEX.carpet,roughness:1,metalness:0,color:0x6e5638}),
     ceilMat:new THREE.MeshStandardMaterial({map:TEX.ceilFluo,roughness:1,metalness:0,color:0xc8c5b8}),
     fogColor:0x1a1605,fogDensity:0.048,
@@ -1526,10 +1689,75 @@ function loop(){
   camera.position.set(cam.x,cam.y,cam.z);
   const ld2=Math.cos(cam.pitch);
   camera.lookAt(cam.x+Math.sin(cam.angle)*ld2,cam.y+Math.sin(cam.pitch),cam.z+Math.cos(cam.angle)*ld2);
-  renderer.render(scene,camera);
+  // Per-level pipeline: only Level III runs the composer (ACES + bloom). Levels I & II render
+  // directly with NO tone mapping — pixel-for-pixel the original look (no bloom, original brightness).
+  if(usePost && composer && currentLevel===3){
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    try{ composer.render(); }
+    catch(err){ console.warn('Composer render failed — falling back to direct render.', err); usePost=false; renderer.toneMapping=THREE.NoToneMapping; renderer.render(scene,camera); }
+  } else {
+    renderer.toneMapping = THREE.NoToneMapping;
+    renderer.render(scene,camera);
+  }
 }
 loop();
-addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+
+// ─── MEAT-CHAT FEED (scrolling comment overlay) ──────────
+// Self-contained, driven by setTimeout (NOT the render loop) so it costs nothing per WebGL frame.
+// Gated to phase==='play'; idles silently on menus/story/ending. pointer-events:none -> never blocks taps.
+(function(){
+  const feed=document.getElementById('meatchat');
+  if(!feed) return;
+  if(isTouch) feed.classList.add('mc-mobile');
+  const CAP=4; // max comments on screen; extras scroll off the top
+  let busy=false, pending=null;
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const rnd=(a,b)=>a+Math.random()*(b-a);
+  const pick=a=>a[(Math.random()*a.length)|0];
+  function redepth(){
+    const rows=[...feed.querySelectorAll('.mc-row:not(.mc-out)')]; const n=rows.length;
+    rows.forEach((r,i)=>{ const d=n-1-i; r.style.opacity=Math.max(0.18,1-d*0.26).toFixed(2); });
+  }
+  function addRow(){
+    const row=document.createElement('div'); row.className='mc-row';
+    const h=document.createElement('span'); h.className='mc-h'; h.textContent=pick(MEAT_HANDLES);
+    const c=document.createElement('span'); c.className='mc-c'; c.textContent=pick(MEAT_COMMENTS);
+    row.appendChild(h); row.appendChild(c); feed.appendChild(row);
+    if(reduce) row.classList.add('mc-in'); else requestAnimationFrame(()=>row.classList.add('mc-in'));
+    redepth();
+    const rows=feed.querySelectorAll('.mc-row:not(.mc-out)');
+    if(rows.length>CAP) removeTop(rows[0]);
+  }
+  function removeTop(row){
+    row.classList.add('mc-out'); row.classList.remove('mc-in');
+    setTimeout(()=>{ row.remove(); redepth(); }, reduce?0:380);
+  }
+  function clearFeed(){ feed.classList.remove('mc-hide'); feed.style.opacity=''; feed.innerHTML=''; }
+  function fadeClear(cb){ feed.classList.add('mc-hide'); setTimeout(()=>{ clearFeed(); cb&&cb(); }, reduce?0:520); }
+  function runBurst(){
+    if(phase!=='play'){ clearFeed(); busy=false; pending=setTimeout(schedule,1500); return; }
+    busy=true;
+    const n=2+((Math.random()*4)|0); // burst of 2..5 comments
+    let i=0;
+    const step=()=>{
+      if(phase!=='play'){ fadeClear(()=>{ busy=false; schedule(); }); return; }
+      addRow(); i++;
+      if(i<n) pending=setTimeout(step,rnd(1000,1600));
+      else pending=setTimeout(()=>fadeClear(()=>{ busy=false; schedule(); }),1700);
+    };
+    step();
+  }
+  function schedule(){ pending=setTimeout(runBurst, rnd(6000,13000)); } // quiet gap -> keeps it from hogging the screen
+  schedule();
+})();
+
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+  if(composer) composer.setSize(innerWidth,innerHeight);
+  if(bloomPass) bloomPass.setSize(bloomRes().x, bloomRes().y);
+  if(ssaoPass) ssaoPass.setSize(innerWidth,innerHeight);
+});
 </script>
 </body>
 </html>
