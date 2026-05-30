@@ -5,8 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>GO DEAN — Stage 7: The Abattoir Pyramid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Space+Mono:wght@400;700&family=Special+Elite&family=Permanent+Marker&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Space+Mono:wght@400;700&family=Special+Elite&family=Permanent+Marker&display=swap&font-display=swap');
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Space Mono',monospace;color:#dfe8f0;}
 canvas{display:block;width:100vw!important;height:100vh!important;}
@@ -161,85 +164,119 @@ const ENDING = [
 ];
 
 const WALL_TEXTS_L1 = [
-  "friends not food",
-  "I see their eyes watching me, haunting me",
-  "they call me crazy but it's actually PITS",
-  "don't make me do it again",
-  "it's either the abattoir or a war-torn country",
-  "why did you cry for Charlie Kirk and not an innocent pig",
-  "they were a sentient being",
+  // Animal voices
   "I wanted to live",
+  "I see their eyes watching me, haunting me",
+  "don't make me do it again",
+  "I called for my mother. she didn't come. she was already gone.",
+  "I recognised the smell before I understood what it meant",
+  "I had a name in my own language. you never learned it.",
+  "I felt the cold floor and I knew",
+  "they were a sentient being",
+  "I nuzzled my newborn for four hours. that was all I got.",
+  "I was curious. I was playful. I was afraid.",
+  // Facts
+  "friends not food",
+  "they call me crazy but it's actually PITS",
+  "it's either the abattoir or a war-torn country",
   "you paid someone else to do it so you wouldn't have to feel it",
   "the smell never leaves the workers. you go home clean.",
-  // +10 new vegan statements
-  "the slaughterhouse worker has PTSD. the consumer has dessert.",
-  "you didn't think about it because you didn't have to.",
+  "the slaughterhouse worker has a PTSD rate higher than combat veterans",
+  "pigs have the cognitive ability of a three-year-old human child",
+  "cows have been documented weeping when separated from their calves",
+  "fish have nociceptors. they feel pain. the science settled this in 2003.",
+  "chickens demonstrate self-control, empathy, and basic arithmetic",
+  // Direct address
+  "why did you cry for Charlie Kirk and not an innocent pig",
+  "you didn't think about it because you didn't have to",
   "the cow nuzzles her newborn. you decide what happens next.",
   "every meal is a vote and you've been voting for this",
   "there is no humane way to take what isn't yours",
   "the pig screamed for twelve seconds. you scrolled past in three.",
   "you outsourced your conscience to a stranger with a knife",
   "if you had to do it yourself you wouldn't",
-  "free range is the slaughter with a window",
+  "free range means they see sunlight before they see the bolt gun",
   "the dairy cow has her child taken every year so you can have milk in your coffee",
+  "you called it food. she called it her child.",
+  "you drew the line at dogs. who drew it there. who taught you that.",
 ];
 const WALL_TEXTS_L2 = [
-  "there's a link between slaughterhouse work and domestic violence",
-  "your fish died? so what",
-  "the exploitation of animals was used as a blueprint by Davenport, Laughlin and the Nazis — eugenics paperwork came from animal pedigrees first",
+  // Industry facts — brutal, specific, real
+  "there's a documented link between slaughterhouse work and domestic violence rates in surrounding counties",
+  "the exploitation of animals was used as a blueprint by Davenport, Laughlin and the Nazis — eugenics paperwork came from animal pedigree records first",
   "they made you call it harvest. it was never harvest.",
   "you don't eat the cat because the cat has a name",
   "give one of them a name and you'll never eat the rest",
   "every excuse you have, they had it too. about us.",
   "the receipt is the confession",
   "humane slaughter. say it out loud. hear what you're saying.",
-  "Ag-gag laws exist because the truth is that bad",
+  "Ag-gag laws exist in over a dozen US states. they are laws that make it illegal to film what happens here.",
   "the bolt gun is the last thing they ever see and you call that mercy",
-  // +20 bully comments — the harassment vegans actually receive
+  "slaughterhouse workers suffer PTSD, depression, and anxiety at rates comparable to frontline soldiers",
+  "the male chicks are macerated alive within hours of hatching. this is standard practice. this is every egg farm.",
+  "over 80 billion land animals are killed for food every year. the number doesn't fit in your head. that's the point.",
+  "it takes 15,000 litres of water to produce one kilogram of beef. California is on fire.",
+  "animal agriculture produces more greenhouse gases than all global transport combined",
+  "gestation crates are too small for a pig to turn around in. she will spend most of her life in one.",
+  "debeaking is performed without anaesthetic on 90% of commercially farmed chickens",
+  "fish are suffocated over hours on ice. this is considered acceptable because they do not scream.",
+  "the average person will consume 7,000 animals in their lifetime. none of them wanted to die.",
+  "they live in their own waste. they never see daylight. they are called units.",
+  // Antagonist voices (satirical — the voices this game is about)
   "imagine being this triggered over a steak lmao",
   "more bacon for me",
-  "vegans aren't human",
   "I literally just bought meat because of your post",
-  "soyboy",
   "go cry to your tofu",
-  "I'd hunt you for sport if it were legal",
-  "first the cow, then the vegan",
-  "show bobs",
-  "my dog eats meat, you're worse than my dog",
   "B12 deficiency speaking",
-  "stick to your lane and let men eat",
-  "PETA kills more animals than I do",
   "lions eat meat, are you smarter than a lion",
   "plants have feelings too sweetie",
   "cope harder",
-  "we used to eat people like you",
-  "your wife will leave you for a real man",
-  "seethe",
   "mmm I can hear them screaming on my plate",
+  "PETA kills more animals than I do",
+  "your fish died? so what",
+  "soyboy",
+  "they were my favourite shoes, so I threw the cat in the river",
 ];
 const WALL_TEXTS_L3 = [
+  // Existential / backrooms dread
   "I am not crazy. I am the first one in the room to not be crazy.",
   "the cute ones live. who taught you that rule.",
   "third option. there was always a third option.",
+  "you already know. that's why you don't want to see it.",
+  "you don't have to be the villain of this story",
+  "the kid who posted the photos is still in here",
+  "he posted the photo. he wanted the reaction. he got it.",
   "fifteen calories in. one back out. you already agreed.",
+  "the walls in here have been here longer than the excuse",
+  "you can leave. they couldn't.",
+  "every door in here opens from your side",
+  "the maze only feels endless because you keep choosing the same turns",
+  // Animal rights — deep and specific
   "Please no Meat-mojing!",
   "DEAD ANIMAL ICONOGRAPHY",
-  "the kid who posted the photos is still in here",
-  "you already know. that's why you don't want to see it.",
-  "he posted the photo. he wanted the reaction. he got it.",
-  "you don't have to be the villain of this story",
   "MEAT-MOJING IS GROOMING",
-  // +10 new vegan statements
   "the male chicks are macerated alive. you ordered the omelette.",
-  "the fish gasps for an hour. you call them brainless.",
-  "\"plants feel pain\" — said only by people still eating animals",
-  "what your great-grandchildren will not believe you did",
-  "every animal you've eaten wanted to live as much as your dog does",
-  "the steak was a body. the chicken was a child. the bacon was a someone.",
-  "going vegan is the easiest hard thing you'll ever do",
-  "you cried at the documentary then ate the dinner it was about",
-  "the animals didn't consent. the workers can't unsee it. the planet is dying. and it was for a sandwich.",
-  "you already know. that's the whole problem.",
+  "the fish gasps for an hour on ice. you call them brainless.",
+  "plants feel pain — said only by people still eating animals",
+  "an octopus has a distributed nervous system. she feels pain in every arm.",
+  "the veal calf is a byproduct of the dairy industry. the cheese is the crime.",
+  "they called it culling. culling means killing every single one.",
+  "the slaughter line runs at 1,100 pigs per hour. slow down and do that maths.",
+  "trophy hunting, factory farming, live export — same hierarchy, different postcode",
+  "live export ships carry animals for weeks in their own filth. this is legal.",
+  "the wool industry discards male lambs. cute does not mean safe.",
+  "circus elephants are trained with bull hooks from infancy. the smile is a grimace.",
+  "foie gras requires force-feeding a metal pipe down a duck's throat three times a day",
+  "a dairy cow produces milk because she is perpetually pregnant. read that again.",
+  "the intelligence of a pig exceeds that of a dog. you chose which one to eat.",
+  "sharks are finned alive and thrown back. the ocean doesn't care about your sushi order.",
+  // Direct address / accusatory
+  "you already know. you've known for a while.",
+  "the information was always available. the choice was always there.",
+  "convenience is not a moral argument. you know this.",
+  "you wouldn't do it yourself. that's the whole point.",
+  "the distance between you and it is a supply chain. that's all.",
+  "you've been told it's normal. normal and right are different words.",
 ];
 const CHAR_QUOTES = [
   { who:"DITCHIUS MAXIMUS GRIFTUS", q:"I'll buy 100kg of meat to let it rot and upset a vegan." },
@@ -254,17 +291,50 @@ const CHAR_QUOTES = [
   { who:"DEAN WITHERS", q:"If you don't let me speak I won't go vegan." },
 ];
 const WHISPER_LINES = [
-  "I see their eyes watching me","I wanted to live","they call me crazy",
-  "I am not crazy","the cute ones live","don't make me do it again",
-  "every excuse you have, they had it too","give one of them a name",
-  "Please no Meat-mojing","the kid is still in here","you already know",
-  "the receipt is the confession","please","I wanted to live",
+  // Animal voices
+  "I wanted to live",
+  "I called for her",
+  "I was afraid",
+  "I felt the cold floor",
+  "I had a name",
+  "please",
+  "I knew",
+  "don't make me do it again",
+  "I nuzzled her for four hours",
+  "I recognised the smell",
+  // Accusations
+  "you already know",
+  "the receipt is the confession",
+  "you drew the line at dogs",
+  "you outsourced your conscience",
+  "you scrolled past",
+  "you didn't have to feel it",
+  "every excuse you have, they had it too",
+  "give one of them a name",
+  "the distance is a supply chain",
+  "normal and right are different words",
+  // Atmosphere
+  "I see their eyes watching me",
+  "they call me crazy",
+  "I am not crazy",
+  "the cute ones live",
+  "Please no Meat-mojing",
+  "the kid is still in here",
+  "the walls have been here longer than the excuse",
+  "you can leave. they couldn't.",
+  "the bolt gun",
+  "fifteen calories in",
+  "the cheese is the crime",
+  "read that again",
+  "slow down and do that maths",
+  "the smile is a grimace",
 ];
 
 // ─── RENDERER ───────────────────────────────────────────
 const canvas = document.getElementById('gl');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias:false, powerPreference:'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.4));
+const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent) || ('ontouchstart' in window);
+renderer.setPixelRatio(isMobile ? Math.min(devicePixelRatio, 1.0) : Math.min(devicePixelRatio, 1.4));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = false;
 
@@ -1420,41 +1490,39 @@ function unlockTorchOnLevel(lv){
   return true;
 }
 
-// ─── MAIN LOOP ──────────────────────────────────────────
+let frameCount=0;
 let last=performance.now();
 function loop(){
   requestAnimationFrame(loop);
   const now=performance.now(); const dt=Math.min(40,now-last); last=now;
+  frameCount++;
 
   if(phase==='play'){
     move(); checkTorches(); updateShadow(); checkHiero();
-    updateTorches(); updateLights(); updateSanity();
+    updateTorches();
+    // On mobile skip light updates every other frame
+    if(!isMobile||frameCount%2===0) updateLights();
+    if(frameCount%3===0) updateSanity();
 
-    // Ambient sound events
     nextMoo--; if(nextMoo<=0){ sfx.moo(); nextMoo=1400+Math.random()*2000; }
     nextChain--; if(nextChain<=0){ sfx.chain(); nextChain=2000+Math.random()*3000; }
     nextDistant--; if(nextDistant<=0){ sfx.distant(); nextDistant=800+Math.random()*1400; }
 
-    // Whispers
     whisperTimer--; if(whisperTimer<=0){
       whisperLine(WHISPER_LINES[Math.floor(Math.random()*WHISPER_LINES.length)]);
-      whisperTimer=450+Math.floor(Math.random()*650);
+      whisperTimer=350+Math.floor(Math.random()*500);
     }
 
-    // Strobe (L3 only)
     if(currentLevel===3&&!strobeActive){ nextStrobe--; if(nextStrobe<=0) doStrobe(); }
 
-    // Global screen flicker
     if(Math.random()<0.002){
       const fl=$('flicker'); fl.style.opacity=String(0.45+Math.random()*0.3);
       setTimeout(()=>fl.style.opacity='0',40+Math.random()*100);
     }
 
-    // Ensure torches placed for current level
     ensureTorchesForLevel(currentLevel);
   }
 
-  // Camera
   camera.position.set(cam.x,cam.y,cam.z);
   const ld2=Math.cos(cam.pitch);
   camera.lookAt(cam.x+Math.sin(cam.angle)*ld2,cam.y+Math.sin(cam.pitch),cam.z+Math.cos(cam.angle)*ld2);
