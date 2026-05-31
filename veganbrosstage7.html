@@ -25,6 +25,15 @@ canvas{display:block;width:100vw!important;height:100vh!important;}
  border:1px solid rgba(200,150,42,0.35);padding:14px 30px;cursor:pointer;animation:pulse 2.2s infinite;}
 .hidden{display:none!important;}
 
+#epiwarn{position:fixed;inset:0;z-index:55;display:none;align-items:center;justify-content:center;
+ background:radial-gradient(ellipse at center,#160a00,#000 80%);text-align:center;padding:8vw;}
+#epiwarn.on{display:flex;}
+#epiwarn .ew-inner{max-width:560px;}
+#epiwarn .ew-h{font-family:'Cormorant Garamond';font-weight:600;font-size:clamp(22px,4.5vw,40px);letter-spacing:0.04em;color:#c8962a;}
+#epiwarn .ew-b{font-family:'Cormorant Garamond';font-style:italic;font-size:clamp(14px,2.4vw,19px);color:#b09060;margin-top:22px;line-height:1.65;}
+#epiwarn .go{margin-top:38px;display:inline-block;font-family:'Space Mono';font-size:11px;letter-spacing:0.4em;color:#c8962a;text-transform:uppercase;
+ border:1px solid rgba(200,150,42,0.35);padding:14px 30px;cursor:pointer;animation:pulse 2.2s infinite;}
+
 #story{position:fixed;inset:0;z-index:40;display:none;flex-direction:column;align-items:center;justify-content:center;
  background:radial-gradient(ellipse at center,#100c00 0%,#000 85%);padding:7vw;text-align:center;}
 #story.on{display:flex;}
@@ -67,12 +76,23 @@ canvas{display:block;width:100vw!important;height:100vh!important;}
 @keyframes whisperAnim{0%{opacity:0;filter:blur(10px);}12%{opacity:0.9;filter:blur(0);}78%{opacity:0.9;}100%{opacity:0;filter:blur(8px);}}
 #whisper .attr{display:block;margin-top:12px;font-size:0.5em;letter-spacing:0.3em;color:#806020;font-style:normal;text-transform:uppercase;}
 
+#levelwarn{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);z-index:26;pointer-events:none;
+ font-family:'Cormorant Garamond';font-style:italic;font-weight:600;font-size:clamp(20px,4vw,44px);color:#c23a2a;
+ text-shadow:0 0 26px rgba(160,20,10,0.6),0 2px 30px rgba(0,0,0,0.98);text-align:center;width:84%;opacity:0;letter-spacing:0.03em;}
+#levelwarn.show{animation:levelWarnAnim 5.5s forwards;}
+@keyframes levelWarnAnim{0%{opacity:0;filter:blur(14px);}14%{opacity:0.96;filter:blur(0);}80%{opacity:0.96;}100%{opacity:0;filter:blur(10px);}}
+
 #hiero-reveal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:30;pointer-events:none;
  font-family:'Cormorant Garamond';font-style:italic;font-size:clamp(16px,2.8vw,32px);color:#e8c870;
  text-shadow:0 0 30px rgba(232,200,112,0.6);text-align:center;max-width:70%;opacity:0;transition:opacity 0.8s;line-height:1.6;}
 #hiero-reveal.show{opacity:1;}
 
 #jumpscare{position:fixed;inset:0;z-index:60;pointer-events:none;opacity:0;background:#000;}
+#deathscreen{position:fixed;inset:0;z-index:63;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,#1a0000,#000 75%);
+ display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;transition:opacity 0.6s ease;}
+#deathscreen.show{opacity:1;}
+#death-text{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:clamp(40px,9vw,96px);letter-spacing:0.18em;color:#8a0a0a;text-shadow:0 0 30px rgba(120,0,0,0.7);}
+#death-sub{font-family:'Space Mono',monospace;font-size:clamp(11px,2vw,15px);letter-spacing:0.12em;color:#6a4a3a;margin-top:22px;opacity:0.85;text-transform:uppercase;}
 #jumpscare.flash{animation:jumpFlash 0.35s forwards;}
 @keyframes jumpFlash{0%{opacity:0.95;}100%{opacity:0;}}
 
@@ -113,12 +133,21 @@ canvas{display:block;width:100vw!important;height:100vh!important;}
 <div id="flicker"></div>
 <div id="strobe"></div>
 <div id="jumpscare"></div>
+<div id="deathscreen"><div id="death-text">YOU DIED</div><div id="death-sub">the darkness takes you back to the beginning</div></div>
 
 <div id="title">
  <h1>GO DEAN<span class="s">Stage VII — The Abattoir Pyramid</span></h1>
  <div class="sub">A game by Earthling</div>
  <div class="warn">Wear headphones. Lower the lights.<br>Something in here has been waiting a very long time.</div>
  <div class="go" id="startBtn">Descend</div>
+</div>
+
+<div id="epiwarn">
+ <div class="ew-inner">
+  <div class="ew-h">Photosensitivity Warning</div>
+  <div class="ew-b">This game contains flashing lights, strobing effects, and sudden flashes that may affect players with photosensitive epilepsy. Play in a well-lit room, take regular breaks, and stop if you feel dizzy, disoriented, or unwell.</div>
+  <div class="go" id="epiBtn">I Understand — Continue</div>
+ </div>
 </div>
 
 <div id="story">
@@ -141,6 +170,7 @@ canvas{display:block;width:100vw!important;height:100vh!important;}
 
 <div id="interact">[ E ] Examine</div>
 <div id="whisper"></div>
+<div id="levelwarn"></div>
 <div id="hiero-reveal"></div>
 
 <div id="meatchat"></div>
@@ -417,6 +447,73 @@ const MEAT_COMMENTS=[
   "protein over everything","carnivore diet changed my life","i only eat things with a face",
   "meat tastes too good to quit","sorry not sorry i love steak",
   "Treblinkaaaaa","oh it was a concentration camp, I'm doomed",
+  // ── Stage-7 set: the chat starts cracking / reading the walls / having the crisis ──
+  "are we MAGA?","wait I thought we fight MAGA","why are we eating vegans","aren't we against exploitation",
+  "w for confusion","Momo is food now?","Guys are we eating Momo now?","Why are we eating Momo","Momo for prez",
+  "Momo for dinner","Momo rib-eye","W for cat rib-eye","where's Momo","Momo MIA lately","Dean?","Did Dean eat Momo?",
+  "Okay I'm worried","why is earthling here again","earthling byeee","earthlings right tho","earthling agaaain ugh",
+  "let's eat earthling","so we're eating allies now","this is where we are","what stage is this","earthling is lost",
+  "Dean keep going","where is the exit?","I'm seriously worried","why is Dean in a pyramid","L for pyramid",
+  "pyra is mid","Dean for sun-god!","Dean for Pharaoh","all hail Pharaoh Dean","Dean on the throne of the two lands",
+  "crown Pharaoh Dean already","Dean god-king of the pyramid","Pharaoh Dean has spoken","Dean rules the two lands now",
+  "is Charlie better than a pig","are we in a meat cult","so the enemy is vegan not MAGA?","Dean what do I think?",
+  "LGBTQ+meat","dinner not politics","actually can you not","wait whose side are we on",
+  "I came here to own vegans not have an existential crisis","Dean explain","hold on are pigs suffering or not",
+  "I'm confused but still hungry","wait is this anti MAGA now","bro I just wanted a steak","Dean what are we doing",
+  "are we the baddies","I didn't sign up for philosophy","someone tell me who to be angry at",
+  "wait the pig thing is actually messing me up","I thought we were winning","what is the W even for anymore",
+  "Dean are you still there","I came for the ratio and stayed for the existential dread","hold on let me think",
+  "why do I feel weird suddenly","are we allowed to feel bad for the pig","I think I accidentally agreed with a vegan",
+  "don't tell the others","wait is Charlie Kirk pro factory farming","would Charlie care about the pig",
+  "Dean is this still fun","I started reading the walls and now I can't stop","the pig thing is haunting me a little ngl",
+  "wait we're against exploitation right","so why is the pig different","I didn't come here to grow as a person",
+  "Dean say something reassuring","W for... what exactly","I think the chat is having a breakdown",
+  "am I being radicalised right now","which direction though","I feel like I walked into the wrong pyramid",
+  "the cow thing got me","I'm not saying I'm vegan I'm just saying","don't finish that sentence",
+  "Dean would you eat a dog","don't answer that Dean","why is no one else freaking out",
+  "I am fully lost and slightly upset","this isn't the content I ordered","W for getting uncomfortable I guess",
+  "are we pro animal or pro Dean","can it be both","what if it can't","what if Dean is also confused",
+  "what if we're all confused","I need Dean to tell me this is fine","is this fine","it's not fine is it",
+  "I came to dunk on vegans and now I'm googling gestation crates","send help","why did I read that wall",
+  "I can't unread that wall","the 1100 pigs per hour thing","I did the maths","I wish I hadn't done the maths",
+  "Dean are YOU okay","has anyone checked on Dean","W for collective identity crisis",
+  "I feel like this game is doing something to me","is anyone else's sanity bar low","mine is very low",
+  "I thought the sanity bar was a joke","it was not a joke","the chat arguing with itself is sending me",
+  "are we pro exploitation or anti exploitation someone decide",
+  "I think we might be pro exploitation and I don't feel great about it","Dean I need leadership right now",
+  "Dean has gone quiet","why has Dean gone quiet","okay but the dog comparison","I have a dog",
+  "I don't want to think about this","too late","W for denial","L for whoever made me think about this",
+  "wait that's us","we did this to ourselves","the meat chat is eating itself","poetic","I hate it here",
+  "I also can't leave","why can't I leave","Dean would leave","would he though","has Dean left",
+  "I think the pyramid got Dean","I think the pyramid got all of us","W for","W for...","...",
+  "I had a steak for dinner and now I feel like I owe someone an apology","not going vegan but like",
+  "okay maybe thinking about it","don't tell anyone","delete this","W for deleting this",
+  "too late it's in the walls now","Billie Eilish hates me","Ariana Grande though","that's Pete's fault",
+  "frankly Dean ur MAGA","MAGA is meat","make America steak again","legit mom steak plz",
+  "wait are vegans our allies against MAGA","this is so confusing I need a burger","Dean are you MAGA",
+  "Dean say you're not MAGA","Dean is suspiciously quiet about the MAGA thing","I thought we were the anti MAGA guys",
+  "so MAGA eats meat and we eat meat and","don't finish that","Billie Eilish is vegan and she's cooler than all of us",
+  "don't say it","I said it","Ariana is tiny and vegan and could destroy us all","that's just facts",
+  "Pete ate the meat though right","that's Pete's whole thing","leave Pete out of this",
+  "Pete would understand this pyramid","Dean what would Pete do","make America think again",
+  "make America feel bad again","MABA","what does MABA stand for","make abattoirs bearable again","no",
+  "W for trying","are we fighting MAGA or joining them via meat","the venn diagram is upsetting me",
+  "I didn't come here to see the venn diagram","too late you saw the venn diagram","Dean drew the venn diagram",
+  "did he mean to","Dean means everything he does","does he though","the pig is the only one who knew what was happening",
+  "the pig always knew","I'm on the pig's side now","too late the others are also on the pig's side",
+  "the chat has defected","W for pig","L for us","make America grateful again","mom says dinner",
+  "mom what are we having","mom don't answer that","is that pig Latin","idk ask him","press the read icon!",
+  "Why is he not moving?","Bro can't play","bro press read!","Bro torches heal","don't descend too soon",
+  "I think he's trapped","stuck in backroom","Dean in backrooms lol","L liminal debate","lineal debate?",
+  "*Liminal","W for sarcophagus","L for curse","Where are we?","Where did Tiktok go?","This isn't tiktok",
+  "what are we","why are we","hi guys","hey Dean","love U Dean","Dean is so hot","Deans hot in game",
+  "do we donate?","Does game take gifts?","Hahaha Dean","L Dean","my fish died today","this seems fishy",
+  "I'm going fishing","How'd we get here",
+  // ── meta-panic set: the chat notices the entities / breaks the fourth wall ──
+  "behind you Dean!","Ghost Parker?","Omg","ongod behind you bro","is that Charlie Kirk?","Dean run!",
+  "Don't say that","please","mods?","Where are the mods??","Now we're doing meta chat?","Really earthling?",
+  "This game should be banned","W for Banning games","ban veganism","W for kirks ghost","W for Dean cult",
+  "earthlings a plant","vegan is a plant now?","EL stop making me chat","EL I didn't say this!",
 ];
 
 // ─── RENDERER ────────────────────────────────────────────
@@ -881,20 +978,107 @@ function torchFlameSprite(){
   return new THREE.CanvasTexture(c);
 }
 
-function shadowFigureTex(){
+// The observer — reworked to be scary instead of comical. Near-black, armless, an elongated
+// torso flaring into a floor-length smock (slaughterhouse silhouette — no cute legs), faintly
+// asymmetric, heavily blurred, with very dim uneven eyes. Glitch is animated cheaply by
+// pre-baking a few slice-torn variants once and swapping between them while he's visible.
+function shadowSilhouette(){
   const c=document.createElement('canvas'); c.width=128; c.height=384; const x=c.getContext('2d');
   x.clearRect(0,0,128,384);
-  x.fillStyle='rgba(5,5,10,0.9)';
-  x.beginPath(); x.arc(64,28,22,0,Math.PI*2); x.fill();
-  x.fillRect(58,48,16,16);
-  x.beginPath(); x.moveTo(10,65); x.lineTo(118,65); x.lineTo(106,210); x.lineTo(22,210); x.closePath(); x.fill();
-  x.beginPath(); x.moveTo(10,65); x.lineTo(-8,140); x.lineTo(8,148); x.lineTo(22,80); x.closePath(); x.fill();
-  x.beginPath(); x.moveTo(118,65); x.lineTo(136,140); x.lineTo(120,148); x.lineTo(106,80); x.closePath(); x.fill();
-  x.beginPath(); x.moveTo(22,210); x.lineTo(14,370); x.lineTo(50,370); x.lineTo(56,210); x.closePath(); x.fill();
-  x.beginPath(); x.moveTo(106,210); x.lineTo(114,370); x.lineTo(78,370); x.lineTo(72,210); x.closePath(); x.fill();
-  x.fillStyle='rgba(200,50,50,0.65)';
-  x.beginPath(); x.arc(56,26,4,0,Math.PI*2); x.fill();
-  x.beginPath(); x.arc(72,26,4,0,Math.PI*2); x.fill();
+  x.filter='blur(5px)';
+  x.fillStyle='rgba(4,4,8,0.94)';     // near-pure black
+  // clear oval head, slightly off-centre/tilted
+  x.beginPath(); x.ellipse(58,38,15,19,0.06,0,Math.PI*2); x.fill();
+  // short thick neck
+  x.fillRect(50,55,15,11);
+  // BROAD shoulders -> the widest point (heavyset worker), tapering into a floor-length smock
+  x.beginPath();
+  x.moveTo(22,80);                          // left shoulder — wide
+  x.quadraticCurveTo(58,62,98,82);          // broad shoulder line, faintly asymmetric
+  x.lineTo(92,210);                         // right side down (narrower than shoulders)
+  x.quadraticCurveTo(90,300,82,362);        // smock to floor
+  x.lineTo(42,362);
+  x.quadraticCurveTo(34,300,32,210);        // left side
+  x.closePath(); x.fill();
+  // ONE heavy arm hanging on the right, held a little away from the body so the blur keeps a gap
+  x.beginPath();
+  x.moveTo(94,86);
+  x.quadraticCurveTo(112,98,110,160);       // upper arm out + down
+  x.quadraticCurveTo(110,212,101,248);      // forearm past the hip
+  x.lineTo(90,246);
+  x.quadraticCurveTo(98,200,92,150);        // inner edge back up (gap from torso)
+  x.quadraticCurveTo(90,108,94,86);
+  x.closePath(); x.fill();
+  x.beginPath(); x.ellipse(95,252,8,10,0,0,Math.PI*2); x.fill();  // heavy hand mass
+  // very dim, uneven eyes — "were those eyes?" not a face
+  x.filter='blur(2px)';
+  x.fillStyle='rgba(150,28,28,0.32)';
+  x.beginPath(); x.arc(52,36,2.7,0,Math.PI*2); x.fill();
+  x.fillStyle='rgba(150,28,28,0.22)';
+  x.beginPath(); x.arc(65,38,1.9,0,Math.PI*2); x.fill();          // lower, smaller, dimmer
+  x.filter='none';
+  // feather head-top and smock-bottom into nothing
+  const g=x.createLinearGradient(0,0,0,384);
+  g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(0.085,'rgba(0,0,0,1)');
+  g.addColorStop(0.88,'rgba(0,0,0,1)'); g.addColorStop(1,'rgba(0,0,0,0)');
+  x.globalCompositeOperation='destination-in'; x.fillStyle=g; x.fillRect(0,0,128,384);
+  x.globalCompositeOperation='source-over';
+  return c;
+}
+function makeShadowFrames(){
+  const base=shadowSilhouette();
+  const frames=[new THREE.CanvasTexture(base)]; // frame 0: least corrupted
+  for(let f=0; f<4; f++){
+    const c=document.createElement('canvas'); c.width=128; c.height=384; const x=c.getContext('2d');
+    const amp=4+f*3; // later frames tear harder
+    let y=0;
+    while(y<384){
+      const h=6+Math.random()*36;
+      const dx=(Math.random()*2-1)*amp;
+      x.drawImage(base, 0,y,128,h, dx,y,128,h);                 // displaced slice (datamosh)
+      if(Math.random()<0.3){                                    // faint chromatic ghost
+        x.globalAlpha=0.22; x.drawImage(base, 0,y,128,h, dx+(Math.random()*8-4),y,128,h); x.globalAlpha=1;
+      }
+      y+=h;
+    }
+    const t=new THREE.CanvasTexture(c); frames.push(t);
+  }
+  return frames;
+}
+
+// The BLACK watcher texture — deliberately indistinct. Soft, blurred, feathered at the edges
+// so the form reads as a dark human-ish shape without ever fully resolving. Player-ish height.
+function blackFigureTex(){
+  const c=document.createElement('canvas'); c.width=128; c.height=256; const x=c.getContext('2d');
+  x.clearRect(0,0,128,256);
+  x.filter='blur(6px)';            // blur everything we draw -> no crisp silhouette
+  const body='rgba(2,2,5,0.95)';
+  x.fillStyle=body;
+  // head
+  x.beginPath(); x.ellipse(64,46,16,20,0,0,Math.PI*2); x.fill();
+  // shoulders + tapering torso, soft
+  x.beginPath();
+  x.moveTo(40,72); x.quadraticCurveTo(64,64,88,72);
+  x.quadraticCurveTo(82,140,72,205); x.lineTo(56,205);
+  x.quadraticCurveTo(46,140,40,72); x.closePath(); x.fill();
+  // suggestion of arms, no hands/hook
+  x.beginPath(); x.moveTo(42,78); x.quadraticCurveTo(30,130,40,168); x.lineTo(50,150); x.quadraticCurveTo(46,110,52,90); x.closePath(); x.fill();
+  x.beginPath(); x.moveTo(86,78); x.quadraticCurveTo(98,130,88,168); x.lineTo(78,150); x.quadraticCurveTo(82,110,76,90); x.closePath(); x.fill();
+  // legs only suggested, fading before the feet (no full legs -> nothing cheesy)
+  x.beginPath(); x.moveTo(56,205); x.quadraticCurveTo(54,230,56,250); x.lineTo(64,250); x.quadraticCurveTo(64,230,64,205); x.closePath(); x.fill();
+  x.beginPath(); x.moveTo(72,205); x.quadraticCurveTo(74,230,72,250); x.lineTo(64,250); x.quadraticCurveTo(64,230,64,205); x.closePath(); x.fill();
+  // faint cold eyes, barely there
+  x.filter='blur(2px)';
+  x.fillStyle='rgba(150,170,190,0.4)';
+  x.beginPath(); x.arc(58,44,2.4,0,Math.PI*2); x.fill();
+  x.beginPath(); x.arc(70,44,2.4,0,Math.PI*2); x.fill();
+  x.filter='none';
+  // overall vertical feather: fade the very top and bottom into nothing
+  const g=x.createLinearGradient(0,0,0,256);
+  g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(0.10,'rgba(0,0,0,1)');
+  g.addColorStop(0.82,'rgba(0,0,0,1)'); g.addColorStop(1,'rgba(0,0,0,0)');
+  x.globalCompositeOperation='destination-in'; x.fillStyle=g; x.fillRect(0,0,128,256);
+  x.globalCompositeOperation='source-over';
   return new THREE.CanvasTexture(c);
 }
 
@@ -1095,7 +1279,7 @@ function buildLevel(lv){
       const revealTex=writingTex(text,'glow',true);
       const sz=decalSizeFor(text);
       const result=placeDecal(htex,{w:sz.w, h:sz.h, y:1.4+(Math.random()-0.5)*0.4, opacity:0.9});
-      if(result) hieroData.push({mesh:result.mesh,revealTex,revealed:false,pos:result.pos,origText:text});
+      if(result) hieroData.push({mesh:result.mesh,revealTex,baseTex:result.mesh.material.map,revealed:false,pos:result.pos,origText:text});
     });
   } else if(lv===2){
     // L2: 10 blood-smeared readables — press E to read
@@ -1105,7 +1289,7 @@ function buildLevel(lv){
       const revealTex=writingTex(text,'scratch');
       const sz=decalSizeFor(text);
       const result=placeDecal(smearTex,{w:sz.w, h:sz.h, y:1.3+(Math.random()-0.5)*0.45, opacity:0.92});
-      if(result) hieroData.push({mesh:result.mesh,revealTex,revealed:false,pos:result.pos,origText:text});
+      if(result) hieroData.push({mesh:result.mesh,revealTex,baseTex:result.mesh.material.map,revealed:false,pos:result.pos,origText:text});
     });
   } else {
     // L3: 10 faded-wallpaper readables — press E to read
@@ -1116,7 +1300,7 @@ function buildLevel(lv){
       const revealTex=writingTex(text,style);
       const sz=decalSizeFor(text);
       const result=placeDecal(fade,{w:sz.w, h:sz.h, y:1.3+(Math.random()-0.5)*0.45, opacity:0.88});
-      if(result) hieroData.push({mesh:result.mesh,revealTex,revealed:false,pos:result.pos,origText:text});
+      if(result) hieroData.push({mesh:result.mesh,revealTex,baseTex:result.mesh.material.map,revealed:false,pos:result.pos,origText:text});
     });
   }
 
@@ -1183,15 +1367,16 @@ function placeTorches(){
 
 // ─── SHADOW FIGURE ──────────────────────────────────────
 const shadowFig={
-  sprite:null,light:null,grp:null,
+  sprite:null,light:null,grp:null,frames:null,
   lv:1,x:5,z:5,
   state:'lurking',peekTimer:0,peekCooldown:0,
   show(op=0.7){ if(this.sprite) this.sprite.material.opacity=op; if(this.light) this.light.intensity=0.5; },
   hide(){ if(this.sprite) this.sprite.material.opacity=0; if(this.light) this.light.intensity=0; },
   moveTo(x,z){ this.x=x; this.z=z; if(this.sprite) this.sprite.position.set(x,1.3,z); if(this.light) this.light.position.set(x,1.4,z); },
   init(grp){
-    const mat=new THREE.SpriteMaterial({map:shadowFigureTex(),transparent:true,opacity:0,depthWrite:false});
-    this.sprite=new THREE.Sprite(mat); this.sprite.scale.set(1.1,2.8,1);
+    this.frames=makeShadowFrames();
+    const mat=new THREE.SpriteMaterial({map:this.frames[0],transparent:true,opacity:0,depthWrite:false});
+    this.sprite=new THREE.Sprite(mat); this.sprite.scale.set(0.95,2.95,1);
     this.sprite.position.set(this.x,1.3,this.z); grp.add(this.sprite);
     this.light=new THREE.PointLight(0x200010,0,4,2);
     this.light.position.set(this.x,1.4,this.z); grp.add(this.light);
@@ -1203,6 +1388,275 @@ const shadowFig={
     this.grp=newGrp;
   },
 };
+
+// ─── BLACK WATCHER (the dark one) ────────────────────────
+// Stationary. NEVER travels. Manifests only in the four outer corners or in genuinely dark
+// spots / corridor-ends, more transparent and blurred than the grey one, shrunk to ~player
+// height. Half the time it just watches. Two strike triggers only:
+//   A) you come within ~1 ft of it while it lurks in the dark
+//   B) you stare at an already-manifested watcher for 3.8s -> it BLINKS to a foot from you,
+//      one existing crack-and-flash, 20% off (sanity then health), gone.
+// No chase. No travel. The blink IS the "blur". Dormant until the first step each level.
+const blackFig={
+  sprite:null, grp:null, lv:1, x:5, z:5,
+  state:'hidden', // hidden | watching
+  vis:0, targetVis:0, flickerTimer:0,
+  init(grp){
+    const mat=new THREE.SpriteMaterial({map:blackFigureTex(),transparent:true,opacity:0,depthWrite:false,depthTest:true});
+    this.sprite=new THREE.Sprite(mat); this.sprite.scale.set(0.95,1.95,1); // ~player height, no towering legs
+    this.sprite.position.set(this.x,1.15,this.z); grp.add(this.sprite);
+    this.grp=grp;
+  },
+  reparent(g){ if(this.grp&&this.sprite){ this.grp.remove(this.sprite); } g.add(this.sprite); this.grp=g; },
+  moveTo(x,z){ this.x=x; this.z=z; if(this.sprite) this.sprite.position.set(x,1.15,z); },
+  setVis(v){ this.vis=v; if(this.sprite) this.sprite.material.opacity=v; },
+  hide(){ this.state='hidden'; this.targetVis=0; this.setVis(0); },
+};
+const BLACK_MAX_OPACITY=0.42;        // far more transparent than before; form never fully resolves
+const STRIKE_FRAC=0.20;              // 20% off the relevant meter per strike (5 hits to empty)
+const STRIKE_RANGE=1.1;              // ~1 foot
+const STARE_SECONDS=3.8;             // continuous look required to trigger the blink
+const STARE_FRAMES=Math.round(STARE_SECONDS*60);
+const BLACK_LULL_FRAMES=45*60;       // 45s minimum lull after any strike
+let blackStrikeReady=true;
+let blackCooldown=0;                 // frames until it may manifest again
+let hasMovedThisLevel=false;         // first-step gate (reset per level)
+let stareFrames=0;                   // how long the player has held a look on the watcher
+
+function blackCellOpen(x,z){ return !solidAt(MAPS[currentLevel-1], x, z); }
+
+// Live darkness probe: a cell is "dark" if no currently-lit light is close + bright.
+function darknessAt(x,z){
+  const ld=levelData[currentLevel]; if(!ld) return 1;
+  let lit=0;
+  for(const f of ld.lightData){
+    if(!f.light) continue;
+    const I=f.light.intensity; if(I<=0.05) continue;
+    const lx=f.light.position.x, lz=f.light.position.z;
+    const d2=(lx-x)*(lx-x)+(lz-z)*(lz-z);
+    lit += I/(1+d2*0.6);
+  }
+  return 1/(1+lit); // ~1 = pitch dark, ->0 = brightly lit
+}
+// THE effect: identical to the backrooms strobe (one subtle crack + a short white-flash burst
+// that terminates itself). Reused verbatim. No tape-rewind, no extra layers.
+function quickStrobe(){
+  const el=$('strobe'); if(!el) return;
+  sfx.strobeHit();
+  let flashes=0; const maxFlashes=3+Math.floor(Math.random()*3);
+  (function flash(){
+    if(flashes>=maxFlashes){ el.style.opacity='0'; return; }
+    el.style.opacity=String(0.5+Math.random()*0.4);
+    setTimeout(()=>{ el.style.opacity='0'; flashes++; setTimeout(flash,40+Math.random()*120); },30+Math.random()*60);
+  })();
+}
+
+function blackStrike(){
+  if(!blackStrikeReady || blackCooldown>0) return;  // hard-gate: no strike during the lull
+  blackStrikeReady=false;
+  quickStrobe();         // one subtle crack + white-flash, nothing layered
+  const dmg=100*STRIKE_FRAC;
+  if(sanity>0) sanity=Math.max(0,sanity-dmg);
+  else hp=Math.max(0,hp-dmg);
+  updateHUD();
+  blackFig.hide();
+  stareFrames=0;
+  blackCooldown=BLACK_LULL_FRAMES;   // 45s lull — blocks both manifesting AND striking
+  setTimeout(()=>{ blackStrikeReady=true; }, 1200);
+  if(sanity<=0) triggerSanityBreak();
+  if(hp<=0) die();
+}
+
+// Pick a manifest spot: prefer a far corridor-end the player is looking down, else one of the
+// four outer corners, else the darkest nearby open cell — and only if it's genuinely dark there.
+function blackManifest(){
+  const ld=levelData[currentLevel]; if(!ld||!ld.openCells.length) return false;
+  const fwdX=Math.sin(cam.angle), fwdZ=Math.cos(cam.angle);
+  const corners=[[3,3],[GRID-4,3],[3,GRID-4],[GRID-4,GRID-4]];
+  const dGate = currentLevel===3 ? -1 : null; // L3 (fluorescent) has no "dark enough" cells -> drop the gate there
+  // If the player is in/near an outer corner, ~50% of the time put him in one of the two VISIBLE
+  // corners. The two visible ones share an edge with yours; the diagonal-opposite (shares no edge)
+  // is the one you can't see, so it's excluded geometrically. (Attack logic downstream unchanged.)
+  let nearCorner=null;
+  for(const cc of corners){ if(Math.hypot(cc[0]+0.5-cam.x,cc[1]+0.5-cam.z)<6.5){ nearCorner=cc; break; } } // covers the 6x6 corner room
+  if(nearCorner && Math.random()<0.5){
+    const adj=corners.filter(cc=> cc!==nearCorner && (cc[0]===nearCorner[0] || cc[1]===nearCorner[1])); // the two adjacent (visible) corners
+    const g = dGate!==null ? dGate : 0.35;
+    const pick=adj.filter(cc=>{
+      const ddx=cc[0]+0.5-cam.x, ddz=cc[1]+0.5-cam.z, dd=Math.hypot(ddx,ddz)||1;
+      const dt=(ddx*fwdX+ddz*fwdZ)/dd;            // roughly in front so the player can see/stare at it
+      return dt>0 && darknessAt(cc[0]+0.5,cc[1]+0.5)>g;
+    });
+    const choice = pick.length ? pick[(Math.random()*pick.length)|0] : null;
+    if(choice){ blackFig.moveTo(choice[0]+0.5,choice[1]+0.5); blackFig.state='watching'; blackFig.targetVis=BLACK_MAX_OPACITY; return true; }
+  }
+  // corridor-end in view?
+  let corridor=0;
+  for(let d=3; d<14; d++){ if(blackCellOpen(cam.x+fwdX*d, cam.z+fwdZ*d)) corridor=d; else break; }
+  if(corridor>=6){
+    const cx=cam.x+fwdX*corridor, cz=cam.z+fwdZ*corridor;
+    if(darknessAt(cx,cz)>(dGate!==null?dGate:0.45)){ blackFig.moveTo(cx,cz); blackFig.state='watching'; blackFig.targetVis=BLACK_MAX_OPACITY; return true; }
+  }
+  // one of the four outer corners, if dark and not too close
+  const openCorners=corners.filter(c=>blackCellOpen(c[0]+0.5,c[1]+0.5)
+    && Math.hypot(c[0]+0.5-cam.x,c[1]+0.5-cam.z)>6
+    && darknessAt(c[0]+0.5,c[1]+0.5)>(dGate!==null?dGate:0.5));
+  if(openCorners.length && Math.random()<0.6){
+    const c=openCorners[(Math.random()*openCorners.length)|0];
+    blackFig.moveTo(c[0]+0.5,c[1]+0.5); blackFig.state='watching'; blackFig.targetVis=BLACK_MAX_OPACITY; return true;
+  }
+  // darkest open cell within mid range
+  let best=null,bestDark=0;
+  for(let i=0;i<18;i++){
+    const c=ld.openCells[(Math.random()*ld.openCells.length)|0];
+    const dist=Math.hypot(c[0]+0.5-cam.x,c[1]+0.5-cam.z);
+    if(dist<3||dist>10) continue;
+    const dk=darknessAt(c[0]+0.5,c[1]+0.5);
+    if(dk>bestDark){ bestDark=dk; best=c; }
+  }
+  if(best && bestDark>(dGate!==null?dGate:0.55)){ blackFig.moveTo(best[0]+0.5,best[1]+0.5); blackFig.state='watching'; blackFig.targetVis=BLACK_MAX_OPACITY*0.85; return true; }
+  return false;
+}
+
+function updateBlackFig(){
+  if(!blackFig.sprite || blackFig.lv!==currentLevel) return;
+  if(!hasMovedThisLevel){ blackFig.hide(); return; } // dormant until first step
+  if(blackCooldown>0) blackCooldown--;
+
+  const dx=blackFig.x-cam.x, dz=blackFig.z-cam.z;
+  const dist=Math.hypot(dx,dz);
+  const fwdX=Math.sin(cam.angle), fwdZ=Math.cos(cam.angle);
+  const dot=(dx*fwdX+dz*fwdZ)/Math.max(0.1,dist);
+  const lookingAt = dot>0.86 && dist<16; // eyes roughly on him
+
+  if(blackFig.state==='hidden'){
+    stareFrames=0;
+    if(blackCooldown<=0){
+      // manifestation roll. L3 (lit backrooms) gets a higher floor so he actually appears there;
+      // L1/L2 stay biased to when the player is somewhere dark.
+      const here=darknessAt(cam.x,cam.z);
+      const chance=(currentLevel===3 ? 0.0045 : 0.0012) + here*0.0016;
+      if(Math.random()<chance) blackManifest();
+    }
+    return;
+  }
+
+  // state === 'watching' — stationary. Ease opacity toward target (feathered fade in/out).
+  blackFig.setVis(blackFig.vis + (blackFig.targetVis-blackFig.vis)*0.08);
+  const litLevel = currentLevel===3; // backrooms are lit -> don't require darkness for strike/persistence
+
+  // A) proximity -> strike (dark areas on L1/L2; anywhere on L3 since it's lit)
+  if(dist<STRIKE_RANGE && (litLevel || darknessAt(cam.x,cam.z)>0.4)){ blackStrike(); return; }
+
+  // B) sustained stare on an already-manifested watcher -> blink to a foot away, then strike
+  if(lookingAt){
+    stareFrames++;
+    if(stareFrames>=STARE_FRAMES){
+      // teleport blink (no travel): appear ~1 ft in front of the player
+      const bx=cam.x+fwdX*0.9, bz=cam.z+fwdZ*0.9;
+      if(blackCellOpen(bx,bz)) blackFig.moveTo(bx,bz); else blackFig.moveTo(cam.x,cam.z);
+      blackFig.setVis(BLACK_MAX_OPACITY);
+      blackStrike();
+      return;
+    }
+  } else {
+    stareFrames=Math.max(0,stareFrames-2); // looking away bleeds the timer down
+    // dissolve only if the player has truly left it behind. On L3 don't use the darkness test
+    // (everything is lit), so he persists long enough for you to turn and stare.
+    if(dist>14 || (!litLevel && darknessAt(blackFig.x,blackFig.z)<0.3)){
+      blackFig.targetVis=0; if(blackFig.vis<0.03){ blackFig.hide(); blackCooldown=Math.max(blackCooldown,300); }
+    }
+  }
+}
+
+// When a light flickers off, the watcher sometimes flickers into that spot, then is gone.
+function blackFlickerIn(lx,lz){
+  if(!blackFig.sprite || blackFig.lv!==currentLevel) return;
+  if(!hasMovedThisLevel || blackCooldown>0 || blackFig.state!=='hidden') return;
+  if(Math.random()<0.5) return; // only sometimes
+  const d=Math.hypot(lx-cam.x,lz-cam.z); if(d<3||d>13) return;
+  blackFig.moveTo(lx,lz);
+  blackFig.state='watching'; blackFig.setVis(BLACK_MAX_OPACITY); blackFig.targetVis=0; // appears then fades as light returns
+  setTimeout(()=>{ if(blackFig.state==='watching'&&blackFig.vis<0.05) blackFig.hide(); }, 900);
+}
+
+// ─── SANITY-ZERO SPIRAL + DEATH / RESET ──────────────────
+let sanityZeroed=false;   // true once sanity first hits 0 this level (one-time ordeal)
+let spiralActive=false;   // chat speeds up, whispers/noise intensify, health auto-drains
+let dying=false;
+let spiralFlashT=120; // countdown for the recurring crack-and-flash during the spiral
+const SPIRAL_HP_DRAIN=0.08; // per updateSanity call (~20/s) -> ~60s from full health once sanity is gone
+
+function triggerSanityBreak(){
+  if(sanityZeroed) return;
+  sanityZeroed=true; spiralActive=true;
+  quickStrobe();              // one subtle crack + flash at the moment sanity breaks
+  spiralFlashT=20*60;         // then it recurs once every 20s (frames)
+  whisperLine("your mind is gone. now it takes the rest.");
+}
+
+function resetMetricsForLevel(){
+  hp=100; sanity=100;
+  sanityZeroed=false; spiralActive=false;
+  hasMovedThisLevel=false;
+  stareFrames=0; blackCooldown=0; blackStrikeReady=true;
+  blackFig.hide();
+  $('blood-vignette').style.background='';
+  camera.fov=76; camera.updateProjectionMatrix();
+  updateHUD();
+}
+
+function die(){
+  if(dying) return;
+  dying=true;
+  spiralActive=false;
+  phase='dead'; // freeze movement / figures / drain while the death screen shows
+  const ds=$('deathscreen'); ds.classList.add('show');
+  setTimeout(()=>{
+    try{ resetToLevel1(); }
+    catch(err){ console.warn('reset error', err); hp=100; sanity=100; updateHUD(); phase='play'; inputGraceUntil=performance.now()+800; }
+    ds.classList.remove('show'); dying=false;
+  }, 2600);
+}
+
+function resetToLevel1(){
+  // Full reset: torches to zero, all wall-reads re-locked & reverted, metrics fresh, drop into Level I.
+  torchesCollected=0;
+  for(const t of allTorches){
+    t.collected=false; t.unlocked=false;
+    if(t.sprite){ t.sprite.visible=false; t.sprite.material.opacity=0; }
+    if(t.halo) t.halo.visible=false;
+    if(t.light) t.light.intensity=0;
+  }
+  for(let lv=1;lv<=3;lv++){
+    const ld=levelData[lv];
+    if(ld&&ld.hieroData) for(const h of ld.hieroData){
+      h.revealed=false;
+      if(h.baseTex){ h.mesh.material.map=h.baseTex; h.mesh.material.needsUpdate=true; }
+    }
+  }
+  setLevel(1);
+  cam.x=6; cam.z=6; cam.angle=Math.PI*0.25;
+  resetMetricsForLevel();
+  showLevelWarning();
+  setObjective("Read the walls. Reading reveals torches. Collect all seven.");
+  hp=100; sanity=100; updateHUD();   // guarantee full restart, last thing before play resumes
+  phase='play';
+  inputGraceUntil=performance.now()+800;
+}
+
+// ─── PER-LEVEL WARNING (random each level) ───────────────
+const LEVEL_WARNINGS=[
+  "don't move or he'll get you",
+  "movement attracts the monster",
+  "first step and it's game on",
+  "creep slowly or its the butcherhook",
+];
+function showLevelWarning(){
+  const w=LEVEL_WARNINGS[(Math.random()*LEVEL_WARNINGS.length)|0];
+  // dedicated, longer-held, distinct from the whisper channel so it reads as an instruction
+  setTimeout(()=>{ const el=$('levelwarn'); el.textContent=w; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); }, 500);
+}
 
 // ─── STROBE (L3 only) ────────────────────────────────────
 let nextStrobe=1200+Math.random()*2000;
@@ -1236,6 +1690,7 @@ let nextChain=1800+Math.random()*2000;
 let nextMoo=1000+Math.random()*1500;
 let nextDistant=600+Math.random()*800;
 let jumpscareReady=true;
+let shadowGlitchT=0; // frame countdown for the observer's glitch-frame swap
 let nearShadow=false;
 let hieroNear=null;
 let interactReady=false;
@@ -1294,6 +1749,16 @@ function setLevel(lv){
     }
     shadowFig.lv=lv; shadowFig.hide();
   }
+  // Reparent the black hunter too; it stays dormant until the first step on this level.
+  if(blackFig.sprite){
+    blackFig.reparent(levelGroups[lv]);
+    const ld=levelData[lv];
+    if(ld&&ld.openCells.length){
+      const c=ld.openCells[Math.floor(Math.random()*ld.openCells.length)];
+      blackFig.moveTo(c[0]+0.5,c[1]+0.5);
+    }
+    blackFig.lv=lv; blackFig.hide();
+  }
   startAmbient(lv);
 }
 
@@ -1308,13 +1773,17 @@ function tryDescend(){
     // After descent, spawn away from new level's staircase
     cam.x = 6; cam.z = 6; cam.angle = Math.PI*0.25;
     fl.style.opacity='0';
-    setTimeout(()=>{ fl.style.transition='opacity 0.05s'; descending=false; phase='play'; inputGraceUntil = performance.now() + 800; setObjective(`Read the walls. ${7-torchesCollected} torches still to find.`); },500);
+    setTimeout(()=>{ fl.style.transition='opacity 0.05s'; descending=false; phase='play'; inputGraceUntil = performance.now() + 800; resetMetricsForLevel(); showLevelWarning(); setObjective(`Read the walls. ${7-torchesCollected} torches still to find.`); },500);
   },600);
 }
 
 // ─── GAME FLOW ───────────────────────────────────────────
 function startGame(){
   $('title').classList.add('hidden');
+  $('epiwarn').classList.add('on');   // photosensitivity warning first; story runs on dismissal
+}
+function dismissEpiWarning(){
+  $('epiwarn').classList.remove('on');
   runStory(OPENING,beginPlay);
 }
 function beginPlay(){
@@ -1330,13 +1799,17 @@ function beginPlay(){
   ensureTorchesForLevel(1);
   shadowFig.init(levelGroups[1]);
   shadowFig.lv=1;
+  blackFig.init(levelGroups[1]);
+  blackFig.lv=1; blackFig.hide();
   $('level-badge').textContent=cfg1.name;
   phase='play';
   inputGraceUntil = performance.now() + 800; // ignore leftover taps from story screen
   $('hud').classList.add('on');
   if(isTouch) $('touch').classList.add('on');
+  resetMetricsForLevel();
   updateHUD();
   setObjective("Read the walls. Reading reveals torches. Collect all seven.");
+  showLevelWarning();
   startAmbient(1);
 }
 function endGame(){
@@ -1368,6 +1841,7 @@ function handleInteract(){
 
 // ─── INPUT ──────────────────────────────────────────────
 $('startBtn').addEventListener('click',()=>{ unlockAudio(); sfx.ui(); startGame(); });
+$('epiBtn').addEventListener('click',()=>{ sfx.ui(); dismissEpiWarning(); });
 window.addEventListener('mousedown',(e)=>{
   if(phase==='story'){ advanceStory(); return; }
   if(phase==='play'){
@@ -1438,6 +1912,8 @@ function move(){
   if(!solidAt(map,cam.x+velX+Math.sign(velX)*margin,cam.z)) cam.x+=velX; else velX=0;
   if(!solidAt(map,cam.x,cam.z+velZ+Math.sign(velZ)*margin)) cam.z+=velZ; else velZ=0;
   const speed=Math.hypot(velX,velZ);
+  // First-step gate — the black hunter stays dormant until the player actually moves this level.
+  if(!hasMovedThisLevel && speed>0.012 && performance.now()>=inputGraceUntil) hasMovedThisLevel=true;
   if(speed>0.005){
     cam.y=1.65+Math.sin(performance.now()*0.008)*0.025*Math.min(1,speed/0.06);
     footstepTimer--;
@@ -1458,6 +1934,7 @@ function checkTorches(){
     if(d<0.85){
       t.collected=true; torchesCollected++;
       t.sprite.visible=false; t.light.intensity=0; t.halo.visible=false;
+      hp=Math.min(100,hp+20); // each torch restores 20 health
       sfx.torch(); updateHUD();
       if(torchesCollected===1) whisperLine("the first torch. the darkness doesn't care.");
       else if(torchesCollected===7){ setTimeout(endGame,1400); return; }
@@ -1469,6 +1946,18 @@ function checkTorches(){
 // ─── SHADOW FIGURE ──────────────────────────────────────
 function updateShadow(){
   if(!shadowFig.sprite||shadowFig.lv!==currentLevel) return;
+  // Animated glitch + jitter while he's visible: swap among pre-baked torn frames and shudder
+  // his position slightly. Cheap — frames are built once; this only swaps references.
+  if(shadowFig.frames && shadowFig.sprite.material.opacity>0.02){
+    shadowGlitchT--;
+    if(shadowGlitchT<=0){
+      shadowFig.sprite.material.map=shadowFig.frames[(Math.random()*shadowFig.frames.length)|0];
+      shadowFig.sprite.material.needsUpdate=true;
+      shadowGlitchT=3+((Math.random()*5)|0);
+    }
+    shadowFig.sprite.position.x=shadowFig.x+(Math.random()*2-1)*0.035;
+    shadowFig.sprite.position.y=1.3+(Math.random()*2-1)*0.02;
+  }
   const dx=shadowFig.x-cam.x,dz=shadowFig.z-cam.z;
   const dist=Math.hypot(dx,dz);
   const fwdX=Math.sin(cam.angle),fwdZ=Math.cos(cam.angle);
@@ -1481,7 +1970,7 @@ function updateShadow(){
     jumpscareReady=false;
     sfx.jumpscare();
     const js=$('jumpscare'); js.classList.remove('flash'); void js.offsetWidth; js.classList.add('flash');
-    sanity=Math.max(0,sanity-20); hp=Math.max(0,hp-8); updateHUD();
+    // Grey figure is the OBSERVER — its scare is cosmetic. Only the black hunter drains stats.
     shadowFig.hide();
     const ld=levelData[currentLevel];
     if(ld){ const c=ld.openCells[Math.floor(Math.random()*ld.openCells.length)]; if(c) shadowFig.moveTo(c[0]+0.5,c[1]+0.5); }
@@ -1550,7 +2039,7 @@ function updateLights(){
       if(f.dead){ f.light.intensity=0; f.mesh.material.emissiveIntensity=0.04; continue; }
       f.t--;
       if(f.t<=0){
-        if(f.state==='on'&&Math.random()<0.18){ f.state='flicker'; f.t=4+Math.floor(Math.random()*12); sfx.flick(); }
+        if(f.state==='on'&&Math.random()<0.18){ f.state='flicker'; f.t=4+Math.floor(Math.random()*12); sfx.flick(); if(f.light) blackFlickerIn(f.light.position.x, f.light.position.z); }
         else if(f.state==='flicker'){ f.state='on'; f.t=120+Math.floor(Math.random()*240); }
         else f.t=120;
       }
@@ -1592,6 +2081,13 @@ function updateTorches(){
 function updateSanity(){
   sanity=Math.max(0,sanity-0.004);
   if(nearShadow) sanity=Math.max(0,sanity-0.07);
+  // First time sanity bottoms out -> crack-and-flash x3 over ~10s, then the health spiral begins.
+  if(sanity<=0 && !sanityZeroed) triggerSanityBreak();
+  if(spiralActive){
+    hp=Math.max(0,hp-SPIRAL_HP_DRAIN);
+    updateHUD();
+    if(hp<=0){ die(); return; }
+  }
   const bv=$('blood-vignette');
   if(sanity<40){
     const r=Math.floor((40-sanity)*2.8);
@@ -1661,7 +2157,7 @@ function loop(){
   frameCount++;
 
   if(phase==='play'){
-    move(); checkTorches(); updateShadow(); checkHiero();
+    move(); checkTorches(); updateShadow(); updateBlackFig(); checkHiero();
     updateTorches();
     // On mobile skip light updates every other frame
     if(!isMobile||frameCount%2===0) updateLights();
@@ -1682,6 +2178,8 @@ function loop(){
       const fl=$('flicker'); fl.style.opacity=String(0.45+Math.random()*0.3);
       setTimeout(()=>fl.style.opacity='0',40+Math.random()*100);
     }
+    // After sanity is gone: the same crack-and-flash recurs more often. No new look or sound.
+    if(spiralActive){ spiralFlashT--; if(spiralFlashT<=0){ quickStrobe(); spiralFlashT=20*60; } } // once every 20s, nothing more
 
     ensureTorchesForLevel(currentLevel);
   }
@@ -1710,6 +2208,7 @@ loop();
   if(!feed) return;
   if(isTouch) feed.classList.add('mc-mobile');
   const CAP=4; // max comments on screen; extras scroll off the top
+  const CHAT_SANITY_DRAIN=0.75; // gentle, tunable. ~0.5–1 is the readable range; raise to pressure harder.
   let busy=false, pending=null;
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const rnd=(a,b)=>a+Math.random()*(b-a);
@@ -1723,6 +2222,8 @@ loop();
     const h=document.createElement('span'); h.className='mc-h'; h.textContent=pick(MEAT_HANDLES);
     const c=document.createElement('span'); c.className='mc-c'; c.textContent=pick(MEAT_COMMENTS);
     row.appendChild(h); row.appendChild(c); feed.appendChild(row);
+    // Each comment chips a little sanity — gentle, cumulative, never touches health.
+    if(phase==='play'){ sanity=Math.max(0,sanity-CHAT_SANITY_DRAIN); if(sanity<=0 && !sanityZeroed) triggerSanityBreak(); updateHUD(); }
     if(reduce) row.classList.add('mc-in'); else requestAnimationFrame(()=>row.classList.add('mc-in'));
     redepth();
     const rows=feed.querySelectorAll('.mc-row:not(.mc-out)');
