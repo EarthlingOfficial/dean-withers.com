@@ -124,19 +124,14 @@ canvas{display:block;width:100vw!important;height:100vh!important;}
 .mc-row.mc-out{max-height:0;opacity:0!important;padding-top:0;padding-bottom:0;margin-top:0;}
 .mc-h{font-family:'Space Mono',monospace;font-weight:700;font-size:11px;color:#caa24a;white-space:nowrap;text-shadow:0 1px 4px rgba(0,0,0,0.9);}
 .mc-c{font-family:'Space Mono',monospace;font-size:12px;color:#dbe1e6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 4px rgba(0,0,0,0.95);}
-/* ── IN-WORLD TV SCREEN (projects onto the mesh face) ── */
-#tv-screen{position:fixed;display:none;z-index:3;pointer-events:none;overflow:hidden;border-radius:2px;}
-#tv-screen.on{display:block;}
-#tv-screen iframe{display:block;width:100%;height:100%;border:none;}
-/* ── STAGE 9 POPUP ── */
-#stage9popup{position:fixed;inset:0;z-index:76;display:none;flex-direction:column;align-items:center;justify-content:center;
-  background:radial-gradient(ellipse at center,#080e08,#000 80%);text-align:center;padding:8vw;}
-#stage9popup.on{display:flex;}
-#stage9popup .s9-h{font-family:'Cormorant Garamond';font-weight:600;font-size:clamp(24px,5vw,60px);letter-spacing:0.04em;color:#e8c84a;line-height:1.1;}
-#stage9popup .s9-sub{font-family:'Space Mono';font-size:11px;letter-spacing:0.35em;color:#5a4a20;margin-top:18px;text-transform:uppercase;}
-#stage9popup .s9-body{font-family:'Cormorant Garamond';font-style:italic;font-size:clamp(14px,2.4vw,20px);color:#b09060;margin-top:22px;max-width:500px;line-height:1.65;}
-#stage9popup .s9-btn{margin-top:38px;font-family:'Space Mono';font-size:11px;letter-spacing:0.4em;color:#e8c84a;text-transform:uppercase;border:1px solid rgba(232,200,74,0.45);padding:16px 32px;cursor:pointer;animation:pulse 2.2s infinite;}
-#stage9popup .s9-btn:hover{background:rgba(232,200,74,0.1);}
+/* ── IN-GAME TV PLAYER — video renders on the 3D TV texture; popup floats to the right ── */
+#tv-continue{position:fixed;right:5vw;top:50%;transform:translateY(-50%);display:none;
+  font-family:'Space Mono',monospace;font-size:12px;letter-spacing:0.22em;color:#e8c84a;text-transform:uppercase;
+  border:1px solid rgba(232,200,74,0.5);padding:16px 22px;cursor:pointer;max-width:170px;text-align:center;
+  animation:pulse 1.8s infinite;background:rgba(0,0,0,0.75);z-index:70;pointer-events:all;}
+#tv-continue.show{display:block;}
+#tv-continue:hover{background:rgba(232,200,74,0.16);}
+
 </style>
 </head>
 <body>
@@ -148,22 +143,10 @@ canvas{display:block;width:100vw!important;height:100vh!important;}
 <div id="jumpscare"></div>
 <div id="deathscreen"><div id="death-text">YOU DIED</div><div id="death-sub">the darkness takes you back to the beginning</div></div>
 
-<!-- in-world TV screen — projects onto the mesh face each frame -->
-<div id="tv-screen"><iframe id="tv-iframe" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
-<!-- Stage 9 entrance popup -->
-<div id="stage9popup">
-  <div class="s9-h">The Archive Opens</div>
-  <div class="s9-sub">Stage IX — The Vegan Backrooms</div>
-  <div class="s9-body">The specimen has been filed.<br>The record is complete.<br><em>The door is open.</em></div>
-  <div class="s9-btn" id="s9btn">Enter The Vegan Backrooms &nbsp;&#10022;&nbsp; #deanwithersgame</div>
-</div>
-<!-- Stage 9 entrance popup -->
-<div id="stage9popup">
-  <div class="s9-h">The Archive Opens</div>
-  <div class="s9-sub">Stage IX — The Vegan Backrooms</div>
-  <div class="s9-body">The specimen has been filed.<br>The record is complete.<br><em>The door is open.</em></div>
-  <div class="s9-btn" id="s9btn">Enter The Vegan Backrooms &nbsp;&#10022;&nbsp; #deanwithersgame</div>
-</div>
+<!-- TV video plays on the in-world 3D TV texture — no fullscreen overlay -->
+<video id="tv-video" playsinline crossorigin="anonymous"
+  style="position:absolute;left:-9999px;width:1px;height:1px;pointer-events:none;"></video>
+<div id="tv-continue">ENTER The Vegan Backrooms &nbsp;✦&nbsp; #deanwithersgame</div>
 
 
 
@@ -245,7 +228,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js';
+// SSAOPass removed — caused silent fatal errors on mobile/some browsers; SSAO_ENABLED was already false
 
 // =========================================================
 //   GO DEAN — STAGE 7: THE ABATTOIR PYRAMID  (Merged v3)
@@ -714,23 +697,15 @@ function bloomRes(){
   const s = isMobile ? 0.34 : 1.0; // lower-res bloom on mobile for framerate; the wide radius hides the squares
   return new THREE.Vector2(Math.max(1, Math.floor(innerWidth * s)), Math.max(1, Math.floor(innerHeight * s)));
 }
-let composer = null, bloomPass = null, ssaoPass = null, usePost = false;
+let composer = null, bloomPass = null, usePost = false;
 function buildComposer(){
   if(!POST_ENABLED) return;
   try{
     composer = new EffectComposer(renderer);
     composer.setPixelRatio(renderer.getPixelRatio());
     composer.setSize(innerWidth, innerHeight);
-    if(!isMobile && SSAO_ENABLED){
-      // SSAOPass renders the scene itself (beauty + AO), so it stands in for RenderPass on desktop.
-      ssaoPass = new SSAOPass(scene, camera, innerWidth, innerHeight);
-      ssaoPass.kernelRadius = 0.5;    // tuned for the ~1-unit grid scale
-      ssaoPass.minDistance  = 0.0008;
-      ssaoPass.maxDistance  = 0.06;
-      composer.addPass(ssaoPass);
-    } else {
-      composer.addPass(new RenderPass(scene, camera));
-    }
+    // Always use RenderPass — SSAOPass removed (caused mobile crashes, was disabled anyway)
+    composer.addPass(new RenderPass(scene, camera));
     bloomPass = new UnrealBloomPass(bloomRes(), BLOOM_STRENGTH, BLOOM_RADIUS, BLOOM_THRESHOLD);
     composer.addPass(bloomPass);
     composer.addPass(new OutputPass()); // ACES tone map + sRGB conversion, last in the chain
@@ -768,7 +743,7 @@ function startAmbient(level){
   const makeOsc=(type,freq,vol,dest)=>{
     const o=AC.createOscillator(),g=AC.createGain();
     o.type=type; o.frequency.value=freq; g.gain.value=vol;
-    o.connect(g); if(dest) g.connect(dest); o.start(); return o;
+    o.connect(g); g.connect(dest); o.start(); return o;
   };
   const makeFilt=(type,freq,src,dest)=>{
     const f=AC.createBiquadFilter(); f.type=type; f.frequency.value=freq;
@@ -780,10 +755,11 @@ function startAmbient(level){
     const sub=makeOsc('sine',28,0,newGain); sub.frequency.value=28;
     const sg=AC.createGain(); sg.gain.value=0.11; sub.connect(sg); sg.connect(newGain);
     const pad=makeOsc('triangle',82,0.05,newGain);
-    const lfo=makeOsc('sine',0.018,0,null);
+    // LFO — runs freely, no destination needed (was crashing with g.connect(null))
+    const lfo=AC.createOscillator(); lfo.type='sine'; lfo.frequency.value=0.018; lfo.start();
     const lg=AC.createGain(); lg.gain.value=0.032;
-    lfo.connect(lg); lg.connect(AC.createGain()); // just run the lfo
-    makeOsc('sawtooth',55,0,null); // wind tone through filter
+    lfo.connect(lg); // lg intentionally unconnected — just keeps the oscillator ticking
+    // Wind tone through filter (duplicate makeOsc call removed — wOsc below is the real one)
     const wOsc=AC.createOscillator(); wOsc.type='sawtooth'; wOsc.frequency.value=55; wOsc.start();
     const wf=AC.createBiquadFilter(); wf.type='lowpass'; wf.frequency.value=110;
     const wg=AC.createGain(); wg.gain.value=0.035;
@@ -1309,7 +1285,9 @@ let secretSolved=false;
 let secretDoorMesh=null, secretGlyphMeshes=[], secretTV=null;
 let srExpectedWorld=1;
 let srExpected=1, srShuffled=[];
-const STAGE9_VIDEO_ID='Y9cIztOmrfk';
+const STAGE9_VIDEO_ID='Y9cIztOmrfk'; // YouTube fallback (unused — MP4 now plays on the in-world TV)
+// ▼ PASTE YOUR GITHUB RAW URL HERE (right-click the file on GitHub → "Raw", copy that URL)
+const TV_MP4_URL = 'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/lv_0_20260531181321%5B1%5D.mp4';
 // The five puzzle glyphs. Correct order = the lifecycle: WATCH -> NAME -> INDEX -> DENY -> FILE.
 const SR_GLYPHS=[
   {id:'WATCH', sym:'𓁹', order:1},
@@ -1449,8 +1427,7 @@ function buildLevel(lv){
   // Lights — ceiling mounted, no wall brackets
   const lightData=[];
   const hieroData=[];
-  const spacing=lv===3?8:lv===2?9:10;
-  const _cachedFlameTex = lv===1 ? torchFlameSprite() : null;
+  const spacing=lv===3?4:lv===2?5:6;
   for(let z=2;z<GRID-1;z+=spacing) for(let x=2;x<GRID-1;x+=spacing){
     if(cellAt(map,x+0.5,z+0.5)===0){
       const light=new THREE.PointLight(cfg.lightColor,cfg.lightInt,cfg.lightDist,1.8);
@@ -1462,7 +1439,7 @@ function buildLevel(lv){
         const ember=new THREE.Mesh(new THREE.CircleGeometry(0.06,8),emberMat);
         ember.rotation.x=Math.PI/2; ember.position.set(x+0.5,ceilH-0.02,z+0.5); grp.add(ember);
         // Small flame sprite hanging from ceiling
-        const flameMat=new THREE.SpriteMaterial({map:_cachedFlameTex,transparent:true,depthWrite:false});
+        const flameMat=new THREE.SpriteMaterial({map:torchFlameSprite(),transparent:true,depthWrite:false});
         const flame=new THREE.Sprite(flameMat); flame.scale.set(0.2,0.55,1);
         flame.position.set(x+0.5,ceilH-0.6,z+0.5); grp.add(flame);
         lightData.push({light,mesh:ember,flame,baseI:cfg.lightInt,t:Math.floor(Math.random()*15),flicker:true,isFluorescent:false});
@@ -1478,7 +1455,9 @@ function buildLevel(lv){
         const strip=new THREE.Mesh(new THREE.BoxGeometry(0.85,0.05,0.16),stripMat);
         strip.position.set(x+0.5,ceilH-0.03,z+0.5); grp.add(strip);
         const dead=Math.random()<0.07;
-        lightData.push({light,mesh:strip,baseI:cfg.lightInt,baseEm:1.4,state:'on',t:100+Math.floor(Math.random()*200),dead,isFluorescent:true});
+        // canGoDark: ~55% of lights can enter the 30-second dark state (leaves corridors mostly lit)
+        const canGoDark = !dead && Math.random()<0.55;
+        lightData.push({light,mesh:strip,baseI:cfg.lightInt,baseEm:1.4,state:'on',t:100+Math.floor(Math.random()*200),dead,isFluorescent:true,canGoDark,darkUntil:0});
       }
     }
   }
@@ -1554,11 +1533,6 @@ function buildLevel(lv){
     tv.position.set(57.0,1.7,12.8); grp.add(tv);
     const tvLight=new THREE.PointLight(0x6080a0,0.0,6,2); tvLight.position.set(57.0,1.7,12.0); grp.add(tvLight);
     secretTV={mesh:tv,light:tvLight,mat:tvMat,x:57.0,z:12.8,on:false};
-    // Gold instructional text above the TV
-    const tvSignTex=writingTex('WATCH THE ARCHIVE — YOUR VERDICT IS WAITING','glow',true);
-    const tvSignMat=new THREE.MeshBasicMaterial({map:tvSignTex,transparent:true,depthWrite:false,opacity:0.92});
-    const tvSign=new THREE.Mesh(new THREE.PlaneGeometry(3.0,0.7),tvSignMat);
-    tvSign.position.set(57.0,3.05,13.45); tvSign.rotation.y=Math.PI; grp.add(tvSign);
   }
   function placeDecal(tex,opts={}){
     if(!wallPositions.length) return null;
@@ -2157,7 +2131,7 @@ function beginPlay(){
   phase='play';
   inputGraceUntil = performance.now() + 800; // ignore leftover taps from story screen
   $('hud').classList.add('on');
-  $('touch').classList.add('on'); // always show touch controls
+  if(isTouch) $('touch').classList.add('on');
   resetMetricsForLevel();
   updateHUD();
   setObjective("Read the walls. Reading reveals torches. Collect all seven.");
@@ -2260,70 +2234,40 @@ function secretPuzzleSolvedWorld(){
   if(secretTV){ secretTV.on=true; secretTV.mat.map=tvOnTex(); secretTV.mat.emissiveMap=secretTV.mat.map; secretTV.mat.emissiveIntensity=0.9; secretTV.mat.needsUpdate=true; secretTV.light.intensity=1.2; }
   try{ sfx.end&&sfx.end(); }catch(e){}
 }
-// In-world TV interaction — opens a framed in-game player (no black takeover)
+// ── In-world TV: video plays as a live texture on the 3D TV mesh ──
+let _tvVideoTex = null;
+const _tvVideoEl = $('tv-video');
+if(_tvVideoEl) _tvVideoEl.src = TV_MP4_URL;
+
 function tryTVInteract(){
   if(!secretTV || !secretTV.on) return false;
   const d=Math.hypot(cam.x-secretTV.x, cam.z-secretTV.z);
-  if(d<3.0){
-    openTVPlayer();
-    return true;
-  }
+  if(d<3.0){ openTVPlayer(); return true; }
   return false;
 }
-// ── In-world TV screen — project the mesh face to 2D each frame ──
-let _tvScreenActive=false, _tvWatchTimer=null;
-// TV screen world-space corners (screen area inset ~0.25 from bezel, front face at z=12.69)
-const _tvCorners=[
-  new THREE.Vector3(55.55,2.50,12.69), // TL
-  new THREE.Vector3(58.45,2.50,12.69), // TR
-  new THREE.Vector3(55.55,1.00,12.69), // BL
-  new THREE.Vector3(58.45,1.00,12.69), // BR
-];
-const _tvVec=new THREE.Vector3();
-function updateTVScreen(){
-  const el=$('tv-screen'); if(!el||!_tvScreenActive) return;
-  let mnX=Infinity,mxX=-Infinity,mnY=Infinity,mxY=-Infinity,behind=false;
-  for(const c of _tvCorners){
-    _tvVec.copy(c).project(camera);
-    if(_tvVec.z>=1){behind=true;break;}
-    mnX=Math.min(mnX,(_tvVec.x+1)/2*innerWidth);
-    mxX=Math.max(mxX,(_tvVec.x+1)/2*innerWidth);
-    mnY=Math.min(mnY,(-_tvVec.y+1)/2*innerHeight);
-    mxY=Math.max(mxY,(-_tvVec.y+1)/2*innerHeight);
-  }
-  if(behind){ el.style.display='none'; return; }
-  el.style.display='block';
-  el.style.left=Math.round(mnX)+'px';
-  el.style.top=Math.round(mnY)+'px';
-  el.style.width=Math.round(mxX-mnX)+'px';
-  el.style.height=Math.round(mxY-mnY)+'px';
-}
 function openTVPlayer(){
-  if(_tvScreenActive) return;
-  _tvScreenActive=true;
-  const el=$('tv-screen'); if(!el) return;
-  el.classList.add('on');
-  $('tv-iframe').src='https://www.youtube-nocookie.com/embed/'+STAGE9_VIDEO_ID+'?autoplay=1&controls=1&rel=0&modestbranding=1&playsinline=1&mute=0';
-  if(_tvWatchTimer) clearTimeout(_tvWatchTimer);
-  _tvWatchTimer=setTimeout(showStage9Popup,60000);
+  if(!secretTV || !_tvVideoEl) return;
+  // Play the MP4
+  _tvVideoEl.currentTime = 0;
+  _tvVideoEl.play().catch(()=>{});
+  // Build VideoTexture once, reuse on repeats
+  if(!_tvVideoTex){
+    _tvVideoTex = new THREE.VideoTexture(_tvVideoEl);
+    _tvVideoTex.colorSpace = THREE.SRGBColorSpace;
+  }
+  // Apply live video as the TV screen texture
+  secretTV.mat.map = _tvVideoTex;
+  secretTV.mat.emissiveMap = _tvVideoTex;
+  secretTV.mat.emissiveIntensity = 1.4;
+  secretTV.mat.needsUpdate = true;
+  secretTV.light.intensity = 1.6;
+  // Player stays in 'play' — free to walk around while watching
+  try{ document.exitPointerLock&&document.exitPointerLock(); }catch(e){}
+  // Continue button appears after 15s (video is 15s), floats to the right of the TV
+  const btn=$('tv-continue');
+  if(btn){ btn.classList.remove('show'); setTimeout(()=>btn.classList.add('show'), 15000); }
 }
-function closeTVScreen(){
-  _tvScreenActive=false;
-  const el=$('tv-screen'); if(!el) return;
-  el.classList.remove('on');
-  el.style.cssText='position:fixed;display:none;z-index:3;pointer-events:none;overflow:hidden;border-radius:2px;';
-  $('tv-iframe').src='';
-  if(_tvWatchTimer){clearTimeout(_tvWatchTimer);_tvWatchTimer=null;}
-}
-function showStage9Popup(){
-  closeTVScreen();
-  const pop=$('stage9popup'); if(!pop) return;
-  pop.classList.add('on');
-  phase='watching';
-  try{document.exitPointerLock&&document.exitPointerLock();}catch(e){}
-}
-$('s9btn') && $('s9btn').addEventListener('click',()=>{ window.location.href='veganbrosstage9.html'; });
-});
+$('tv-continue') && $('tv-continue').addEventListener('click',()=>{ window.location.href='veganbrosstage9.html'; });
 function handleInteract(){
   if(phase!=='play') return;
   // Wall text reveal — works for hieroglyphs (L1), smeared (L2), faded (L3)
@@ -2593,13 +2537,38 @@ function whisperLine(text,attrib){
 // ─── LIGHT FLICKER (Claude's state machine) ──────────────
 function updateLights(){
   const ld=levelData[currentLevel]; if(!ld) return;
+  const now=performance.now();
   for(const f of ld.lightData){
     if(f.isFluorescent){
       // Claude's fluorescent state machine — the good one
       if(f.dead){ f.light.intensity=0; f.mesh.material.emissiveIntensity=0.04; continue; }
+
+      // ── DARK state: light is fully off for 30 seconds then flickers back ──
+      if(f.state==='dark'){
+        f.light.intensity=0;
+        f.mesh.material.emissiveIntensity=0.02;
+        f.mesh.material.needsUpdate=true;
+        if(now>=f.darkUntil){
+          // Revive with a brief flicker burst
+          f.state='flicker'; f.t=8+Math.floor(Math.random()*16);
+          try{ sfx.flick&&sfx.flick(); }catch(e){}
+        }
+        continue;
+      }
+
       f.t--;
       if(f.t<=0){
-        if(f.state==='on'&&Math.random()<0.18){ f.state='flicker'; f.t=4+Math.floor(Math.random()*12); sfx.flick(); if(f.light) blackFlickerIn(f.light.position.x, f.light.position.z); }
+        if(f.state==='on'){
+          // Chance to go fully dark (room lights only, ~1.2% per tick expiry)
+          if(f.canGoDark && Math.random()<0.012){
+            f.state='dark'; f.darkUntil=now+30000; f.t=9999;
+            try{ sfx.flick&&sfx.flick(); }catch(e){}
+            if(f.light) blackFlickerIn(f.light.position.x, f.light.position.z);
+          } else if(Math.random()<0.18){
+            f.state='flicker'; f.t=4+Math.floor(Math.random()*12);
+            sfx.flick(); if(f.light) blackFlickerIn(f.light.position.x, f.light.position.z);
+          } else { f.t=120; }
+        }
         else if(f.state==='flicker'){ f.state='on'; f.t=120+Math.floor(Math.random()*240); }
         else f.t=120;
       }
@@ -2762,7 +2731,6 @@ function loop(){
     renderer.toneMapping = THREE.NoToneMapping;
     renderer.render(scene,camera);
   }
-  updateTVScreen();
 }
 loop();
 
@@ -2823,7 +2791,7 @@ addEventListener('resize',()=>{
   renderer.setSize(innerWidth,innerHeight);
   if(composer) composer.setSize(innerWidth,innerHeight);
   if(bloomPass) bloomPass.setSize(bloomRes().x, bloomRes().y);
-  if(ssaoPass) ssaoPass.setSize(innerWidth,innerHeight);
+  // ssaoPass removed — no longer used
 });
 </script>
 </body>
