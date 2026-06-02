@@ -27,12 +27,34 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 #xh{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,.2);font-size:16px;pointer-events:none;z-index:10}
 #hint{position:fixed;bottom:30%;left:50%;transform:translateX(-50%);color:#c8b86a;font-size:10px;letter-spacing:4px;padding:5px 14px;border:1px solid rgba(200,184,106,.22);background:rgba(0,0,0,.55);pointer-events:none;z-index:10;display:none}
 
-/* WHISPER */
-#whisper{position:fixed;top:20%;left:50%;transform:translateX(-50%);color:rgba(200,180,100,0.72);font-size:clamp(11px,2vw,14px);letter-spacing:2px;text-align:center;max-width:500px;line-height:1.65;pointer-events:none;z-index:12;opacity:0;transition:opacity 1.4s;font-style:italic;text-shadow:0 0 18px rgba(200,150,40,0.3)}
+/* WHISPER — ghost voices bleeding through, lower third */
+#whisper{
+  position:fixed;bottom:19%;left:50%;transform:translateX(-50%);
+  color:rgba(215,200,150,0.65);
+  font-size:clamp(12px,2.1vw,15px);
+  letter-spacing:3px;text-align:center;max-width:580px;line-height:1.9;
+  pointer-events:none;z-index:12;opacity:0;
+  transition:opacity 2.2s ease;
+  font-style:italic;
+  text-shadow:0 0 28px rgba(200,155,50,0.32),0 0 80px rgba(160,110,20,0.1);
+}
 #whisper.show{opacity:1}
 
-/* FACT FLASH */
-#fact{position:fixed;top:16%;left:50%;transform:translateX(-50%);color:#cc3333;font-size:clamp(9px,2vw,11px);letter-spacing:2px;text-align:center;max-width:400px;line-height:1.7;pointer-events:none;z-index:10;opacity:0;transition:opacity 1.3s;text-shadow:0 0 12px rgba(180,0,0,.7);white-space:pre-wrap}
+/* FACT — redacted diagnostic readout, top-left panel */
+#fact{
+  position:fixed;top:13%;left:50%;transform:translateX(-50%);
+  color:#c83333;
+  font-size:clamp(9px,1.75vw,11px);
+  letter-spacing:2px;text-align:left;max-width:440px;line-height:1.9;
+  pointer-events:none;z-index:10;opacity:0;transition:opacity 1.5s;
+  text-shadow:0 0 14px rgba(180,0,0,.65);
+  white-space:pre-wrap;
+  padding:11px 18px 11px 16px;
+  background:rgba(7,0,0,0.78);
+  border-left:2px solid rgba(160,30,30,0.6);
+  border-top:1px solid rgba(100,20,20,0.3);
+  box-shadow:0 0 60px rgba(100,0,0,0.12),inset 0 0 20px rgba(0,0,0,0.4);
+}
 #fact.show{opacity:1}
 
 /* SANITY FLASH */
@@ -261,6 +283,54 @@ const FACTS = [
   "he came here to watch Dean. he did not understand that he is Dean.",
   "Deanus Politicus Carnivorus Paradoxus",
   "the name does not require your consent",
+  // Additional brutal industry facts — no holds barred
+  "the bolt gun fails on roughly 1 in 4 animals. the animal proceeds to slaughter fully conscious.",
+  "a standard broiler chicken cannot stand under its own weight by week five. that is the design.",
+  "male piglets are castrated within 72 hours of birth. no anaesthetic. this is routine everywhere.",
+  "a sow in a gestation crate cannot take a single step forward. she will give birth there. repeatedly.",
+  "sea lice eat salmon alive from open face wounds outward. this is commercial fish farming.",
+  "egg-laying hens have their beaks burned off with a hot blade within days of hatching. no pain relief.",
+  "a spent dairy cow arrives at slaughter so depleted she can often no longer walk off the truck.",
+  "standard chicken processing: live shackling. birds hung upside down on a moving line while conscious.",
+  "the electric water stun bath doesn't always render birds unconscious. many enter the blade awake.",
+  "fur farms keep animals in wire cages their whole lives. they pace in circles until their nervous systems fail.",
+  "lobsters are dismembered alive in most restaurant kitchens. the EU recognised their sentience in 2021. most places haven't caught up.",
+  "octopuses have been observed escaping tanks at night to hunt in the ocean and returning before dawn. we boil them alive.",
+  "a cow's gestation period is 9 months. she is forcibly impregnated again within weeks of calving.",
+  "dairy cows produce 10x the milk of a pre-industrial cow due to selective breeding. their bodies collapse from it.",
+  "every male calf born to a dairy cow is a byproduct. many are shot in the field the same day.",
+  "live export: animals on ships for up to three weeks. heat. thirst. disease. downers. this is legal.",
+  "broiler chickens are bred to grow so fast their hearts give out before they reach slaughter weight.",
+  "the fishing industry kills 2.7 trillion animals per year. the number exceeds language.",
+  "shrimp trawling: for every 1kg of shrimp, between 5kg and 20kg of bycatch is dragged up dead and thrown back.",
+  "pigs demonstrate pessimistic cognitive bias when chronically stressed. that is the scientific term for despair.",
+  "cows have best friends. they experience measurable cardiovascular stress when separated from them.",
+  "hens demonstrate empathy: when a chick shows distress the mother's heart rate rises and she becomes more vigilant.",
+  "elephants return to the bones of their dead for years. they touch the skulls with their trunks.",
+  "97% of farmed animals are factory farmed. free range is a rounding error on the market.",
+  "animal agriculture occupies 77% of global farmland. it produces 18% of global calories.",
+  "if the grain currently fed to livestock were redirected to humans, world hunger would end several times over.",
+  "73% of all antibiotics sold globally are used in animal agriculture. that is where antibiotic resistance comes from.",
+  "MRSA. swine flu. bird flu. COVID-19. all zoonotic. all linked to industrial animal agriculture.",
+  "the industry has a word for animals too weak to walk: downers. they are dragged to slaughter by machinery.",
+  "in standard chicken transport, 1 in 30 birds dies in transit. this is listed as acceptable loss.",
+  "geese and ducks for foie gras are force-fed through a metal pipe 3 times a day. the liver swells to 10x its size.",
+  "veal calves are raised in crates so narrow they cannot turn around. this is to keep the flesh pale.",
+  "the male lambs born to dairy sheep and goats are killed at birth. every year. every farm. no cameras.",
+  "a pig's emotional and social intelligence is comparable to a three-year-old child. you wouldn't.",
+  "chickens have demonstrated basic arithmetic, self-control, and the ability to delay gratification.",
+  "in over a dozen US states it is illegal to film what happens inside a slaughterhouse. they are called ag-gag laws.",
+  "the Amazon: 80% destroyed. the leading driver is cattle ranching and soy cultivation for animal feed.",
+  "UK alone: 2.6 million animals killed for food every single day. every day. yesterday. today. tomorrow.",
+  "the dairy industry and the veal industry are the same industry. every glass of milk funds a calf killed at birth.",
+  "standard practice in commercial egg production: male chicks macerated alive in high-speed grinders. day one.",
+  "grass-fed beef uses 3 times more land per kilogram than factory-farmed. there is no sustainable version.",
+  "animals raised for food produce more greenhouse gas than every car, plane, ship, and truck on earth combined.",
+  "the slaughter line runs 24 hours a day. 365 days a year. this is what normal looks like.",
+  "a chicken in a battery cage has 67 square centimetres of space. that is less than an A4 sheet of paper.",
+  "the human body is not designed for the volume of animal protein the industry sells. the selling is the point.",
+  "you did not arrive at your diet through reflection. you arrived through repetition. those are different things.",
+  "the question is not whether you can afford to go vegan. it is whether the planet can afford for you not to.",
 ];
 
 const SCRAWLS = [
@@ -343,9 +413,15 @@ const CHAR_QUOTES = [
   { who:"TULLI CONTENTUS", q:"I missed filming some of the kill. I wanted to ask if he could start again." },
   { who:"WAYNUS COUCHDWELIUS", q:"Plants have a heart and a nervous system. And things." },
   { who:"AMESUS FELINUS ONEUS", q:"They were my favourite shoes, so I threw the cat in the river." },
-  { who:"DEAN WITHERS", q:"Bark like a dog for me Earthling." },
-  { who:"DEAN WITHERS", q:"I'd do anything for a Hello Fresh sponsorship." },
-  { who:"DEAN WITHERS", q:"If you don't let me speak I won't go vegan." },
+  { who:"Dean Withers", q:"Bark like a dog for me Earthling." },
+  { who:"Dean Withers", q:"I'd do anything for a Hello Fresh sponsorship." },
+  { who:"Dean Withers", q:"If you don't let me speak I won't go vegan." },
+  { who:"Dean Withers", q:"go vegan or I'll kill you." },
+  { who:"Dean Withers", q:"oh you can't talk about rape because of meat." },
+  { who:"Dean Withers", q:"That's what I'd say if I had a small penis." },
+  { who:"Dean Withers", q:"Is it like porn?" },
+  { who:"Dean Withers", q:"I don't eat Wagyu. It's from Japan." },
+  { who:"Dean Withers", q:"If a plant-based product tasted identical to meat, I would go vegan without needing convincing." },
 ];
 
 const WHISPER_LINES = [
@@ -803,7 +879,13 @@ function addTV(x,z,vidIdx,angle){
   frame.position.set(0,2,0);frame.castShadow=true;grp.add(frame);
   const scr=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.24),new THREE.MeshBasicMaterial({map:fuzzT,side:THREE.DoubleSide}));
   scr.position.set(0,0,0.07);frame.add(scr);
-  const gl=new THREE.PointLight(0x557799,0.22,4);gl.position.set(0,2,0.4);grp.add(gl);
+  // TV fuzz glow — soft additive halo behind screen
+  const haloM=new THREE.MeshBasicMaterial({color:0x224466,transparent:true,opacity:0.28,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+  const halo=new THREE.Mesh(new THREE.PlaneGeometry(3.0,1.7),haloM);halo.position.set(0,0,0.065);frame.add(halo);
+  // wider second halo for room spill
+  const haloM2=new THREE.MeshBasicMaterial({color:0x112233,transparent:true,opacity:0.14,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+  const halo2=new THREE.Mesh(new THREE.PlaneGeometry(4.2,2.4),haloM2);halo2.position.set(0,0,0.055);frame.add(halo2);
+  const gl=new THREE.PointLight(0x6699cc,0.85,10);gl.position.set(0,2,1.6);grp.add(gl);
   grp.position.set(x,0,z);grp.rotation.y=angle||0;scene.add(grp);
   const v=VIDS[vidIdx%VIDS.length];
   const lb=txt([v.lbl],3,0.26,'#555',null,9);
@@ -930,7 +1012,7 @@ function buildR5a(ox,oz){
   const p=new THREE.Mesh(new THREE.PlaneGeometry(1.6,0.5),mPanel);p.rotation.x=Math.PI/2;p.position.set(cx,WH-0.02,cz);scene.add(p);
   addTV(cx,oz+4,4,Math.PI);
   T(['25 plant calories → 1 calorie of meat','','40-50 : 1 for Wagyu','','"I don\'t eat Wagyu. It\'s from Japan."','— Dean Withers','','the thermodynamic argument was never addressed.'],8,1.5,'#c0c8d0','#020408',12,cx,2.3,oz+CW-2,Math.PI);
-  T(["What Dean claimed:","\"You think Trump raping a woman\"","\"makes you a hypocrite for drinking milk\"",'','"What was actually said:"','"Publicly condemning exploitation','while funding it is hypocritical"','','not a misunderstanding. a choice.'],6.5,1.5,'#aa7744','#040300',10,ox+1,2.2,cz,Math.PI/2);
+  T(['"You said — oh, you think Trump was bad','for raping women — well, guess what,','you\'re a hypocrite for drinking milk."','','— Dean Withers','','( I never said this. watch the video. )','','what was actually said:','"Publicly condemning exploitation','while privately funding it is hypocritical."','','not a misquote. a deliberate substitution.'],6.5,1.9,'#aa7744','#040300',10,ox+1,2.3,cz,Math.PI/2);
   T(['"Is it like porn?" — Dean Withers','it was a sociological point.'],5,0.4,'#8898a8',null,10,cx,1.8,oz+CW-4,Math.PI);
   T(['80% of global agricultural land feeds livestock.','It produces 20% of global calories.'],5,0.36,'#778899',null,9,cx+5,1.5,cz,0);
   T(['"threatening the broccoli" — Santana, 25:06'],4,0.28,'#665544',null,9,cx-5,0.65,oz+2,0);
@@ -1081,6 +1163,12 @@ function addTVToGroup(x,z,vidIdx,angle,grp){
   frame.position.set(x,2,z);frame.rotation.y=angle||0;frame.castShadow=true;grp.add(frame);
   const scr=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.24),new THREE.MeshBasicMaterial({map:fuzzT,side:THREE.DoubleSide}));
   scr.position.set(0,0,0.07);frame.add(scr);
+  // TV fuzz glow
+  const hMat=new THREE.MeshBasicMaterial({color:0x224466,transparent:true,opacity:0.25,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+  const hMesh=new THREE.Mesh(new THREE.PlaneGeometry(3.0,1.7),hMat);hMesh.position.set(0,0,0.065);frame.add(hMesh);
+  const hMat2=new THREE.MeshBasicMaterial({color:0x112233,transparent:true,opacity:0.12,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+  const hMesh2=new THREE.Mesh(new THREE.PlaneGeometry(4.2,2.4),hMat2);hMesh2.position.set(0,0,0.055);frame.add(hMesh2);
+  const glt=new THREE.PointLight(0x6699cc,0.55,8);glt.position.set(0,0,1.2);frame.add(glt);
   const obj={mesh:frame,vidIdx:vidIdx%VIDS.length,wp:new THREE.Vector3(x,2,z)};
   tvList.push(obj);return obj;
 }
