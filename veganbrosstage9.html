@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>GO DEAN — Stage 9: The Backrooms</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monospace;touch-action:none;-webkit-user-select:none;user-select:none}
+#c{position:fixed;inset:0;width:100%;height:100%}
+
+/* CONNECT OVERLAY */
+#connect{position:fixed;inset:0;background:#0c0b06;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;cursor:pointer;transition:opacity 1.6s}
+#connect.fade{opacity:0;pointer-events:none}
+#c-latin{color:#252318;font-size:clamp(8px,1.4vw,12px);letter-spacing:5px;margin-bottom:36px;text-align:center;line-height:2}
+#c-main{color:#c8b86a;font-size:clamp(18px,4.5vw,34px);letter-spacing:8px;animation:pulse 2.4s ease-in-out infinite;text-align:center}
+#c-sub{color:#2a2820;font-size:10px;letter-spacing:3px;margin-top:18px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.25}}
+
+/* HUD */
+#hud{position:fixed;top:0;left:0;right:0;padding:14px 20px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:10}
+.ht{color:#c8b86a;font-size:10px;letter-spacing:3px;text-shadow:0 0 8px rgba(200,184,106,.4)}
+#sw{width:90px;height:3px;background:rgba(255,255,255,.07);border:1px solid rgba(200,184,106,.18);margin-top:5px}
+#sf{height:100%;width:100%;background:#c8b86a;transition:width .4s,background .4s}
+
+/* CROSSHAIR / HINT */
+#xh{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,.2);font-size:16px;pointer-events:none;z-index:10}
+#hint{position:fixed;bottom:30%;left:50%;transform:translateX(-50%);color:#c8b86a;font-size:10px;letter-spacing:4px;padding:5px 14px;border:1px solid rgba(200,184,106,.22);background:rgba(0,0,0,.55);pointer-events:none;z-index:10;display:none}
+
+/* FACT FLASH */
+#fact{position:fixed;top:16%;left:50%;transform:translateX(-50%);color:#cc3333;font-size:clamp(9px,2vw,11px);letter-spacing:2px;text-align:center;max-width:380px;line-height:1.7;pointer-events:none;z-index:10;opacity:0;transition:opacity 1.3s;text-shadow:0 0 12px rgba(180,0,0,.7);white-space:pre-wrap}
+#fact.show{opacity:1}
+
+/* SANITY FLASH */
+#flash{position:fixed;inset:0;background:rgba(160,0,0,.11);pointer-events:none;z-index:5;opacity:0;transition:opacity .25s}
+
+/* TV MODAL */
+#tvm{position:fixed;inset:0;background:rgba(0,0,0,.97);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:50}
+#tvm.on{display:flex}
+#tvl{color:#c8b86a;font-size:9px;letter-spacing:5px;margin-bottom:14px}
+#tvf{width:min(90vw,800px);height:min(50.6vw,450px);border:2px solid #1a1a1a}
+#tvc{margin-top:16px;background:none;border:1px solid #444;color:#777;padding:6px 20px;cursor:pointer;font:10px 'Courier New',monospace;letter-spacing:3px}
+#tvc:hover{border-color:#c8b86a;color:#c8b86a}
+
+/* ENDING */
+#endm{position:fixed;inset:0;background:#000;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:200}
+#endm.on{display:flex}
+#endt{color:#c8b86a;font-size:clamp(11px,2.5vw,17px);letter-spacing:4px;text-align:center;max-width:540px;line-height:2.4;white-space:pre-wrap}
+
+/* JOYSTICKS */
+.jz{position:fixed;bottom:22px;width:92px;height:92px;background:rgba(255,255,255,.02);border:1px solid rgba(200,184,106,.1);border-radius:50%;touch-action:none;z-index:20}
+#lj{left:18px}#rj{right:18px}
+.kn{position:absolute;top:50%;left:50%;width:32px;height:32px;margin:-16px 0 0 -16px;background:rgba(200,184,106,.22);border-radius:50%;pointer-events:none}
+@media(hover:hover){.jz{display:none}}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+<div id="connect">
+  <div id="c-latin">Deanus Politicus Carnivorus Paradoxus<br>now indexed</div>
+  <div id="c-main">TAP TO CONNECT TO DEAN</div>
+  <div id="c-sub">earthlingofficial.com</div>
+</div>
+<div id="hud">
+  <div class="ht">EARTHLING</div>
+  <div style="display:flex;flex-direction:column;align-items:flex-end"><div class="ht">SANITY</div><div id="sw"><div id="sf"></div></div></div>
+</div>
+<div id="xh">·</div>
+<div id="hint">[ E ] PLAY</div>
+<div id="fact"></div>
+<div id="flash"></div>
+<div id="tvm">
+  <div id="tvl"></div>
+  <iframe id="tvf" frameborder="0" allowfullscreen allow="autoplay;encrypted-media;picture-in-picture"></iframe>
+  <button id="tvc">✕ CLOSE</button>
+</div>
+<div id="endm"><div id="endt"></div></div>
+<div id="lj" class="jz"><div class="kn"></div></div>
+<div id="rj" class="jz"><div class="kn"></div></div>
+<canvas id="c"></canvas>
+<script>
+// ══════════════════════════════════════════════════════
+// GO DEAN — STAGE 9: THE BACKROOMS
+// Deanus Politicus Carnivorus Paradoxus — now indexed
+// ══════════════════════════════════════════════════════
+
+const VIDS = [
+  {url:'https://www.youtube.com/embed/zprJXFASoNs',lbl:'ARCHIVE RECORD — 30 DEC 2025'},
+  {url:'https://www.youtube.com/embed/H724ZGObr4g',lbl:'THE MIRROR'},
+  {url:'https://www.youtube.com/embed/fkoWAO_CdWA',lbl:'THE OBSERVATORY'},
+  {url:'https://www.youtube.com/embed/jDQ9zZ0IGFw',lbl:'THE ECHO CHAMBER'},
+  {url:'https://www.youtube.com/embed/RNWmEeJLGnI',lbl:'THE CALORIC CON'},
+  {url:null,lbl:'DEBATE 06 — SIGNAL LOST'},
+  {url:null,lbl:'DEBATE 07 — SIGNAL LOST'},
+  {url:null,lbl:'DEBATE 08 — SIGNAL LOST'},
+  {url:null,lbl:'DEBATE 09 — SIGNAL LOST'},
+  {url:null,lbl:'DEBATE 10 — SIGNAL LOST'},
+  {url:null,lbl:'DEBATE 11 — SIGNAL LOST'},
+  {url:null,lbl:'DEBATE 12 — SIGNAL LOST'},
+];
+
+const FACTS = [
+  '80 BILLION LAND ANIMALS KILLED\nFOR FOOD EVERY YEAR.',
+  'A DAIRY COW IS FORCIBLY INSEMINATED\nSO SHE LACTATES. REPEATEDLY.',
+  'HER CALF IS TAKEN WITHIN 24 HOURS\nOF BIRTH.',
+  '91% OF AMAZON DEFORESTATION:\nANIMAL AGRICULTURE.',
+  '1,800 GALLONS OF WATER\nTO PRODUCE ONE POUND OF BEEF.',
+  'MALE CHICKS IN THE EGG INDUSTRY\nARE GROUND ALIVE AT BIRTH.',
+  'PIGS ARE AS INTELLIGENT AS\n3-YEAR-OLD CHILDREN.',
+  'FISH FEEL PAIN.\nBILLIONS SUFFOCATE ON SHIP DECKS DAILY.',
+  'STANDARD PRACTICE: CUTTING BEAKS,\nTAILS, TESTICLES. NO ANAESTHETIC.',
+  'THE AVERAGE DAIRY COW LIVES 4 YEARS.\nSHE COULD LIVE 20.',
+  '25 PLANT CALORIES\n→ 1 CALORIE OF MEAT.',
+  "A PIG'S DISTRESS CALL:\n115 DECIBELS. LOUDER THAN A CHAINSAW.\nNOBODY COMES.",
+  'MOTHER PIGS SPEND THEIR LIVES IN\nGESTATION CRATES TOO SMALL TO TURN.',
+];
+
+const SCRAWLS = [
+  'INDEXED FOREVER','HE DID THIS TO HIMSELF',
+  'Deanus Politicus Carnivorus Paradoxus',
+  'THE PARADOX REMAINS UNRESOLVED',
+  'watching me watching you',
+  'i can feel you pull me down',
+  '11:40 — THE ADMISSION','18:07 — HE LAUGHED',
+  'CRAZY VEGAN','the SEO trap was set before we ever spoke',
+  'approached the specimen in the wilds of tiktok live',
+  'EPISODE 4 OF 8','SIGNAL LOST',
+  'THE MASK SLIPPED FOR 0.3 SECONDS',
+  'HE TAPPED THE SCREEN','MICRO',
+  'HE LAUGHED FOR THE PIGS',
+  'THE THERMODYNAMIC ARGUMENT WAS NEVER ADDRESSED',
+  'bark like a dog','he called it a microaggression',
+];
+
+// ── constants ──
+const WH=4, CS=8, CW=CS*6, GAP=8;
+
+// ── scene ──
+let scene,cam,ren,clk,postS,postC,rt,postMat;
+let mWall,mFloor,mCeil,mPanel,mDark,mShadow;
+let fuzzC,fuzzX,fuzzT;
+
+// ── world ──
+const chunks=new Map();
+const tvList=[];
+const shads=[];
+
+// ── deanus ──
+let dean=null,dState='lurk',dTimer=0;
+
+// ── state ──
+let sanity=100,started=false,admWatched=false,ending=false;
+let kW=0,kA=0,kS=0,kD=0;
+const vel=new THREE.Vector3();
+const td={l:{a:0,sx:0,sy:0,mx:0,my:0},r:{a:0,sx:0,sy:0,mx:0,my:0}};
+const ray=new THREE.Raycaster();
+const sc2=new THREE.Vector2(0,0);
+let nearTV=null;
+let factTimer=30,factIdx=0,fuzzF=0,lastCX=null,lastCZ=null;
+
+// ══ INIT ══════════════════════════════════════════════
+function init(){
+  scene=new THREE.Scene();
+  scene.fog=new THREE.FogExp2(0x1b1907,0.065);
+  scene.background=new THREE.Color(0x1b1907);
+
+  cam=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,80);
+  cam.position.set(CW/2,2,CW/2+3);
+  cam.rotation.order='YXZ';
+  cam.rotation.y=Math.PI; // face south (+Z) so first TV is visible on overlay fade
+
+  clk=new THREE.Clock();
+  ren=new THREE.WebGLRenderer({canvas:document.getElementById('c'),antialias:false});
+  ren.setPixelRatio(Math.min(devicePixelRatio,1.5));
+  ren.setSize(innerWidth,innerHeight);
+  ren.shadowMap.enabled=true;
+  ren.shadowMap.type=THREE.PCFSoftShadowMap;
+
+  mWall  =new THREE.MeshStandardMaterial({color:0xc9b97c,roughness:0.74,metalness:0.04});
+  mFloor =new THREE.MeshStandardMaterial({color:0x1c1a0f,roughness:0.95});
+  mCeil  =new THREE.MeshStandardMaterial({color:0xb8b09a,roughness:0.8});
+  mPanel =new THREE.MeshBasicMaterial({color:0xf2edc8});
+  mDark  =new THREE.MeshStandardMaterial({color:0x030303,roughness:1});
+  mShadow=new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.9,side:THREE.DoubleSide,depthWrite:false});
+
+  fuzzC=document.createElement('canvas');fuzzC.width=64;fuzzC.height=48;
+  fuzzX=fuzzC.getContext('2d');
+  fuzzT=new THREE.CanvasTexture(fuzzC);
+
+  scene.add(new THREE.AmbientLight(0x22200e,0.42));
+
+  buildSpawn();
+  buildDeanus();
+  buildShads();
+  setupControls();
+  setupTouch();
+  setupPost();
+  initChunks();
+
+  window.addEventListener('resize',()=>{
+    cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();
+    ren.setSize(innerWidth,innerHeight);rt.setSize(innerWidth,innerHeight);
+  });
+  document.getElementById('connect').addEventListener('click',startGame);
+  document.getElementById('connect').addEventListener('touchstart',startGame,{passive:true});
+  document.getElementById('tvc').addEventListener('click',closeTV);
+  animate();
+}
+
+// ══ GEOMETRY HELPERS ══════════════════════════════════
+function bx(w,h,d,mat,x,y,z,g){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+  m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;(g||scene).add(m);return m;
+}
+function pl(w,d,mat,x,y,z,rx,g){
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d),mat);
+  m.rotation.x=rx||0;m.position.set(x,y,z);m.receiveShadow=true;(g||scene).add(m);return m;
+}
+function ptL(x,z,intensity,range,shadows,g){
+  const L=new THREE.PointLight(0xf0ebc2,intensity||1.2,range||16);
+  L.position.set(x,WH-0.5,z);
+  if(shadows){L.castShadow=true;L.shadow.mapSize.set(256,256);L.shadow.camera.near=0.1;L.shadow.camera.far=range||16;L.shadow.bias=-0.002;}
+  (g||scene).add(L);
+  const p=new THREE.Mesh(new THREE.PlaneGeometry(1.6,0.5),mPanel);
+  p.rotation.x=Math.PI/2;p.position.set(x,WH-0.02,z);(g||scene).add(p);
+  return L;
+}
+
+// ── wall system with doorways ──
+function walls(ox,oz,W,D,opts){
+  // opts: openN/S/E/W (bool)
+  const cx=ox+W/2,cz=oz+D/2,t=0.5,h=WH;
+  const gw=GAP; // doorway width
+  function seg(fw,fh,fd,fx,fy,fz){bx(fw,fh,fd,mWall,fx,fy,fz);}
+
+  // North (z=oz+t/2)
+  if(opts.n){
+    seg((W-gw)/2,h,t,ox+(W-gw)/4,h/2,oz+t/2);
+    seg((W-gw)/2,h,t,ox+W-(W-gw)/4,h/2,oz+t/2);
+  }else seg(W,h,t,cx,h/2,oz+t/2);
+
+  // South (z=oz+D-t/2)
+  if(opts.s){
+    seg((W-gw)/2,h,t,ox+(W-gw)/4,h/2,oz+D-t/2);
+    seg((W-gw)/2,h,t,ox+W-(W-gw)/4,h/2,oz+D-t/2);
+  }else seg(W,h,t,cx,h/2,oz+D-t/2);
+
+  // West (x=ox+t/2)
+  if(opts.w){
+    seg(t,h,(D-gw)/2,ox+t/2,h/2,oz+(D-gw)/4);
+    seg(t,h,(D-gw)/2,ox+t/2,h/2,oz+D-(D-gw)/4);
+  }else seg(t,h,D,ox+t/2,h/2,cz);
+
+  // East (x=ox+W-t/2)
+  if(opts.e){
+    seg(t,h,(D-gw)/2,ox+W-t/2,h/2,oz+(D-gw)/4);
+    seg(t,h,(D-gw)/2,ox+W-t/2,h/2,oz+D-(D-gw)/4);
+  }else seg(t,h,D,ox+W-t/2,h/2,cz);
+}
+
+function floorCeil(ox,oz,W,D){
+  pl(W,D,mFloor,ox+W/2,0.01,oz+D/2,-Math.PI/2);
+  pl(W,D,mCeil, ox+W/2,WH,  oz+D/2, Math.PI/2);
+}
+
+// ── canvas text plane ──
+function txt(lines,w,h,col,bg,fs){
+  if(typeof lines==='string')lines=[lines];
+  const CW2=512,CH2=Math.max(64,Math.round(512*h/w));
+  const cv=document.createElement('canvas');cv.width=CW2;cv.height=CH2;
+  const cx=cv.getContext('2d');
+  if(bg){cx.fillStyle=bg;cx.fillRect(0,0,CW2,CH2);}
+  cx.fillStyle=col||'#c8b86a';
+  const fz=fs||14;cx.font=`${fz}px "Courier New",monospace`;cx.textAlign='center';
+  const lh=fz*1.55,sy=(CH2-lines.length*lh)/2+lh*0.8;
+  lines.forEach((l,i)=>cx.fillText(l,CW2/2,sy+i*lh));
+  const mat=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(cv),transparent:true,side:THREE.DoubleSide,depthWrite:false});
+  return new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat);
+}
+function T(lines,w,h,col,bg,fs,x,y,z,ry){
+  const m=txt(lines,w,h,col,bg,fs);
+  m.position.set(x,y,z);if(ry!==undefined)m.rotation.y=ry;scene.add(m);return m;
+}
+
+// ── TV builder ──
+function addTV(x,z,vidIdx,angle){
+  const grp=new THREE.Group();
+  const frame=new THREE.Mesh(new THREE.BoxGeometry(2.5,1.7,0.12),mDark);
+  frame.position.set(0,2,0);frame.castShadow=true;grp.add(frame);
+  const scr=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.4),new THREE.MeshBasicMaterial({map:fuzzT,side:THREE.DoubleSide}));
+  scr.position.set(0,0,0.07);frame.add(scr);
+  const gl=new THREE.PointLight(0x557799,0.22,4);gl.position.set(0,2,0.4);grp.add(gl);
+  grp.position.set(x,0,z);grp.rotation.y=angle||0;scene.add(grp);
+  const v=VIDS[vidIdx%VIDS.length];
+  const lb=txt([v.lbl],3,0.26,'#555',null,9);
+  lb.position.set(x,3.35,z);if(angle)lb.rotation.y=angle;scene.add(lb);
+  const obj={mesh:frame,vidIdx:vidIdx%VIDS.length,wp:new THREE.Vector3(x,2,z)};
+  tvList.push(obj);return obj;
+}
+
+// ══ SPAWN ZONE — 7 hand-crafted lore rooms ═══════════
+// Room layout (all 48×48, ox/oz in world units):
+// R1(0,0)  R2(48,0)   R4(-48,0)
+// R3(0,48) R5a(48,48) R5b(96,48) END(144,48)
+function buildSpawn(){
+  buildR1(0,0);
+  buildR2(CW,0);
+  buildR4(-CW,0);
+  buildR3(0,CW);
+  buildR5a(CW,CW);
+  buildR5b(2*CW,CW);
+  buildEnd(3*CW,CW);
+  // corridor floor/ceilings for doorway transitions
+  corridorFC(CW/2-GAP/2, CW/2, GAP, CW, 0); // R1 north gap covers z=0 boundary
+  corridorFC(CW/2-GAP/2, CW-GAP/2, GAP, GAP, 0); // R1 south <> R3 north
+  corridorFC(CW-GAP/2, CW/2-GAP/2, GAP, GAP, 0); // R1 east <> R2 west (z band)
+  corridorFC(-GAP/2, CW/2-GAP/2, GAP, GAP, 0);    // R1 west <> R4 east
+  corridorFC(CW-GAP/2, CW+CW/2-GAP/2, GAP, GAP, 0); // R2 south <> R5a north
+  corridorFC(CW+CW/2-GAP/2, CW-GAP/2, GAP, GAP, 0); // R3 east <> R5a west
+  corridorFC(2*CW-GAP/2, CW+CW/2-GAP/2, GAP, GAP, 0); // R5a east <> R5b west
+  corridorFC(3*CW-GAP/2, CW+CW/2-GAP/2, GAP, GAP, 0); // R5b east <> END west
+}
+function corridorFC(x,z,w,d){
+  pl(w,d,mFloor,x+w/2,0.01,z+d/2,-Math.PI/2);
+  pl(w,d,mCeil,x+w/2,WH,z+d/2,Math.PI/2);
+}
+
+// ── ROOM 1: Spawn / Archive Record ──
+function buildR1(ox,oz){
+  floorCeil(ox,oz,CW,CW);
+  walls(ox,oz,CW,CW,{n:true,s:true,e:true,w:true}); // all four sides have doorways
+  const cx=ox+CW/2,cz=oz+CW/2;
+  ptL(cx-10,oz+12,1.2,18,true); ptL(cx+10,oz+CW-12,1.2,18,true);
+
+  // First TV — south wall, facing north (angle=0 = plane faces +Z toward player)
+  // Player faces +Z, so TV screen at south side facing player works with DoubleSide
+  const tv0=addTV(cx,oz+CW-4,0,Math.PI);
+  tv0.firstTV=true;
+
+  // Main exhibit — west wall
+  T(['"go vegan or I\'ll kill you"','','— Dean Withers'],7.5,1.5,'#ff3333','#080300',22,
+    ox+1,2.2,cz, Math.PI/2);
+
+  // Archive header above TV
+  T(['ARCHIVAL RECORD','30 DECEMBER 2025'],4,0.5,'#4a4030',null,12,cx,3.7,oz+CW-4,Math.PI);
+
+  // Wall lore
+  T(['he said crazy vegan.','the echo arrived first.'],3.5,0.42,'#7a7060',null,10, cx-8,2,oz+1,0);
+  T(['"I\'m sorry you were threatened.','That\'s not okay."'],3.5,0.4,'#8a8070',null,10, cx+6,2,oz+2,0);
+  T(['2:37 — when the mask slipped'],3,0.28,'#555',null,9, ox+CW-1,1.6,cz,-Math.PI/2);
+  T(['earthlingofficial.com'],2.5,0.24,'#334433',null,9, ox+1,1.2,cz+8,Math.PI/2);
+  T(['he is now indexed.','he did this to himself.'],3.5,0.38,'#443322',null,9, cx,0.6,oz+2,0);
+
+  // YouTube wall button — low on north wall, deliberately odd placement
+  const ytM=txt(['▶ EARTHLING OFFICIAL','youtube.com/@EarthlingOfficial'],3,0.42,'#ff2222','#080000',12);
+  ytM.position.set(ox+4,0.75,oz+1);ytM.rotation.y=0;scene.add(ytM);
+  tvList.push({mesh:ytM,isYT:true,wp:new THREE.Vector3(ox+4,0.75,oz+1)});
+}
+
+// ── ROOM 2: The Mirror ──
+function buildR2(ox,oz){
+  floorCeil(ox,oz,CW,CW);
+  walls(ox,oz,CW,CW,{w:true,s:true});
+  const cx=ox+CW/2,cz=oz+CW/2;
+  // Slightly warmer, unnerving light
+  const mL=new THREE.PointLight(0xccff99,1.05,22);
+  mL.position.set(cx,WH-0.5,cz);mL.castShadow=true;mL.shadow.mapSize.set(512,512);mL.shadow.bias=-0.002;scene.add(mL);
+  const p=new THREE.Mesh(new THREE.PlaneGeometry(1.6,0.5),mPanel);p.rotation.x=Math.PI/2;p.position.set(cx,WH-0.02,cz);scene.add(p);
+
+  addTV(cx,oz+4,1,Math.PI);
+
+  // Evanescence
+  T(['"watching me, watching you"'],5,0.38,'#8aaa66',null,15, cx,3.2,oz+4.5,Math.PI);
+  T(['"I can feel you pull me down"'],5,0.34,'#7a9a56',null,13, cx,2.7,oz+4.5,Math.PI);
+
+  // Rape exhibit
+  T(['"oh you can\'t talk about rape because of meat"','— Dean Withers'],7,0.62,'#cc3333','#060200',13,
+    ox+CW-1,2.6,cz,-Math.PI/2);
+  T(['Dairy cows are forcibly inseminated so they lactate.','Repeatedly. Their calves are taken at birth.'],
+    6.5,0.42,'#882222',null,10, ox+CW-1,1.85,cz,-Math.PI/2);
+
+  T(['stare into his eyes.','you\'ll understand.'],3,0.4,'#7a9060',null,10, ox+1,2.1,cz,Math.PI/2);
+  T(['he tapped the screen.'],2.5,0.28,'#6a7a50',null,10, cx-4,2.5,oz+CW-3,Math.PI);
+  T(['self-soothing. arm rub.','just like the ancestors.'],4,0.4,'#6a7a50',null,10, cx,1.9,oz+CW-2,Math.PI);
+  T(['Deanus Politicus Carnivorus Paradoxus','— mirror stage: incomplete'],6,0.42,'#4a6634',null,10, cx,1.2,oz+CW-2,Math.PI);
+  T(['"Is this your meat mascot?"'],3.5,0.3,'#556644',null,9, ox+CW-1,2.4,oz+6,-Math.PI/2);
+  T(['the mask slipped for 0.3 seconds.','one camera caught it.'],4,0.38,'#667755',null,10, cx+6,2.1,oz+2,0);
+}
+
+// ── ROOM 4: The Echo Chamber ──
+function buildR4(ox,oz){
+  floorCeil(ox,oz,CW,CW);
+  walls(ox,oz,CW,CW,{e:true});
+  const cx=ox+CW/2,cz=oz+CW/2;
+  ptL(cx,oz+10,0.7,11,true);ptL(cx,oz+CW-10,0.7,11,true);
+
+  addTV(cx,oz+4,3,Math.PI);
+
+  // Echoing "crazy vegan" — shrinking toward wall
+  [[5.2,'#cc7733',22],[4.6,'#aa5522',17],[4,'#882211',13],[3.4,'#661100',10],[2.8,'#440800',8]].forEach(([w,c,fz],i)=>{
+    T(['"crazy vegan" — Dean Withers'],w,0.36,c,null,fz, cx,3.1-i*0.36,oz+CW-2-i*0.25,Math.PI);
+  });
+
+  // Micro/penis joke
+  T(['he called it a microaggression.','',"\"That's what I'd say if I had a small penis.\"",'— Dean Withers','',"...micro."],
+    6,1.1,'#c8b86a','#060400',13, ox+1,2.2,cz,Math.PI/2);
+
+  // Strawman
+  T(["What Dean claimed I said:","\"No humans are victims\"",'','"What was actually said:"','"The animals are the victims."','','not a misunderstanding. a choice.'],
+    5.5,1.1,'#aa7744','#040300',11, cx,2,oz+CW-3,Math.PI);
+
+  // Bark like a dog
+  T(['when the logic ran out,','he asked me to bark like a dog.','','I said goodbye. I meant it.'],
+    4.5,0.65,'#886633',null,12, cx,2,oz+2,0);
+
+  // Claw marks from Deanus
+  T(['| | |'],0.8,0.6,'#220000',null,28, ox+CW-1,1.5,cz+3,-Math.PI/2);
+
+  T(['animals in factory farms show signs of psychosis','from confinement. who\'s crazy?'],
+    5,0.34,'#662222',null,9, cx+4,1.1,cz,0);
+}
+
+// ── ROOM 3: The Observatory ──
+function buildR3(ox,oz){
+  floorCeil(ox,oz,CW,CW);
+  walls(ox,oz,CW,CW,{n:true,e:true});
+  const cx=ox+CW/2,cz=oz+CW/2;
+  const oL=new THREE.PointLight(0xffffff,1.3,24);
+  oL.position.set(cx,WH-0.5,cz);oL.castShadow=true;oL.shadow.mapSize.set(512,512);oL.shadow.bias=-0.002;scene.add(oL);
+  const p=new THREE.Mesh(new THREE.PlaneGeometry(1.6,0.5),mPanel);p.rotation.x=Math.PI/2;p.position.set(cx,WH-0.02,cz);scene.add(p);
+
+  addTV(cx,oz+4,2,Math.PI);
+
+  T(['TIKTOK WILDLIFE — EPISODE 4 OF 8','','Deanus Politicus Carnivorus Paradoxus','','specimen first documented prior to direct contact','approached in the wilds of TikTok Live — field notes, 2025'],
+    8,1.1,'#aaaaaa','#040404',12, cx,2.4,oz+CW-2,Math.PI);
+
+  T(['"He cried for Charlie Kirk."','"He laughed for the pigs."'],4.5,0.5,'#999',null,13, ox+1,2.2,cz,Math.PI/2);
+  T(['selective empathy','— common adaptation in the Carnivorus genus'],5,0.4,'#888',null,11, cx,2,oz+6,0);
+  T(['"the observer becomes the observed"'],4.5,0.3,'#888',null,10, cx+6,2.3,oz+CW-8,0);
+  T(['the SEO trap was set before we ever spoke'],5,0.3,'#666',null,9, cx,1.2,oz+CW-4,Math.PI);
+  T(['he is now indexed. he did this to himself.'],5,0.3,'#666',null,9, ox+1,2,oz+CW-6,Math.PI/2);
+  T(["A pig's distress call reaches 115 decibels.",'Louder than a chainsaw.','Nobody comes.'],
+    4.5,0.5,'#882222',null,9, ox+CW-1,1.8,cz,-Math.PI/2);
+}
+
+// ── ROOM 5a: The Caloric Classroom ──
+function buildR5a(ox,oz){
+  floorCeil(ox,oz,CW,CW);
+  walls(ox,oz,CW,CW,{n:true,w:true,e:true});
+  const cx=ox+CW/2,cz=oz+CW/2;
+  const cL=new THREE.PointLight(0xe8f2ff,1.3,22);
+  cL.position.set(cx,WH-0.5,cz);cL.castShadow=true;cL.shadow.mapSize.set(512,512);cL.shadow.bias=-0.002;scene.add(cL);
+  const p=new THREE.Mesh(new THREE.PlaneGeometry(1.6,0.5),mPanel);p.rotation.x=Math.PI/2;p.position.set(cx,WH-0.02,cz);scene.add(p);
+
+  addTV(cx,oz+4,4,Math.PI);
+
+  T(['25 plant calories → 1 calorie of meat','','40-50 : 1 for Wagyu','','"I don\'t eat Wagyu. It\'s from Japan."','— Dean Withers','','the thermodynamic argument was never addressed.'],
+    8,1.5,'#c0c8d0','#020408',12, cx,2.3,oz+CW-2,Math.PI);
+
+  T(["What Dean claimed:","\"You think Trump raping a woman\"","\"makes you a hypocrite for drinking milk\"",'','"What was actually said:"','"Publicly condemning exploitation','while funding it is hypocritical"','','not a misunderstanding. a choice.'],
+    6.5,1.5,'#aa7744','#040300',10, ox+1,2.2,cz,Math.PI/2);
+
+  T(['"Is it like porn?" — Dean Withers','it was a sociological point.'],5,0.4,'#8898a8',null,10, cx,1.8,oz+CW-4,Math.PI);
+  T(['80% of global agricultural land feeds livestock.','It produces 20% of global calories.'],5,0.36,'#778899',null,9, cx+5,1.5,cz,0);
+  T(['"threatening the broccoli" — Santana, 25:06'],4,0.28,'#665544',null,9, cx-5,0.65,oz+2,0);
+  T(['condolences offered. genuinely.','— then the caveат.','he called it an attack.'],3.5,0.45,'#887755',null,10, ox+CW-1,2,oz+6,-Math.PI/2);
+}
+
+// ── ROOM 5b: The Admission Room ──
+function buildR5b(ox,oz){
+  floorCeil(ox,oz,CW,CW);
+  walls(ox,oz,CW,CW,{w:true,e:true});
+  const cx=ox+CW/2,cz=oz+CW/2;
+
+  // Spotlight on the centrepiece wall
+  const sp=new THREE.SpotLight(0xfffcee,3,24,Math.PI*0.18,0.5);
+  sp.position.set(cx,WH-0.5,oz+CW-5);
+  sp.target.position.set(cx,1.5,oz+2);
+  sp.castShadow=true;sp.shadow.mapSize.set(512,512);sp.shadow.bias=-0.003;
+  scene.add(sp);scene.add(sp.target);
+  ptL(cx-10,oz+CW-8,0.35,10,false);ptL(cx+10,oz+CW-8,0.35,10,false);
+
+  const tvAdm=addTV(cx,oz+4,4,Math.PI);tvAdm.isAdmission=true;
+
+  // THE CENTREPIECE
+  T(['11:40','','Dean Withers admitted:','','"If a plant-based product tasted','identical to meat, I would go vegan','without needing convincing."','','the barrier was never philosophical.','it was always convenience.'],
+    9,2.8,'#f5e8c0','#050300',16, cx,2.3,oz+CW-2,Math.PI);
+
+  T(['18:07 — the superchat said:','"just killed 30 cows"','','he laughed.'],4.5,0.72,'#c8a060',null,12, ox+1,2,cz,Math.PI/2);
+  T(['Deanus Politicus Carnivorus Paradoxus'],6,0.32,'#c8b86a',null,11, cx,3.75,oz+CW/2,0);
+  T(['the paradox remains unresolved.'],4.5,0.28,'#c8b86a',null,10, cx,0.5,oz+CW/2,0);
+  T(['DEAN WITHERS'],4,0.35,'#555',null,10, ox+CW-1,3.5,cz,-Math.PI/2);
+}
+
+// ── ENDING ROOM ──
+function buildEnd(ox,oz){
+  floorCeil(ox,oz,CW,CW);
+  walls(ox,oz,CW,CW,{w:true});
+  const cx=ox+CW/2,cz=oz+CW/2;
+  const eL=new THREE.PointLight(0x551100,1.3,20);
+  eL.position.set(cx,WH-0.5,cz);eL.castShadow=true;eL.shadow.mapSize.set(256,256);eL.shadow.bias=-0.002;scene.add(eL);
+
+  // Table + plant-based burger
+  const tMat=new THREE.MeshStandardMaterial({color:0x181410,roughness:0.9});
+  bx(1.4,0.76,0.9,tMat,cx,0.38,cz);bx(1.4,0.04,0.9,tMat,cx,0.8,cz);
+  const bMat=new THREE.MeshStandardMaterial({color:0x7a4820,roughness:0.8});
+  const pMat=new THREE.MeshStandardMaterial({color:0x3a6030,roughness:0.9});
+  const bunB=new THREE.Mesh(new THREE.SphereGeometry(0.16,8,4,0,Math.PI*2,0,Math.PI/2),bMat);
+  bunB.position.set(cx,0.84,cz);scene.add(bunB);
+  const patty=new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.14,0.05,8),pMat);
+  patty.position.set(cx,0.94,cz);scene.add(patty);
+  const bunT=new THREE.Mesh(new THREE.SphereGeometry(0.16,8,8),bMat);
+  bunT.position.set(cx,1.02,cz);scene.add(bunT);
+
+  T(["DEAN'S CHOICE"],5,0.62,'#c8b86a','#060300',20, cx,2.5,oz+2,0);
+  T(['the paradox remains unresolved.','','stage 10: coming.'],5,0.72,'#666','#060300',13, cx,2,oz+CW-2,Math.PI);
+
+  // Invisible end trigger (checked by position distance)
+  scene.userData.endPos=new THREE.Vector3(cx,2,cz);
+}
+
+// ══ PROCEDURAL CHUNKS ════════════════════════════════
+const SPAWN_KEYS=new Set(['0,0','1,0','-1,0','0,1','1,1','2,1','3,1']);
+function ck(cx,cz){return `${cx},${cz}`;}
+function cOf(v){return Math.floor(v/CW);}
+
+function initChunks(){
+  SPAWN_KEYS.forEach(k=>chunks.set(k,{spawn:true}));
+  updateChunks(cOf(cam.position.x),cOf(cam.position.z));
+}
+
+function updateChunks(pcx,pcz){
+  const R=2,needed=new Set();
+  for(let dz=-R;dz<=R;dz++)for(let dx=-R;dx<=R;dx++){
+    const cx=pcx+dx,cz=pcz+dz,k=ck(cx,cz);
+    needed.add(k);if(!chunks.has(k))genChunk(cx,cz);
+  }
+  for(const[k,ch]of chunks){
+    if(!needed.has(k)&&!ch.spawn){
+      scene.remove(ch.grp);
+      ch.grp.traverse(o=>{if(o.geometry)o.geometry.dispose();});
+      ch.tvs&&ch.tvs.forEach(t=>{const i=tvList.indexOf(t);if(i>=0)tvList.splice(i,1);});
+      chunks.delete(k);
+    }
+  }
+}
+
+function srand(seed){
+  let s=seed>>>0;
+  return()=>{s=Math.imul(s^(s>>>13),1664525)+1013904223|0;return(s>>>0)/0xffffffff;};
+}
+
+function genChunk(cx,cz){
+  const key=ck(cx,cz);
+  const rand=srand(cx*73856093^cz*19349663^0x9e3779b9);
+  const cells=Array.from({length:CS},()=>new Array(CS).fill(1));
+
+  function carve(x,z,depth){
+    if(depth>200)return; // prevent stack overflow
+    cells[z][x]=0;
+    const d=[[0,-2],[2,0],[0,2],[-2,0]];
+    for(let i=3;i>0;i--){const j=Math.floor(rand()*(i+1));[d[i],d[j]]=[d[j],d[i]];}
+    for(const[dz,dx]of d){
+      const nx=x+dx,nz=z+dz;
+      if(nz>0&&nz<CS-1&&nx>0&&nx<CS-1&&cells[nz][nx]===1){
+        cells[z+dz/2][x+dx/2]=0;carve(nx,nz,depth+1);
+      }
+    }
+  }
+  carve(1,1,0);
+  // ensure border connections
+  const m=Math.floor(CS/2);
+  cells[0][m]=0;cells[1][m]=0;
+  cells[CS-1][m]=0;cells[CS-2][m]=0;
+  cells[m][0]=0;cells[m][1]=0;
+  cells[m][CS-1]=0;cells[m][CS-2]=0;
+
+  const ox=cx*CW,oz=cz*CW;
+  const grp=new THREE.Group();
+  const chTVs=[];
+
+  // Floor + ceiling
+  const fg=new THREE.PlaneGeometry(CW,CW);
+  const fl=new THREE.Mesh(fg,mFloor);fl.rotation.x=-Math.PI/2;fl.position.set(ox+CW/2,0.01,oz+CW/2);fl.receiveShadow=true;grp.add(fl);
+  const cl=new THREE.Mesh(fg.clone(),mCeil);cl.rotation.x=Math.PI/2;cl.position.set(ox+CW/2,WH,oz+CW/2);grp.add(cl);
+
+  const wg=new THREE.BoxGeometry(6,WH,6);
+  for(let z=0;z<CS;z++)for(let x=0;x<CS;x++){
+    const wx=ox+x*6+3,wz=oz+z*6+3;
+    if(cells[z][x]===1){
+      const w=new THREE.Mesh(wg,mWall);w.position.set(wx,WH/2,wz);w.castShadow=w.receiveShadow=true;grp.add(w);
+    }else{
+      if((x+z)%3===0){
+        const L=new THREE.PointLight(0xf0ebc2,1.0,13);L.position.set(wx,WH-0.5,wz);grp.add(L);
+        const pp=new THREE.Mesh(new THREE.PlaneGeometry(1.4,0.4),mPanel);pp.rotation.x=Math.PI/2;pp.position.set(wx,WH-0.02,wz);grp.add(pp);
+      }
+      // Scatter TVs
+      if(rand()<0.11&&tvList.length<50){
+        const vIdx=Math.floor(rand()*VIDS.length);
+        const ang=Math.floor(rand()*4)*Math.PI/2;
+        const tvO=addTVToGroup(wx,wz,vIdx,ang,grp);
+        chTVs.push(tvO);
+      }
+      // Wall scrawl
+      if(rand()<0.055){
+        const st=SCRAWLS[Math.floor(rand()*SCRAWLS.length)];
+        const sm=txt([st],3,0.26,'#550000',null,9);
+        sm.position.set(wx+(rand()-.5)*2,1.1+rand()*.5,wz+(rand()-.5)*2);
+        sm.rotation.y=rand()*Math.PI*2;grp.add(sm);
+      }
+    }
+  }
+  scene.add(grp);chunks.set(key,{grp,tvs:chTVs});
+}
+
+function addTVToGroup(x,z,vidIdx,angle,grp){
+  const frame=new THREE.Mesh(new THREE.BoxGeometry(2.5,1.7,0.12),mDark);
+  frame.position.set(x,2,z);frame.rotation.y=angle||0;frame.castShadow=true;grp.add(frame);
+  const scr=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.4),new THREE.MeshBasicMaterial({map:fuzzT,side:THREE.DoubleSide}));
+  scr.position.set(0,0,0.07);frame.add(scr);
+  const obj={mesh:frame,vidIdx:vidIdx%VIDS.length,wp:new THREE.Vector3(x,2,z)};
+  tvList.push(obj);return obj;
+}
+
+// ══ DEANUS CARNIVORUS ═════════════════════════════════
+function buildDeanus(){
+  const g=new THREE.Group();
+  const dm=new THREE.MeshBasicMaterial({color:0x020202});
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(0.75,1.5,0.38),dm));
+  const h=new THREE.Mesh(new THREE.BoxGeometry(0.58,0.58,0.58),dm);h.position.y=1.1;g.add(h);
+  g.position.set(0,0.75,-20);scene.add(g);dean=g;
+}
+
+function updateDeanus(dt,t){
+  if(!dean)return;
+  dTimer+=dt;
+  const dp=dean.position,cp=cam.position;
+  const dist=dp.distanceTo(cp);
+
+  // Simplified LoS: not directly behind player
+  const toD=new THREE.Vector3(dp.x-cp.x,0,dp.z-cp.z).normalize();
+  const fwd=new THREE.Vector3(-Math.sin(cam.rotation.y),0,-Math.cos(cam.rotation.y));
+  const inSight=dist<14&&fwd.dot(toD)>-0.25;
+
+  if(inSight){
+    sanity=Math.max(0,sanity-(dState==='pursuing'?14:7)*dt);
+    document.getElementById('flash').style.opacity='0.13';
+  }else{
+    document.getElementById('flash').style.opacity='0';
+  }
+
+  if(dState==='lurk'){
+    if(dTimer>5||dist>22){
+      dTimer=0;
+      const a=Math.random()*Math.PI*2,r=16+Math.random()*10;
+      dp.set(cp.x+Math.sin(a)*r,0.75,cp.z+Math.cos(a)*r);
+    }
+    if(dist<9&&Math.random()<0.007)dState='pursuing';
+  }else if(dState==='pursuing'){
+    const dir=new THREE.Vector3(cp.x-dp.x,0,cp.z-dp.z).normalize();
+    dp.addScaledVector(dir,1.85*dt);
+    dean.lookAt(cp.x,0.75,cp.z);
+    if(dist>22)dState='lurk';
+    if(dist<1.5){
+      sanity=Math.max(0,sanity-20);dState='lurk';
+      const a=cam.rotation.y+Math.PI;
+      dp.set(cp.x+Math.sin(a)*20,0.75,cp.z+Math.cos(a)*20);
+    }
+  }
+  dp.y=0.75+Math.sin(t*0.55)*0.04;
+  if(sanity<=0)sanity=50;
+}
+
+// ══ SHADOW FIGURES ════════════════════════════════════
+function buildShads(){
+  for(let i=0;i<4;i++){
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(0.65,2.3),mShadow);
+    m.position.set((Math.random()-.5)*80,1.15,(Math.random()-.5)*80);
+    m.visible=false;
+    shads.push({mesh:m,timer:12+i*4,spawned:false});scene.add(m);
+  }
+}
+
+function updateShads(dt){
+  shads.forEach(s=>{
+    if(!s.spawned){
+      s.timer-=dt;
+      if(s.timer<=0){
+        s.timer=9+Math.random()*14;
+        s.mesh.visible=Math.random()<0.11;
+        if(s.mesh.visible){
+          const a=Math.random()*Math.PI*2,r=9+Math.random()*14;
+          s.mesh.position.set(cam.position.x+Math.sin(a)*r,1.15,cam.position.z+Math.cos(a)*r);
+        }
+      }
+    }
+    if(s.mesh.visible)s.mesh.lookAt(cam.position.x,1.15,cam.position.z);
+  });
+}
+
+function spawnShad(){
+  if(Math.random()>0.73)return;
+  const av=shads.filter(s=>!s.spawned);if(!av.length)return;
+  const s=av[Math.floor(Math.random()*av.length)];
+  const a=cam.rotation.y+Math.PI+(Math.random()-.5)*0.8,r=1.4+Math.random()*0.8;
+  s.mesh.position.set(cam.position.x+Math.sin(a)*r,1.15,cam.position.z+Math.cos(a)*r);
+  s.mesh.visible=true;s.spawned=true;
+}
+function clearShads(){shads.filter(s=>s.spawned).forEach(s=>{s.mesh.visible=false;s.spawned=false;});}
+
+// ══ POST PROCESSING ════════════════════════════════════
+function setupPost(){
+  postS=new THREE.Scene();postC=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+  rt=new THREE.WebGLRenderTarget(innerWidth,innerHeight);
+  postMat=new THREE.ShaderMaterial({
+    uniforms:{tDiffuse:{value:rt.texture},uTime:{value:0},uSan:{value:1}},
+    vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position,1.);}`,
+    fragmentShader:`
+      uniform sampler2D tDiffuse;uniform float uTime,uSan;
+      varying vec2 vUv;
+      float rand(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}
+      void main(){
+        vec2 uv=vUv;
+        float ins=1.-uSan;
+        uv.x+=sin(uv.y*36.+uTime*4.)*.0018*ins*3.;
+        vec4 c=texture2D(tDiffuse,uv);
+        c.rgb+=(rand(vUv+sin(uTime))-.5)*(0.052+ins*.11);
+        vec2 vc=vUv-.5;float v=1.-dot(vc,vc)*(1.32+ins*.9);
+        c.rgb*=clamp(v,0.,1.);
+        c.r+=ins*.13;c.gb*=1.-ins*.09;
+        gl_FragColor=c;
+      }
+    `
+  });
+  postS.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),postMat));
+}
+
+// ══ CONTROLS ══════════════════════════════════════════
+function setupControls(){
+  const mob=/Mobi|Android/i.test(navigator.userAgent);
+  if(!mob){
+    document.getElementById('c').addEventListener('click',()=>{if(started)document.getElementById('c').requestPointerLock();});
+    document.addEventListener('mousemove',e=>{
+      if(document.pointerLockElement===document.getElementById('c')&&started){
+        cam.rotation.y-=e.movementX*.002;
+        cam.rotation.x=Math.max(-1.1,Math.min(1.1,cam.rotation.x-e.movementY*.002));
+      }
+    });
+  }
+  document.addEventListener('keydown',e=>{
+    if(!started&&(e.code==='Space'||e.code==='Enter'))startGame();
+    switch(e.code){
+      case'KeyW':kW=1;break;case'KeyA':kA=1;break;
+      case'KeyS':kS=1;break;case'KeyD':kD=1;break;
+      case'KeyE':interact();break;
+    }
+  });
+  document.addEventListener('keyup',e=>{
+    switch(e.code){
+      case'KeyW':kW=0;break;case'KeyA':kA=0;break;
+      case'KeyS':kS=0;break;case'KeyD':kD=0;break;
+    }
+  });
+}
+
+function setupTouch(){
+  function bindJoy(elId,data,knobSel,onStart){
+    const el=document.getElementById(elId);
+    const kn=el.querySelector(knobSel);
+    el.addEventListener('touchstart',e=>{
+      const t=e.targetTouches[0];data.a=1;data.sx=t.clientX;data.sy=t.clientY;
+      if(onStart)onStart();
+    },{passive:true});
+    el.addEventListener('touchmove',e=>{
+      if(!data.a)return;
+      const t=e.targetTouches[0];
+      const dx=t.clientX-data.sx,dy=t.clientY-data.sy;
+      const r=Math.min(Math.sqrt(dx*dx+dy*dy),38),a=Math.atan2(dy,dx);
+      kn.style.transform=`translate(${Math.cos(a)*r}px,${Math.sin(a)*r}px)`;
+      data.mx=Math.cos(a)*r/38;data.my=Math.sin(a)*r/38;
+    },{passive:true});
+    el.addEventListener('touchend',()=>{data.a=0;kn.style.transform='';data.mx=data.my=0;});
+  }
+  bindJoy('lj',td.l,'.kn',null);
+  bindJoy('rj',td.r,'.kn',startGame);
+}
+
+// ══ GAME LOGIC ════════════════════════════════════════
+function startGame(){
+  if(started)return;started=true;
+  const ov=document.getElementById('connect');
+  ov.classList.add('fade');setTimeout(()=>ov.style.display='none',1700);
+  document.getElementById('c').requestPointerLock&&document.getElementById('c').requestPointerLock();
+  factTimer=28;
+}
+
+function interact(){
+  if(!nearTV)return;
+  if(nearTV.isYT){window.open('https://www.youtube.com/@EarthlingOfficial','_blank');return;}
+  const v=VIDS[nearTV.vidIdx];
+  if(!v.url){showFact('SIGNAL LOST\n'+v.lbl);return;}
+  document.getElementById('tvl').textContent=v.lbl;
+  document.getElementById('tvf').src=v.url+'?autoplay=1&rel=0';
+  document.getElementById('tvm').classList.add('on');
+  document.exitPointerLock&&document.exitPointerLock();
+  spawnShad();
+  if(nearTV.isAdmission)admWatched=true;
+}
+
+function closeTV(){
+  document.getElementById('tvf').src='';
+  document.getElementById('tvm').classList.remove('on');
+  setTimeout(clearShads,5500);
+}
+
+function showFact(t){
+  const el=document.getElementById('fact');
+  el.textContent=t;el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),5500);
+}
+
+function updateInteract(){
+  ray.setFromCamera(sc2,cam);
+  const meshes=tvList.map(t=>t.mesh).filter(Boolean);
+  const hits=ray.intersectObjects(meshes,true);
+  const hint=document.getElementById('hint');
+  if(hits.length&&hits[0].distance<5){
+    const hm=hits[0].object;
+    nearTV=tvList.find(t=>t.mesh===hm||t.mesh?.children?.includes(hm));
+    if(nearTV){
+      hint.style.display='block';
+      hint.textContent=nearTV.isYT?'[ E ] EARTHLING OFFICIAL':'[ E ] PLAY';
+    }else hint.style.display='none';
+  }else{nearTV=null;hint.style.display='none';}
+}
+
+function updateSanityHUD(){
+  const sf=document.getElementById('sf');
+  sf.style.width=Math.max(0,sanity)+'%';
+  sf.style.background=sanity>60?'#c8b86a':sanity>30?'#cc7733':'#cc2222';
+  postMat.uniforms.uSan.value=sanity/100;
+}
+
+function updateFuzz(){
+  const id=fuzzX.createImageData(64,48);
+  for(let i=0;i<id.data.length;i+=4){
+    const v=Math.random()>.5?150+Math.random()*90:Math.random()*25;
+    id.data[i]=v*.78;id.data[i+1]=v*.88;id.data[i+2]=v;id.data[i+3]=255;
+  }
+  fuzzX.putImageData(id,0,0);fuzzT.needsUpdate=true;
+}
+
+function triggerEnding(){
+  if(ending)return;ending=true;
+  const em=document.getElementById('endm'),et=document.getElementById('endt');
+  em.classList.add('on');
+  const lines=['Deanus Politicus Carnivorus Paradoxus','','— the paradox remains unresolved —','','','Stage 10: coming.'];
+  let i=0,cur='';
+  function next(){
+    if(i>=lines.length){
+      setTimeout(()=>{
+        em.classList.remove('on');ending=false;
+        cam.position.set(CW/2,2,CW/2+3);cam.rotation.set(0,Math.PI,0);
+        sanity=75;et.textContent='';
+      },4500);return;
+    }
+    cur+=(i?'\n':'')+lines[i++];et.textContent=cur;setTimeout(next,1300);
+  }
+  next();
+}
+
+// ══ ANIMATE ═══════════════════════════════════════════
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clk.getDelta(),.05),t=clk.getElapsedTime();
+
+  if(!started){ren.setRenderTarget(null);ren.render(scene,cam);return;}
+
+  postMat.uniforms.uTime.value=t;
+
+  // Touch look
+  if(td.r.a){
+    cam.rotation.y-=td.r.mx*.032;
+    cam.rotation.x=Math.max(-1.1,Math.min(1.1,cam.rotation.x-td.r.my*.032));
+  }
+
+  // Movement — W=forward (translateZ negative), S=backward
+  vel.x*=Math.max(0,1-dt*11);vel.z*=Math.max(0,1-dt*11);
+  const sp=26;
+  if(kW)vel.z-=sp*dt;   // forward
+  if(kS)vel.z+=sp*dt;   // backward
+  if(kA)vel.x-=sp*dt;
+  if(kD)vel.x+=sp*dt;
+  if(td.l.a){vel.z+=td.l.my*20*dt;vel.x+=td.l.mx*20*dt;}
+  cam.translateX(vel.x*dt);
+  cam.translateZ(vel.z*dt);
+  cam.position.y=2;
+
+  // Chunk update
+  const pcx=cOf(cam.position.x),pcz=cOf(cam.position.z);
+  if(pcx!==lastCX||pcz!==lastCZ){lastCX=pcx;lastCZ=pcz;updateChunks(pcx,pcz);}
+
+  // Fuzz every 3 frames
+  if(++fuzzF%3===0)updateFuzz();
+
+  // Game systems
+  updateDeanus(dt,t);updateShads(dt);updateInteract();updateSanityHUD();
+
+  // Fact popup
+  factTimer-=dt;
+  if(factTimer<=0){showFact(FACTS[factIdx++%FACTS.length]);factTimer=20+Math.random()*28;}
+
+  // Ending check
+  if(admWatched&&!ending&&scene.userData.endPos){
+    if(cam.position.distanceTo(scene.userData.endPos)<3.5)triggerEnding();
+  }
+
+  // Render with post
+  ren.setRenderTarget(rt);ren.render(scene,cam);
+  ren.setRenderTarget(null);ren.render(postS,postC);
+}
+
+init();
+</script>
+</body>
+</html>
