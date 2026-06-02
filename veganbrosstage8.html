@@ -50,6 +50,7 @@ canvas{display:block;width:100vw!important;height:100vh!important;}
 
 #hud{position:fixed;inset:0;z-index:20;pointer-events:none;display:none;}
 #hud.on{display:block;}
+#fps{display:none;position:absolute;bottom:10px;left:12px;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.1em;color:#40ff80;text-shadow:0 0 6px #00ff44;background:rgba(0,0,0,0.55);padding:3px 7px;border-radius:3px;}
 #topbar{position:absolute;top:0;left:0;right:0;padding:10px 16px;display:flex;justify-content:space-between;align-items:flex-start;
  background:linear-gradient(180deg,rgba(0,0,0,0.7),transparent);}
 .stat{font-family:'Space Mono';font-size:10px;letter-spacing:0.12em;color:#906830;text-shadow:0 0 8px rgba(0,0,0,0.9);}
@@ -63,6 +64,14 @@ canvas{display:block;width:100vw!important;height:100vh!important;}
 #crosshair::before,#crosshair::after{content:'';position:absolute;background:rgba(255,200,100,0.5);}
 #crosshair::before{left:50%;top:0;width:1px;height:100%;transform:translateX(-50%);}
 #crosshair::after{top:50%;left:0;height:1px;width:100%;transform:translateY(-50%);}
+
+/* ── FLASHLIGHT HUD ── */
+#flashlight-hud{position:absolute;bottom:72px;left:14px;font-family:'Space Mono';font-size:9px;letter-spacing:0.18em;
+ color:rgba(180,160,100,0.75);text-transform:uppercase;text-shadow:0 0 6px rgba(0,0,0,0.9);transition:opacity 0.4s;}
+#flashlight-hud .fl-label{color:rgba(220,200,130,0.9);}
+#flashlight-hud .fl-bar{display:inline-block;margin-left:6px;letter-spacing:0.05em;}
+#flashlight-hud.fl-off{opacity:0.45;}
+#flashlight-hud.fl-dead{color:rgba(180,60,60,0.8);}
 
 #interact{position:fixed;left:50%;bottom:22%;transform:translateX(-50%);z-index:22;pointer-events:none;
  font-family:'Space Mono';font-size:10px;letter-spacing:0.3em;color:rgba(200,150,42,0.85);text-transform:uppercase;
@@ -112,6 +121,12 @@ canvas{display:block;width:100vw!important;height:100vh!important;}
  width:54px;height:54px;border-radius:50%;background:rgba(200,150,42,0.14);border:1px solid rgba(200,150,42,0.25);
  pointer-events:all;display:flex;align-items:center;justify-content:center;font-size:9px;letter-spacing:0.15em;
  color:rgba(200,150,42,0.6);font-family:'Space Mono';}
+/* Flashlight toggle button — mobile only, top-right of the joystick area */
+#fl-btn{position:absolute;bottom:136px;right:16px;width:46px;height:46px;border-radius:50%;
+ background:rgba(200,180,100,0.12);border:1px solid rgba(200,180,100,0.28);
+ pointer-events:all;display:flex;align-items:center;justify-content:center;
+ font-size:18px;color:rgba(220,200,130,0.8);touch-action:none;}
+#fl-btn.fl-on{background:rgba(200,180,100,0.28);border-color:rgba(220,200,130,0.6);}
 #meatchat{position:fixed;left:14px;bottom:96px;z-index:23;width:min(62vw,360px);pointer-events:none;
  display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;transition:opacity 0.5s ease;}
 #meatchat.mc-mobile{bottom:148px;width:min(72vw,300px);}
@@ -124,23 +139,33 @@ canvas{display:block;width:100vw!important;height:100vh!important;}
 .mc-row.mc-out{max-height:0;opacity:0!important;padding-top:0;padding-bottom:0;margin-top:0;}
 .mc-h{font-family:'Space Mono',monospace;font-weight:700;font-size:11px;color:#caa24a;white-space:nowrap;text-shadow:0 1px 4px rgba(0,0,0,0.9);}
 .mc-c{font-family:'Space Mono',monospace;font-size:12px;color:#dbe1e6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 4px rgba(0,0,0,0.95);}
-/* ── IN-GAME TV PLAYER (framed, world stays visible behind) ── */
-#tvplayer{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;
-  background:rgba(0,0,0,0.55);backdrop-filter:blur(2px);}
-#tvplayer.on{display:flex;}
-.tvp-frame{width:min(82vw,720px);aspect-ratio:16/9;background:#000;border:14px solid #0c0c0c;border-radius:8px;
-  box-shadow:0 0 0 2px #222,0 0 80px rgba(0,0,0,0.95);overflow:hidden;}
-#tv-iframe{display:block;width:100%;height:100%;}
-#tv-continue{position:fixed;right:6vw;top:50%;transform:translateY(-50%);display:none;
-  font-family:'Space Mono',monospace;font-size:12px;letter-spacing:0.22em;color:#e8c84a;text-transform:uppercase;
-  border:1px solid rgba(232,200,74,0.5);padding:16px 22px;cursor:pointer;max-width:170px;text-align:center;
-  animation:pulse 1.8s infinite;background:rgba(0,0,0,0.6);}
-#tv-continue.show{display:block;}
-#tv-continue:hover{background:rgba(232,200,74,0.16);}
-#tv-close{position:fixed;bottom:5vh;left:50%;transform:translateX(-50%);font-family:'Space Mono',monospace;
-  font-size:11px;letter-spacing:0.2em;color:rgba(200,200,190,0.6);cursor:pointer;border:1px solid rgba(200,200,190,0.25);padding:8px 16px;}
-#tv-close:hover{color:#fff;}
-
+@media (orientation:landscape) and (max-height:500px){
+  #meatchat{bottom:4px;width:min(44vw,260px);}
+  #meatchat.mc-mobile{bottom:4px;width:min(44vw,240px);}
+  .mc-row.mc-in{max-height:26px;padding-top:3px;padding-bottom:3px;}
+  .mc-row{margin-top:2px;}
+  .mc-h{font-size:9px;}
+  .mc-c{font-size:9px;}
+  #topbar{padding:4px 10px;}
+  #objective{top:28px;font-size:11px;}
+  #flashlight-hud{bottom:6px;}
+  #fps{bottom:4px;}
+}
+/* ── TV PORTAL (replaces the old #tv-continue popup) ── */
+#tvhint{position:fixed;left:50%;bottom:30%;transform:translateX(-50%);z-index:28;pointer-events:none;
+  font-family:'Space Mono',monospace;font-size:clamp(11px,1.7vw,13px);letter-spacing:0.3em;text-transform:uppercase;
+  text-align:center;width:84%;max-width:560px;color:#e8c84a;line-height:1.7;
+  text-shadow:0 0 14px rgba(232,200,74,0.45),0 2px 18px rgba(0,0,0,0.95);opacity:0;transition:opacity 0.45s;}
+#tvhint.show{opacity:1;}
+#tvhint.locked{color:#7bf0a0;text-shadow:0 0 18px rgba(123,240,160,0.6),0 2px 18px rgba(0,0,0,0.95);}
+#crosshair.tv-lock{opacity:0.95;}
+#crosshair.tv-lock::before,#crosshair.tv-lock::after{background:rgba(123,240,160,0.95);box-shadow:0 0 8px rgba(123,240,160,0.8);}
+#portalfade{position:fixed;inset:0;z-index:80;pointer-events:none;background:#000;opacity:0;transition:opacity 1.15s ease;}
+#portalfade.on{opacity:1;}
+#tvuv{position:fixed;left:12px;top:64px;z-index:92;display:none;font-family:'Space Mono',monospace;font-size:11px;
+  letter-spacing:1px;color:#7bf0a0;background:rgba(0,0,0,0.65);border:1px solid rgba(123,240,160,0.5);padding:5px 9px;
+  pointer-events:none;white-space:pre;line-height:1.5;}
+#tvuv.show{display:block;}
 </style>
 </head>
 <body>
@@ -152,17 +177,11 @@ canvas{display:block;width:100vw!important;height:100vh!important;}
 <div id="jumpscare"></div>
 <div id="deathscreen"><div id="death-text">YOU DIED</div><div id="death-sub">the darkness takes you back to the beginning</div></div>
 
-<div id="tvplayer">
-  <div class="tvp-frame">
-    <iframe id="tv-iframe" width="100%" height="100%" frameborder="0"
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-      referrerpolicy="strict-origin-when-cross-origin"></iframe>
-  </div>
-  <div id="tv-continue">ENTER The Vegan Backrooms &nbsp;✦&nbsp; #deanwithersgame</div>
-  <div id="tv-close">✕ step back</div>
-</div>
-
-
+<video id="tv-video" playsinline crossorigin="anonymous"
+  style="position:absolute;left:-9999px;width:1px;height:1px;pointer-events:none;"></video>
+<div id="tvhint"></div>
+<div id="tvuv"></div>
+<div id="portalfade"></div>
 
 <div id="title">
  <h1>GO DEAN<span class="s">Stage VIII — The Archive Opens</span></h1>
@@ -195,6 +214,13 @@ canvas{display:block;width:100vw!important;height:100vh!important;}
  <div id="objective"></div>
  <div id="crosshair"></div>
  <div id="level-badge"></div>
+ <!-- Flashlight HUD -->
+ <div id="flashlight-hud" class="fl-off">
+   <span class="fl-label">TORCH</span>
+   <span class="fl-bar" id="fl-bar">□□□□□</span>
+   <span id="fl-key" style="margin-left:6px;opacity:0.55;">[F]</span>
+ </div>
+ <div id="fps"></div>
 </div>
 
 <div id="interact">[ E ] Examine</div>
@@ -208,8 +234,10 @@ canvas{display:block;width:100vw!important;height:100vh!important;}
  <div class="joy" id="joyL"><div class="knob" id="knobL"></div></div>
  <div class="joy" id="joyR"><div class="knob" id="knobR"></div></div>
  <div id="interact-btn">E</div>
+ <div id="fl-btn">🔦</div>
 </div>
 
+<script src="https://unpkg.com/es-module-shims@1.10.0/dist/es-module-shims.js" crossorigin="anonymous"></script>
 <script type="importmap">
 {
   "imports": {
@@ -219,7 +247,6 @@ canvas{display:block;width:100vw!important;height:100vh!important;}
 }
 </script>
 <script>
-// On-screen error catcher — shows the real error instead of a silent brown screen.
 (function(){
   function showErr(msg){
     var d=document.getElementById('errbox');
@@ -232,6 +259,11 @@ canvas{display:block;width:100vw!important;height:100vh!important;}
     showErr('ERROR: ' + (e.message||'') + '\n  at ' + (e.filename||'') + ':' + (e.lineno||'') + ':' + (e.colno||''));
   });
   window.addEventListener('unhandledrejection', function(e){
+    var msg = e.reason && (e.reason.message || String(e.reason)) || '';
+    // Silently swallow non-fatal audio/media/abort promise rejections
+    if(/NotAllowedError|NotSupportedError|AbortError|play|interrupted|user.*gesture|media/i.test(msg)) {
+      e.preventDefault(); return;
+    }
     showErr('PROMISE REJECTION: ' + (e.reason && (e.reason.stack||e.reason.message||e.reason) || e.reason));
   });
 })();
@@ -242,12 +274,6 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js';
-
-// =========================================================
-//   GO DEAN — STAGE 7: THE ABATTOIR PYRAMID  (Merged v3)
-//   Base44 content + visuals | Claude engine + lighting
-// =========================================================
 
 // ─── CONTENT ────────────────────────────────────────────
 const OPENING = [
@@ -265,20 +291,14 @@ const ENDING = [
 ];
 
 const WALL_TEXTS_L1 = [
-  // Animal voices
-  "I wanted to live",
-  "I see their eyes watching me, haunting me",
-  "don't make me do it again",
+  "I wanted to live","I see their eyes watching me, haunting me","don't make me do it again",
   "I called for my mother. she didn't come. she was already gone.",
   "I recognised the smell before I understood what it meant",
   "I had a name in my own language. you never learned it.",
-  "I felt the cold floor and I knew",
-  "they were a sentient being",
+  "I felt the cold floor and I knew","they were a sentient being",
   "I nuzzled my newborn for four hours. that was all I got.",
   "I was curious. I was playful. I was afraid.",
-  // Facts
-  "friends not food",
-  "they call me crazy but it's actually PITS",
+  "friends not food","they call me crazy but it's actually PITS",
   "it's either the abattoir or a war-torn country",
   "you paid someone else to do it so you wouldn't have to feel it",
   "the smell never leaves the workers. you go home clean.",
@@ -287,7 +307,6 @@ const WALL_TEXTS_L1 = [
   "cows have been documented weeping when separated from their calves",
   "fish have nociceptors. they feel pain. the science settled this in 2003.",
   "chickens demonstrate self-control, empathy, and basic arithmetic",
-  // Direct address
   "why did you cry for Charlie Kirk and not an innocent pig",
   "you didn't think about it because you didn't have to",
   "the cow nuzzles her newborn. you decide what happens next.",
@@ -302,7 +321,6 @@ const WALL_TEXTS_L1 = [
   "you drew the line at dogs. who drew it there. who taught you that.",
 ];
 const WALL_TEXTS_L2 = [
-  // Industry facts — brutal, specific, real
   "there's a documented link between slaughterhouse work and domestic violence rates in surrounding counties",
   "the exploitation of animals was used as a blueprint by Davenport, Laughlin and the Nazis — eugenics paperwork came from animal pedigree records first",
   "they made you call it harvest. it was never harvest.",
@@ -323,23 +341,14 @@ const WALL_TEXTS_L2 = [
   "fish are suffocated over hours on ice. this is considered acceptable because they do not scream.",
   "the average person will consume 7,000 animals in their lifetime. none of them wanted to die.",
   "they live in their own waste. they never see daylight. they are called units.",
-  // Antagonist voices (satirical — the voices this game is about)
-  "imagine being this triggered over a steak lmao",
-  "more bacon for me",
-  "I literally just bought meat because of your post",
-  "go cry to your tofu",
-  "B12 deficiency speaking",
-  "lions eat meat, are you smarter than a lion",
-  "plants have feelings too sweetie",
-  "cope harder",
-  "mmm I can hear them screaming on my plate",
-  "PETA kills more animals than I do",
-  "your fish died? so what",
-  "soyboy",
-  "they were my favourite shoes, so I threw the cat in the river",
+  "imagine being this triggered over a steak lmao","more bacon for me",
+  "I literally just bought meat because of your post","go cry to your tofu",
+  "B12 deficiency speaking","lions eat meat, are you smarter than a lion",
+  "plants have feelings too sweetie","cope harder",
+  "mmm I can hear them screaming on my plate","PETA kills more animals than I do",
+  "your fish died? so what","soyboy",
 ];
 const WALL_TEXTS_L3 = [
-  // Existential / backrooms dread
   "I am not crazy. I am the first one in the room to not be crazy.",
   "the cute ones live. who taught you that rule.",
   "third option. there was always a third option.",
@@ -352,10 +361,7 @@ const WALL_TEXTS_L3 = [
   "you can leave. they couldn't.",
   "every door in here opens from your side",
   "the maze only feels endless because you keep choosing the same turns",
-  // Animal rights — deep and specific
-  "Please no Meat-mojing!",
-  "DEAD ANIMAL ICONOGRAPHY",
-  "MEAT-MOJING IS GROOMING",
+  "Please no Meat-mojing!","DEAD ANIMAL ICONOGRAPHY","MEAT-MOJING IS GROOMING",
   "the male chicks are macerated alive. you ordered the omelette.",
   "the fish gasps for an hour on ice. you call them brainless.",
   "plants feel pain — said only by people still eating animals",
@@ -371,7 +377,6 @@ const WALL_TEXTS_L3 = [
   "a dairy cow produces milk because she is perpetually pregnant. read that again.",
   "the intelligence of a pig exceeds that of a dog. you chose which one to eat.",
   "sharks are finned alive and thrown back. the ocean doesn't care about your sushi order.",
-  // Direct address / accusatory
   "you already know. you've known for a while.",
   "the information was always available. the choice was always there.",
   "convenience is not a moral argument. you know this.",
@@ -391,7 +396,6 @@ const CHAR_QUOTES = [
   { who:"DEAN WITHERS", q:"I'd do anything for a Hello Fresh sponsorship." },
   { who:"DEAN WITHERS", q:"If you don't let me speak I won't go vegan." },
 ];
-// ─── POWER-UP GLYPHS (Stage 8) ───────────────────────────
 const POWERUPS=[
   {key:'sanity', label:'THE ATTENBOROUGH GLYPH', color:0x40ff90, quote:"observe the specimen. this is the calm before the knowing."},
   {key:'health', label:'THE FIRST BLOOD GLYPH',  color:0xff5050, quote:"the body keeps its own ledger. it merely defers."},
@@ -401,6 +405,7 @@ const POWERUPS=[
 ];
 const allPowerups=[];
 const powerupsByLevel={};
+const stairLightRefs=[];
 let speedBoostUntil=0, invulnUntil=0;
 function powerupTex(color){
   const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d');
@@ -413,10 +418,8 @@ function powerupTex(color){
 function ensurePowerupsForLevel(lv){
   if(powerupsByLevel[lv]) return; powerupsByLevel[lv]=true;
   const map=MAPS[lv-1]; const grp=levelGroups[lv]; if(!grp) return;
-  // gather candidate cells, spread out
   const cands=[];
   for(let z=4;z<GRID-4;z+=1) for(let x=4;x<GRID-4;x+=1){ if(map[z*GRID+x]===0) cands.push([x,z]); }
-  // pick ~4 well-separated spots per level
   const placed=[];
   for(let i=0;i<cands.length && placed.length<4;i++){
     const c=cands[(Math.random()*cands.length)|0];
@@ -426,7 +429,7 @@ function ensurePowerupsForLevel(lv){
     const pu=POWERUPS[(i+lv)%POWERUPS.length];
     const mat=new THREE.SpriteMaterial({map:powerupTex(pu.color),transparent:true,depthWrite:false});
     const sprite=new THREE.Sprite(mat); sprite.scale.set(0.6,0.6,1); sprite.position.set(c[0]+0.5,1.2,c[1]+0.5); grp.add(sprite);
-    const light=new THREE.PointLight(pu.color,0.8,4,2); light.position.set(c[0]+0.5,1.2,c[1]+0.5); grp.add(light);
+    const light=new THREE.PointLight(pu.color,0.6,12,1.5); light.position.set(c[0]+0.5,1.2,c[1]+0.5); grp.add(light);
     allPowerups.push({sprite,light,lv,x:c[0]+0.5,z:c[1]+0.5,collected:false,def:pu,phase:Math.random()*7});
   });
 }
@@ -453,7 +456,6 @@ function applyPowerup(def){
   const hr=$('hiero-reveal'); if(hr){ hr.classList.remove('show'); void hr.offsetWidth; hr.textContent=def.label+' — '+def.quote; hr.classList.add('show'); setTimeout(()=>hr.classList.remove('show'),4500); }
 }
 
-// ─── STAGE 8 SUPPLEMENTARY WALL LORE (added to existing pools, not replacing) ──
 const S8_WALL_L1=[
   "you parade progressive values, yet your plate is a graveyard of the sentient",
   "why is a heartbeat only worth protecting when it speaks your language",
@@ -503,52 +505,21 @@ function observerWhisper(approach){
   if(observerLineCD>0) return;
   const pool=approach?OBSERVER_APPROACH:OBSERVER_WATCHING;
   whisperLine(pool[(Math.random()*pool.length)|0]);
-  observerLineCD=520; // ~ don't spam
+  observerLineCD=520;
 }
 
 const WHISPER_LINES = [
-  // Animal voices
-  "I wanted to live",
-  "I called for her",
-  "I was afraid",
-  "I felt the cold floor",
-  "I had a name",
-  "please",
-  "I knew",
-  "don't make me do it again",
-  "I nuzzled her for four hours",
-  "I recognised the smell",
-  // Accusations
-  "you already know",
-  "the receipt is the confession",
-  "you drew the line at dogs",
-  "you outsourced your conscience",
-  "you scrolled past",
-  "you didn't have to feel it",
-  "every excuse you have, they had it too",
-  "give one of them a name",
-  "the distance is a supply chain",
-  "normal and right are different words",
-  // Atmosphere
-  "I see their eyes watching me",
-  "they call me crazy",
-  "I am not crazy",
-  "the cute ones live",
-  "Please no Meat-mojing",
-  "the kid is still in here",
-  "the walls have been here longer than the excuse",
-  "you can leave. they couldn't.",
-  "the bolt gun",
-  "fifteen calories in",
-  "the cheese is the crime",
-  "read that again",
-  "slow down and do that maths",
-  "the smile is a grimace",
+  "I wanted to live","I called for her","I was afraid","I felt the cold floor","I had a name","please","I knew",
+  "don't make me do it again","I nuzzled her for four hours","I recognised the smell",
+  "you already know","the receipt is the confession","you drew the line at dogs","you outsourced your conscience",
+  "you scrolled past","you didn't have to feel it","every excuse you have, they had it too","give one of them a name",
+  "the distance is a supply chain","normal and right are different words",
+  "I see their eyes watching me","they call me crazy","I am not crazy","the cute ones live",
+  "Please no Meat-mojing","the kid is still in here","the walls have been here longer than the excuse",
+  "you can leave. they couldn't.","the bolt gun","fifteen calories in","the cheese is the crime",
+  "read that again","slow down and do that maths","the smile is a grimace",
 ];
 
-// ─── MEAT-CHAT FEED CONTENT (scrolling comment overlay) ──
-// New feature. Fictional handles + meat-bully comments. The two camp-referencing lines from the
-// brief are kept verbatim (once each) and intentionally NOT expanded.
 const MEAT_HANDLES=[
   "@ribeye_reverend","@wagyu4prez","@beeflord_88","@dean_stan","@dean_4ever","@carnivore_chad",
   "@grillpilled","@bacon_bishop","@sirloin_supreme","@t_bone_titan","@brisket_baron","@prime_cut_pete",
@@ -609,7 +580,6 @@ const MEAT_COMMENTS=[
   "protein over everything","carnivore diet changed my life","i only eat things with a face",
   "meat tastes too good to quit","sorry not sorry i love steak",
   "Treblinkaaaaa","oh it was a concentration camp, I'm doomed",
-  // ── Stage-7 set: the chat starts cracking / reading the walls / having the crisis ──
   "are we MAGA?","wait I thought we fight MAGA","why are we eating vegans","aren't we against exploitation",
   "w for confusion","Momo is food now?","Guys are we eating Momo now?","Why are we eating Momo","Momo for prez",
   "Momo for dinner","Momo rib-eye","W for cat rib-eye","where's Momo","Momo MIA lately","Dean?","Did Dean eat Momo?",
@@ -626,56 +596,17 @@ const MEAT_COMMENTS=[
   "wait the pig thing is actually messing me up","I thought we were winning","what is the W even for anymore",
   "Dean are you still there","I came for the ratio and stayed for the existential dread","hold on let me think",
   "why do I feel weird suddenly","are we allowed to feel bad for the pig","I think I accidentally agreed with a vegan",
-  "don't tell the others","wait is Charlie Kirk pro factory farming","would Charlie care about the pig",
-  "Dean is this still fun","I started reading the walls and now I can't stop","the pig thing is haunting me a little ngl",
-  "wait we're against exploitation right","so why is the pig different","I didn't come here to grow as a person",
-  "Dean say something reassuring","W for... what exactly","I think the chat is having a breakdown",
-  "am I being radicalised right now","which direction though","I feel like I walked into the wrong pyramid",
-  "the cow thing got me","I'm not saying I'm vegan I'm just saying","don't finish that sentence",
-  "Dean would you eat a dog","don't answer that Dean","why is no one else freaking out",
-  "I am fully lost and slightly upset","this isn't the content I ordered","W for getting uncomfortable I guess",
-  "are we pro animal or pro Dean","can it be both","what if it can't","what if Dean is also confused",
-  "what if we're all confused","I need Dean to tell me this is fine","is this fine","it's not fine is it",
-  "I came to dunk on vegans and now I'm googling gestation crates","send help","why did I read that wall",
-  "I can't unread that wall","the 1100 pigs per hour thing","I did the maths","I wish I hadn't done the maths",
-  "Dean are YOU okay","has anyone checked on Dean","W for collective identity crisis",
-  "I feel like this game is doing something to me","is anyone else's sanity bar low","mine is very low",
-  "I thought the sanity bar was a joke","it was not a joke","the chat arguing with itself is sending me",
-  "are we pro exploitation or anti exploitation someone decide",
-  "I think we might be pro exploitation and I don't feel great about it","Dean I need leadership right now",
-  "Dean has gone quiet","why has Dean gone quiet","okay but the dog comparison","I have a dog",
-  "I don't want to think about this","too late","W for denial","L for whoever made me think about this",
-  "wait that's us","we did this to ourselves","the meat chat is eating itself","poetic","I hate it here",
-  "I also can't leave","why can't I leave","Dean would leave","would he though","has Dean left",
-  "I think the pyramid got Dean","I think the pyramid got all of us","W for","W for...","...",
+  "don't tell the others","delete this","W for deleting this","too late it's in the walls now",
   "I had a steak for dinner and now I feel like I owe someone an apology","not going vegan but like",
-  "okay maybe thinking about it","don't tell anyone","delete this","W for deleting this",
-  "too late it's in the walls now","Billie Eilish hates me","Ariana Grande though","that's Pete's fault",
-  "frankly Dean ur MAGA","MAGA is meat","make America steak again","legit mom steak plz",
-  "wait are vegans our allies against MAGA","this is so confusing I need a burger","Dean are you MAGA",
-  "Dean say you're not MAGA","Dean is suspiciously quiet about the MAGA thing","I thought we were the anti MAGA guys",
-  "so MAGA eats meat and we eat meat and","don't finish that","Billie Eilish is vegan and she's cooler than all of us",
-  "don't say it","I said it","Ariana is tiny and vegan and could destroy us all","that's just facts",
-  "Pete ate the meat though right","that's Pete's whole thing","leave Pete out of this",
-  "Pete would understand this pyramid","Dean what would Pete do","make America think again",
-  "make America feel bad again","MABA","what does MABA stand for","make abattoirs bearable again","no",
-  "W for trying","are we fighting MAGA or joining them via meat","the venn diagram is upsetting me",
-  "I didn't come here to see the venn diagram","too late you saw the venn diagram","Dean drew the venn diagram",
-  "did he mean to","Dean means everything he does","does he though","the pig is the only one who knew what was happening",
-  "the pig always knew","I'm on the pig's side now","too late the others are also on the pig's side",
-  "the chat has defected","W for pig","L for us","make America grateful again","mom says dinner",
-  "mom what are we having","mom don't answer that","is that pig Latin","idk ask him","press the read icon!",
-  "Why is he not moving?","Bro can't play","bro press read!","Bro torches heal","don't descend too soon",
-  "I think he's trapped","stuck in backroom","Dean in backrooms lol","L liminal debate","lineal debate?",
-  "*Liminal","W for sarcophagus","L for curse","Where are we?","Where did Tiktok go?","This isn't tiktok",
-  "what are we","why are we","hi guys","hey Dean","love U Dean","Dean is so hot","Deans hot in game",
-  "do we donate?","Does game take gifts?","Hahaha Dean","L Dean","my fish died today","this seems fishy",
-  "I'm going fishing","How'd we get here",
-  // ── meta-panic set: the chat notices the entities / breaks the fourth wall ──
+  "okay maybe thinking about it","don't tell anyone",
   "behind you Dean!","Ghost Parker?","Omg","ongod behind you bro","is that Charlie Kirk?","Dean run!",
   "Don't say that","please","mods?","Where are the mods??","Now we're doing meta chat?","Really earthling?",
   "This game should be banned","W for Banning games","ban veganism","W for kirks ghost","W for Dean cult",
   "earthlings a plant","vegan is a plant now?","EL stop making me chat","EL I didn't say this!",
+  "press the read icon!","Why is he not moving?","Bro can't play","bro press read!","Bro torches heal",
+  "don't descend too soon","I think he's trapped","stuck in backroom","Dean in backrooms lol",
+  "hi guys","hey Dean","love U Dean","Dean is so hot","do we donate?","Hahaha Dean","L Dean",
+  "my fish died today","this seems fishy","I'm going fishing","How'd we get here",
 ];
 
 // ─── RENDERER ────────────────────────────────────────────
@@ -685,62 +616,47 @@ const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent) || ('ontouchst
 renderer.setPixelRatio(isMobile ? Math.min(devicePixelRatio, 1.0) : Math.min(devicePixelRatio, 1.4));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = false;
-// ── ACES filmic tone mapping. The composer applies it via OutputPass at the very end. ──
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = isMobile ? 1.10 : 1.15;
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0x1a1008, 0.055);
 scene.background = new THREE.Color(0x1a1008);
-const camera = new THREE.PerspectiveCamera(76, innerWidth/innerHeight, 0.04, 80);
+const camera = new THREE.PerspectiveCamera(76, innerWidth/innerHeight, 0.04, isMobile?36:80);
 const cam = { x:16.5, z:16.5, angle:0, y:1.65, pitch:0 };
 const MAX_PITCH = 0.88;
 
-// ─── POST-PROCESSING (EffectComposer) ────────────────────
-// Master switch: set POST_ENABLED=false to fully restore the plain renderer.render() path.
-const POST_ENABLED = true;
-const SSAO_ENABLED = false; // OFF: SSAOPass renders black on some GPUs (silent, no throw). Bloom/ACES/normal maps stay on.
-// Bloom is the priority — it makes the emissive elements glow: torch flames, L1 embers
-// (0xff7010), L2 red lamps (0xff1100), L3 fluorescent strips (0xffe2a0), the staircase arrow.
-// Mobile: bloom at HALF internal resolution + lower strength, plus ACES (nearly free).
-// Desktop (added in buildComposer): SSAO corner occlusion + normal-mapped walls.
-const BLOOM_STRENGTH  = isMobile ? 0.52 : 0.80;
-const BLOOM_RADIUS    = isMobile ? 0.85 : 0.55; // wider on mobile -> smears low-res samples so bloom stays round, not blocky
-const BLOOM_THRESHOLD = 0.90; // nudge toward 1.0 if L2's bright red ever blooms too hard
+// ─── POST-PROCESSING ────────────────────────────────────
+const POST_ENABLED = !isMobile;
+const BLOOM_STRENGTH  = 0.92;
+const BLOOM_RADIUS    = 0.62;
+const BLOOM_THRESHOLD = 0.82;
 function bloomRes(){
-  const s = isMobile ? 0.34 : 1.0; // lower-res bloom on mobile for framerate; the wide radius hides the squares
+  // PERF: desktop bloom at 60% resolution — good visual/cost balance
+  const s = 0.60;
   return new THREE.Vector2(Math.max(1, Math.floor(innerWidth * s)), Math.max(1, Math.floor(innerHeight * s)));
 }
-let composer = null, bloomPass = null, ssaoPass = null, usePost = false;
+let composer = null, bloomPass = null, usePost = false;
 function buildComposer(){
   if(!POST_ENABLED) return;
   try{
     composer = new EffectComposer(renderer);
     composer.setPixelRatio(renderer.getPixelRatio());
     composer.setSize(innerWidth, innerHeight);
-    if(!isMobile && SSAO_ENABLED){
-      // SSAOPass renders the scene itself (beauty + AO), so it stands in for RenderPass on desktop.
-      ssaoPass = new SSAOPass(scene, camera, innerWidth, innerHeight);
-      ssaoPass.kernelRadius = 0.5;    // tuned for the ~1-unit grid scale
-      ssaoPass.minDistance  = 0.0008;
-      ssaoPass.maxDistance  = 0.06;
-      composer.addPass(ssaoPass);
-    } else {
-      composer.addPass(new RenderPass(scene, camera));
-    }
+    composer.addPass(new RenderPass(scene, camera));
     bloomPass = new UnrealBloomPass(bloomRes(), BLOOM_STRENGTH, BLOOM_RADIUS, BLOOM_THRESHOLD);
     composer.addPass(bloomPass);
-    composer.addPass(new OutputPass()); // ACES tone map + sRGB conversion, last in the chain
+    composer.addPass(new OutputPass());
     usePost = true;
   }catch(err){
-    console.warn('Post-processing failed to initialise — using direct render.', err);
+    console.warn('Post-processing failed — using direct render.', err);
     composer = null; usePost = false;
   }
 }
 buildComposer();
 
 // ─── AUDIO ──────────────────────────────────────────────
-let AC=null, master=null, ambientNode=null, sfxGain=null, audioStarted=false;
+let AC=null, master=null, sfxGain=null;
 function initAudio(){
   if(AC) return;
   try{ AC=new(window.AudioContext||window.webkitAudioContext)(); }catch(e){ return; }
@@ -752,7 +668,6 @@ function unlockAudio(){ if(!AC) initAudio(); if(AC&&AC.state==='suspended') AC.r
 let currentAmbientGain=null;
 function startAmbient(level){
   if(!AC) return;
-  // Fade out old ambient
   if(currentAmbientGain){
     const g=currentAmbientGain;
     g.gain.cancelScheduledValues(AC.currentTime);
@@ -761,32 +676,22 @@ function startAmbient(level){
   }
   const newGain=AC.createGain(); newGain.gain.value=0; newGain.connect(master);
   currentAmbientGain=newGain;
-
   const makeOsc=(type,freq,vol,dest)=>{
     const o=AC.createOscillator(),g=AC.createGain();
     o.type=type; o.frequency.value=freq; g.gain.value=vol;
-    o.connect(g); if(dest) g.connect(dest); o.start(); return o;
+    o.connect(g); g.connect(dest); o.start(); return o;
   };
-  const makeFilt=(type,freq,src,dest)=>{
-    const f=AC.createBiquadFilter(); f.type=type; f.frequency.value=freq;
-    src.connect(f); f.connect(dest); return f;
-  };
-
   if(level===1){
-    // Stone pyramid: low sub + warm wind pad
-    const sub=makeOsc('sine',28,0,newGain); sub.frequency.value=28;
+    const sub=AC.createOscillator(); sub.type='sine'; sub.frequency.value=28; sub.start();
     const sg=AC.createGain(); sg.gain.value=0.11; sub.connect(sg); sg.connect(newGain);
-    const pad=makeOsc('triangle',82,0.05,newGain);
-    const lfo=makeOsc('sine',0.018,0,null);
-    const lg=AC.createGain(); lg.gain.value=0.032;
-    lfo.connect(lg); lg.connect(AC.createGain()); // just run the lfo
-    makeOsc('sawtooth',55,0,null); // wind tone through filter
+    makeOsc('triangle',82,0.05,newGain);
+    const lfo=AC.createOscillator(); lfo.type='sine'; lfo.frequency.value=0.018; lfo.start();
+    const lg=AC.createGain(); lg.gain.value=0.032; lfo.connect(lg);
     const wOsc=AC.createOscillator(); wOsc.type='sawtooth'; wOsc.frequency.value=55; wOsc.start();
     const wf=AC.createBiquadFilter(); wf.type='lowpass'; wf.frequency.value=110;
     const wg=AC.createGain(); wg.gain.value=0.035;
     wOsc.connect(wf); wf.connect(wg); wg.connect(newGain);
   } else if(level===2){
-    // Industrial: 60hz hum + mechanical drone
     const humOsc=AC.createOscillator(); humOsc.type='sawtooth'; humOsc.frequency.value=60; humOsc.start();
     const hf=AC.createBiquadFilter(); hf.type='lowpass'; hf.frequency.value=180;
     const hg=AC.createGain(); hg.gain.value=0.022;
@@ -796,7 +701,6 @@ function startAmbient(level){
     const high=AC.createOscillator(); high.type='triangle'; high.frequency.value=220;
     const highG=AC.createGain(); highG.gain.value=0.016; high.connect(highG); highG.connect(newGain); high.start();
   } else {
-    // Backrooms: fluorescent buzz + deep drone + choir breath
     const humOsc=AC.createOscillator(); humOsc.type='sawtooth'; humOsc.frequency.value=60; humOsc.start();
     const hf=AC.createBiquadFilter(); hf.type='lowpass'; hf.frequency.value=200;
     const hg=AC.createGain(); hg.gain.value=0.017;
@@ -846,104 +750,64 @@ const sfx={
   moo(){ tone(100,'sine',1.5,0.14,-40); tone(70,'sine',2,0.09,-25); },
   flick(){ noise(0.05,0.12,2500); tone(60,'square',0.1,0.06); },
   strobeHit(){ noise(0.03,0.25,6000); tone(80,'square',0.08,0.08); },
+  // Flashlight click — short plastic click on toggle
+  flashlightOn(){ noise(0.03,0.18,4000); tone(800,'square',0.04,0.06); },
+  flashlightOff(){ noise(0.04,0.12,2000); tone(400,'square',0.04,0.04); },
+  flashlightLow(){ tone(220,'sine',0.4,0.05,-80); noise(0.1,0.05,600); }, // low battery warning flicker
 };
 
-// ─── MAPS (32x32 per level) ──────────────────────────────
+// ─── MAPS ────────────────────────────────────────────────
 const GRID=64;
-
-// Special coordinates populated by the map builders (corridor-end exits, secret room).
 const MAP_MARKERS={
   l1_start:[6,6], l1_exit:[32,58], l1_secretDoor:[54,10], l1_secretCenter:[57,7],
-  l2_start:[6,6], l2_exit:[58,54],
-  l3_start:[6,6], l3_exit:[58,58],
+  l2_start:[6,6], l2_exit:[58,54], l2_ascend:[8,8],
+  l3_start:[6,6], l3_exit:[58,58], l3_ascend:[8,8],
 };
-
 function carveInto(M,x,y,w,h){ for(let j=0;j<h;j++) for(let i=0;i<w;i++){ const gx=x+i,gy=y+j; if(gx>0&&gx<GRID-1&&gy>0&&gy<GRID-1) M[gy*GRID+gx]=0; } }
-
 function buildMap1(){
   const M=new Array(GRID*GRID).fill(1);
   const carve=(x,y,w,h)=>carveInto(M,x,y,w,h);
-  // Entrance hall (start at [6,6])
-  carve(3,3,12,12);
-  // Branch rooms off the entrance, all connected by short links
-  carve(3,16,8,7);  carve(7,14,3,3);           // lower-left chamber + link up to hall
-  // Main horizontal spine across the top (z 5..7), connected to the hall
-  carve(12,5,40,3);                             // long upper corridor hall->right (overlaps hall at x12-14)
-  // upper + mid rooms hang off the spine
-  carve(16,3,7,3);  carve(18,6,3,2);            // upper room + link down to spine
-  carve(16,9,8,6);  carve(18,8,3,2);            // mid room + link up to spine
-  // Secret-room wing on the right, entered via glyph door at [54,10]
-  carve(48,5,9,9);                              // antechamber (touches spine at z5-7)
-  carve(52,4,10,11);                            // the secret chamber
-  for(let j=4;j<15;j++){ M[j*GRID+51]=1; }      // seal chamber's left wall
-  M[10*GRID+51]=0; M[10*GRID+52]=0;             // the glyph DOOR (two cells)
-  // Central chamber + the LONG descent corridor to the exit
-  carve(14,26,8,8);                             // central chamber
-  carve(17,14,3,14);                            // entrance/mid down to central (connects hall row14)
-  carve(17,33,3,18);                            // long corridor straight down
-  carve(17,49,20,3);                            // turn right
-  carve(34,49,3,9);                             // down to exit
-  carve(30,55,8,6);                             // exit pad (exit marker [32,58])
-  // explorable branch rooms off the long corridor (for glyphs/torches)
-  carve(8,38,8,6);  carve(15,40,3,3);           // left branch + link to corridor
-  carve(22,44,8,6);  carve(20,46,3,3);          // right branch + link
+  carve(3,3,12,12); carve(3,16,8,7); carve(7,14,3,3);
+  carve(12,5,40,3); carve(16,3,7,3); carve(18,6,3,2);
+  carve(16,9,8,6); carve(18,8,3,2); carve(48,5,9,9); carve(52,4,10,11);
+  for(let j=4;j<15;j++){ M[j*GRID+51]=1; }
+  M[10*GRID+51]=0; M[10*GRID+52]=0;
+  carve(14,26,8,8); carve(17,14,3,14); carve(17,33,3,18); carve(17,49,20,3);
+  carve(34,49,3,9); carve(30,55,8,6); carve(8,38,8,6); carve(15,40,3,3);
+  carve(22,44,8,6); carve(20,46,3,3);
   return M;
 }
-
 function buildMap2(){
   const M=new Array(GRID*GRID).fill(1);
   const carve=(x,y,w,h)=>carveInto(M,x,y,w,h);
-  // Start area (top-left) + cluster of works rooms, all chained left-to-right
-  carve(3,3,14,11);
-  carve(3,15,11,9);  carve(7,13,3,3);           // lower room + link
-  carve(15,4,11,10); carve(15,5,3,3);           // upper-mid room + link to start
-  carve(24,6,12,3);                             // corridor right
-  carve(26,9,10,9);                             // mid room
-  carve(28,4,3,3);                              // link mid-corridor up
-  carve(34,7,10,3);                             // continue corridor right to the wide run
-  // THE LONG WIDE CORRIDOR (4 wide) down the right side, with turns, to exit [58,54]
-  carve(40,6,4,32);
-  carve(20,34,24,4);                            // wide turn left
-  carve(20,38,4,16);                            // down
-  carve(20,52,40,4);                            // final wide run right to exit
-  // branch rooms off the corridor
-  carve(46,14,8,7); carve(44,16,2,2);
-  carve(46,30,8,7); carve(44,32,2,2);
-  carve(8,40,9,8);  carve(17,43,3,3);           // left branch + link to down-corridor
+  carve(3,3,14,11); carve(3,15,11,9); carve(7,13,3,3);
+  carve(15,4,11,10); carve(15,5,3,3); carve(24,6,12,3); carve(26,9,10,9);
+  carve(28,4,3,3); carve(34,7,10,3); carve(40,6,4,32); carve(20,34,24,4);
+  carve(20,38,4,16); carve(20,52,40,4); carve(46,14,8,7); carve(44,16,2,2);
+  carve(46,30,8,7); carve(44,32,2,2); carve(8,40,9,8); carve(17,43,3,3);
   carve(46,44,8,7); carve(44,46,2,2);
   return M;
 }
-
 function buildMap3(){
   const M=new Array(GRID*GRID).fill(1);
   const carve=(x,y,w,h)=>carveInto(M,x,y,w,h);
-  // Backrooms — sprawling grid of corridors + rooms of varying size, endless feel
-  // perimeter ring
   carve(3,3,58,2); carve(3,59,58,2); carve(3,3,2,58); carve(59,3,2,58);
-  // horizontal corridors
   carve(3,12,58,2); carve(3,22,58,2); carve(3,32,58,2); carve(3,42,58,2); carve(3,52,58,2);
-  // vertical corridors
   carve(12,3,2,58); carve(22,3,2,58); carve(32,3,2,58); carve(42,3,2,58); carve(52,3,2,58);
-  // rooms of varying size scattered through
   carve(5,5,6,6); carve(25,5,6,6); carve(45,5,9,6);
   carve(5,25,6,6); carve(34,24,7,7); carve(54,25,5,6);
   carve(14,34,8,7); carve(44,34,8,7); carve(24,44,7,7);
   carve(5,44,6,6); carve(54,44,5,6); carve(34,44,8,7);
   carve(14,14,7,7); carve(44,14,7,7); carve(24,24,8,7);
-  // start area + a long approach to the far exit at [58,58]
-  carve(4,4,8,8);
-  carve(54,54,6,6);
+  carve(4,4,8,8); carve(54,54,6,6);
   return M;
 }
-
 const MAPS=[buildMap1(),buildMap2(),buildMap3()];
-
 function cellAt(map,x,z){ const gx=Math.floor(x),gz=Math.floor(z); if(gx<0||gx>=GRID||gz<0||gz>=GRID) return 1; return map[gz*GRID+gx]; }
 function solidAt(map,x,z){ return cellAt(map,x,z)===1; }
 
 // ─── TEXTURES ────────────────────────────────────────────
 function mkTex(fn){ const t=new THREE.CanvasTexture(fn()); t.wrapS=t.wrapT=THREE.RepeatWrapping; return t; }
-
 function stoneTex(){
   const c=document.createElement('canvas'); c.width=c.height=256; const x=c.getContext('2d');
   const g=x.createLinearGradient(0,0,256,256);
@@ -999,24 +863,18 @@ function metalFloorTex(){
   return c;
 }
 function wallpaperTex(){
-  // Stage 8 backrooms: pale sickly fluorescent yellow, damp/wet. One tone, smooth, with
-  // streaking moisture runs and faint pooled stains so hidden lights catch a wet sheen.
   const c=document.createElement('canvas'); c.width=c.height=256; const x=c.getContext('2d');
   const g=x.createLinearGradient(0,0,0,256);
   g.addColorStop(0,'#e8e0a8'); g.addColorStop(0.5,'#dcd092'); g.addColorStop(1,'#cabf78');
   x.fillStyle=g; x.fillRect(0,0,256,256);
-  // faint vertical moisture streaks running down the wall
   for(let i=0;i<40;i++){
     const sx=Math.random()*256, w=1+Math.random()*3, len=60+Math.random()*180, sy=Math.random()*80;
     const lg=x.createLinearGradient(sx,sy,sx,sy+len);
     lg.addColorStop(0,'rgba(150,135,70,0)'); lg.addColorStop(0.5,`rgba(120,105,55,${0.05+Math.random()*0.12})`); lg.addColorStop(1,'rgba(150,135,70,0)');
     x.fillStyle=lg; x.fillRect(sx,sy,w,len);
   }
-  // pooled damp stains — darker, irregular
   for(let i=0;i<6;i++){ const sx=Math.random()*256,sy=Math.random()*256,sr=20+Math.random()*55; const rg=x.createRadialGradient(sx,sy,2,sx,sy,sr); rg.addColorStop(0,`rgba(110,98,50,${0.18+Math.random()*0.2})`); rg.addColorStop(1,'rgba(110,98,50,0)'); x.fillStyle=rg; x.beginPath(); x.arc(sx,sy,sr,0,7); x.fill(); }
-  // very fine speckle so it isn't dead-flat
   for(let i=0;i<1200;i++){ const v=Math.random()*20; x.fillStyle=`rgba(${200+v},${188+v},${120+v},${Math.random()*0.15})`; x.fillRect(Math.random()*256,Math.random()*256,1,1); }
-  // a few bright wet highlights (specular hint baked in)
   for(let i=0;i<10;i++){ const sx=Math.random()*256,sy=Math.random()*256,sr=3+Math.random()*8; const rg=x.createRadialGradient(sx,sy,0,sx,sy,sr); rg.addColorStop(0,'rgba(255,252,225,0.22)'); rg.addColorStop(1,'rgba(255,252,225,0)'); x.fillStyle=rg; x.beginPath(); x.arc(sx,sy,sr,0,7); x.fill(); }
   return c;
 }
@@ -1035,29 +893,14 @@ function ceilFluoTex(){
   for(let i=0;i<2;i++){ const sx=Math.random()*128,sy=Math.random()*128,sr=8+Math.random()*12; const rg=x.createRadialGradient(sx,sy,1,sx,sy,sr); rg.addColorStop(0,'rgba(60,40,15,0.5)'); rg.addColorStop(1,'rgba(60,40,15,0)'); x.fillStyle=rg; x.beginPath(); x.arc(sx,sy,sr,0,7); x.fill(); }
   return c;
 }
-
-// Pre-build all textures once
 const TEX={
-  stone: mkTex(stoneTex),
-  stoneCeil: mkTex(stoneCeilTex),
-  stoneSand: mkTex(stoneSandTex),
-  metal: mkTex(metalTex),
-  metalFloor: mkTex(metalFloorTex),
-  wallpaper: mkTex(wallpaperTex),
-  carpet: mkTex(carpetTex),
-  ceilFluo: mkTex(ceilFluoTex),
+  stone: mkTex(stoneTex), stoneCeil: mkTex(stoneCeilTex), stoneSand: mkTex(stoneSandTex),
+  metal: mkTex(metalTex), metalFloor: mkTex(metalFloorTex),
+  wallpaper: mkTex(wallpaperTex), carpet: mkTex(carpetTex), ceilFluo: mkTex(ceilFluoTex),
 };
-TEX.stone.repeat.set(1,1.2);
-TEX.stoneCeil.repeat.set(GRID/4,GRID/4);
-TEX.stoneSand.repeat.set(GRID,GRID);
-TEX.metal.repeat.set(1,1.5);
-TEX.metalFloor.repeat.set(GRID/2,GRID/2);
-TEX.wallpaper.repeat.set(1,1.4);
-TEX.carpet.repeat.set(GRID,GRID);
-TEX.ceilFluo.repeat.set(GRID/2,GRID/2);
-
-// ─── NORMAL MAPS (desktop only) ──────────────────────────
-// Derive a normal map from a diffuse canvas via a Sobel height->normal pass, for wall surface depth.
+TEX.stone.repeat.set(1,1.2); TEX.stoneCeil.repeat.set(GRID/4,GRID/4); TEX.stoneSand.repeat.set(GRID,GRID);
+TEX.metal.repeat.set(1,1.5); TEX.metalFloor.repeat.set(GRID/2,GRID/2);
+TEX.wallpaper.repeat.set(1,1.4); TEX.carpet.repeat.set(GRID,GRID); TEX.ceilFluo.repeat.set(GRID/2,GRID/2);
 function mkNormal(srcCanvas, strength){
   const w=srcCanvas.width, h=srcCanvas.height;
   const src=srcCanvas.getContext('2d').getImageData(0,0,w,h).data;
@@ -1084,9 +927,7 @@ if(!isMobile){
   NMAP.wallpaper=mkNormal(wallpaperTex(),0.8); NMAP.wallpaper.repeat.set(1,1.4);
 }
 
-// Writing texture — auto-sizes height to text length so decal can stay narrow
 function writingTex(text,style,forHiero=false){
-  // pre-measure to decide canvas aspect
   const isShort = text.length<=24;
   const isMedium = text.length<=60;
   const cw = 512;
@@ -1107,7 +948,6 @@ function writingTex(text,style,forHiero=false){
   lines.forEach((l,i)=> x.fillText(l, cw/2, start+i*lh));
   return new THREE.CanvasTexture(c);
 }
-
 function hieroglyphTex(seed){
   const c=document.createElement('canvas'); c.width=512; c.height=256; const x=c.getContext('2d');
   x.fillStyle='rgba(45,32,15,0.9)'; x.fillRect(0,0,512,256);
@@ -1124,13 +964,10 @@ function hieroglyphTex(seed){
   }
   return new THREE.CanvasTexture(c);
 }
-
-// Blood-smeared obscured texture for L2 — looks like writing but illegible
 function smearedTex(seed){
   const c=document.createElement('canvas'); c.width=512; c.height=512; const x=c.getContext('2d');
   x.fillStyle='rgba(20,4,4,0.85)'; x.fillRect(0,0,512,512);
   const rng=(n)=>{ let s=seed+n*13; s=Math.sin(s)*43758.5453; return s-Math.floor(s); };
-  // streaks
   for(let i=0;i<8;i++){
     const sy=80+i*50+rng(i)*15;
     const grd=x.createLinearGradient(40,sy,470,sy);
@@ -1138,52 +975,36 @@ function smearedTex(seed){
     grd.addColorStop(0.3,`rgba(${100+rng(i+1)*60},${15+rng(i+2)*15},15,${0.5+rng(i+3)*0.3})`);
     grd.addColorStop(0.8,`rgba(${80+rng(i+4)*40},10,10,${0.4+rng(i+5)*0.3})`);
     grd.addColorStop(1,'rgba(60,5,5,0)');
-    x.fillStyle=grd;
-    x.fillRect(40,sy-12,430,18+rng(i+6)*8);
+    x.fillStyle=grd; x.fillRect(40,sy-12,430,18+rng(i+6)*8);
   }
-  // smudges suggesting words
   for(let i=0;i<40;i++){
     x.fillStyle=`rgba(${150+rng(i*7)*50},${20+rng(i*9)*20},20,${0.4+rng(i*11)*0.4})`;
     const cx=60+rng(i*3)*400, cy=70+rng(i*5)*380, w=8+rng(i*13)*20, h=4+rng(i*17)*6;
     x.fillRect(cx,cy,w,h);
   }
-  // drips
   for(let i=0;i<12;i++){
     const dx=60+rng(i*23)*420, dy=60+rng(i*29)*100;
-    x.fillStyle='rgba(80,10,10,0.6)';
-    x.fillRect(dx,dy,3,40+rng(i*31)*60);
+    x.fillStyle='rgba(80,10,10,0.6)'; x.fillRect(dx,dy,3,40+rng(i*31)*60);
   }
   return new THREE.CanvasTexture(c);
 }
-
-// Faded wallpaper text for L3 — looks like writing barely visible through grime
 function fadedTex(seed){
   const c=document.createElement('canvas'); c.width=512; c.height=512; const x=c.getContext('2d');
   x.fillStyle='rgba(140,108,50,0.45)'; x.fillRect(0,0,512,512);
   const rng=(n)=>{ let s=seed+n*17; s=Math.sin(s)*43758.5453; return s-Math.floor(s); };
-  // suggestion of scratched/faded writing — illegible shapes
   for(let i=0;i<10;i++){
     const sy=80+i*40+rng(i)*15;
-    x.strokeStyle=`rgba(60,40,15,${0.3+rng(i+1)*0.25})`;
-    x.lineWidth=2+rng(i+2)*2;
-    x.beginPath();
-    let px2=50+rng(i+3)*20;
-    x.moveTo(px2,sy);
-    for(let j=0;j<8;j++){
-      px2+=30+rng(i*10+j)*40;
-      const yj=sy+(rng(i*20+j)-0.5)*12;
-      x.lineTo(px2,yj);
-    }
+    x.strokeStyle=`rgba(60,40,15,${0.3+rng(i+1)*0.25})`; x.lineWidth=2+rng(i+2)*2;
+    x.beginPath(); let px2=50+rng(i+3)*20; x.moveTo(px2,sy);
+    for(let j=0;j<8;j++){ px2+=30+rng(i*10+j)*40; const yj=sy+(rng(i*20+j)-0.5)*12; x.lineTo(px2,yj); }
     x.stroke();
   }
-  // grime on top
   for(let i=0;i<60;i++){
     x.fillStyle=`rgba(${40+rng(i*3)*30},${25+rng(i*5)*20},10,${0.2+rng(i*7)*0.3})`;
     x.fillRect(rng(i*11)*512, rng(i*13)*512, 2+rng(i*15)*8, 2+rng(i*17)*5);
   }
   return new THREE.CanvasTexture(c);
 }
-
 function torchFlameSprite(){
   const c=document.createElement('canvas'); c.width=64; c.height=128; const x=c.getContext('2d');
   const fg=x.createRadialGradient(32,50,1,32,50,30);
@@ -1194,47 +1015,22 @@ function torchFlameSprite(){
   x.fillStyle=ig; x.beginPath(); x.ellipse(32,54,8,16,0,0,Math.PI*2); x.fill();
   return new THREE.CanvasTexture(c);
 }
-
-// The observer — reworked to be scary instead of comical. Near-black, armless, an elongated
-// torso flaring into a floor-length smock (slaughterhouse silhouette — no cute legs), faintly
-// asymmetric, heavily blurred, with very dim uneven eyes. Glitch is animated cheaply by
-// pre-baking a few slice-torn variants once and swapping between them while he's visible.
 function shadowSilhouette(){
   const c=document.createElement('canvas'); c.width=128; c.height=384; const x=c.getContext('2d');
   x.clearRect(0,0,128,384);
   x.filter='blur(5px)';
-  x.fillStyle='rgba(4,4,8,0.94)';     // near-pure black
-  // clear oval head, slightly off-centre/tilted
+  x.fillStyle='rgba(4,4,8,0.94)';
   x.beginPath(); x.ellipse(58,38,15,19,0.06,0,Math.PI*2); x.fill();
-  // short thick neck
   x.fillRect(50,55,15,11);
-  // BROAD shoulders -> the widest point (heavyset worker), tapering into a floor-length smock
-  x.beginPath();
-  x.moveTo(22,80);                          // left shoulder — wide
-  x.quadraticCurveTo(58,62,98,82);          // broad shoulder line, faintly asymmetric
-  x.lineTo(92,210);                         // right side down (narrower than shoulders)
-  x.quadraticCurveTo(90,300,82,362);        // smock to floor
-  x.lineTo(42,362);
-  x.quadraticCurveTo(34,300,32,210);        // left side
-  x.closePath(); x.fill();
-  // ONE heavy arm hanging on the right, held a little away from the body so the blur keeps a gap
-  x.beginPath();
-  x.moveTo(94,86);
-  x.quadraticCurveTo(112,98,110,160);       // upper arm out + down
-  x.quadraticCurveTo(110,212,101,248);      // forearm past the hip
-  x.lineTo(90,246);
-  x.quadraticCurveTo(98,200,92,150);        // inner edge back up (gap from torso)
-  x.quadraticCurveTo(90,108,94,86);
-  x.closePath(); x.fill();
-  x.beginPath(); x.ellipse(95,252,8,10,0,0,Math.PI*2); x.fill();  // heavy hand mass
-  // very dim, uneven eyes — "were those eyes?" not a face
+  x.beginPath(); x.moveTo(22,80); x.quadraticCurveTo(58,62,98,82); x.lineTo(92,210);
+  x.quadraticCurveTo(90,300,82,362); x.lineTo(42,362); x.quadraticCurveTo(34,300,32,210); x.closePath(); x.fill();
+  x.beginPath(); x.moveTo(94,86); x.quadraticCurveTo(112,98,110,160); x.quadraticCurveTo(110,212,101,248);
+  x.lineTo(90,246); x.quadraticCurveTo(98,200,92,150); x.quadraticCurveTo(90,108,94,86); x.closePath(); x.fill();
+  x.beginPath(); x.ellipse(95,252,8,10,0,0,Math.PI*2); x.fill();
   x.filter='blur(2px)';
-  x.fillStyle='rgba(150,28,28,0.32)';
-  x.beginPath(); x.arc(52,36,2.7,0,Math.PI*2); x.fill();
-  x.fillStyle='rgba(150,28,28,0.22)';
-  x.beginPath(); x.arc(65,38,1.9,0,Math.PI*2); x.fill();          // lower, smaller, dimmer
+  x.fillStyle='rgba(150,28,28,0.32)'; x.beginPath(); x.arc(52,36,2.7,0,Math.PI*2); x.fill();
+  x.fillStyle='rgba(150,28,28,0.22)'; x.beginPath(); x.arc(65,38,1.9,0,Math.PI*2); x.fill();
   x.filter='none';
-  // feather head-top and smock-bottom into nothing
   const g=x.createLinearGradient(0,0,0,384);
   g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(0.085,'rgba(0,0,0,1)');
   g.addColorStop(0.88,'rgba(0,0,0,1)'); g.addColorStop(1,'rgba(0,0,0,0)');
@@ -1244,53 +1040,35 @@ function shadowSilhouette(){
 }
 function makeShadowFrames(){
   const base=shadowSilhouette();
-  const frames=[new THREE.CanvasTexture(base)]; // frame 0: least corrupted
+  const frames=[new THREE.CanvasTexture(base)];
   for(let f=0; f<4; f++){
     const c=document.createElement('canvas'); c.width=128; c.height=384; const x=c.getContext('2d');
-    const amp=4+f*3; // later frames tear harder
-    let y=0;
+    const amp=4+f*3; let y=0;
     while(y<384){
-      const h=6+Math.random()*36;
-      const dx=(Math.random()*2-1)*amp;
-      x.drawImage(base, 0,y,128,h, dx,y,128,h);                 // displaced slice (datamosh)
-      if(Math.random()<0.3){                                    // faint chromatic ghost
-        x.globalAlpha=0.22; x.drawImage(base, 0,y,128,h, dx+(Math.random()*8-4),y,128,h); x.globalAlpha=1;
-      }
+      const h=6+Math.random()*36; const dx=(Math.random()*2-1)*amp;
+      x.drawImage(base, 0,y,128,h, dx,y,128,h);
+      if(Math.random()<0.3){ x.globalAlpha=0.22; x.drawImage(base, 0,y,128,h, dx+(Math.random()*8-4),y,128,h); x.globalAlpha=1; }
       y+=h;
     }
     const t=new THREE.CanvasTexture(c); frames.push(t);
   }
   return frames;
 }
-
-// The BLACK watcher texture — deliberately indistinct. Soft, blurred, feathered at the edges
-// so the form reads as a dark human-ish shape without ever fully resolving. Player-ish height.
 function blackFigureTex(){
   const c=document.createElement('canvas'); c.width=128; c.height=256; const x=c.getContext('2d');
-  x.clearRect(0,0,128,256);
-  x.filter='blur(9px)';            // heavier blur -> even less of a silhouette, pure shadow
-  const body='rgba(2,2,5,0.95)';
-  x.fillStyle=body;
-  // head
+  x.clearRect(0,0,128,256); x.filter='blur(9px)';
+  const body='rgba(2,2,5,0.95)'; x.fillStyle=body;
   x.beginPath(); x.ellipse(64,46,16,20,0,0,Math.PI*2); x.fill();
-  // shoulders + tapering torso, soft
-  x.beginPath();
-  x.moveTo(40,72); x.quadraticCurveTo(64,64,88,72);
-  x.quadraticCurveTo(82,140,72,205); x.lineTo(56,205);
-  x.quadraticCurveTo(46,140,40,72); x.closePath(); x.fill();
-  // suggestion of arms, no hands/hook
+  x.beginPath(); x.moveTo(40,72); x.quadraticCurveTo(64,64,88,72);
+  x.quadraticCurveTo(82,140,72,205); x.lineTo(56,205); x.quadraticCurveTo(46,140,40,72); x.closePath(); x.fill();
   x.beginPath(); x.moveTo(42,78); x.quadraticCurveTo(30,130,40,168); x.lineTo(50,150); x.quadraticCurveTo(46,110,52,90); x.closePath(); x.fill();
   x.beginPath(); x.moveTo(86,78); x.quadraticCurveTo(98,130,88,168); x.lineTo(78,150); x.quadraticCurveTo(82,110,76,90); x.closePath(); x.fill();
-  // legs only suggested, fading before the feet (no full legs -> nothing cheesy)
   x.beginPath(); x.moveTo(56,205); x.quadraticCurveTo(54,230,56,250); x.lineTo(64,250); x.quadraticCurveTo(64,230,64,205); x.closePath(); x.fill();
   x.beginPath(); x.moveTo(72,205); x.quadraticCurveTo(74,230,72,250); x.lineTo(64,250); x.quadraticCurveTo(64,230,64,205); x.closePath(); x.fill();
-  // faint cold eyes, barely there
-  x.filter='blur(2px)';
-  x.fillStyle='rgba(150,170,190,0.4)';
+  x.filter='blur(2px)'; x.fillStyle='rgba(150,170,190,0.4)';
   x.beginPath(); x.arc(58,44,2.4,0,Math.PI*2); x.fill();
   x.beginPath(); x.arc(70,44,2.4,0,Math.PI*2); x.fill();
   x.filter='none';
-  // overall vertical feather: fade the very top and bottom into nothing
   const g=x.createLinearGradient(0,0,0,256);
   g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(0.10,'rgba(0,0,0,1)');
   g.addColorStop(0.82,'rgba(0,0,0,1)'); g.addColorStop(1,'rgba(0,0,0,0)');
@@ -1299,21 +1077,15 @@ function blackFigureTex(){
   return new THREE.CanvasTexture(c);
 }
 
-// ── SECRET ROOM data + state (declared early — buildLevel references these) ──
-let secretRoomActive=false;   // true once the key is granted; the L1 chamber will open it
-let secretRoomEntered=false;  // true once the player has stepped into the chamber
-let secretSolved=false;
+// ─── SECRET ROOM ─────────────────────────────────────────
+let secretRoomActive=false, secretRoomEntered=false, secretSolved=false;
 let secretDoorMesh=null, secretGlyphMeshes=[], secretTV=null;
 let srExpectedWorld=1;
-let srExpected=1, srShuffled=[];
 const STAGE9_VIDEO_ID='Y9cIztOmrfk';
-// The five puzzle glyphs. Correct order = the lifecycle: WATCH -> NAME -> INDEX -> DENY -> FILE.
+const TV_MP4_URL = 'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/lv_0_20260531181321%5B1%5D.mp4';
 const SR_GLYPHS=[
-  {id:'WATCH', sym:'𓁹', order:1},
-  {id:'NAME',  sym:'𓀀', order:2},
-  {id:'INDEX', sym:'𓏛', order:3},
-  {id:'DENY',  sym:'𓂸', order:4},
-  {id:'FILE',  sym:'𓊖', order:5},
+  {id:'WATCH', sym:'𓁹', order:1},{id:'NAME',  sym:'𓀀', order:2},{id:'INDEX', sym:'𓏛', order:3},
+  {id:'DENY',  sym:'𓂸', order:4},{id:'FILE',  sym:'𓊖', order:5},
 ];
 function secretDoorTex(){
   const c=document.createElement('canvas'); c.width=128; c.height=256; const x=c.getContext('2d');
@@ -1339,7 +1111,6 @@ function glyphPanelTex(sym, lit){
 function tvOffTex(){
   const c=document.createElement('canvas'); c.width=256; c.height=160; const x=c.getContext('2d');
   x.fillStyle='#080808'; x.fillRect(0,0,256,160);
-  // dark glass with faint reflection band
   const g=x.createLinearGradient(0,0,256,160); g.addColorStop(0,'rgba(40,40,50,0.3)'); g.addColorStop(0.5,'rgba(10,10,14,0.1)'); g.addColorStop(1,'rgba(30,30,40,0.25)');
   x.fillStyle=g; x.fillRect(0,0,256,160);
   x.fillStyle='rgba(200,210,220,0.5)'; x.font='12px monospace'; x.textAlign='center'; x.fillText('▶ PRESS [E] TO WATCH', 128, 80);
@@ -1379,8 +1150,7 @@ function getLevelCfg(lv){
     wallMat:new THREE.MeshStandardMaterial({map:TEX.stone,roughness:0.97,metalness:0,color:0xb89868}),
     floorMat:new THREE.MeshStandardMaterial({map:TEX.stoneSand,roughness:1,metalness:0,color:0x7a6040}),
     ceilMat:new THREE.MeshStandardMaterial({map:TEX.stoneCeil,roughness:1,metalness:0,color:0x5a4830}),
-    fogColor:0x1a1008,fogDensity:0.055,
-    ambientColor:0x3a2808,ambientInt:0.28,
+    fogColor:0x1a1008,fogDensity:isMobile?0.12:0.055,ambientColor:0x3a2808,ambientInt:isMobile?0.50:0.28,
     wallTexts:WALL_TEXTS_L1,isHiero:true,
     name:'Level I — The Entrance',ceilH:3.2,lightColor:0xd08020,lightInt:1.5,lightDist:9,
   };
@@ -1388,8 +1158,7 @@ function getLevelCfg(lv){
     wallMat:new THREE.MeshStandardMaterial({map:TEX.metal,roughness:0.6,metalness:0.4,color:0x707070}),
     floorMat:new THREE.MeshStandardMaterial({map:TEX.metalFloor,roughness:0.8,metalness:0.5,color:0x404040}),
     ceilMat:new THREE.MeshStandardMaterial({map:TEX.stoneCeil,roughness:0.9,metalness:0.3,color:0x303030}),
-    fogColor:0x0a0604,fogDensity:0.048,
-    ambientColor:0x4a3020,ambientInt:0.50,
+    fogColor:0x0a0604,fogDensity:isMobile?0.11:0.048,ambientColor:0x4a3020,ambientInt:isMobile?0.65:0.50,
     wallTexts:WALL_TEXTS_L2,isHiero:false,
     name:'Level II — The Works',ceilH:3.8,lightColor:0xff5020,lightInt:1.8,lightDist:10,
   };
@@ -1397,8 +1166,7 @@ function getLevelCfg(lv){
     wallMat:new THREE.MeshStandardMaterial({map:TEX.wallpaper,roughness:0.34,metalness:0.12,color:0xede4b0,normalMap:(!isMobile&&NMAP.wallpaper)?NMAP.wallpaper:null,normalScale:new THREE.Vector2(0.3,0.3)}),
     floorMat:new THREE.MeshStandardMaterial({map:TEX.carpet,roughness:1,metalness:0,color:0x6e5638}),
     ceilMat:new THREE.MeshStandardMaterial({map:TEX.ceilFluo,roughness:1,metalness:0,color:0xc8c5b8}),
-    fogColor:0x1a1605,fogDensity:0.048,
-    ambientColor:0x3a3015,ambientInt:0.38,
+    fogColor:0x1a1605,fogDensity:isMobile?0.11:0.048,ambientColor:0x3a3015,ambientInt:isMobile?0.55:0.38,
     wallTexts:WALL_TEXTS_L3,isHiero:false,
     name:'Level III — The Backrooms',ceilH:2.7,lightColor:0xffe2a0,lightInt:1.1,lightDist:7,
   };
@@ -1414,7 +1182,6 @@ function buildLevel(lv){
   grp.visible=false;
   levelGroups[lv]=grp;
 
-  // Instanced walls
   let wallCount=0;
   const wallPositions=[];
   for(let i=0;i<map.length;i++) if(map[i]===1) wallCount++;
@@ -1434,53 +1201,51 @@ function buildLevel(lv){
   wallMesh.instanceMatrix.needsUpdate=true;
   grp.add(wallMesh);
 
-  // Floor & Ceiling
   const floor=new THREE.Mesh(new THREE.PlaneGeometry(GRID,GRID),cfg.floorMat);
   floor.rotation.x=-Math.PI/2; floor.position.set(GRID/2,0,GRID/2); grp.add(floor);
   const ceil=new THREE.Mesh(new THREE.PlaneGeometry(GRID,GRID),cfg.ceilMat);
   ceil.rotation.x=Math.PI/2; ceil.position.set(GRID/2,ceilH,GRID/2); grp.add(ceil);
 
-  // Ambient
   const ambient=new THREE.AmbientLight(cfg.ambientColor,cfg.ambientInt); grp.add(ambient);
 
-  // Lights — ceiling mounted, no wall brackets
   const lightData=[];
   const hieroData=[];
-  const spacing=lv===3?8:lv===2?9:10;
-  const _cachedFlameTex = lv===1 ? torchFlameSprite() : null;
+
+  // PERF: mobile uses much wider spacing → ~4x fewer lights per level
+  const spacing=lv===3?(isMobile?16:8):lv===2?(isMobile?14:9):(isMobile?16:8);
+
   for(let z=2;z<GRID-1;z+=spacing) for(let x=2;x<GRID-1;x+=spacing){
     if(cellAt(map,x+0.5,z+0.5)===0){
       const light=new THREE.PointLight(cfg.lightColor,cfg.lightInt,cfg.lightDist,1.8);
       light.position.set(x+0.5,ceilH-0.35,z+0.5); grp.add(light);
 
       if(lv===1){
-        // L1: ceiling ember — small glowing disc, no wall brackets
-        const emberMat=new THREE.MeshStandardMaterial({color:0xff9020,emissive:0xff7010,emissiveIntensity:2.0,roughness:0.4});
+        const emberMat=new THREE.MeshStandardMaterial({color:0xff9020,emissive:0xff7010,emissiveIntensity:3.2,roughness:0.4});
         const ember=new THREE.Mesh(new THREE.CircleGeometry(0.06,8),emberMat);
         ember.rotation.x=Math.PI/2; ember.position.set(x+0.5,ceilH-0.02,z+0.5); grp.add(ember);
-        // Small flame sprite hanging from ceiling
-        const flameMat=new THREE.SpriteMaterial({map:_cachedFlameTex,transparent:true,depthWrite:false});
+        const flameMat=new THREE.SpriteMaterial({map:torchFlameSprite(),transparent:true,depthWrite:false});
         const flame=new THREE.Sprite(flameMat); flame.scale.set(0.2,0.55,1);
         flame.position.set(x+0.5,ceilH-0.6,z+0.5); grp.add(flame);
-        lightData.push({light,mesh:ember,flame,baseI:cfg.lightInt,t:Math.floor(Math.random()*15),flicker:true,isFluorescent:false});
+        lightData.push({light,mesh:ember,flame,baseI:cfg.lightInt,t:Math.floor(Math.random()*15),flicker:true,isFluorescent:false,
+          lx:x+0.5,lz:z+0.5});
       } else if(lv===2){
-        // L2: industrial red lamp
-        const lampMat=new THREE.MeshStandardMaterial({color:0xff2200,emissive:0xff1100,emissiveIntensity:2.2,roughness:0.4});
+        const lampMat=new THREE.MeshStandardMaterial({color:0xff2200,emissive:0xff1100,emissiveIntensity:3.5,roughness:0.4});
         const lamp=new THREE.Mesh(new THREE.SphereGeometry(0.07,8,6),lampMat);
         lamp.position.set(x+0.5,ceilH-0.1,z+0.5); grp.add(lamp);
-        lightData.push({light,mesh:lamp,baseI:cfg.lightInt,t:Math.floor(Math.random()*20),flicker:true,isFluorescent:false});
+        lightData.push({light,mesh:lamp,baseI:cfg.lightInt,t:Math.floor(Math.random()*20),flicker:true,isFluorescent:false,
+          lx:x+0.5,lz:z+0.5});
       } else {
-        // L3: fluorescent strip — CLAUDE's flicker state machine
-        const stripMat=new THREE.MeshStandardMaterial({color:0xffeec8,emissive:0xffe2a0,emissiveIntensity:1.4,roughness:0.4});
+        const stripMat=new THREE.MeshStandardMaterial({color:0xffeec8,emissive:0xffe2a0,emissiveIntensity:2.2,roughness:0.4});
         const strip=new THREE.Mesh(new THREE.BoxGeometry(0.85,0.05,0.16),stripMat);
         strip.position.set(x+0.5,ceilH-0.03,z+0.5); grp.add(strip);
         const dead=Math.random()<0.07;
-        lightData.push({light,mesh:strip,baseI:cfg.lightInt,baseEm:1.4,state:'on',t:100+Math.floor(Math.random()*200),dead,isFluorescent:true});
+        const canGoDark = !dead && Math.random()<0.55;
+        lightData.push({light,mesh:strip,baseI:cfg.lightInt,baseEm:2.2,state:'on',t:100+Math.floor(Math.random()*200),dead,
+          isFluorescent:true,canGoDark,darkUntil:0,lx:x+0.5,lz:z+0.5});
       }
     }
   }
 
-  // Blood stains on L2 floor
   if(lv===2){
     const stainMat=new THREE.MeshBasicMaterial({color:0x3a0000,transparent:true,opacity:0.7,depthWrite:false});
     const openCells=[];
@@ -1494,21 +1259,33 @@ function buildLevel(lv){
     }
   }
 
-  // Level-exit marker — placed at the corridor-END exit for this level
   {
     const exit = lv===1?MAP_MARKERS.l1_exit : lv===2?MAP_MARKERS.l2_exit : MAP_MARKERS.l3_exit;
     const ex=exit[0]+0.5, ez=exit[1]+0.5;
-    const doorMat=new THREE.MeshStandardMaterial({color:lv===2?0x882020:0xffa020,emissive:lv===2?0xaa1010:0xff8000,emissiveIntensity:1.3});
-    // a tall door slab at the exit
+    const dCol=lv===2?0xaa1010:0xff8000;
+    const doorMat=new THREE.MeshStandardMaterial({color:lv===2?0x882020:0xffa020,emissive:dCol,emissiveIntensity:3.0});
     const door=new THREE.Mesh(new THREE.BoxGeometry(1.6,ceilH*0.92,0.3),doorMat);
     door.position.set(ex,ceilH*0.46,ez); grp.add(door);
     const arrow=new THREE.Mesh(new THREE.ConeGeometry(0.18,0.5,6),doorMat);
     arrow.rotation.x=Math.PI; arrow.position.set(ex,0.5,ez); grp.add(arrow);
-    const stairLight=new THREE.PointLight(lv===2?0xff4020:0xff8020,1.8,6,2);
+    const stairLight=new THREE.PointLight(lv===2?0xff4020:0xff8020,3.2,20,1.4);
     stairLight.position.set(ex,1.4,ez); grp.add(stairLight);
+    stairLightRefs.push({light:stairLight,mat:doorMat,baseI:3.2,phase:Math.random()*7,isAscend:false});
   }
 
-  // L1 secret-room door — glowing hieroglyph slab at the chamber entrance
+  if(lv===2||lv===3){
+    const asc = lv===2?MAP_MARKERS.l2_ascend:MAP_MARKERS.l3_ascend;
+    const ax=asc[0]+0.5, az=asc[1]+0.5;
+    const ascMat=new THREE.MeshStandardMaterial({color:0x204488,emissive:0x2060cc,emissiveIntensity:3.0});
+    const ascDoor=new THREE.Mesh(new THREE.BoxGeometry(1.6,ceilH*0.92,0.3),ascMat);
+    ascDoor.position.set(ax,ceilH*0.46,az); grp.add(ascDoor);
+    const ascArrow=new THREE.Mesh(new THREE.ConeGeometry(0.18,0.5,6),ascMat);
+    ascArrow.position.set(ax,0.5,az); grp.add(ascArrow);
+    const ascLight=new THREE.PointLight(0x4080ff,3.2,20,1.4);
+    ascLight.position.set(ax,1.4,az); grp.add(ascLight);
+    stairLightRefs.push({light:ascLight,mat:ascMat,baseI:3.2,phase:Math.random()*7+3,isAscend:true});
+  }
+
   if(lv===1){
     const d=MAP_MARKERS.l1_secretDoor;
     const dx=d[0]+0.5, dz=d[1]+0.5;
@@ -1516,35 +1293,27 @@ function buildLevel(lv){
     const sdMat=new THREE.MeshStandardMaterial({map:doorTex,emissive:0x33ff99,emissiveMap:doorTex,emissiveIntensity:0.8,roughness:0.6});
     const sdoor=new THREE.Mesh(new THREE.BoxGeometry(0.34,ceilH*0.95,1.9),sdMat);
     sdoor.position.set(dx,ceilH*0.475,dz); grp.add(sdoor); secretDoorMesh=sdoor;
-    const sdLight=new THREE.PointLight(0x40ffa0,1.6,5,2);
+    const sdLight=new THREE.PointLight(0x40ffa0,2.0,12,1.6);
     sdLight.position.set(dx-0.6,1.5,dz); grp.add(sdLight);
-    // taller ceiling patch over the chamber (quadruple-height feel)
     const sc=MAP_MARKERS.l1_secretCenter;
     const tallH=ceilH*2.6;
     const tallCeil=new THREE.Mesh(new THREE.PlaneGeometry(10,10),cfg.ceilMat);
     tallCeil.rotation.x=Math.PI/2; tallCeil.position.set(sc[0]+0.5,tallH,sc[1]+0.5); grp.add(tallCeil);
-
-    // ── IN-WORLD SECRET ROOM CONTENTS (panels on walls + wall TV) ──
-    // chamber spans x:52..61, z:4..13. Place 5 glyph panels along the far/side walls.
     secretGlyphMeshes=[];
     const glyphSpots=[
-      {x:53.0,z:4.15,ry:0},        // north wall
-      {x:55.5,z:4.15,ry:0},
-      {x:58.0,z:4.15,ry:0},
-      {x:60.85,z:6.5,ry:-Math.PI/2}, // east wall
-      {x:60.85,z:9.0,ry:-Math.PI/2},
+      {x:53.0,z:4.15,ry:0},{x:55.5,z:4.15,ry:0},{x:58.0,z:4.15,ry:0},
+      {x:60.85,z:6.5,ry:-Math.PI/2},{x:60.85,z:9.0,ry:-Math.PI/2},
     ];
     for(let i=0;i<5;i++){
       const sp=glyphSpots[i];
       const gt=glyphPanelTex(SR_GLYPHS[i].sym,false);
-      const gm=new THREE.MeshStandardMaterial({map:gt,emissive:0x224433,emissiveMap:gt,emissiveIntensity:0.5,transparent:true});
+      const gm=new THREE.MeshStandardMaterial({map:gt,emissive:0x224433,emissiveMap:gt,emissiveIntensity:1.2,transparent:true});
       const panel=new THREE.Mesh(new THREE.PlaneGeometry(1.3,1.8),gm);
       panel.position.set(sp.x,1.5,sp.z); panel.rotation.y=sp.ry;
       grp.add(panel);
       const pl=new THREE.PointLight(0x40ffa0,0.0,3,2); pl.position.set(sp.x,1.6,sp.z+(sp.ry===0?0.4:0)); grp.add(pl);
       secretGlyphMeshes.push({mesh:panel,light:pl,idx:i,order:SR_GLYPHS[i].order,lit:false,sym:SR_GLYPHS[i].sym,x:sp.x,z:sp.z});
     }
-    // Wall-mounted TV on the south wall of the chamber, dark until puzzle solved
     const tvT=tvOffTex();
     const tvMat=new THREE.MeshStandardMaterial({map:tvT,emissive:0x000000,emissiveMap:tvT,emissiveIntensity:0.0,roughness:0.3});
     const tv=new THREE.Mesh(new THREE.BoxGeometry(3.4,2.0,0.2),tvMat);
@@ -1552,21 +1321,18 @@ function buildLevel(lv){
     const tvLight=new THREE.PointLight(0x6080a0,0.0,6,2); tvLight.position.set(57.0,1.7,12.0); grp.add(tvLight);
     secretTV={mesh:tv,light:tvLight,mat:tvMat,x:57.0,z:12.8,on:false};
   }
+
   function placeDecal(tex,opts={}){
     if(!wallPositions.length) return null;
     for(let attempt=0;attempt<25;attempt++){
       const wp=wallPositions[Math.floor(Math.random()*wallPositions.length)];
-      // Verify front face is in open corridor (not against another wall)
       const frontClear=!solidAt(map,wp.wx-wp.dx*2,wp.wz-wp.dz*2);
       if(!frontClear) continue;
       const w=Math.min(0.9, opts.w||0.85), h=opts.h||0.4;
       const geo=new THREE.PlaneGeometry(w,h);
       const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,opacity:opts.opacity||0.92});
       const m=new THREE.Mesh(geo,mat);
-      m.position.set(
-        wp.wx-wp.dx*0.502, opts.y||1.5,
-        wp.wz-wp.dz*0.502
-      );
+      m.position.set(wp.wx-wp.dx*0.502, opts.y||1.5, wp.wz-wp.dz*0.502);
       if(wp.dx===1) m.rotation.y=-Math.PI/2;
       else if(wp.dx===-1) m.rotation.y=Math.PI/2;
       else if(wp.dz===-1) m.rotation.y=Math.PI;
@@ -1575,10 +1341,8 @@ function buildLevel(lv){
     }
     return null;
   }
-  // Compute decal height from text length (longer text → taller decal, narrow width)
   function decalSizeFor(text, baseW){
-    const len = text.length;
-    const w = baseW || 0.88;
+    const len = text.length; const w = baseW || 0.88;
     let h;
     if(len <= 24) h = w * 0.45;
     else if(len <= 60) h = w * 0.65;
@@ -1586,7 +1350,6 @@ function buildLevel(lv){
     else h = w * 1.25;
     return {w, h};
   }
-  // Random subset selector — different walls each playthrough
   function pickSubset(arr, n){
     const copy = arr.slice();
     for(let i=copy.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [copy[i],copy[j]]=[copy[j],copy[i]]; }
@@ -1594,7 +1357,6 @@ function buildLevel(lv){
   }
 
   if(cfg.isHiero){
-    // L1: hieroglyphs from the original pool + Stage 8 Architect lore
     const picked = pickSubset(cfg.wallTexts.concat(S8_WALL_L1), 20);
     picked.forEach((text,i)=>{
       const htex=hieroglyphTex(i*7+lv*13);
@@ -1604,7 +1366,6 @@ function buildLevel(lv){
       if(result) hieroData.push({mesh:result.mesh,revealTex,baseTex:result.mesh.material.map,revealed:false,pos:result.pos,origText:text});
     });
   } else if(lv===2){
-    // L2: blood-smeared readables — original pool + Stage 8 lore
     const picked = pickSubset(cfg.wallTexts.concat(S8_WALL_L2), 20);
     picked.forEach((text,i)=>{
       const smearTex=smearedTex(i*11+lv*23);
@@ -1614,7 +1375,6 @@ function buildLevel(lv){
       if(result) hieroData.push({mesh:result.mesh,revealTex,baseTex:result.mesh.material.map,revealed:false,pos:result.pos,origText:text});
     });
   } else {
-    // L3: faded-wallpaper readables — original pool + Stage 8 lore
     const picked = pickSubset(cfg.wallTexts.concat(S8_WALL_L3), 22);
     picked.forEach((text,i)=>{
       const fade=fadedTex(i*13+lv*29);
@@ -1626,7 +1386,6 @@ function buildLevel(lv){
     });
   }
 
-  // Character quotes — pick 5 random from pool of 10 per level visit
   const pickedQuotes = pickSubset(CHAR_QUOTES, 5);
   pickedQuotes.forEach((q)=>{
     const c=document.createElement('canvas'); c.width=512; c.height=512; const x=c.getContext('2d');
@@ -1645,46 +1404,163 @@ function buildLevel(lv){
     placeDecal(tex,{w:0.88, h:0.88, y:1.55, opacity:0.95});
   });
 
-  // Iconography photos
   for(let i=0;i<12;i++) placeDecal(iconographyTex(i),{w:0.55,h:0.55,y:1.4+(Math.random()-0.5)*0.4,opacity:0.88});
 
-  // Open cells cache
   const openCells=[];
   for(let z=2;z<GRID-2;z++) for(let x=2;x<GRID-2;x++) if(map[z*GRID+x]===0) openCells.push([x,z]);
 
   levelData[lv]={map,cfg,ceilH,lightData,hieroData,wallPositions,openCells,grp};
 }
 
-// ─── TORCHES (7 across all levels) ───────────────────────
+// ─── TORCHES ─────────────────────────────────────────────
 let torchesCollected=0;
 const allTorches=[];
-function placeTorches(){
-  const dist=[{lv:1,n:2},{lv:2,n:2},{lv:3,n:3}];
-  dist.forEach(({lv,n})=>{
-    const map=MAPS[lv-1];
-    const grp=levelGroups[lv];
-    const cands=[];
-    for(let z=4;z<GRID-4;z++) for(let x=4;x<GRID-4;x++){
-      if(map[z*GRID+x]===0){ const d=Math.hypot(x-16,z-16); if(d>5) cands.push([x,z,d]); }
-    }
-    cands.sort((a,b)=>(b[2]+Math.random()*3)-(a[2]+Math.random()*3));
-    const placed=[];
-    for(const c of cands){
-      if(placed.length>=n) break;
-      if(placed.every(p=>Math.hypot(p[0]-c[0],p[1]-c[1])>5)) placed.push(c);
-    }
-    placed.forEach(([x,z])=>{
-      const flameMat=new THREE.SpriteMaterial({map:torchFlameSprite(),transparent:true,depthWrite:false,opacity:0});
-      const sprite=new THREE.Sprite(flameMat); sprite.scale.set(0.35,0.9,1);
-      sprite.position.set(x+0.5,1.1,z+0.5); sprite.visible=false; grp.add(sprite);
-      const light=new THREE.PointLight(0xff9020,0,5.5,1.8);
-      light.position.set(x+0.5,1.4,z+0.5); grp.add(light);
-      const halo=new THREE.Mesh(new THREE.SphereGeometry(0.45,12,8),
-        new THREE.MeshBasicMaterial({color:0xff8010,transparent:true,opacity:0,depthWrite:false}));
-      halo.position.set(x+0.5,1.2,z+0.5); halo.visible=false; grp.add(halo);
-      allTorches.push({sprite,light,halo,collected:false,unlocked:false,baseY:1.1,phase:Math.random()*7,lv,x:x+0.5,z:z+0.5});
-    });
+const torchesByLevel={1:false,2:false,3:false};
+function ensureTorchesForLevel(lv){
+  if(torchesByLevel[lv]) return;
+  torchesByLevel[lv]=true;
+  const map=MAPS[lv-1];
+  const grp=levelGroups[lv]; if(!grp) return;
+  const n=lv===1?2:lv===2?2:3;
+  const cands=[];
+  for(let z=4;z<GRID-4;z++) for(let x=4;x<GRID-4;x++){
+    if(map[z*GRID+x]===0){ const d=Math.hypot(x-16,z-16); if(d>5) cands.push([x,z,d]); }
+  }
+  cands.sort((a,b)=>(b[2]+Math.random()*3)-(a[2]+Math.random()*3));
+  const placed=[];
+  for(const c of cands){
+    if(placed.length>=n) break;
+    if(placed.every(p=>Math.hypot(p[0]-c[0],p[1]-c[1])>5)) placed.push(c);
+  }
+  placed.forEach(([x,z])=>{
+    const flameMat=new THREE.SpriteMaterial({map:torchFlameSprite(),transparent:true,depthWrite:false,opacity:0});
+    const sprite=new THREE.Sprite(flameMat); sprite.scale.set(0.35,0.9,1);
+    sprite.position.set(x+0.5,1.1,z+0.5); sprite.visible=false; grp.add(sprite);
+    const light=new THREE.PointLight(0xff9020,0,5.5,1.8);
+    light.position.set(x+0.5,1.4,z+0.5); grp.add(light);
+    const halo=new THREE.Mesh(new THREE.SphereGeometry(0.45,12,8),
+      new THREE.MeshBasicMaterial({color:0xff8010,transparent:true,opacity:0,depthWrite:false}));
+    halo.position.set(x+0.5,1.2,z+0.5); halo.visible=false; grp.add(halo);
+    allTorches.push({sprite,light,halo,collected:false,unlocked:false,baseY:1.1,phase:Math.random()*7,lv,x:x+0.5,z:z+0.5});
   });
+}
+function unlockTorchOnLevel(lv){
+  const hidden = allTorches.filter(t=> t.lv===lv && !t.unlocked && !t.collected);
+  if(hidden.length===0) return false;
+  const t = hidden[Math.floor(Math.random()*hidden.length)];
+  t.unlocked = true; t.sprite.visible = true; t.sprite.material.opacity = 1;
+  t.halo.visible = true; t.light.intensity = 2.2;
+  whisperLine("a torch has appeared in the dark");
+  return true;
+}
+
+// ─── FLASHLIGHT ──────────────────────────────────────────
+// SpotLight parented to camera, toggled with F (keyboard) or the 🔦 button (mobile).
+// Battery: 100 units, drains at 0.06/frame while on, recharges at 0.02/frame while off.
+// Below 20% it flickers. At 0 it cuts out and won't turn on until >8% recharged.
+// Colour: warm white on L1/L3, faintly red-tinged on L2 (industrial horror).
+// Cone: medium angle (22°), penumbra 0.4, range 14 — reaches end of a corridor.
+const FL = {
+  light: null,        // THREE.SpotLight
+  on: false,
+  battery: 100,       // 0–100
+  recharging: false,  // true when dead, waiting for threshold before reactivating
+  flickerT: 0,        // countdown to next flicker tick
+  lastLv: 0,          // track level changes to update colour
+};
+const FL_DRAIN    = 0.06;   // per frame while on
+const FL_RECHARGE = 0.02;   // per frame while off
+const FL_LOW      = 20;     // % below which flickering starts
+const FL_DEAD     = 0;      // shuts off
+const FL_REVIVE   = 8;      // must recharge to this % before player can turn it on again
+
+function initFlashlight(){
+  // SpotLight follows the camera — position is updated in loop()
+  FL.light = new THREE.SpotLight(0xfff5e0, 0, 14, Math.PI/8, 0.4, 1.8);
+  FL.light.position.set(cam.x, cam.y, cam.z);
+  FL.light.target.position.set(cam.x, cam.y-0.1, cam.z+1);
+  scene.add(FL.light);
+  scene.add(FL.light.target);
+}
+
+function toggleFlashlight(){
+  if(!FL.light) return;
+  if(FL.recharging){ whisperLine("dead. give it a moment."); try{ sfx.flashlightOff(); }catch(e){} return; }
+  FL.on = !FL.on;
+  try{ FL.on ? sfx.flashlightOn() : sfx.flashlightOff(); }catch(e){}
+  updateFlashlightHUD();
+}
+
+function updateFlashlight(){
+  if(!FL.light) return;
+  const ld=levelData[currentLevel];
+
+  // Update colour when level changes
+  if(FL.lastLv !== currentLevel){
+    FL.lastLv = currentLevel;
+    if(currentLevel===2) FL.light.color.setHex(0xffd0c0); // L2: faint red tinge
+    else FL.light.color.setHex(0xfff5e0);                 // L1/L3: warm white
+  }
+
+  // Battery logic
+  if(FL.on){
+    FL.battery = Math.max(0, FL.battery - FL_DRAIN);
+    if(FL.battery <= FL_DEAD){ FL.on=false; FL.recharging=true; try{ sfx.flashlightOff(); }catch(e){} }
+  } else {
+    FL.battery = Math.min(100, FL.battery + FL_RECHARGE);
+    if(FL.recharging && FL.battery >= FL_REVIVE){ FL.recharging=false; }
+  }
+
+  // Flicker below 20%
+  let intensity = 0;
+  if(FL.on){
+    if(FL.battery < FL_LOW){
+      FL.flickerT--;
+      if(FL.flickerT <= 0){
+        // random flicker — sometimes play the low-battery sound
+        const flOn = Math.random() < 0.55 + FL.battery/FL_LOW * 0.4;
+        intensity = flOn ? (1.2 + FL.battery/FL_LOW * 0.8) : 0;
+        FL.flickerT = 2 + Math.floor(Math.random() * 8);
+        if(!flOn && Math.random()<0.08) try{ sfx.flashlightLow(); }catch(e){}
+      } else {
+        intensity = 1.4 + FL.battery/FL_LOW * 0.6;
+      }
+    } else {
+      intensity = 2.2; // full brightness
+    }
+  }
+  FL.light.intensity = intensity;
+
+  // Position: just ahead of camera eyes, always
+  const fwdX=Math.sin(cam.angle), fwdZ=Math.cos(cam.angle);
+  const ld2=Math.cos(cam.pitch);
+  const eyeX=cam.x + fwdX*0.08, eyeZ=cam.z + fwdZ*0.08;
+  FL.light.position.set(eyeX, cam.y - 0.06, eyeZ);
+  FL.light.target.position.set(
+    cam.x + fwdX * ld2 * 6,
+    cam.y + Math.sin(cam.pitch) * 6 - 0.1,
+    cam.z + fwdZ * ld2 * 6
+  );
+  FL.light.target.updateMatrixWorld();
+
+  // HUD update every ~8 frames for performance
+  if(frameCount % 8 === 0) updateFlashlightHUD();
+}
+
+// Throttle HUD refresh — called in updateFlashlight and on toggle
+function updateFlashlightHUD(){
+  const hudEl = $('flashlight-hud');
+  const barEl = $('fl-bar');
+  if(!hudEl||!barEl) return;
+  const pct = FL.battery / 100;
+  const filled = Math.round(pct * 5);
+  const chars = '■'.repeat(filled) + '□'.repeat(5-filled);
+  barEl.textContent = chars;
+  hudEl.classList.toggle('fl-off', !FL.on);
+  hudEl.classList.toggle('fl-dead', FL.recharging);
+  // Mobile button
+  const btn = $('fl-btn');
+  if(btn) btn.classList.toggle('fl-on', FL.on);
 }
 
 // ─── SHADOW FIGURE ──────────────────────────────────────
@@ -1711,21 +1587,14 @@ const shadowFig={
   },
 };
 
-// ─── BLACK WATCHER (the dark one) ────────────────────────
-// Stationary. NEVER travels. Manifests only in the four outer corners or in genuinely dark
-// spots / corridor-ends, more transparent and blurred than the grey one, shrunk to ~player
-// height. Half the time it just watches. Two strike triggers only:
-//   A) you come within ~1 ft of it while it lurks in the dark
-//   B) you stare at an already-manifested watcher for 3.8s -> it BLINKS to a foot from you,
-//      one existing crack-and-flash, 20% off (sanity then health), gone.
-// No chase. No travel. The blink IS the "blur". Dormant until the first step each level.
+// ─── BLACK WATCHER ────────────────────────────────────────
 const blackFig={
   sprite:null, grp:null, lv:1, x:5, z:5,
-  state:'hidden', // hidden | watching
+  state:'hidden',
   vis:0, targetVis:0, flickerTimer:0,
   init(grp){
     const mat=new THREE.SpriteMaterial({map:blackFigureTex(),transparent:true,opacity:0,depthWrite:false,depthTest:true});
-    this.sprite=new THREE.Sprite(mat); this.sprite.scale.set(0.95,1.95,1); // ~player height, no towering legs
+    this.sprite=new THREE.Sprite(mat); this.sprite.scale.set(0.95,1.95,1);
     this.sprite.position.set(this.x,1.15,this.z); grp.add(this.sprite);
     this.grp=grp;
   },
@@ -1734,20 +1603,19 @@ const blackFig={
   setVis(v){ this.vis=v; if(this.sprite) this.sprite.material.opacity=v; },
   hide(){ this.state='hidden'; this.targetVis=0; this.setVis(0); },
 };
-const BLACK_MAX_OPACITY=0.36;        // even more transparent — pure dread, never resolves
-const STRIKE_FRAC=0.20;              // 20% off the relevant meter per strike (5 hits to empty)
-const STRIKE_RANGE=1.1;              // ~1 foot
-const STARE_SECONDS=3.8;             // continuous look required to trigger the blink
+const BLACK_MAX_OPACITY=0.36;
+const STRIKE_FRAC=0.20;
+const STRIKE_RANGE=1.1;
+const STARE_SECONDS=3.8;
 const STARE_FRAMES=Math.round(STARE_SECONDS*60);
-const BLACK_LULL_FRAMES=45*60;       // 45s minimum lull after any strike
+const BLACK_LULL_FRAMES=45*60;
 let blackStrikeReady=true;
-let blackCooldown=0;                 // frames until it may manifest again
-let hasMovedThisLevel=false;         // first-step gate (reset per level)
-let stareFrames=0;                   // how long the player has held a look on the watcher
+let blackCooldown=0;
+let hasMovedThisLevel=false;
+let stareFrames=0;
 
 function blackCellOpen(x,z){ return !solidAt(MAPS[currentLevel-1], x, z); }
 
-// Live darkness probe: a cell is "dark" if no currently-lit light is close + bright.
 function darknessAt(x,z){
   const ld=levelData[currentLevel]; if(!ld) return 1;
   let lit=0;
@@ -1758,18 +1626,22 @@ function darknessAt(x,z){
     const d2=(lx-x)*(lx-x)+(lz-z)*(lz-z);
     lit += I/(1+d2*0.6);
   }
-  return 1/(1+lit); // ~1 = pitch dark, ->0 = brightly lit
+  // Flashlight contributes to lit-ness at the target location
+  if(FL.on && FL.light && FL.light.intensity>0){
+    const tx=FL.light.target.position.x, tz=FL.light.target.position.z;
+    const d2=(tx-x)*(tx-x)+(tz-z)*(tz-z);
+    lit += FL.light.intensity/(1+d2*0.4);
+  }
+  return 1/(1+lit);
 }
-// Throttled cache: the player-position darkness only needs recomputing a few times a second.
-// Saves looping over every light on every frame for the hot-path figure checks.
+// PERF: throttled darkness cache — recompute every 6 frames (was 4)
 let _darkCacheVal=1, _darkCacheT=0;
 function darknessAtPlayerCached(){
   _darkCacheT--;
-  if(_darkCacheT<=0){ _darkCacheVal=darknessAt(cam.x,cam.z); _darkCacheT=4; } // recompute every 4th frame
+  if(_darkCacheT<=0){ _darkCacheVal=darknessAt(cam.x,cam.z); _darkCacheT=(isMobile?8:6); }
   return _darkCacheVal;
 }
-// THE effect: identical to the backrooms strobe (one subtle crack + a short white-flash burst
-// that terminates itself). Reused verbatim. No tape-rewind, no extra layers.
+
 function quickStrobe(){
   const el=$('strobe'); if(!el) return;
   sfx.strobeHit();
@@ -1783,60 +1655,52 @@ function quickStrobe(){
 
 function blackStrike(){
   if(godMode || performance.now()<invulnUntil){ blackFig.hide(); stareFrames=0; blackCooldown=BLACK_LULL_FRAMES; return; }
-  if(!blackStrikeReady || blackCooldown>0) return;  // hard-gate: no strike during the lull
+  if(!blackStrikeReady || blackCooldown>0) return;
   blackStrikeReady=false;
-  quickStrobe();         // one subtle crack + white-flash, nothing layered
+  quickStrobe();
   const dmg=100*STRIKE_FRAC;
   if(sanity>0) sanity=Math.max(0,sanity-dmg);
   else hp=Math.max(0,hp-dmg);
   updateHUD();
   blackFig.hide();
   stareFrames=0;
-  blackCooldown=BLACK_LULL_FRAMES;   // 45s lull — blocks both manifesting AND striking
+  blackCooldown=BLACK_LULL_FRAMES;
   setTimeout(()=>{ blackStrikeReady=true; }, 1200);
   if(sanity<=0) triggerSanityBreak();
   if(hp<=0) die();
 }
 
-// Pick a manifest spot: prefer a far corridor-end the player is looking down, else one of the
-// four outer corners, else the darkest nearby open cell — and only if it's genuinely dark there.
 function blackManifest(){
   const ld=levelData[currentLevel]; if(!ld||!ld.openCells.length) return false;
   const fwdX=Math.sin(cam.angle), fwdZ=Math.cos(cam.angle);
   const corners=[[3,3],[GRID-4,3],[3,GRID-4],[GRID-4,GRID-4]];
-  const dGate = currentLevel===3 ? -1 : null; // L3 (fluorescent) has no "dark enough" cells -> drop the gate there
-  // If the player is in/near an outer corner, ~50% of the time put him in one of the two VISIBLE
-  // corners. The two visible ones share an edge with yours; the diagonal-opposite (shares no edge)
-  // is the one you can't see, so it's excluded geometrically. (Attack logic downstream unchanged.)
+  const dGate = currentLevel===3 ? -1 : null;
   let nearCorner=null;
-  for(const cc of corners){ if(Math.hypot(cc[0]+0.5-cam.x,cc[1]+0.5-cam.z)<6.5){ nearCorner=cc; break; } } // covers the 6x6 corner room
+  for(const cc of corners){ if(Math.hypot(cc[0]+0.5-cam.x,cc[1]+0.5-cam.z)<6.5){ nearCorner=cc; break; } }
   if(nearCorner && Math.random()<0.5){
-    const adj=corners.filter(cc=> cc!==nearCorner && (cc[0]===nearCorner[0] || cc[1]===nearCorner[1])); // the two adjacent (visible) corners
+    const adj=corners.filter(cc=> cc!==nearCorner && (cc[0]===nearCorner[0] || cc[1]===nearCorner[1]));
     const g = dGate!==null ? dGate : 0.35;
     const pick=adj.filter(cc=>{
       const ddx=cc[0]+0.5-cam.x, ddz=cc[1]+0.5-cam.z, dd=Math.hypot(ddx,ddz)||1;
-      const dt=(ddx*fwdX+ddz*fwdZ)/dd;            // roughly in front so the player can see/stare at it
+      const dt=(ddx*fwdX+ddz*fwdZ)/dd;
       return dt>0 && darknessAt(cc[0]+0.5,cc[1]+0.5)>g;
     });
     const choice = pick.length ? pick[(Math.random()*pick.length)|0] : null;
     if(choice){ blackFig.moveTo(choice[0]+0.5,choice[1]+0.5); blackFig.state='watching'; blackFig.targetVis=BLACK_MAX_OPACITY; return true; }
   }
-  // corridor-end in view?
   let corridor=0;
   for(let d=3; d<14; d++){ if(blackCellOpen(cam.x+fwdX*d, cam.z+fwdZ*d)) corridor=d; else break; }
   if(corridor>=6){
     const cx=cam.x+fwdX*corridor, cz=cam.z+fwdZ*corridor;
     if(darknessAt(cx,cz)>(dGate!==null?dGate:0.45)){ blackFig.moveTo(cx,cz); blackFig.state='watching'; blackFig.targetVis=BLACK_MAX_OPACITY; return true; }
   }
-  // one of the four outer corners, if dark and not too close
-  const openCorners=corners.filter(c=>blackCellOpen(c[0]+0.5,c[1]+0.5)
+  const corners2=corners.filter(c=>blackCellOpen(c[0]+0.5,c[1]+0.5)
     && Math.hypot(c[0]+0.5-cam.x,c[1]+0.5-cam.z)>6
     && darknessAt(c[0]+0.5,c[1]+0.5)>(dGate!==null?dGate:0.5));
-  if(openCorners.length && Math.random()<0.6){
-    const c=openCorners[(Math.random()*openCorners.length)|0];
+  if(corners2.length && Math.random()<0.6){
+    const c=corners2[(Math.random()*corners2.length)|0];
     blackFig.moveTo(c[0]+0.5,c[1]+0.5); blackFig.state='watching'; blackFig.targetVis=BLACK_MAX_OPACITY; return true;
   }
-  // darkest open cell within mid range
   let best=null,bestDark=0;
   for(let i=0;i<18;i++){
     const c=ld.openCells[(Math.random()*ld.openCells.length)|0];
@@ -1851,39 +1715,28 @@ function blackManifest(){
 
 function updateBlackFig(){
   if(!blackFig.sprite || blackFig.lv!==currentLevel) return;
-  if(!hasMovedThisLevel){ blackFig.hide(); return; } // dormant until first step
+  if(!hasMovedThisLevel){ blackFig.hide(); return; }
   if(blackCooldown>0) blackCooldown--;
-
   const dx=blackFig.x-cam.x, dz=blackFig.z-cam.z;
   const dist=Math.hypot(dx,dz);
   const fwdX=Math.sin(cam.angle), fwdZ=Math.cos(cam.angle);
   const dot=(dx*fwdX+dz*fwdZ)/Math.max(0.1,dist);
-  const lookingAt = dot>0.86 && dist<16; // eyes roughly on him
-
+  const lookingAt = dot>0.86 && dist<16;
   if(blackFig.state==='hidden'){
     stareFrames=0;
     if(blackCooldown<=0){
-      // manifestation roll. L3 (lit backrooms) gets a higher floor so he actually appears there;
-      // L1/L2 stay biased to when the player is somewhere dark.
       const here=darknessAtPlayerCached();
       const chance=(currentLevel===3 ? 0.0045 : 0.0012) + here*0.0016;
       if(Math.random()<chance) blackManifest();
     }
     return;
   }
-
-  // state === 'watching' — stationary. Ease opacity toward target (feathered fade in/out).
   blackFig.setVis(blackFig.vis + (blackFig.targetVis-blackFig.vis)*0.08);
-  const litLevel = currentLevel===3; // backrooms are lit -> don't require darkness for strike/persistence
-
-  // A) proximity -> strike (dark areas on L1/L2; anywhere on L3 since it's lit)
+  const litLevel = currentLevel===3;
   if(dist<STRIKE_RANGE && (litLevel || darknessAtPlayerCached()>0.4)){ blackStrike(); return; }
-
-  // B) sustained stare on an already-manifested watcher -> blink to a foot away, then strike
   if(lookingAt){
     stareFrames++;
     if(stareFrames>=STARE_FRAMES){
-      // teleport blink (no travel): appear ~1 ft in front of the player
       const bx=cam.x+fwdX*0.9, bz=cam.z+fwdZ*0.9;
       if(blackCellOpen(bx,bz)) blackFig.moveTo(bx,bz); else blackFig.moveTo(cam.x,cam.z);
       blackFig.setVis(BLACK_MAX_OPACITY);
@@ -1891,38 +1744,33 @@ function updateBlackFig(){
       return;
     }
   } else {
-    stareFrames=Math.max(0,stareFrames-2); // looking away bleeds the timer down
-    // dissolve only if the player has truly left it behind. On L3 don't use the darkness test
-    // (everything is lit), so he persists long enough for you to turn and stare.
+    stareFrames=Math.max(0,stareFrames-2);
     if(dist>14 || (!litLevel && darknessAt(blackFig.x,blackFig.z)<0.3)){
       blackFig.targetVis=0; if(blackFig.vis<0.03){ blackFig.hide(); blackCooldown=Math.max(blackCooldown,300); }
     }
   }
 }
 
-// When a light flickers off, the watcher sometimes flickers into that spot, then is gone.
 function blackFlickerIn(lx,lz){
   if(!blackFig.sprite || blackFig.lv!==currentLevel) return;
   if(!hasMovedThisLevel || blackCooldown>0 || blackFig.state!=='hidden') return;
-  if(Math.random()<0.5) return; // only sometimes
+  if(Math.random()<0.5) return;
   const d=Math.hypot(lx-cam.x,lz-cam.z); if(d<3||d>13) return;
   blackFig.moveTo(lx,lz);
-  blackFig.state='watching'; blackFig.setVis(BLACK_MAX_OPACITY); blackFig.targetVis=0; // appears then fades as light returns
+  blackFig.state='watching'; blackFig.setVis(BLACK_MAX_OPACITY); blackFig.targetVis=0;
   setTimeout(()=>{ if(blackFig.state==='watching'&&blackFig.vis<0.05) blackFig.hide(); }, 900);
 }
 
-// ─── SANITY-ZERO SPIRAL + DEATH / RESET ──────────────────
-let sanityZeroed=false;   // true once sanity first hits 0 this level (one-time ordeal)
-let spiralActive=false;   // chat speeds up, whispers/noise intensify, health auto-drains
-let dying=false;
-let spiralFlashT=120; // countdown for the recurring crack-and-flash during the spiral
-const SPIRAL_HP_DRAIN=0.08; // per updateSanity call (~20/s) -> ~60s from full health once sanity is gone
+// ─── SANITY ──────────────────────────────────────────────
+let sanityZeroed=false, spiralActive=false, dying=false;
+let spiralFlashT=120;
+const SPIRAL_HP_DRAIN=0.08;
 
 function triggerSanityBreak(){
   if(sanityZeroed) return;
   sanityZeroed=true; spiralActive=true;
-  quickStrobe();              // one subtle crack + flash at the moment sanity breaks
-  spiralFlashT=20*60;         // then it recurs once every 20s (frames)
+  quickStrobe();
+  spiralFlashT=20*60;
   whisperLine("your mind is gone. now it takes the rest.");
 }
 
@@ -1934,14 +1782,17 @@ function resetMetricsForLevel(){
   blackFig.hide();
   $('blood-vignette').style.background='';
   camera.fov=76; camera.updateProjectionMatrix();
+  // Recharge flashlight battery on each new level
+  FL.battery=Math.min(100, FL.battery+40);
+  FL.recharging=false;
+  updateFlashlightHUD();
   updateHUD();
 }
 
 function die(){
   if(dying) return;
-  dying=true;
-  spiralActive=false;
-  phase='dead'; // freeze movement / figures / drain while the death screen shows
+  dying=true; spiralActive=false;
+  phase='dead';
   const ds=$('deathscreen'); ds.classList.add('show');
   setTimeout(()=>{
     try{ resetToLevel1(); }
@@ -1951,7 +1802,6 @@ function die(){
 }
 
 function resetToLevel1(){
-  // Full reset: torches to zero, all wall-reads re-locked & reverted, metrics fresh, drop into Level I.
   torchesCollected=0;
   for(const t of allTorches){
     t.collected=false; t.unlocked=false;
@@ -1971,50 +1821,41 @@ function resetToLevel1(){
   resetMetricsForLevel();
   showLevelWarning();
   setObjective("Read the walls. Reading reveals torches. Collect all seven.");
-  hp=100; sanity=100; updateHUD();   // guarantee full restart, last thing before play resumes
-  phase='play';
-  inputGraceUntil=performance.now()+800;
+  // Reset flashlight fully on death
+  FL.battery=100; FL.on=false; FL.recharging=false; if(FL.light) FL.light.intensity=0;
+  updateFlashlightHUD();
+  phase='play'; inputGraceUntil=performance.now()+800;
 }
 
-// ─── PER-LEVEL WARNING (random each level) ───────────────
 const LEVEL_WARNINGS=[
-  "don't move or he'll get you",
-  "movement attracts the monster",
-  "first step and it's game on",
-  "creep slowly or its the butcherhook",
+  "don't move or he'll get you","movement attracts the monster",
+  "first step and it's game on","creep slowly or its the butcherhook",
 ];
 function showLevelWarning(){
   const w=LEVEL_WARNINGS[(Math.random()*LEVEL_WARNINGS.length)|0];
-  // dedicated, longer-held, distinct from the whisper channel so it reads as an instruction
   setTimeout(()=>{ const el=$('levelwarn'); el.textContent=w; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); }, 500);
 }
 
-// ─── STROBE (L3 only) ────────────────────────────────────
-let nextStrobe=1200+Math.random()*2000;
-let strobeActive=false;
+// ─── STROBE ──────────────────────────────────────────────
+let nextStrobe=1200+Math.random()*2000, strobeActive=false;
 const strobeEl=document.getElementById('strobe');
 function doStrobe(){
   if(currentLevel!==3) return;
   sfx.strobeHit();
-  let flashes=0;
-  const maxFlashes=3+Math.floor(Math.random()*5);
+  let flashes=0; const maxFlashes=3+Math.floor(Math.random()*5);
   function flash(){
     if(flashes>=maxFlashes){ strobeEl.style.opacity='0'; strobeActive=false; return; }
     strobeEl.style.opacity=String(0.5+Math.random()*0.4);
-    setTimeout(()=>{
-      strobeEl.style.opacity='0';
-      flashes++;
-      setTimeout(flash,40+Math.random()*120);
-    },30+Math.random()*60);
+    setTimeout(()=>{ strobeEl.style.opacity='0'; flashes++; setTimeout(flash,40+Math.random()*120); },30+Math.random()*60);
   }
   strobeActive=true; flash();
   nextStrobe=1500+Math.random()*3000;
 }
 
-// ─── STATE ──────────────────────────────────────────────
+// ─── STATE ───────────────────────────────────────────────
 let phase='title';
 let hp=100,sanity=100;
-let hasKey=false;            // the Stage 3 key — persists through death, unlocks ascend + secret room
+let hasKey=false;
 function grantKey(){
   if(hasKey){ whisperLine('the key is already yours.'); return; }
   hasKey=true;
@@ -2023,20 +1864,16 @@ function grantKey(){
   ind.innerHTML='KEY <b style="color:#e8c84a">✦</b>';
   whisperLine('cold in your palm. older than the pyramid that has no exit.');
   try{ sfx.shadow&&sfx.shadow(); }catch(e){}
+  // Preload TV video now so it's buffered by the time player reaches the screen
+  if(_tvVideoEl && _tvVideoEl.readyState === 0){ try{ _tvVideoEl.load(); }catch(e){} }
 }
 let storyQ=[],storyP=0,storyAfter=null;
-let whisperTimer=600;
-let footstepTimer=0;
+let whisperTimer=600, footstepTimer=0;
 let nextChain=1800+Math.random()*2000;
 let nextMoo=1000+Math.random()*1500;
 let nextDistant=600+Math.random()*800;
-let jumpscareReady=true;
-let shadowGlitchT=0; // frame countdown for the observer's glitch-frame swap
-let nearShadow=false;
-let hieroNear=null;
-let interactReady=false;
-let descending=false;
-let inputGraceUntil=0;
+let jumpscareReady=true, shadowGlitchT=0, nearShadow=false;
+let hieroNear=null, interactReady=false, descending=false, inputGraceUntil=0;
 const keys={w:false,s:false,a:false,d:false,ArrowLeft:false,ArrowRight:false};
 let velX=0,velZ=0;
 const $=id=>document.getElementById(id);
@@ -2045,7 +1882,6 @@ const isTouch=('ontouchstart' in window)||navigator.maxTouchPoints>0;
 function setObjective(t){ $('objective').textContent=t; }
 function updateHUD(){ $('hpNum').textContent=Math.round(hp); $('orbNum').textContent=torchesCollected; $('sanNum').textContent=Math.round(sanity); }
 
-// ─── STORY ──────────────────────────────────────────────
 function runStory(seq,after){
   storyQ=seq; storyP=0; storyAfter=after; phase='story';
   $('hud').classList.remove('on'); $('touch').classList.remove('on');
@@ -2069,11 +1905,12 @@ function advanceStory(){
   else showFrame();
 }
 
-// ─── LEVEL TRANSITION ────────────────────────────────────
 function setLevel(lv){
   for(let i=1;i<=3;i++) if(levelGroups[i]) levelGroups[i].visible=false;
   currentLevel=lv;
-  buildLevel(lv); // lazy — only builds if not already built
+  buildLevel(lv);
+  // Ensure torches are placed as soon as we have the level group
+  ensureTorchesForLevel(lv);
   levelGroups[lv].visible=true;
   const cfg=getLevelCfg(lv);
   scene.fog=new THREE.FogExp2(cfg.fogColor,cfg.fogDensity);
@@ -2081,7 +1918,6 @@ function setLevel(lv){
   $('level-badge').textContent=cfg.name;
   const startM = lv===1?MAP_MARKERS.l1_start : lv===2?MAP_MARKERS.l2_start : MAP_MARKERS.l3_start;
   cam.x=startM[0]+0.5; cam.z=startM[1]+0.5;
-  // Reparent shadow figure
   if(shadowFig.sprite){
     shadowFig.reparent(levelGroups[lv]);
     const ld=levelData[lv];
@@ -2091,7 +1927,6 @@ function setLevel(lv){
     }
     shadowFig.lv=lv; shadowFig.hide();
   }
-  // Reparent the black hunter too; it stays dormant until the first step on this level.
   if(blackFig.sprite){
     blackFig.reparent(levelGroups[lv]);
     const ld=levelData[lv];
@@ -2102,7 +1937,6 @@ function setLevel(lv){
     blackFig.lv=lv; blackFig.hide();
   }
   startAmbient(lv);
-  // Blood tide is a Level 2 mechanic only
   if(lv===2){ startBlood(); } else { stopBlood(); }
 }
 
@@ -2114,45 +1948,48 @@ function tryDescend(){
   fl.style.transition='opacity 0.4s'; fl.style.opacity='1';
   setTimeout(()=>{
     setLevel(currentLevel+1);
-    // After descent, spawn away from new level's staircase
     cam.x = 6; cam.z = 6; cam.angle = Math.PI*0.25;
     fl.style.opacity='0';
     setTimeout(()=>{ fl.style.transition='opacity 0.05s'; descending=false; phase='play'; inputGraceUntil = performance.now() + 800; resetMetricsForLevel(); showLevelWarning(); setObjective(`Read the walls. ${7-torchesCollected} torches still to find.`); },500);
   },600);
 }
 
-// ─── GAME FLOW ───────────────────────────────────────────
-function startGame(){
-  $('title').classList.add('hidden');
-  $('epiwarn').classList.add('on');   // photosensitivity warning first; story runs on dismissal
+function tryAscend(){
+  if(descending) return;
+  if(currentLevel<=1) return;
+  descending=true;
+  const fl=$('flicker');
+  fl.style.transition='opacity 0.4s'; fl.style.opacity='1';
+  setTimeout(()=>{
+    setLevel(currentLevel-1);
+    const exitM = currentLevel===1?MAP_MARKERS.l1_exit : currentLevel===2?MAP_MARKERS.l2_exit : MAP_MARKERS.l3_exit;
+    cam.x = exitM[0]+0.5; cam.z = exitM[1]-1.5; cam.angle = 0;
+    fl.style.opacity='0';
+    setTimeout(()=>{ fl.style.transition='opacity 0.05s'; descending=false; phase='play'; inputGraceUntil = performance.now() + 800; resetMetricsForLevel(); showLevelWarning(); setObjective(`Read the walls. ${7-torchesCollected} torches still to find.`); },500);
+  },600);
 }
-function dismissEpiWarning(){
-  $('epiwarn').classList.remove('on');
-  runStory(OPENING,beginPlay);
-}
+
+function startGame(){ $('title').classList.add('hidden'); $('epiwarn').classList.add('on'); }
+function dismissEpiWarning(){ $('epiwarn').classList.remove('on'); runStory(OPENING,beginPlay); }
 function beginPlay(){
-  // Build L1, set fog/bg immediately so first render isn't black
   buildLevel(1);
   const cfg1=getLevelCfg(1);
   scene.fog=new THREE.FogExp2(cfg1.fogColor,cfg1.fogDensity);
   scene.background=new THREE.Color(cfg1.fogColor);
   levelGroups[1].visible=true;
-  // Spawn well away from the central staircase, in the entrance corner chamber
-  cam.x=6; cam.z=6; cam.angle=Math.PI*0.25; // facing toward centre
-  // Place torches for L1 only
+  cam.x=6; cam.z=6; cam.angle=Math.PI*0.25;
   ensureTorchesForLevel(1);
-  shadowFig.init(levelGroups[1]);
-  shadowFig.lv=1;
-  blackFig.init(levelGroups[1]);
-  blackFig.lv=1; blackFig.hide();
+  shadowFig.init(levelGroups[1]); shadowFig.lv=1;
+  blackFig.init(levelGroups[1]); blackFig.lv=1; blackFig.hide();
+  // Init the flashlight once the scene is ready
+  initFlashlight();
   $('level-badge').textContent=cfg1.name;
-  phase='play';
-  inputGraceUntil = performance.now() + 800; // ignore leftover taps from story screen
+  phase='play'; inputGraceUntil = performance.now() + 800;
   $('hud').classList.add('on');
   if(isTouch) $('touch').classList.add('on');
   resetMetricsForLevel();
-  updateHUD();
-  setObjective("Read the walls. Reading reveals torches. Collect all seven.");
+  updateHUD(); updateFlashlightHUD();
+  setObjective("Read the walls. Reading reveals torches. Collect all seven. [F] = Flashlight");
   showLevelWarning();
   startAmbient(1);
 }
@@ -2166,21 +2003,27 @@ function endGame(){
   phase='end'; sfx.end();
   runStory(KEY_ENDING,()=>{
     grantKey();
-    // Send the player back up to Level 1 to find the now-unlockable secret room.
     buildLevel(1); setLevel(1);
     cam.x=6; cam.z=6; cam.angle=Math.PI*0.25;
     resetMetricsForLevel();
-    secretRoomActive=true;          // the sealed wall in L1 now accepts the key
+    secretRoomActive=true;
     phase='play'; inputGraceUntil=performance.now()+800;
+    // Restore HUD so the crosshair is visible for the TV portal puzzle,
+    // but hide the stats bar (HP / Sanity / Torches) — the metrics phase is over.
+    $('hud').classList.add('on');
+    const tb=$('topbar'); if(tb) tb.style.display='none';
+    const os=$('objStat'); if(os) os.style.display='none';
+    if(isTouch) $('touch').classList.add('on');
     setObjective("The key is yours. Return to the sealed wall. It will know.");
     whisperLine("you can leave now. that was never the hard part.");
   });
 }
 
-// ─── BLOOD FOG (Level 2 rising tide) ─────────────────────
+// ─── BLOOD FOG ───────────────────────────────────────────
 let bloodPlane=null, bloodLevel=0, bloodActive=false;
-const BLOOD_MAX=2.2;        // height (player eye ~1.65) at which you're "under"
-const BLOOD_RISE=0.000055;  // per ms — much slower climb; gives time to traverse the long L2 corridor
+const BLOOD_MAX=2.2;
+// HALVED from 0.000055 → 0.0000275 — reaches max in ~2x as long
+const BLOOD_RISE=0.0000275;
 function initBloodPlane(){
   if(bloodPlane) return;
   const geo=new THREE.PlaneGeometry(GRID*1.5,GRID*1.5);
@@ -2195,31 +2038,26 @@ function updateBlood(dt){
   bloodPlane.visible=true;
   bloodLevel=Math.min(BLOOD_MAX, bloodLevel + dt*BLOOD_RISE);
   bloodPlane.position.y=bloodLevel;
-  // tint the screen redder + drain as it covers you
   if(bloodLevel > cam.y-0.3){
     const submerge=Math.min(1,(bloodLevel-(cam.y-0.3))/0.6);
-    const fl=$('jumpscare'); // reuse red flash element subtly
     if(!godMode){ hp=Math.max(0,hp-0.10*submerge); updateHUD(); if(hp<=0){ die(); } }
     if(submerge>0.9 && frameCount%30===0) whisperLine("the tide does not negotiate. neither did the line.");
   }
 }
+
 function checkSecretRoomProximity(){
-  // Secret room is now entered by walking to the glyph DOOR and pressing interact (see handleInteract).
-  // This proximity hook is retained only to show a hint when the key-holder is near the door.
   if(!hasKey || secretRoomEntered || currentLevel!==1) return;
   const d=MAP_MARKERS.l1_secretDoor;
   const dd=Math.hypot(cam.x-(d[0]+0.5), cam.z-(d[1]+0.5));
   if(dd<3.4 && frameCount%90===0) setObjective("The sealed door. Press [E] / Examine — it will know the key.");
 }
 function enterSecretRoom(){
-  // No screen takeover — open the door and let the player walk in.
   if(secretRoomEntered) return;
   secretRoomEntered=true;
-  if(secretDoorMesh){ secretDoorMesh.visible=false; } // door opens
+  if(secretDoorMesh){ secretDoorMesh.visible=false; }
   whisperLine("the glyphs were never stone. they were always pixels pretending.");
   setObjective("Activate the glyphs in the order the archive consumes its subject.");
 }
-// In-world glyph interaction — called from handleInteract when near a panel
 function tryGlyphInteract(){
   if(!secretGlyphMeshes.length || secretSolved) return false;
   for(const g of secretGlyphMeshes){
@@ -2234,7 +2072,6 @@ function tryGlyphInteract(){
         if(srExpectedWorld>5){ secretPuzzleSolvedWorld(); }
         else setObjective('The archive accepts it. '+(srExpectedWorld-1)+' of 5.');
       } else {
-        // wrong order — reset all
         try{ sfx.shadow&&sfx.shadow(); }catch(e){}
         for(const gg of secretGlyphMeshes){ gg.lit=false; gg.mesh.material.map=glyphPanelTex(gg.sym,false); gg.mesh.material.emissiveMap=gg.mesh.material.map; gg.mesh.material.emissiveIntensity=0.5; gg.mesh.material.needsUpdate=true; gg.light.intensity=0; }
         srExpectedWorld=1;
@@ -2247,36 +2084,207 @@ function tryGlyphInteract(){
 }
 function secretPuzzleSolvedWorld(){
   secretSolved=true;
+  tvOpened=false; tvPortalArmed=false; tvCursorLocked=false; tvTransitioning=false; tvLockCounter=0;
   setObjective("The record closes. The screen wakes. Approach it.");
   whisperLine("the archive opens. the specimen is filed.");
   if(secretTV){ secretTV.on=true; secretTV.mat.map=tvOnTex(); secretTV.mat.emissiveMap=secretTV.mat.map; secretTV.mat.emissiveIntensity=0.9; secretTV.mat.needsUpdate=true; secretTV.light.intensity=1.2; }
   try{ sfx.end&&sfx.end(); }catch(e){}
 }
-// In-world TV interaction — opens a framed in-game player (no black takeover)
+let _tvVideoTex = null;
+const _tvVideoEl = $('tv-video');
+if(_tvVideoEl) _tvVideoEl.src = TV_MP4_URL;
+
+/* ─────────────────────────────────────────────────────────────
+   TV PORTAL — line the player crosshair up with the cursor on the
+   screen, then walk through the on-screen door into
+   veganbrosstage9.html.
+
+   Every position below is a UV coordinate on the TV screen:
+     u : 0 = LEFT edge,   1 = RIGHT edge
+     v : 0 = BOTTOM edge, 1 = TOP edge   (Three.js UV convention)
+
+   >>> HOW TO CALIBRATE TO YOUR VIDEO'S FINAL FRAME <<<
+     1. type   paradoxus55   to turn on debug
+     2. press  V  — you spawn right in front of the TV, aimed at it,
+        the clip plays, and a green readout shows the live UV sitting
+        under your crosshair
+     3. move your aim onto the cursor in the video -> note CURSOR u,v
+        move your aim onto the door's edges       -> note DOOR bounds
+     4. type those numbers into TV_PORTAL below and re-save.
+   (Press  U  any time in debug to toggle the readout.)
+   ───────────────────────────────────────────────────────────── */
+const TV_PORTAL = {
+  // Where the cursor sits in the final frame, and how close (radius in
+  // UV units) the crosshair must get to count as "lined up".
+  cursor: { u: 0.50, v: 0.52, r: 0.10 },
+  // The door, as a rectangle on the screen in UV space.
+  door:   { uMin: 0.20, uMax: 0.80, vMin: 0.04, vMax: 0.70 },
+  // Player must be at least this close (world units) to step through.
+  stepDist: 1.7,
+  // Crosshair must rest on the cursor this many frames (~60fps) to lock.
+  lockFrames: 18,
+  // Safety net: arm the portal this long after the clip starts, in case
+  // the video's 'ended' event never fires on some browsers.
+  armFallbackMs: 15000,
+};
+
+let tvOpened = false;        // the clip has been started
+let tvPortalArmed = false;   // final frame reached -> aiming is live
+let tvCursorLocked = false;  // crosshair lined up with the on-screen cursor
+let tvTransitioning = false; // walking through -> navigating away
+let tvLockCounter = 0;
+let tvUVReadout = false;
+let _tvArmTimer = null;
+
 function tryTVInteract(){
   if(!secretTV || !secretTV.on) return false;
   const d=Math.hypot(cam.x-secretTV.x, cam.z-secretTV.z);
-  if(d<3.0){
-    openTVPlayer();
-    return true;
-  }
+  if(d<3.0){ openTVPlayer(); return true; }
   return false;
 }
-function openTVPlayer(){
-  const wrap=$('tvplayer'); if(!wrap) return;
-  wrap.classList.add('on');
-  $('tv-iframe').src='https://www.youtube.com/embed/'+STAGE9_VIDEO_ID+'?autoplay=1&controls=0&rel=0&modestbranding=1&playsinline=1';
-  phase='watching';
-  try{ document.exitPointerLock&&document.exitPointerLock(); }catch(e){}
-  setTimeout(()=>{ const b=$('tv-continue'); if(b) b.classList.add('show'); }, 60000);
+
+function showTVHint(text, locked){
+  const el=$('tvhint'); if(!el) return;
+  el.textContent=text;
+  el.classList.toggle('locked', !!locked);
+  el.classList.add('show');
 }
-$('tv-continue') && $('tv-continue').addEventListener('click',()=>{ window.location.href='veganbrosstage9.html'; });
-$('tv-close') && $('tv-close').addEventListener('click',()=>{
-  const wrap=$('tvplayer'); wrap.classList.remove('on'); $('tv-iframe').src=''; phase='play'; inputGraceUntil=performance.now()+400;
-});
+function hideTVHint(){ const el=$('tvhint'); if(el) el.classList.remove('show'); }
+
+function armTVPortal(){
+  if(tvPortalArmed || tvTransitioning) return;
+  tvPortalArmed = true;
+  tvCursorLocked = false;
+  tvLockCounter = 0;
+  setObjective("Line your sight up with the cursor on the screen.");
+  showTVHint("\u25CC  line your sight up with the cursor on the screen", false);
+}
+
+function openTVPlayer(){
+  if(!secretTV || !_tvVideoEl) return;
+  if(tvOpened) return;
+  tvOpened = true;
+  _tvVideoEl.loop = false;
+  _tvVideoEl.currentTime = 0;
+  const _doPlay = () => _tvVideoEl.play().catch(()=>{});
+  if(_tvVideoEl.readyState >= 3){ _doPlay(); }
+  else{
+    _tvVideoEl.addEventListener('canplay', _doPlay, {once:true});
+    try{ _tvVideoEl.load(); }catch(e){}
+  }
+  if(!_tvVideoTex){
+    _tvVideoTex = new THREE.VideoTexture(_tvVideoEl);
+    _tvVideoTex.colorSpace = THREE.SRGBColorSpace;
+  }
+  secretTV.mat.map = _tvVideoTex;
+  secretTV.mat.emissiveMap = _tvVideoTex;
+  secretTV.mat.emissiveIntensity = 1.4;
+  secretTV.mat.needsUpdate = true;
+  secretTV.light.intensity = 1.6;
+  setObjective("Watch.");
+  // Arm when the clip ends (cursor + door are on the final frame)...
+  _tvVideoEl.addEventListener('ended', armTVPortal, { once:true });
+  // ...or right as it reaches the end, if 'ended' is flaky...
+  _tvVideoEl.addEventListener('timeupdate', function _te(){
+    if(_tvVideoEl.duration && _tvVideoEl.currentTime >= _tvVideoEl.duration - 0.25){
+      _tvVideoEl.removeEventListener('timeupdate', _te); armTVPortal();
+    }
+  });
+  // ...or after a hard fallback delay, but only if the clip clearly
+  // isn't going to finish on its own (e.g. autoplay was blocked).
+  clearTimeout(_tvArmTimer);
+  _tvArmTimer = setTimeout(()=>{
+    if(!_tvVideoEl || _tvVideoEl.ended || _tvVideoEl.paused || _tvVideoEl.currentTime < 0.1) armTVPortal();
+  }, TV_PORTAL.armFallbackMs);
+}
+
+function startPortalTransition(){
+  if(tvTransitioning) return;
+  tvTransitioning = true;
+  hideTVHint();
+  setObjective("");
+  try{ sfx.end && sfx.end(); }catch(e){}
+  try{ $('crosshair') && $('crosshair').classList.remove('tv-lock'); }catch(e){}
+  const f=$('portalfade'); if(f) f.classList.add('on');
+  setTimeout(()=>{ window.location.href='veganbrosstage9.html'; }, 1200);
+}
+
+// Raycast straight through the crosshair (screen centre) onto the TV.
+const _tvRay = new THREE.Raycaster();
+const _tvCenter = new THREE.Vector2(0,0);
+function updateTVPortal(){
+  if(phase!=='play' || !tvPortalArmed || tvTransitioning) return;
+  if(!secretTV || !secretTV.mesh) return;
+  const dist = Math.hypot(cam.x-secretTV.x, cam.z-secretTV.z);
+
+  // read the UV sitting under the crosshair
+  let uv=null;
+  if(dist < 7){
+    camera.updateMatrixWorld();
+    _tvRay.setFromCamera(_tvCenter, camera);
+    const hit=_tvRay.intersectObject(secretTV.mesh, false);
+    if(hit.length && hit[0].uv) uv=hit[0].uv;
+  }
+
+  // live calibration readout (debug only)
+  if(tvUVReadout){
+    const el=$('tvuv');
+    if(el){
+      el.classList.add('show');
+      el.textContent = uv
+        ? 'TV UV\nu ' + uv.x.toFixed(3) + '\nv ' + uv.y.toFixed(3) + '\ndist ' + dist.toFixed(2)
+        : 'TV UV\n(crosshair off the screen)\ndist ' + dist.toFixed(2);
+    }
+  }
+
+  const onCursor = !!uv && (
+    Math.pow(uv.x-TV_PORTAL.cursor.u,2) + Math.pow(uv.y-TV_PORTAL.cursor.v,2)
+  ) <= Math.pow(TV_PORTAL.cursor.r,2);
+  const onDoor = !!uv &&
+    uv.x>=TV_PORTAL.door.uMin && uv.x<=TV_PORTAL.door.uMax &&
+    uv.y>=TV_PORTAL.door.vMin && uv.y<=TV_PORTAL.door.vMax;
+
+  if(!tvCursorLocked){
+    // STEP 1 — line the crosshair up with the on-screen cursor
+    if(onCursor){
+      tvLockCounter++;
+      if(tvLockCounter>=TV_PORTAL.lockFrames){
+        tvCursorLocked=true;
+        $('crosshair') && $('crosshair').classList.add('tv-lock');
+        try{ sfx.ui && sfx.ui(); }catch(e){}
+        setObjective("The doorway is open. Walk through it.");
+        showTVHint("\u2726  signal locked  \u2014  walk through the door", true);
+      }
+    } else {
+      tvLockCounter=Math.max(0, tvLockCounter-1);
+    }
+  } else {
+    // STEP 2 — walk through the on-screen door
+    if(onDoor && dist < TV_PORTAL.stepDist){
+      startPortalTransition();
+    }
+  }
+}
+
+// Debug helper: jump straight to the armed TV portal for fast calibration.
+function debugOpenTVPortal(){
+  if(currentLevel!==1){ buildLevel(1); setLevel(1); resetMetricsForLevel(); }
+  hasKey=true;
+  secretRoomActive=true; secretRoomEntered=true;
+  if(secretTV && !secretTV.on) secretPuzzleSolvedWorld();
+  cam.x = secretTV ? secretTV.x : 57.0;
+  cam.z = (secretTV ? secretTV.z : 12.8) - 2.1;   // stand in front of the screen
+  cam.angle = 0; cam.pitch = 0;                    // looking straight at it (+Z)
+  phase='play'; inputGraceUntil=performance.now()+300;
+  tvOpened=false; tvPortalArmed=false; tvCursorLocked=false; tvTransitioning=false; tvLockCounter=0;
+  openTVPlayer();
+  tvUVReadout=true;
+  armTVPortal();
+  whisperLine('[debug] TV portal armed \u2014 green readout shows live UV');
+}
+
 function handleInteract(){
   if(phase!=='play') return;
-  // Wall text reveal — works for hieroglyphs (L1), smeared (L2), faded (L3)
   if(hieroNear&&!hieroNear.revealed){
     hieroNear.mesh.material.map=hieroNear.revealTex;
     hieroNear.mesh.material.needsUpdate=true;
@@ -2286,38 +2294,42 @@ function handleInteract(){
     hr.textContent=hieroNear.origText;
     hr.classList.add('show');
     setTimeout(()=>hr.classList.remove('show'),5500);
-    // Reading reveals a torch — only if any are still locked on this level
     setTimeout(()=> unlockTorchOnLevel(currentLevel), 800);
     return;
   }
-  // Secret-room door (L1, requires key) — approach and press to enter
   if(currentLevel===1 && hasKey && !secretRoomEntered){
     const d=MAP_MARKERS.l1_secretDoor;
     const dd=Math.hypot(cam.x-(d[0]+0.5),cam.z-(d[1]+0.5));
     if(dd<2.6){ enterSecretRoom(); return; }
   }
-  // In-world secret-room glyph panels + TV
   if(secretRoomEntered){
     if(tryGlyphInteract()) return;
     if(tryTVInteract()) return;
   }
-  // Level exit — at the corridor-end exit marker for this level
+  if(currentLevel>=2){
+    const asc = currentLevel===2?MAP_MARKERS.l2_ascend:MAP_MARKERS.l3_ascend;
+    const ca=Math.hypot(cam.x-(asc[0]+0.5),cam.z-(asc[1]+0.5));
+    if(ca<2.8){ tryAscend(); return; }
+  }
   const exit = currentLevel===1?MAP_MARKERS.l1_exit : currentLevel===2?MAP_MARKERS.l2_exit : MAP_MARKERS.l3_exit;
   const cd=Math.hypot(cam.x-(exit[0]+0.5),cam.z-(exit[1]+0.5));
   if(cd<2.8){
     if(currentLevel<3){ tryDescend(); }
-    else { setTimeout(endGame,300); } // L3 exit reached -> ending grants the key
+    else {
+      if(torchesCollected>=7){ setTimeout(endGame,300); }
+      else { whisperLine(`${7-torchesCollected} torches remain. The way is sealed until all are lit.`); setObjective(`Find all 7 torches first. ${7-torchesCollected} still to collect.`); }
+    }
     return;
   }
 }
 
-// ─── INPUT ──────────────────────────────────────────────
+// ─── INPUT ───────────────────────────────────────────────
 $('startBtn').addEventListener('click',()=>{ unlockAudio(); sfx.ui(); startGame(); });
 $('epiBtn').addEventListener('click',()=>{ sfx.ui(); dismissEpiWarning(); });
 window.addEventListener('mousedown',(e)=>{
   if(phase==='story'){ advanceStory(); return; }
   if(phase==='play'){
-    if(performance.now() < inputGraceUntil) return; // ignore leftover taps from story screen
+    if(performance.now() < inputGraceUntil) return;
     if(document.pointerLockElement!==canvas) canvas.requestPointerLock?.();
     if(interactReady) handleInteract();
   }
@@ -2327,23 +2339,24 @@ window.addEventListener('touchstart',(e)=>{
   if(phase==='play' && performance.now() < inputGraceUntil){ e.preventDefault?.(); return; }
 },{passive:false});
 $('interact-btn')&&$('interact-btn').addEventListener('touchstart',(e)=>{ e.preventDefault(); if(phase==='play' && performance.now() < inputGraceUntil) return; handleInteract(); },{passive:false});
+// Flashlight button — mobile
+$('fl-btn')&&$('fl-btn').addEventListener('touchstart',(e)=>{ e.preventDefault(); if(phase==='play') toggleFlashlight(); },{passive:false});
 document.addEventListener('mousemove',(e)=>{
   if(document.pointerLockElement===canvas&&phase==='play'){
     cam.angle-=e.movementX*0.002; cam.pitch-=e.movementY*0.002;
     cam.pitch=Math.max(-MAX_PITCH,Math.min(MAX_PITCH,cam.pitch));
   }
 });
-// ─── DEBUG MODE (type paradoxus55 to toggle) ─────────────
-let debugMode=false;
-let godMode=false;
-let _dbgBuf='';
+
+let debugMode=false, godMode=false, _dbgBuf='';
 function toggleDebug(){
   debugMode=!debugMode; godMode=debugMode;
   let tag=$('dbgtag');
   if(!tag){ tag=document.createElement('div'); tag.id='dbgtag'; document.body.appendChild(tag);
     tag.style.cssText='position:fixed;top:6px;right:8px;z-index:90;font-family:monospace;font-size:11px;letter-spacing:1px;color:#5f5;background:rgba(0,0,0,0.6);padding:4px 8px;border:1px solid #5f5;pointer-events:none;'; }
-  tag.textContent = debugMode ? 'DEBUG  1/2/3 warp · K key · 9 win-L3 · 0 secret · G god' : '';
+  tag.textContent = debugMode ? 'DEBUG  1/2/3 warp · K key · 9 win-L3 · 0 secret · G god · F flashlight' : '';
   tag.style.display = debugMode ? 'block' : 'none';
+  const fpsEl=$('fps'); if(fpsEl) fpsEl.style.display=debugMode?'block':'none';
   if(debugMode) whisperLine('debug enabled. the observer disapproves.');
 }
 addEventListener('keydown',e=>{
@@ -2357,6 +2370,8 @@ addEventListener('keydown',e=>{
   else if(e.key==='9'){ if(currentLevel===3){ torchesCollected=7; updateHUD(); whisperLine('[debug] L3 win forced'); setTimeout(endGame,600);} else { whisperLine('[debug] warp to L3 first (press 3)'); } }
   else if(e.key==='0'){ grantKey(); if(currentLevel!==1){ buildLevel(1); setLevel(1); resetMetricsForLevel(); } const d=MAP_MARKERS.l1_secretDoor; cam.x=d[0]-1.5; cam.z=d[1]+0.5; cam.angle=Math.PI/2; phase='play'; whisperLine('[debug] at secret door — press E'); }
   else if(e.key==='g'||e.key==='G'){ godMode=!godMode; whisperLine('[debug] god mode '+(godMode?'ON':'OFF')); }
+  else if(e.key==='v'||e.key==='V'){ debugOpenTVPortal(); }
+  else if(e.key==='u'||e.key==='U'){ tvUVReadout=!tvUVReadout; const el=$('tvuv'); if(el&&!tvUVReadout) el.classList.remove('show'); whisperLine('[debug] UV readout '+(tvUVReadout?'ON':'OFF')); }
 });
 function debugWarp(lv){
   if(lv===currentLevel){ whisperLine('[debug] already on L'+lv); return; }
@@ -2370,6 +2385,8 @@ addEventListener('keydown',e=>{
   const k=e.key;
   if(phase==='story'&&(k===' '||k==='Enter')){ advanceStory(); return; }
   if((k==='e'||k==='E')&&phase==='play'){ if(performance.now() < inputGraceUntil) return; handleInteract(); return; }
+  // F key toggles flashlight
+  if((k==='f'||k==='F')&&phase==='play'){ toggleFlashlight(); return; }
   if(k==='w'||k==='W'||k==='ArrowUp') keys.w=true;
   if(k==='s'||k==='S'||k==='ArrowDown') keys.s=true;
   if(k==='a'||k==='A') keys.a=true;
@@ -2398,7 +2415,7 @@ const jl={x:0,y:0},jr={x:0,y:0};
 joystick($('joyL'),$('knobL'),jl);
 joystick($('joyR'),$('knobR'),jr);
 
-// ─── MOVEMENT ───────────────────────────────────────────
+// ─── MOVEMENT ────────────────────────────────────────────
 function move(){
   if(phase!=='play') return;
   const map=MAPS[currentLevel-1];
@@ -2417,7 +2434,6 @@ function move(){
   if(!solidAt(map,cam.x+velX+Math.sign(velX)*margin,cam.z)) cam.x+=velX; else velX=0;
   if(!solidAt(map,cam.x,cam.z+velZ+Math.sign(velZ)*margin)) cam.z+=velZ; else velZ=0;
   const speed=Math.hypot(velX,velZ);
-  // First-step gate — the black hunter stays dormant until the player actually moves this level.
   if(!hasMovedThisLevel && speed>0.012 && performance.now()>=inputGraceUntil) hasMovedThisLevel=true;
   if(speed>0.005){
     cam.y=1.65+Math.sin(performance.now()*0.008)*0.025*Math.min(1,speed/0.06);
@@ -2431,7 +2447,6 @@ function move(){
   }
 }
 
-// ─── TORCH COLLECTION ────────────────────────────────────
 function checkTorches(){
   for(const t of allTorches){
     if(t.collected||t.lv!==currentLevel||!t.unlocked) continue;
@@ -2439,7 +2454,7 @@ function checkTorches(){
     if(d<0.85){
       t.collected=true; torchesCollected++;
       t.sprite.visible=false; t.light.intensity=0; t.halo.visible=false;
-      hp=Math.min(100,hp+20); // each torch restores 20 health
+      hp=Math.min(100,hp+20);
       sfx.torch(); updateHUD();
       if(torchesCollected===1) whisperLine("the first torch. the darkness doesn't care.");
       else if(torchesCollected===7){ setTimeout(endGame,1400); return; }
@@ -2448,12 +2463,10 @@ function checkTorches(){
   }
 }
 
-// ─── SHADOW FIGURE ──────────────────────────────────────
+// ─── SHADOW FIGURE ───────────────────────────────────────
 function updateShadow(){
   if(!shadowFig.sprite||shadowFig.lv!==currentLevel) return;
   if(observerLineCD>0) observerLineCD--;
-  // Animated glitch + jitter while he's visible: swap among pre-baked torn frames and shudder
-  // his position slightly. Cheap — frames are built once; this only swaps references.
   if(shadowFig.frames && shadowFig.sprite.material.opacity>0.02){
     shadowGlitchT--;
     if(shadowGlitchT<=0){
@@ -2471,23 +2484,19 @@ function updateShadow(){
   const looking=dot>0.75&&dist<14;
   const veryClose=dist<2.5;
   shadowFig.peekCooldown=Math.max(0,shadowFig.peekCooldown-1);
-  // Stage 8 lore: when the watcher is visible and seen, it speaks
   if(shadowFig.sprite.material.opacity>0.15 && looking){
     if(dist<4.5) observerWhisper(true); else observerWhisper(false);
   }
-
   if(veryClose&&looking&&jumpscareReady){
     jumpscareReady=false;
     sfx.jumpscare();
     const js=$('jumpscare'); js.classList.remove('flash'); void js.offsetWidth; js.classList.add('flash');
-    // Grey figure is the OBSERVER — its scare is cosmetic. Only the black hunter drains stats.
     shadowFig.hide();
     const ld=levelData[currentLevel];
     if(ld){ const c=ld.openCells[Math.floor(Math.random()*ld.openCells.length)]; if(c) shadowFig.moveTo(c[0]+0.5,c[1]+0.5); }
     setTimeout(()=>{ jumpscareReady=true; },14000);
     return;
   }
-
   if(looking&&dist<12){
     shadowFig.sprite.material.opacity=Math.max(0,shadowFig.sprite.material.opacity-0.035);
     if(shadowFig.sprite.material.opacity<=0){
@@ -2526,30 +2535,78 @@ function checkHiero(){
     }
   }
   hieroNear=closest;
-  const cd=Math.hypot(cam.x-(GRID/2+0.5),cam.z-(GRID/2+0.5));
-  const nearStair=cd<2.8&&currentLevel<3;
+  const exit = currentLevel===1?MAP_MARKERS.l1_exit : currentLevel===2?MAP_MARKERS.l2_exit : MAP_MARKERS.l3_exit;
+  const nearExit=Math.hypot(cam.x-(exit[0]+0.5),cam.z-(exit[1]+0.5))<2.8;
+  const ascM = currentLevel===2?MAP_MARKERS.l2_ascend : currentLevel===3?MAP_MARKERS.l3_ascend : null;
+  const nearAscend = ascM && Math.hypot(cam.x-(ascM[0]+0.5),cam.z-(ascM[1]+0.5))<2.8;
+  const nearTV = secretRoomEntered && secretTV && secretTV.on && !tvOpened &&
+    Math.hypot(cam.x-secretTV.x,cam.z-secretTV.z)<3.0;
   if(closest){ interactEl.textContent='[ E ] Read'; interactEl.classList.add('show'); interactReady=true; }
-  else if(nearStair){ interactEl.textContent='[ E ] Descend'; interactEl.classList.add('show'); interactReady=true; }
+  else if(nearTV){ interactEl.textContent='[ E ] Watch'; interactEl.classList.add('show'); interactReady=true; }
+  else if(nearAscend){ interactEl.textContent='[ E ] Ascend'; interactEl.classList.add('show'); interactReady=true; }
+  else if(nearExit){
+    if(currentLevel<3){ interactEl.textContent='[ E ] Descend'; }
+    else if(torchesCollected>=7){ interactEl.textContent='[ E ] End'; }
+    else { interactEl.textContent=`[ E ] Sealed — ${7-torchesCollected} torches remain`; }
+    interactEl.classList.add('show'); interactReady=true;
+  }
   else { interactEl.classList.remove('show'); interactReady=false; }
 }
 
-// ─── WHISPER ────────────────────────────────────────────
 function whisperLine(text,attrib){
   const el=$('whisper');
   el.innerHTML=text+(attrib?`<span class="attr">— ${attrib}</span>`:'');
   el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
 }
 
-// ─── LIGHT FLICKER (Claude's state machine) ──────────────
+// ─── LIGHT UPDATES (with proximity budget) ───────────────
+// PERF: Only update lights within update radius of the player.
+// Lights outside this range are skipped — they're too far to flicker visibly anyway.
+// Fluorescent 'dark' state still tracked (timer-based, not frame-based), so distant
+// lights still go dark/revive on schedule — they just skip the per-frame mesh update.
+const LIGHT_UPDATE_RADIUS = { 1: 12, 2: 14, 3: 10 };
+
 function updateLights(){
   const ld=levelData[currentLevel]; if(!ld) return;
+  const now=performance.now();
+  const maxDist2 = (LIGHT_UPDATE_RADIUS[currentLevel]||12) ** 2;
   for(const f of ld.lightData){
+    // Dead fluorescents: zero them once and skip forever
+    if(f.isFluorescent && f.dead){ f.light.intensity=0; f.mesh.material.emissiveIntensity=0.04; continue; }
+
+    // PERF: proximity cull — skip lights that are far from player
+    const dist2=(f.lx-cam.x)*(f.lx-cam.x)+(f.lz-cam.z)*(f.lz-cam.z);
+    if(dist2 > maxDist2){
+      // Still track dark-state timer for fluorescents so revival happens on schedule
+      if(f.isFluorescent && f.state==='dark' && now>=f.darkUntil){
+        f.state='flicker'; f.t=8+Math.floor(Math.random()*16);
+      }
+      continue;
+    }
+
     if(f.isFluorescent){
-      // Claude's fluorescent state machine — the good one
-      if(f.dead){ f.light.intensity=0; f.mesh.material.emissiveIntensity=0.04; continue; }
+      if(f.state==='dark'){
+        f.light.intensity=0;
+        f.mesh.material.emissiveIntensity=0.02;
+        f.mesh.material.needsUpdate=true;
+        if(now>=f.darkUntil){
+          f.state='flicker'; f.t=8+Math.floor(Math.random()*16);
+          try{ sfx.flick&&sfx.flick(); }catch(e){}
+        }
+        continue;
+      }
       f.t--;
       if(f.t<=0){
-        if(f.state==='on'&&Math.random()<0.18){ f.state='flicker'; f.t=4+Math.floor(Math.random()*12); sfx.flick(); if(f.light) blackFlickerIn(f.light.position.x, f.light.position.z); }
+        if(f.state==='on'){
+          if(f.canGoDark && Math.random()<0.012){
+            f.state='dark'; f.darkUntil=now+30000; f.t=9999;
+            try{ sfx.flick&&sfx.flick(); }catch(e){}
+            if(f.light) blackFlickerIn(f.light.position.x, f.light.position.z);
+          } else if(Math.random()<0.18){
+            f.state='flicker'; f.t=4+Math.floor(Math.random()*12);
+            sfx.flick(); if(f.light) blackFlickerIn(f.light.position.x, f.light.position.z);
+          } else { f.t=120; }
+        }
         else if(f.state==='flicker'){ f.state='on'; f.t=120+Math.floor(Math.random()*240); }
         else f.t=120;
       }
@@ -2562,7 +2619,7 @@ function updateLights(){
         f.mesh.material.emissiveIntensity=f.baseEm;
       }
     } else {
-      // Torch/lamp: organic flicker
+      // Torch/lamp organic flicker
       f.t--;
       if(f.t<=0){
         f.light.intensity=f.baseI*(0.72+Math.random()*0.55);
@@ -2576,7 +2633,6 @@ function updateLights(){
   }
 }
 
-// ─── TORCH ANIMATION ────────────────────────────────────
 function updateTorches(){
   for(const o of allTorches){
     if(o.collected||o.lv!==currentLevel||!o.unlocked) continue;
@@ -2587,12 +2643,19 @@ function updateTorches(){
   }
 }
 
-// ─── SANITY ─────────────────────────────────────────────
+function updateStairLights(){
+  for(const s of stairLightRefs){
+    s.phase+=0.018;
+    const pulse=0.7+Math.sin(s.phase)*0.3;
+    s.light.intensity=s.baseI*pulse;
+    s.mat.emissiveIntensity=2.2+Math.sin(s.phase*1.3)*1.0;
+  }
+}
+
 function updateSanity(){
   if(godMode){ updateHUD(); return; }
   sanity=Math.max(0,sanity-0.004);
   if(nearShadow) sanity=Math.max(0,sanity-0.07);
-  // First time sanity bottoms out -> crack-and-flash x3 over ~10s, then the health spiral begins.
   if(sanity<=0 && !sanityZeroed) triggerSanityBreak();
   if(spiralActive){
     hp=Math.max(0,hp-SPIRAL_HP_DRAIN);
@@ -2613,69 +2676,34 @@ function updateSanity(){
   }
 }
 
-// ─── TORCHES FOR LAZY LEVELS ────────────────────────────
-// When L2 or L3 is first built, torches need to be placed if buildLevel was called after placeTorches
-// So we do a lazy-place on first visit
-const torchesByLevel={1:false,2:false,3:false};
-function ensureTorchesForLevel(lv){
-  if(torchesByLevel[lv]) return;
-  torchesByLevel[lv]=true;
-  const map=MAPS[lv-1];
-  const grp=levelGroups[lv]; if(!grp) return;
-  const n=lv===1?2:lv===2?2:3;
-  const cands=[];
-  for(let z=4;z<GRID-4;z++) for(let x=4;x<GRID-4;x++){
-    if(map[z*GRID+x]===0){ const d=Math.hypot(x-16,z-16); if(d>5) cands.push([x,z,d]); }
-  }
-  cands.sort((a,b)=>(b[2]+Math.random()*3)-(a[2]+Math.random()*3));
-  const placed=[];
-  for(const c of cands){
-    if(placed.length>=n) break;
-    if(placed.every(p=>Math.hypot(p[0]-c[0],p[1]-c[1])>5)) placed.push(c);
-  }
-  placed.forEach(([x,z])=>{
-    const flameMat=new THREE.SpriteMaterial({map:torchFlameSprite(),transparent:true,depthWrite:false,opacity:0});
-    const sprite=new THREE.Sprite(flameMat); sprite.scale.set(0.35,0.9,1);
-    sprite.position.set(x+0.5,1.1,z+0.5); sprite.visible=false; grp.add(sprite);
-    const light=new THREE.PointLight(0xff9020,0,5.5,1.8);
-    light.position.set(x+0.5,1.4,z+0.5); grp.add(light);
-    const halo=new THREE.Mesh(new THREE.SphereGeometry(0.45,12,8),
-      new THREE.MeshBasicMaterial({color:0xff8010,transparent:true,opacity:0,depthWrite:false}));
-    halo.position.set(x+0.5,1.2,z+0.5); halo.visible=false; grp.add(halo);
-    allTorches.push({sprite,light,halo,collected:false,unlocked:false,baseY:1.1,phase:Math.random()*7,lv,x:x+0.5,z:z+0.5});
-  });
-}
-
-// Reveal one hidden torch on the current level (called when player reads a wall text)
-function unlockTorchOnLevel(lv){
-  const hidden = allTorches.filter(t=> t.lv===lv && !t.unlocked && !t.collected);
-  if(hidden.length===0) return false;
-  const t = hidden[Math.floor(Math.random()*hidden.length)];
-  t.unlocked = true;
-  t.sprite.visible = true;
-  t.sprite.material.opacity = 1;
-  t.halo.visible = true;
-  t.light.intensity = 2.2;
-  whisperLine("a torch has appeared in the dark");
-  return true;
-}
-
 let frameCount=0;
 let last=performance.now();
+let _fpsFrames=0, _fpsLast=performance.now();
+
 function loop(){
   requestAnimationFrame(loop);
   const now=performance.now(); const dt=Math.min(40,now-last); last=now;
   frameCount++;
+  _fpsFrames++;
+  if(now-_fpsLast>=500){
+    const fps=Math.round(_fpsFrames*1000/(now-_fpsLast));
+    const el=$('fps'); if(el&&debugMode) el.textContent=fps+' fps · L'+currentLevel+(isMobile?' · mob':' · desk');
+    _fpsFrames=0; _fpsLast=now;
+  }
 
   if(phase==='play'){
     move(); checkTorches(); updateShadow(); updateBlackFig(); checkHiero();
-    updateTorches();
+    updateTorches(); updateStairLights(); updateFlashlight();
     checkSecretRoomProximity();
     updateBlood(dt);
     ensurePowerupsForLevel(currentLevel);
     updatePowerups();
-    // On mobile skip light updates every other frame
-    if(!isMobile||frameCount%2===0) updateLights();
+
+    // PERF: staggered update schedule
+    // Lights: mobile every 3rd frame, desktop every 2nd on L2/L3, every frame on L1
+    const lightEvery = isMobile ? 3 : (currentLevel===1 ? 1 : 2);
+    if(frameCount % lightEvery === 0) updateLights();
+
     if(frameCount%3===0) updateSanity();
 
     nextMoo--; if(nextMoo<=0){ sfx.moo(); nextMoo=1400+Math.random()*2000; }
@@ -2693,21 +2721,18 @@ function loop(){
       const fl=$('flicker'); fl.style.opacity=String(0.45+Math.random()*0.3);
       setTimeout(()=>fl.style.opacity='0',40+Math.random()*100);
     }
-    // After sanity is gone: the same crack-and-flash recurs more often. No new look or sound.
-    if(spiralActive){ spiralFlashT--; if(spiralFlashT<=0){ quickStrobe(); spiralFlashT=20*60; } } // once every 20s, nothing more
-
-    ensureTorchesForLevel(currentLevel);
+    if(spiralActive){ spiralFlashT--; if(spiralFlashT<=0){ quickStrobe(); spiralFlashT=20*60; } }
   }
 
   camera.position.set(cam.x,cam.y,cam.z);
   const ld2=Math.cos(cam.pitch);
   camera.lookAt(cam.x+Math.sin(cam.angle)*ld2,cam.y+Math.sin(cam.pitch),cam.z+Math.cos(cam.angle)*ld2);
-  // Per-level pipeline: only Level III runs the composer (ACES + bloom). Levels I & II render
-  // directly with NO tone mapping — pixel-for-pixel the original look (no bloom, original brightness).
+  updateTVPortal();
+
   if(usePost && composer && currentLevel===3){
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     try{ composer.render(); }
-    catch(err){ console.warn('Composer render failed — falling back to direct render.', err); usePost=false; renderer.toneMapping=THREE.NoToneMapping; renderer.render(scene,camera); }
+    catch(err){ console.warn('Composer render failed — falling back.', err); usePost=false; renderer.toneMapping=THREE.NoToneMapping; renderer.render(scene,camera); }
   } else {
     renderer.toneMapping = THREE.NoToneMapping;
     renderer.render(scene,camera);
@@ -2715,15 +2740,13 @@ function loop(){
 }
 loop();
 
-// ─── MEAT-CHAT FEED (scrolling comment overlay) ──────────
-// Self-contained, driven by setTimeout (NOT the render loop) so it costs nothing per WebGL frame.
-// Gated to phase==='play'; idles silently on menus/story/ending. pointer-events:none -> never blocks taps.
+// ─── MEAT-CHAT FEED ─────────────────────────────────────
 (function(){
   const feed=document.getElementById('meatchat');
   if(!feed) return;
   if(isTouch) feed.classList.add('mc-mobile');
-  const CAP=4; // max comments on screen; extras scroll off the top
-  const CHAT_SANITY_DRAIN=0.75; // gentle, tunable. ~0.5–1 is the readable range; raise to pressure harder.
+  const CAP=4;
+  const CHAT_SANITY_DRAIN=0.75;
   let busy=false, pending=null;
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const rnd=(a,b)=>a+Math.random()*(b-a);
@@ -2737,7 +2760,6 @@ loop();
     const h=document.createElement('span'); h.className='mc-h'; h.textContent=pick(MEAT_HANDLES);
     const c=document.createElement('span'); c.className='mc-c'; c.textContent=pick(MEAT_COMMENTS);
     row.appendChild(h); row.appendChild(c); feed.appendChild(row);
-    // Each comment chips a little sanity — gentle, cumulative, never touches health.
     if(phase==='play'){ if(!godMode){ sanity=Math.max(0,sanity-CHAT_SANITY_DRAIN); if(sanity<=0 && !sanityZeroed) triggerSanityBreak(); } updateHUD(); }
     if(reduce) row.classList.add('mc-in'); else requestAnimationFrame(()=>row.classList.add('mc-in'));
     redepth();
@@ -2753,7 +2775,7 @@ loop();
   function runBurst(){
     if(phase!=='play'){ clearFeed(); busy=false; pending=setTimeout(schedule,1500); return; }
     busy=true;
-    const n=2+((Math.random()*4)|0); // burst of 2..5 comments
+    const n=2+((Math.random()*4)|0);
     let i=0;
     const step=()=>{
       if(phase!=='play'){ fadeClear(()=>{ busy=false; schedule(); }); return; }
@@ -2763,7 +2785,7 @@ loop();
     };
     step();
   }
-  function schedule(){ pending=setTimeout(runBurst, rnd(6000,13000)); } // quiet gap -> keeps it from hogging the screen
+  function schedule(){ pending=setTimeout(runBurst, rnd(6000,13000)); }
   schedule();
 })();
 
@@ -2772,8 +2794,7 @@ addEventListener('resize',()=>{
   renderer.setSize(innerWidth,innerHeight);
   if(composer) composer.setSize(innerWidth,innerHeight);
   if(bloomPass) bloomPass.setSize(bloomRes().x, bloomRes().y);
-  if(ssaoPass) ssaoPass.setSize(innerWidth,innerHeight);
 });
 </script>
-<script src="https://replit-cdn.com/replit-pill/replit-pill.global.js" data-repl-id="5d00c57d-27a7-4552-881a-ec7f19b5753f"></script></body>
+</body>
 </html>
