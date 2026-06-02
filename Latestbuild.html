@@ -223,6 +223,7 @@ canvas{display:block;width:100vw!important;height:100vh!important;}
  <div id="fl-btn">🔦</div>
 </div>
 
+<script async src="https://unpkg.com/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
 <script type="importmap">
 {
   "imports": {
@@ -385,6 +386,7 @@ const POWERUPS=[
 ];
 const allPowerups=[];
 const powerupsByLevel={};
+const stairLightRefs=[];
 let speedBoostUntil=0, invulnUntil=0;
 function powerupTex(color){
   const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d');
@@ -408,7 +410,7 @@ function ensurePowerupsForLevel(lv){
     const pu=POWERUPS[(i+lv)%POWERUPS.length];
     const mat=new THREE.SpriteMaterial({map:powerupTex(pu.color),transparent:true,depthWrite:false});
     const sprite=new THREE.Sprite(mat); sprite.scale.set(0.6,0.6,1); sprite.position.set(c[0]+0.5,1.2,c[1]+0.5); grp.add(sprite);
-    const light=new THREE.PointLight(pu.color,0.8,4,2); light.position.set(c[0]+0.5,1.2,c[1]+0.5); grp.add(light);
+    const light=new THREE.PointLight(pu.color,0.6,12,1.5); light.position.set(c[0]+0.5,1.2,c[1]+0.5); grp.add(light);
     allPowerups.push({sprite,light,lv,x:c[0]+0.5,z:c[1]+0.5,collected:false,def:pu,phase:Math.random()*7});
   });
 }
@@ -601,18 +603,18 @@ renderer.toneMappingExposure = isMobile ? 1.10 : 1.15;
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0x1a1008, 0.055);
 scene.background = new THREE.Color(0x1a1008);
-const camera = new THREE.PerspectiveCamera(76, innerWidth/innerHeight, 0.04, 80);
+const camera = new THREE.PerspectiveCamera(76, innerWidth/innerHeight, 0.04, isMobile?36:80);
 const cam = { x:16.5, z:16.5, angle:0, y:1.65, pitch:0 };
 const MAX_PITCH = 0.88;
 
 // ─── POST-PROCESSING ────────────────────────────────────
-const POST_ENABLED = true;
-const BLOOM_STRENGTH  = isMobile ? 0.52 : 0.80;
-const BLOOM_RADIUS    = isMobile ? 0.85 : 0.55;
-const BLOOM_THRESHOLD = 0.90;
+const POST_ENABLED = !isMobile;
+const BLOOM_STRENGTH  = 0.92;
+const BLOOM_RADIUS    = 0.62;
+const BLOOM_THRESHOLD = 0.82;
 function bloomRes(){
-  // PERF: mobile bloom at much lower resolution — halved again from original
-  const s = isMobile ? 0.22 : 1.0;
+  // PERF: desktop bloom at 60% resolution — good visual/cost balance
+  const s = 0.60;
   return new THREE.Vector2(Math.max(1, Math.floor(innerWidth * s)), Math.max(1, Math.floor(innerHeight * s)));
 }
 let composer = null, bloomPass = null, usePost = false;
@@ -1129,7 +1131,7 @@ function getLevelCfg(lv){
     wallMat:new THREE.MeshStandardMaterial({map:TEX.stone,roughness:0.97,metalness:0,color:0xb89868}),
     floorMat:new THREE.MeshStandardMaterial({map:TEX.stoneSand,roughness:1,metalness:0,color:0x7a6040}),
     ceilMat:new THREE.MeshStandardMaterial({map:TEX.stoneCeil,roughness:1,metalness:0,color:0x5a4830}),
-    fogColor:0x1a1008,fogDensity:0.055,ambientColor:0x3a2808,ambientInt:0.28,
+    fogColor:0x1a1008,fogDensity:isMobile?0.12:0.055,ambientColor:0x3a2808,ambientInt:isMobile?0.50:0.28,
     wallTexts:WALL_TEXTS_L1,isHiero:true,
     name:'Level I — The Entrance',ceilH:3.2,lightColor:0xd08020,lightInt:1.5,lightDist:9,
   };
@@ -1137,7 +1139,7 @@ function getLevelCfg(lv){
     wallMat:new THREE.MeshStandardMaterial({map:TEX.metal,roughness:0.6,metalness:0.4,color:0x707070}),
     floorMat:new THREE.MeshStandardMaterial({map:TEX.metalFloor,roughness:0.8,metalness:0.5,color:0x404040}),
     ceilMat:new THREE.MeshStandardMaterial({map:TEX.stoneCeil,roughness:0.9,metalness:0.3,color:0x303030}),
-    fogColor:0x0a0604,fogDensity:0.048,ambientColor:0x4a3020,ambientInt:0.50,
+    fogColor:0x0a0604,fogDensity:isMobile?0.11:0.048,ambientColor:0x4a3020,ambientInt:isMobile?0.65:0.50,
     wallTexts:WALL_TEXTS_L2,isHiero:false,
     name:'Level II — The Works',ceilH:3.8,lightColor:0xff5020,lightInt:1.8,lightDist:10,
   };
@@ -1145,7 +1147,7 @@ function getLevelCfg(lv){
     wallMat:new THREE.MeshStandardMaterial({map:TEX.wallpaper,roughness:0.34,metalness:0.12,color:0xede4b0,normalMap:(!isMobile&&NMAP.wallpaper)?NMAP.wallpaper:null,normalScale:new THREE.Vector2(0.3,0.3)}),
     floorMat:new THREE.MeshStandardMaterial({map:TEX.carpet,roughness:1,metalness:0,color:0x6e5638}),
     ceilMat:new THREE.MeshStandardMaterial({map:TEX.ceilFluo,roughness:1,metalness:0,color:0xc8c5b8}),
-    fogColor:0x1a1605,fogDensity:0.048,ambientColor:0x3a3015,ambientInt:0.38,
+    fogColor:0x1a1605,fogDensity:isMobile?0.11:0.048,ambientColor:0x3a3015,ambientInt:isMobile?0.55:0.38,
     wallTexts:WALL_TEXTS_L3,isHiero:false,
     name:'Level III — The Backrooms',ceilH:2.7,lightColor:0xffe2a0,lightInt:1.1,lightDist:7,
   };
@@ -1190,9 +1192,8 @@ function buildLevel(lv){
   const lightData=[];
   const hieroData=[];
 
-  // PERF: increased light spacing to reduce total light count
-  // L1: 8 (was 6), L2: 7 (was 5), L3: 6 (was 4)
-  const spacing=lv===3?6:lv===2?7:8;
+  // PERF: mobile uses much wider spacing → ~4x fewer lights per level
+  const spacing=lv===3?(isMobile?16:8):lv===2?(isMobile?14:9):(isMobile?16:10);
 
   for(let z=2;z<GRID-1;z+=spacing) for(let x=2;x<GRID-1;x+=spacing){
     if(cellAt(map,x+0.5,z+0.5)===0){
@@ -1200,7 +1201,7 @@ function buildLevel(lv){
       light.position.set(x+0.5,ceilH-0.35,z+0.5); grp.add(light);
 
       if(lv===1){
-        const emberMat=new THREE.MeshStandardMaterial({color:0xff9020,emissive:0xff7010,emissiveIntensity:2.0,roughness:0.4});
+        const emberMat=new THREE.MeshStandardMaterial({color:0xff9020,emissive:0xff7010,emissiveIntensity:3.2,roughness:0.4});
         const ember=new THREE.Mesh(new THREE.CircleGeometry(0.06,8),emberMat);
         ember.rotation.x=Math.PI/2; ember.position.set(x+0.5,ceilH-0.02,z+0.5); grp.add(ember);
         const flameMat=new THREE.SpriteMaterial({map:torchFlameSprite(),transparent:true,depthWrite:false});
@@ -1209,18 +1210,18 @@ function buildLevel(lv){
         lightData.push({light,mesh:ember,flame,baseI:cfg.lightInt,t:Math.floor(Math.random()*15),flicker:true,isFluorescent:false,
           lx:x+0.5,lz:z+0.5});
       } else if(lv===2){
-        const lampMat=new THREE.MeshStandardMaterial({color:0xff2200,emissive:0xff1100,emissiveIntensity:2.2,roughness:0.4});
+        const lampMat=new THREE.MeshStandardMaterial({color:0xff2200,emissive:0xff1100,emissiveIntensity:3.5,roughness:0.4});
         const lamp=new THREE.Mesh(new THREE.SphereGeometry(0.07,8,6),lampMat);
         lamp.position.set(x+0.5,ceilH-0.1,z+0.5); grp.add(lamp);
         lightData.push({light,mesh:lamp,baseI:cfg.lightInt,t:Math.floor(Math.random()*20),flicker:true,isFluorescent:false,
           lx:x+0.5,lz:z+0.5});
       } else {
-        const stripMat=new THREE.MeshStandardMaterial({color:0xffeec8,emissive:0xffe2a0,emissiveIntensity:1.4,roughness:0.4});
+        const stripMat=new THREE.MeshStandardMaterial({color:0xffeec8,emissive:0xffe2a0,emissiveIntensity:2.2,roughness:0.4});
         const strip=new THREE.Mesh(new THREE.BoxGeometry(0.85,0.05,0.16),stripMat);
         strip.position.set(x+0.5,ceilH-0.03,z+0.5); grp.add(strip);
         const dead=Math.random()<0.07;
         const canGoDark = !dead && Math.random()<0.55;
-        lightData.push({light,mesh:strip,baseI:cfg.lightInt,baseEm:1.4,state:'on',t:100+Math.floor(Math.random()*200),dead,
+        lightData.push({light,mesh:strip,baseI:cfg.lightInt,baseEm:2.2,state:'on',t:100+Math.floor(Math.random()*200),dead,
           isFluorescent:true,canGoDark,darkUntil:0,lx:x+0.5,lz:z+0.5});
       }
     }
@@ -1242,25 +1243,28 @@ function buildLevel(lv){
   {
     const exit = lv===1?MAP_MARKERS.l1_exit : lv===2?MAP_MARKERS.l2_exit : MAP_MARKERS.l3_exit;
     const ex=exit[0]+0.5, ez=exit[1]+0.5;
-    const doorMat=new THREE.MeshStandardMaterial({color:lv===2?0x882020:0xffa020,emissive:lv===2?0xaa1010:0xff8000,emissiveIntensity:1.3});
+    const dCol=lv===2?0xaa1010:0xff8000;
+    const doorMat=new THREE.MeshStandardMaterial({color:lv===2?0x882020:0xffa020,emissive:dCol,emissiveIntensity:3.0});
     const door=new THREE.Mesh(new THREE.BoxGeometry(1.6,ceilH*0.92,0.3),doorMat);
     door.position.set(ex,ceilH*0.46,ez); grp.add(door);
     const arrow=new THREE.Mesh(new THREE.ConeGeometry(0.18,0.5,6),doorMat);
     arrow.rotation.x=Math.PI; arrow.position.set(ex,0.5,ez); grp.add(arrow);
-    const stairLight=new THREE.PointLight(lv===2?0xff4020:0xff8020,1.8,6,2);
+    const stairLight=new THREE.PointLight(lv===2?0xff4020:0xff8020,3.2,20,1.4);
     stairLight.position.set(ex,1.4,ez); grp.add(stairLight);
+    stairLightRefs.push({light:stairLight,mat:doorMat,baseI:3.2,phase:Math.random()*7,isAscend:false});
   }
 
   if(lv===2||lv===3){
     const asc = lv===2?MAP_MARKERS.l2_ascend:MAP_MARKERS.l3_ascend;
     const ax=asc[0]+0.5, az=asc[1]+0.5;
-    const ascMat=new THREE.MeshStandardMaterial({color:0x204488,emissive:0x2060cc,emissiveIntensity:1.2});
+    const ascMat=new THREE.MeshStandardMaterial({color:0x204488,emissive:0x2060cc,emissiveIntensity:3.0});
     const ascDoor=new THREE.Mesh(new THREE.BoxGeometry(1.6,ceilH*0.92,0.3),ascMat);
     ascDoor.position.set(ax,ceilH*0.46,az); grp.add(ascDoor);
     const ascArrow=new THREE.Mesh(new THREE.ConeGeometry(0.18,0.5,6),ascMat);
     ascArrow.position.set(ax,0.5,az); grp.add(ascArrow);
-    const ascLight=new THREE.PointLight(0x4080ff,1.6,6,2);
+    const ascLight=new THREE.PointLight(0x4080ff,3.2,20,1.4);
     ascLight.position.set(ax,1.4,az); grp.add(ascLight);
+    stairLightRefs.push({light:ascLight,mat:ascMat,baseI:3.2,phase:Math.random()*7+3,isAscend:true});
   }
 
   if(lv===1){
@@ -2612,6 +2616,15 @@ function updateTorches(){
   }
 }
 
+function updateStairLights(){
+  for(const s of stairLightRefs){
+    s.phase+=0.018;
+    const pulse=0.7+Math.sin(s.phase)*0.3;
+    s.light.intensity=s.baseI*pulse;
+    s.mat.emissiveIntensity=2.2+Math.sin(s.phase*1.3)*1.0;
+  }
+}
+
 function updateSanity(){
   if(godMode){ updateHUD(); return; }
   sanity=Math.max(0,sanity-0.004);
@@ -2646,7 +2659,7 @@ function loop(){
 
   if(phase==='play'){
     move(); checkTorches(); updateShadow(); updateBlackFig(); checkHiero();
-    updateTorches(); updateFlashlight();
+    updateTorches(); updateStairLights(); updateFlashlight();
     checkSecretRoomProximity();
     updateBlood(dt);
     ensurePowerupsForLevel(currentLevel);
