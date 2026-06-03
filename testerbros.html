@@ -33,13 +33,13 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 #hint{position:fixed;bottom:30%;left:50%;transform:translateX(-50%);color:#c8b86a;font-size:11px;letter-spacing:4px;padding:6px 16px;border:1px solid rgba(200,184,106,.22);background:rgba(0,0,0,.55);pointer-events:none;z-index:10;display:none}
 
 /* WHISPER (stage-8 flavor) */
-#whisper{position:fixed;left:50%;top:24%;transform:translate(-50%,-50%);z-index:11;pointer-events:none;font-style:italic;
- font-size:clamp(15px,3vw,30px);color:#c8b86a;text-shadow:0 0 18px rgba(200,150,42,.4),0 2px 26px rgba(0,0,0,.98);text-align:center;width:84%;opacity:0;letter-spacing:.02em}
-#whisper.show{animation:whisperAnim 7s forwards}
-@keyframes whisperAnim{0%{opacity:0;filter:blur(10px)}12%{opacity:.9;filter:blur(0)}78%{opacity:.9}100%{opacity:0;filter:blur(8px)}}
+#whisper{position:fixed;left:50%;bottom:22%;transform:translateX(-50%);z-index:11;pointer-events:none;font-style:italic;
+ font-size:clamp(13px,2.4vw,22px);color:#c8b86a;text-shadow:0 0 18px rgba(200,150,42,.5),0 2px 26px rgba(0,0,0,.98);text-align:center;width:80%;opacity:0;letter-spacing:.04em;line-height:1.6}
+#whisper.show{animation:whisperAnim 8s forwards}
+@keyframes whisperAnim{0%{opacity:0;filter:blur(12px)}10%{opacity:.88;filter:blur(0)}76%{opacity:.88}100%{opacity:0;filter:blur(6px)}}
 
 /* FACT FLASH */
-#fact{position:fixed;top:15%;left:50%;transform:translateX(-50%);color:#cc3333;font-size:clamp(10px,2.1vw,13px);letter-spacing:2px;text-align:center;max-width:420px;line-height:1.7;pointer-events:none;z-index:10;opacity:0;transition:opacity 1.3s;text-shadow:0 0 12px rgba(180,0,0,.7);white-space:pre-wrap}
+#fact{position:fixed;top:13%;left:50%;transform:translateX(-50%);color:#c23030;font-size:clamp(10px,1.9vw,13px);letter-spacing:2.5px;text-align:center;max-width:460px;line-height:1.85;pointer-events:none;z-index:10;opacity:0;transition:opacity 1.5s;text-shadow:0 0 14px rgba(160,0,0,.65);white-space:pre-wrap;padding:0 12px;border-left:1px solid rgba(180,30,30,.25);border-right:1px solid rgba(180,30,30,.25)}
 #fact.show{opacity:1}
 
 /* SANITY / STROBE OVERLAYS */
@@ -286,6 +286,7 @@ function poolLight(x,z){
 }
 
 // canvas text plane (lore)
+// ── plain txt() — kept for TV labels (small, subtle) ──
 function txt(lines,w,h,col,bg,fs){
   if(typeof lines==='string')lines=[lines];
   const CW2=512,CH2=Math.max(64,Math.round(512*h/w));
@@ -299,8 +300,106 @@ function txt(lines,w,h,col,bg,fs){
   const mat=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(cv),transparent:true,side:THREE.DoubleSide,depthWrite:false});
   return new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat);
 }
-function T(lines,w,h,col,bg,fs,x,y,z,ry){
-  const m=txt(lines,w,h,col,bg,fs);m.position.set(x,y,z);if(ry!==undefined)m.rotation.y=ry;scene.add(m);return m;
+
+// ── shape-panel palette ──
+const _SP=[
+  {s:'circle',  bg:'#cc0066',gl:0xcc0066},
+  {s:'triangle',bg:'#6600cc',gl:0x6600cc},
+  {s:'diamond', bg:'#0088aa',gl:0x0088aa},
+  {s:'hex',     bg:'#007733',gl:0x007733},
+  {s:'pill',    bg:'#bb4400',gl:0xbb4400},
+  {s:'circle',  bg:'#1144cc',gl:0x1144cc},
+  {s:'triangle',bg:'#997700',gl:0x997700},
+  {s:'diamond', bg:'#aa0077',gl:0xaa0077},
+  {s:'hex',     bg:'#005588',gl:0x005588},
+  {s:'pill',    bg:'#558800',gl:0x558800},
+];
+let _spI=0;
+function shapePanelMesh(lines,w,h){
+  if(typeof lines==='string')lines=[lines];
+  const p=_SP[(_spI++)%_SP.length];
+  const W=512,H=Math.max(128,Math.round(512*h/w));
+  const c=document.createElement('canvas');c.width=W;c.height=H;
+  const x=c.getContext('2d');
+  x.clearRect(0,0,W,H);
+  // outer glow halo
+  x.shadowColor=p.bg;x.shadowBlur=52;
+  x.fillStyle=p.bg;
+  // draw shape
+  const mx=W/2,my=H/2,rr=Math.min(W,H)*0.44;
+  if(p.s==='circle'){
+    x.beginPath();x.arc(mx,my,rr,0,Math.PI*2);x.fill();
+  } else if(p.s==='triangle'){
+    x.beginPath();x.moveTo(mx,H*0.04);x.lineTo(W*0.96,H*0.96);x.lineTo(W*0.04,H*0.96);x.closePath();x.fill();
+  } else if(p.s==='diamond'){
+    x.beginPath();x.moveTo(mx,H*0.03);x.lineTo(W*0.97,my);x.lineTo(mx,H*0.97);x.lineTo(W*0.03,my);x.closePath();x.fill();
+  } else if(p.s==='hex'){
+    x.beginPath();
+    for(let i=0;i<6;i++){const a=i*Math.PI/3-Math.PI/6;x.lineTo(mx+rr*Math.cos(a),my+rr*Math.sin(a));}
+    x.closePath();x.fill();
+  } else { // pill/rect
+    const rx=W*0.09,ry2=H*0.09,rw=W*0.88,rh2=H*0.82,rx0=W*0.06,ry0=H*0.09;
+    x.beginPath();
+    x.moveTo(rx0+rx,ry0);x.lineTo(rx0+rw-rx,ry0);
+    x.quadraticCurveTo(rx0+rw,ry0,rx0+rw,ry0+ry2);
+    x.lineTo(rx0+rw,ry0+rh2-ry2);
+    x.quadraticCurveTo(rx0+rw,ry0+rh2,rx0+rw-rx,ry0+rh2);
+    x.lineTo(rx0+rx,ry0+rh2);
+    x.quadraticCurveTo(rx0,ry0+rh2,rx0,ry0+rh2-ry2);
+    x.lineTo(rx0,ry0+ry2);
+    x.quadraticCurveTo(rx0,ry0,rx0+rx,ry0);
+    x.closePath();x.fill();
+  }
+  x.shadowBlur=0;
+  // text (white, bold, auto-sizing)
+  x.fillStyle='#ffffff';x.textAlign='center';x.textBaseline='middle';
+  const maxLen=lines.reduce((m,l)=>Math.max(m,l.length),1);
+  const lh=H/(lines.length+0.9);
+  const baseY=H/2-(lines.length-1)*lh/2;
+  lines.forEach((l,i)=>{
+    const fs=Math.min(lh*0.64,W/(maxLen*0.62+1));
+    x.font='bold '+Math.max(18,Math.round(fs))+'px "Courier New",monospace';
+    x.fillText(l,mx,baseY+i*lh);
+  });
+  const mat=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),transparent:true,side:THREE.DoubleSide,depthWrite:false});
+  return {mesh:new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat),gl:p.gl};
+}
+
+// ── T() — place a text panel in world; bg=null → shape panel, bg set → dark story box ──
+function T(lines,w,h,col,bg,fs,px,py,pz,ry){
+  if(typeof lines==='string')lines=[lines];
+  let mesh,glCol;
+  if(bg){
+    // styled story-box: keep original look, add accent glow
+    mesh=txt(lines,w,h,col,bg,fs);
+    // pick glow from a warm palette based on position
+    glCol=col&&col.startsWith('#c')?0xc8a040:col&&col.startsWith('#a')?0x884422:0x442211;
+  } else {
+    const r=shapePanelMesh(lines,w,h);mesh=r.mesh;glCol=r.gl;
+  }
+  mesh.position.set(px,py,pz);
+  if(ry!==undefined)mesh.rotation.y=ry;
+  scene.add(mesh);
+  // glow point-light beside the panel
+  const gl=new THREE.PointLight(glCol,0.45,7);
+  const off=ry!==undefined?0.5:0.4;
+  gl.position.set(px+(ry!==undefined?Math.sin(ry+Math.PI)*off:0), py, pz+(ry!==undefined?Math.cos(ry+Math.PI)*off:off));
+  scene.add(gl);
+  return mesh;
+}
+
+// ── floor / ceiling shape-panel scatter ──
+function floorSign(lines,px,pz,sz){
+  sz=sz||1.8;
+  const r=shapePanelMesh(lines,sz,sz);
+  r.mesh.position.set(px,0.02,pz);r.mesh.rotation.x=-Math.PI/2;scene.add(r.mesh);
+  const gl=new THREE.PointLight(r.gl,0.35,5);gl.position.set(px,0.6,pz);scene.add(gl);
+}
+function ceilSign(lines,px,pz,sz){
+  sz=sz||1.8;
+  const r=shapePanelMesh(lines,sz,sz);
+  r.mesh.position.set(px,WH-0.02,pz);r.mesh.rotation.x=Math.PI/2;scene.add(r.mesh);
+  const gl=new THREE.PointLight(r.gl,0.3,5);gl.position.set(px,WH-0.7,pz);scene.add(gl);
 }
 
 // ── wall ring with optional doorways ──
@@ -444,11 +543,15 @@ function buildR1(ox,oz){
   const tv=addTV(cx,oz+44,0,Math.PI);tv.firstTV=true;
   T(['ARCHIVAL RECORD','30 DECEMBER 2025'],4,0.5,'#4a4030',null,12,cx,3.5,oz+44.6,Math.PI);
   T(['"go vegan or I\'ll kill you"','','— attributed to Dean Withers'],7.4,1.5,'#ff3333','#080300',22,ox+0.6,2.2,cz,Math.PI/2);
-  T(['he said crazy vegan.','the echo arrived first.'],3.6,0.42,'#7a7060',null,10,cx-8,2,oz+0.7,0);
-  T(['"I\'m sorry you were threatened.','That\'s not okay."'],3.6,0.4,'#8a8070',null,10,cx+6,2,oz+1.4,0);
-  T(['2:37 — when the mask slipped'],3,0.28,'#555',null,9,ox+47.4,1.6,cz,-Math.PI/2);
-  T(['earthlingofficial.com'],2.5,0.24,'#334433',null,9,ox+0.6,1.2,cz+8,Math.PI/2);
-  T(['he is now indexed.','he did this to himself.'],3.6,0.38,'#443322',null,9,cx,0.7,oz+1.2,0);
+  T(['he said crazy vegan.','the echo arrived first.'],3.6,0.9,'#7a7060',null,10,cx-8,2,oz+0.7,0);
+  T(['"I\'m sorry you were threatened.','That\'s not okay."'],3.6,0.9,'#8a8070',null,10,cx+6,2,oz+1.4,0);
+  T(['2:37','when the mask slipped'],2.2,2.2,'#555',null,9,ox+47.4,1.6,cz,-Math.PI/2);
+  T(['earthlingofficial.com'],2.5,1.1,'#334433',null,9,ox+0.6,1.8,cz+8,Math.PI/2);
+  T(['he is now indexed.','he did this to himself.'],3.6,1.1,'#443322',null,9,cx,2,oz+1.2,0);
+  floorSign(['INDEXED'],cx-10,oz+10,2.2);
+  floorSign(['HE DID THIS TO HIMSELF'],cx+8,oz+32,3);
+  ceilSign(['WATCHING'],cx,oz+18,2);
+  ceilSign(['THE ARCHIVE'],cx-12,oz+38,2.4);
   buildSlide([new THREE.Vector3(ox+3,2.6,oz+1),new THREE.Vector3(ox+3,2.4,oz+5),
               new THREE.Vector3(ox+5,1.6,oz+9),new THREE.Vector3(ox+7,0.7,oz+12),
               new THREE.Vector3(ox+8,-0.6,oz+15)],false);
@@ -460,14 +563,18 @@ function buildR2(ox,oz){
   walls(ox,oz,48,48,{w:true,s:true});
   const cx=ox+24,cz=oz+24;
   addTV(cx,oz+4,1,0);
-  T(['"watching me, watching you"'],5,0.38,'#8aaa66',null,15,cx,3.2,oz+3.4,0);
-  T(['"I can feel you pull me down"'],5,0.34,'#7a9a56',null,13,cx,2.7,oz+3.4,0);
+  T(['"watching me, watching you"'],5,1.4,'#8aaa66',null,15,cx,3.2,oz+3.4,0);
+  T(['"I can feel you pull me down"'],5,1.3,'#7a9a56',null,13,cx,1.6,oz+3.4,0);
   T(['"oh you can\'t talk about rape because of meat"','— Dean Withers'],7,0.62,'#cc3333','#060200',13,ox+47.4,2.6,cz,-Math.PI/2);
-  T(['Dairy cows are forcibly inseminated so they lactate.','Repeatedly. Their calves are taken at birth.'],6.5,0.42,'#882222',null,10,ox+47.4,1.85,cz,-Math.PI/2);
-  T(['stare into his eyes.','you\'ll understand.'],3,0.4,'#7a9060',null,10,ox+0.6,2.1,cz,Math.PI/2);
-  T(['self-soothing. arm rub.','just like the ancestors.'],4,0.4,'#6a7a50',null,10,cx,1.9,oz+46.6,Math.PI);
-  T(['Deanus Politicus Carnivorus Paradoxus','— mirror stage: incomplete'],6,0.42,'#4a6634',null,10,cx,1.2,oz+46.6,Math.PI);
-  T(['the mask slipped for 0.3 seconds.','one camera caught it.'],4,0.38,'#667755',null,10,cx+6,2.1,oz+1.4,0);
+  T(['dairy cows: forcibly inseminated.','calves taken at birth.'],3.6,1.6,'#882222',null,10,ox+47.4,2,cz,-Math.PI/2);
+  T(['stare into his eyes.','you\'ll understand.'],3,1.4,'#7a9060',null,10,ox+0.6,2.1,cz,Math.PI/2);
+  T(['self-soothing. arm rub.','just like the ancestors.'],4,1.4,'#6a7a50',null,10,cx,2.2,oz+46.6,Math.PI);
+  T(['Deanus Politicus','Carnivorus Paradoxus','— mirror stage: incomplete'],4,2.2,'#4a6634',null,10,cx,2,oz+1.4,0);
+  T(['the mask slipped','for 0.3 seconds.','one camera caught it.'],3,2.2,'#667755',null,10,cx+10,2,oz+46.6,Math.PI);
+  floorSign(['THE MIRROR'],cx,oz+24,2.4);
+  floorSign(['mask slipped'],cx-14,oz+8,2);
+  ceilSign(['dairy is violence'],cx+10,oz+36,2.6);
+  ceilSign(['PARADOX'],cx-8,oz+14,1.8);
 }
 
 // ROOM 4 — The Echo Chamber (vid 3)
@@ -477,12 +584,16 @@ function buildR4(ox,oz){
   const cx=ox+24,cz=oz+24;
   addTV(cx,oz+4,3,0);
   [[5.2,'#cc7733',22],[4.6,'#aa5522',17],[4,'#882211',13],[3.4,'#661100',10],[2.8,'#440800',8]].forEach((a,i)=>{
-    T(['"crazy vegan" — Dean Withers'],a[0],0.36,a[1],null,a[2],cx,3.1-i*0.36,oz+46.6-i*0.25,Math.PI);
+    T(['"crazy vegan"','— Dean Withers'],a[0],a[0]*0.5,a[1],null,a[2],cx,3.1-i*0.36,oz+46.6-i*0.25,Math.PI);
   });
   T(['he called it a microaggression.','',"\"That's what I'd say if I had a small penis.\"",'— Dean Withers','','...micro.'],6,1.1,'#c8b86a','#060400',13,ox+0.6,2.2,cz,Math.PI/2);
   T(['What Dean claimed I said:','"No humans are victims"','','What was actually said:','"The animals are the victims."','','not a misunderstanding. a choice.'],5.5,1.1,'#aa7744','#040300',11,cx,2,oz+46.6,Math.PI);
-  T(['when the logic ran out,','he asked me to bark like a dog.','','I said goodbye. I meant it.'],4.5,0.65,'#886633',null,12,cx,2,oz+1.2,0);
-  T(['animals in factory farms show signs of psychosis','from confinement. who\'s crazy?'],5,0.34,'#662222',null,9,cx+4,1.1,cz,0);
+  T(['when the logic ran out,','he asked me to bark like a dog.','I said goodbye. I meant it.'],3.5,2.4,'#886633',null,12,cx,2,oz+1.2,0);
+  T(['factory farm confinement','causes psychosis.','who\'s crazy?'],3,2.4,'#662222',null,9,cx+4,2,cz,0);
+  floorSign(['ECHO'],cx,oz+24,2.2);
+  floorSign(['crazy vegan'],cx-12,oz+40,2.4);
+  ceilSign(['bark like a dog'],cx+10,oz+10,2.8);
+  ceilSign(['MICRO'],cx-6,oz+42,1.8);
 }
 
 // ROOM 3 — The Observatory (vid 2)
@@ -491,30 +602,36 @@ function buildR3(ox,oz){
   walls(ox,oz,48,48,{n:true,e:true});
   const cx=ox+24,cz=oz+24;
   addTV(cx,oz+4,2,0);
-  T(['TIKTOK WILDLIFE — EPISODE 4 OF 8','','Deanus Politicus Carnivorus Paradoxus','','specimen first documented prior to direct contact','approached in the wilds of TikTok Live — field notes, 2025'],8,1.1,'#aaaaaa','#040404',12,cx,2.4,oz+46.6,Math.PI);
-  T(['"He cried for Charlie Kirk."','"He laughed for the pigs."'],4.5,0.5,'#999',null,13,ox+0.6,2.2,cz,Math.PI/2);
-  T(['selective empathy','— common in the Carnivorus genus'],5,0.4,'#888',null,11,cx,2,oz+6,0);
-  T(['"the observer becomes the observed"'],4.5,0.3,'#888',null,10,cx+6,2.3,oz+40,0);
-  T(['the SEO trap was set before we ever spoke'],5,0.3,'#666',null,9,cx,1.2,oz+44,Math.PI);
-  T(["A pig's distress call reaches 115 decibels.",'Louder than a chainsaw.','Nobody comes.'],4.5,0.5,'#882222',null,9,ox+47.4,1.8,cz,-Math.PI/2);
+  T(['TIKTOK WILDLIFE','EPISODE 4 OF 8','','Deanus Politicus','Carnivorus Paradoxus','','field notes, 2025'],6,2.8,'#aaaaaa','#040404',12,cx,2.4,oz+46.6,Math.PI);
+  T(['"He cried for Charlie Kirk."','"He laughed for the pigs."'],4.5,1.8,'#999',null,13,ox+0.6,2.2,cz,Math.PI/2);
+  T(['selective empathy','common in the','Carnivorus genus'],3.5,2.4,'#888',null,11,cx,2,oz+6,0);
+  T(['"the observer','becomes the observed"'],3.5,1.8,'#888',null,10,cx+6,2.3,oz+40,0);
+  T(["115 decibels.",'louder than a chainsaw.','nobody comes.'],3.5,2.4,'#882222',null,9,ox+47.4,2,cz,-Math.PI/2);
+  floorSign(['OBSERVED'],cx,oz+24,2.2);
+  floorSign(['115 dB'],cx+14,oz+8,2);
+  ceilSign(['selective empathy'],cx-10,oz+36,2.6);
+  ceilSign(['SEO TRAP'],cx+6,oz+14,2);
 }
 
-// ROOM 5a — The Caloric Classroom (vid 4)  ← Trump/milk quote fixed here
+// ROOM 5a — The Caloric Classroom (vid 4)
 function buildR5a(ox,oz){
   floorCeil(ox,oz,48,48);roomLights(ox,oz,48,48);
   walls(ox,oz,48,48,{n:true,w:true,e:true});
   const cx=ox+24,cz=oz+24;
   addTV(cx,oz+4,4,0);
-  T(['25 plant calories → 1 calorie of meat','','40–50 : 1 for Wagyu','','"I don\'t eat Wagyu. It\'s from Japan."','— Dean Withers','','the thermodynamic argument was never addressed.'],8,1.5,'#c0c8d0','#020408',12,cx,2.3,oz+46.6,Math.PI);
-  // EXACT QUOTE — Dean misquoting Earthling. Context is in the footage.
+  T(['25 plant calories','→ 1 calorie of meat','','40–50 : 1 for Wagyu','','"I don\'t eat Wagyu.','It\'s from Japan."','— Dean Withers'],8,2.4,'#c0c8d0','#020408',12,cx,2.3,oz+46.6,Math.PI);
   T(['DEAN WITHERS, on the record:','',
      '"you think trump was bad for raping',
      'women well guess what youre a',
      'hypocrite because you drink milk"','',
      'his words. the tape is on the screen.'],6.6,1.5,'#cc3333','#0a0200',12,ox+0.6,2.2,cz,Math.PI/2);
-  T(['"Is it like porn?" — Dean Withers','it was a sociological point.'],5,0.4,'#8898a8',null,10,cx,1.8,oz+44,Math.PI);
-  T(['80% of farmland feeds livestock.','It returns a fraction of the calories.'],5,0.36,'#778899',null,9,cx+5,1.5,cz,0);
-  T(['condolences offered. genuinely.','then the caveat.','he called it an attack.'],3.6,0.45,'#887755',null,10,ox+47.4,2,oz+6,-Math.PI/2);
+  T(['"Is it like porn?"','— Dean Withers','it was a sociological point.'],3,2.4,'#8898a8',null,10,cx,2,oz+44,Math.PI);
+  T(['80% of farmland','feeds livestock.','returns a fraction','of the calories.'],3,2.4,'#778899',null,9,cx+5,2,cz,0);
+  T(['condolences offered.','then the caveat.','he called it an attack.'],3,2.4,'#887755',null,10,ox+47.4,2,oz+6,-Math.PI/2);
+  floorSign(['CALORIC CON'],cx,oz+24,2.4);
+  floorSign(['MEAT: 25:1'],cx-14,oz+10,2);
+  ceilSign(['hypocrite'],cx+10,oz+38,2.2);
+  ceilSign(['THERMODYNAMICS'],cx-6,oz+16,2.8);
 }
 
 // ROOM 5b — The Admission Room (centrepiece lore; TV is bonus/dead)
@@ -522,18 +639,21 @@ function buildR5b(ox,oz){
   floorCeil(ox,oz,48,48);
   walls(ox,oz,48,48,{w:true,e:true});
   const cx=ox+24,cz=oz+24;
-  // spotlight on the centrepiece
   const sp=new THREE.SpotLight(0xfffcee,3,26,Math.PI*0.2,0.5);
   sp.position.set(cx,WH-0.5,oz+44);sp.target.position.set(cx,1.5,oz+2);
   sp.castShadow=true;sp.shadow.mapSize.set(512,512);sp.shadow.bias=-0.003;
   scene.add(sp);scene.add(sp.target);
   ceilPanel(ox+10,oz+40,false);ceilPanel(ox+38,oz+40,false);
-  addTV(cx,oz+4,7,0);   // "SIGNAL LOST" full-cut screen
+  addTV(cx,oz+4,7,0);
   T(['11:40','','Dean Withers admitted:','','"If a plant-based product tasted','identical to meat, I would go vegan','without needing convincing."','','the barrier was never philosophical.','it was always convenience.'],9,2.8,'#f5e8c0','#050300',16,cx,2.3,oz+46.6,Math.PI);
-  T(['18:07 — the superchat said:','"just killed 30 cows"','','he laughed.'],4.5,0.72,'#c8a060',null,12,ox+0.6,2,cz,Math.PI/2);
-  T(['Deanus Politicus Carnivorus Paradoxus'],6,0.32,'#c8b86a',null,11,cx,3.6,cz,0);
-  T(['the paradox remains unresolved.'],4.5,0.28,'#c8b86a',null,10,cx,0.6,cz,0);
-  T(['DEAN WITHERS'],4,0.35,'#555',null,10,ox+47.4,3.4,cz,-Math.PI/2);
+  T(['18:07 — the superchat:','"just killed 30 cows"','','he laughed.'],3.5,2.2,'#c8a060',null,12,ox+0.6,2,cz,Math.PI/2);
+  T(['Deanus Politicus','Carnivorus Paradoxus'],5,1.4,'#c8b86a',null,11,cx,3.4,cz,0);
+  T(['the paradox remains unresolved.'],4.5,1.2,'#c8b86a',null,10,cx,0.9,cz,0);
+  T(['DEAN WITHERS'],3.5,1.4,'#555',null,10,ox+47.4,2.4,cz,-Math.PI/2);
+  floorSign(['11:40'],cx,oz+32,2.4);
+  floorSign(['CONVENIENCE'],cx-14,oz+14,2.6);
+  ceilSign(['THE ADMISSION'],cx+10,oz+22,2.8);
+  ceilSign(['always convenience'],cx-8,oz+40,2.4);
 }
 
 // END ROOM — the green slide to Stage 10
@@ -542,12 +662,15 @@ function buildEnd(ox,oz){
   walls(ox,oz,48,48,{w:true});
   const cx=ox+24,cz=oz+24;
   const eL=new THREE.PointLight(0x6fae7a,1.1,30);eL.position.set(cx,WH-0.5,cz);scene.add(eL);lights.push({x:cx,z:cz,i:1.1});
-  // dedicated shadow-caster so the slide casts/receives a clean shadow
   const sL=new THREE.PointLight(0xbfeccb,0.9,20);sL.position.set(cx-2,3.2,cz+4);
   sL.castShadow=true;sL.shadow.mapSize.set(512,512);sL.shadow.bias=-0.0025;sL.shadow.camera.far=22;scene.add(sL);
   T(["DEAN'S CHOICE"],5,0.62,'#c8b86a','#060300',20,cx,2.6,oz+1.2,0);
   T(['the paradox remains unresolved.','','watch every record.','then the way down opens.'],5,0.86,'#6a8a6a','#040600',12,cx,2,oz+46.6,Math.PI);
-  // exit slide — big green chute the player steps into
+  floorSign(['GO DOWN'],cx,oz+20,2.4);
+  floorSign(['THE WAY OPENS'],cx+12,oz+36,2.6);
+  ceilSign(['STAGE 10'],cx-8,oz+14,2.2);
+  ceilSign(['DEAN'],cx+10,oz+40,2);
+  // exit slide
   slideMouth.set(cx,2,cz+2);
   slideMat=new THREE.MeshStandardMaterial({color:SLIDE_COLOR,roughness:0.1,metalness:0.1,
     side:THREE.DoubleSide,emissive:0x002a10,emissiveIntensity:0.4});
@@ -557,9 +680,8 @@ function buildEnd(ox,oz){
     new THREE.Vector3(cx-1,-3.2,cz-14)]);
   const geo=new THREE.TubeGeometry(curve,80,1.25,18,false);
   const slide=new THREE.Mesh(geo,slideMat);slide.castShadow=true;slide.receiveShadow=true;scene.add(slide);
-  // a faint inner light so you can look up inside it once lit
   slideLight=new THREE.PointLight(0x33ff88,0.0,10);slideLight.position.set(cx,1.4,cz-3);scene.add(slideLight);
-  T(['SLIDE 09 — SEALED'],3.5,0.3,'#2f5a3a',null,11,cx,3.4,cz+2.2,0);
+  T(['SLIDE 09','SEALED'],2.4,2.4,'#2f5a3a',null,11,cx,3,cz+2.2,0);
 }
 
 function buildSlide(points,closed){
