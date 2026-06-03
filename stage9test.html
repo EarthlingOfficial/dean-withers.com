@@ -318,7 +318,7 @@ let _spI=0;
 function shapePanelMesh(lines,w,h){
   if(typeof lines==='string')lines=[lines];
   const p=_SP[(_spI++)%_SP.length];
-  const W=256,H=Math.max(64,Math.round(256*h/w));
+  const W=512,H=Math.max(128,Math.round(512*h/w));
   const c=document.createElement('canvas');c.width=W;c.height=H;
   const x=c.getContext('2d');
   x.clearRect(0,0,W,H);
@@ -380,8 +380,8 @@ function T(lines,w,h,col,bg,fs,px,py,pz,ry){
   mesh.position.set(px,py,pz);
   if(ry!==undefined)mesh.rotation.y=ry;
   scene.add(mesh);
-  // glow point-light beside the panel (small radius to keep light count cheap)
-  const gl=new THREE.PointLight(glCol,0.4,4);
+  // glow point-light beside the panel
+  const gl=new THREE.PointLight(glCol,0.45,7);
   const off=ry!==undefined?0.5:0.4;
   gl.position.set(px+(ry!==undefined?Math.sin(ry+Math.PI)*off:0), py, pz+(ry!==undefined?Math.cos(ry+Math.PI)*off:off));
   scene.add(gl);
@@ -390,16 +390,16 @@ function T(lines,w,h,col,bg,fs,px,py,pz,ry){
 
 // ── floor / ceiling shape-panel scatter ──
 function floorSign(lines,px,pz,sz){
-  sz=sz||1.6;
+  sz=sz||1.8;
   const r=shapePanelMesh(lines,sz,sz);
   r.mesh.position.set(px,0.02,pz);r.mesh.rotation.x=-Math.PI/2;scene.add(r.mesh);
-  const gl=new THREE.PointLight(r.gl,0.28,3);gl.position.set(px,0.5,pz);scene.add(gl);
+  const gl=new THREE.PointLight(r.gl,0.35,5);gl.position.set(px,0.6,pz);scene.add(gl);
 }
 function ceilSign(lines,px,pz,sz){
-  sz=sz||1.6;
+  sz=sz||1.8;
   const r=shapePanelMesh(lines,sz,sz);
   r.mesh.position.set(px,WH-0.02,pz);r.mesh.rotation.x=Math.PI/2;scene.add(r.mesh);
-  const gl=new THREE.PointLight(r.gl,0.25,3);gl.position.set(px,WH-0.6,pz);scene.add(gl);
+  const gl=new THREE.PointLight(r.gl,0.3,5);gl.position.set(px,WH-0.7,pz);scene.add(gl);
 }
 
 // ── wall ring with optional doorways ──
@@ -542,14 +542,16 @@ function buildR1(ox,oz){
   const cx=ox+24,cz=oz+24;
   const tv=addTV(cx,oz+44,0,Math.PI);tv.firstTV=true;
   T(['ARCHIVAL RECORD','30 DECEMBER 2025'],4,0.5,'#4a4030',null,12,cx,3.5,oz+44.6,Math.PI);
-  T(['"go vegan or I\'ll kill you"','','— attributed to Dean Withers'],7.4,1.5,'#ff3333','#080300',22,ox+0.6,2.2,cz,Math.PI/2);
+  T(['"Best vegan argument ever - go vegan or I\'ll kill you"','','— Dean Withers'],7.4,1.5,'#ff3333','#080300',22,ox+0.6,2.2,cz,Math.PI/2);
   T(['he said crazy vegan.','the echo arrived first.'],3.6,0.9,'#7a7060',null,10,cx-8,2,oz+0.7,0);
   T(['"I\'m sorry you were threatened.','That\'s not okay."'],3.6,0.9,'#8a8070',null,10,cx+6,2,oz+1.4,0);
   T(['2:37','when the mask slipped'],2.2,2.2,'#555',null,9,ox+47.4,1.6,cz,-Math.PI/2);
   T(['earthlingofficial.com'],2.5,1.1,'#334433',null,9,ox+0.6,1.8,cz+8,Math.PI/2);
   T(['he is now indexed.','he did this to himself.'],3.6,1.1,'#443322',null,9,cx,2,oz+1.2,0);
-  floorSign(['INDEXED'],cx-10,oz+10,2);
-  ceilSign(['WATCHING'],cx,oz+18,1.8);
+  floorSign(['INDEXED'],cx-10,oz+10,2.2);
+  floorSign(['HE DID THIS TO HIMSELF'],cx+8,oz+32,3);
+  ceilSign(['WATCHING'],cx,oz+18,2);
+  ceilSign(['THE ARCHIVE'],cx-12,oz+38,2.4);
   buildSlide([new THREE.Vector3(ox+3,2.6,oz+1),new THREE.Vector3(ox+3,2.4,oz+5),
               new THREE.Vector3(ox+5,1.6,oz+9),new THREE.Vector3(ox+7,0.7,oz+12),
               new THREE.Vector3(ox+8,-0.6,oz+15)],false);
@@ -569,8 +571,10 @@ function buildR2(ox,oz){
   T(['self-soothing. arm rub.','just like the ancestors.'],4,1.4,'#6a7a50',null,10,cx,2.2,oz+46.6,Math.PI);
   T(['Deanus Politicus','Carnivorus Paradoxus','— mirror stage: incomplete'],4,2.2,'#4a6634',null,10,cx,2,oz+1.4,0);
   T(['the mask slipped','for 0.3 seconds.','one camera caught it.'],3,2.2,'#667755',null,10,cx+10,2,oz+46.6,Math.PI);
-  floorSign(['THE MIRROR'],cx,oz+24,2);
-  ceilSign(['PARADOX'],cx-8,oz+14,1.6);
+  floorSign(['THE MIRROR'],cx,oz+24,2.4);
+  floorSign(['mask slipped'],cx-14,oz+8,2);
+  ceilSign(['dairy is violence'],cx+10,oz+36,2.6);
+  ceilSign(['PARADOX'],cx-8,oz+14,1.8);
 }
 
 // ROOM 4 — The Echo Chamber (vid 3)
@@ -579,16 +583,17 @@ function buildR4(ox,oz){
   walls(ox,oz,48,48,{e:true});
   const cx=ox+24,cz=oz+24;
   addTV(cx,oz+4,3,0);
-  // echo cascade — 3 panels only, smaller
-  [[3.2,'#cc7733',18],[2.4,'#882211',13],[1.6,'#440800',9]].forEach((a,i)=>{
-    T(['"crazy vegan"','— Dean Withers'],a[0],a[0]*0.5,a[1],null,a[2],cx+(i-1)*2,3-i*0.45,oz+46.6,Math.PI);
+  [[5.2,'#cc7733',22],[4.6,'#aa5522',17],[4,'#882211',13],[3.4,'#661100',10],[2.8,'#440800',8]].forEach((a,i)=>{
+    T(['"crazy vegan"','— Dean Withers'],a[0],a[0]*0.5,a[1],null,a[2],cx,3.1-i*0.36,oz+46.6-i*0.25,Math.PI);
   });
   T(['he called it a microaggression.','',"\"That's what I'd say if I had a small penis.\"",'— Dean Withers','','...micro.'],6,1.1,'#c8b86a','#060400',13,ox+0.6,2.2,cz,Math.PI/2);
   T(['What Dean claimed I said:','"No humans are victims"','','What was actually said:','"The animals are the victims."','','not a misunderstanding. a choice.'],5.5,1.1,'#aa7744','#040300',11,cx,2,oz+46.6,Math.PI);
   T(['when the logic ran out,','he asked me to bark like a dog.','I said goodbye. I meant it.'],3.5,2.4,'#886633',null,12,cx,2,oz+1.2,0);
   T(['factory farm confinement','causes psychosis.','who\'s crazy?'],3,2.4,'#662222',null,9,cx+4,2,cz,0);
-  floorSign(['crazy vegan'],cx-12,oz+40,1.6);
-  ceilSign(['MICRO'],cx-6,oz+42,1.6);
+  floorSign(['ECHO'],cx,oz+24,2.2);
+  floorSign(['crazy vegan'],cx-12,oz+40,2.4);
+  ceilSign(['bark like a dog'],cx+10,oz+10,2.8);
+  ceilSign(['MICRO'],cx-6,oz+42,1.8);
 }
 
 // ROOM 3 — The Observatory (vid 2)
@@ -602,8 +607,10 @@ function buildR3(ox,oz){
   T(['selective empathy','common in the','Carnivorus genus'],3.5,2.4,'#888',null,11,cx,2,oz+6,0);
   T(['"the observer','becomes the observed"'],3.5,1.8,'#888',null,10,cx+6,2.3,oz+40,0);
   T(["115 decibels.",'louder than a chainsaw.','nobody comes.'],3.5,2.4,'#882222',null,9,ox+47.4,2,cz,-Math.PI/2);
-  floorSign(['115 dB'],cx+14,oz+8,1.6);
-  ceilSign(['selective empathy'],cx-10,oz+36,2);
+  floorSign(['OBSERVED'],cx,oz+24,2.2);
+  floorSign(['115 dB'],cx+14,oz+8,2);
+  ceilSign(['selective empathy'],cx-10,oz+36,2.6);
+  ceilSign(['SEO TRAP'],cx+6,oz+14,2);
 }
 
 // ROOM 5a — The Caloric Classroom (vid 4)
@@ -613,17 +620,18 @@ function buildR5a(ox,oz){
   const cx=ox+24,cz=oz+24;
   addTV(cx,oz+4,4,0);
   T(['25 plant calories','→ 1 calorie of meat','','40–50 : 1 for Wagyu','','"I don\'t eat Wagyu.','It\'s from Japan."','— Dean Withers'],8,2.4,'#c0c8d0','#020408',12,cx,2.3,oz+46.6,Math.PI);
-  T(['DEAN WITHERS:','',
-     '"You said oh you think its wrong',
-     'when Trump raped a woman, well guess',
-     'what you\'re a hypokraut...',
-     'hypocrite because you drink milk"','',
-     '(I didn\'t say this)'],6.6,1.8,'#cc3333','#0a0200',12,ox+0.6,2.3,cz,Math.PI/2);
+  T(['DEAN WITHERS, on the record:','',
+     '"You said - you think trump was bad for raping',
+     'women well guess what youre a',
+     'hypokraut...hypocrite because you drink milk"','',
+     'his words not mine at all. the tape is on the screen.'],6.6,1.5,'#cc3333','#0a0200',12,ox+0.6,2.2,cz,Math.PI/2);
   T(['"Is it like porn?"','— Dean Withers','it was a sociological point.'],3,2.4,'#8898a8',null,10,cx,2,oz+44,Math.PI);
   T(['80% of farmland','feeds livestock.','returns a fraction','of the calories.'],3,2.4,'#778899',null,9,cx+5,2,cz,0);
   T(['condolences offered.','then the caveat.','he called it an attack.'],3,2.4,'#887755',null,10,ox+47.4,2,oz+6,-Math.PI/2);
-  floorSign(['hypokraut'],cx,oz+24,1.8);
-  ceilSign(['THERMODYNAMICS'],cx-6,oz+16,2);
+  floorSign(['CALORIC CON'],cx,oz+24,2.4);
+  floorSign(['MEAT: 25:1'],cx-14,oz+10,2);
+  ceilSign(['hypocrite'],cx+10,oz+38,2.2);
+  ceilSign(['THERMODYNAMICS'],cx-6,oz+16,2.8);
 }
 
 // ROOM 5b — The Admission Room (centrepiece lore; TV is bonus/dead)
@@ -642,8 +650,10 @@ function buildR5b(ox,oz){
   T(['Deanus Politicus','Carnivorus Paradoxus'],5,1.4,'#c8b86a',null,11,cx,3.4,cz,0);
   T(['the paradox remains unresolved.'],4.5,1.2,'#c8b86a',null,10,cx,0.9,cz,0);
   T(['DEAN WITHERS'],3.5,1.4,'#555',null,10,ox+47.4,2.4,cz,-Math.PI/2);
-  floorSign(['CONVENIENCE'],cx-14,oz+14,1.8);
-  ceilSign(['THE ADMISSION'],cx+10,oz+22,2);
+  floorSign(['11:40'],cx,oz+32,2.4);
+  floorSign(['CONVENIENCE'],cx-14,oz+14,2.6);
+  ceilSign(['THE ADMISSION'],cx+10,oz+22,2.8);
+  ceilSign(['always convenience'],cx-8,oz+40,2.4);
 }
 
 // END ROOM — the green slide to Stage 10
@@ -656,8 +666,10 @@ function buildEnd(ox,oz){
   sL.castShadow=true;sL.shadow.mapSize.set(512,512);sL.shadow.bias=-0.0025;sL.shadow.camera.far=22;scene.add(sL);
   T(["DEAN'S CHOICE"],5,0.62,'#c8b86a','#060300',20,cx,2.6,oz+1.2,0);
   T(['the paradox remains unresolved.','','watch every record.','then the way down opens.'],5,0.86,'#6a8a6a','#040600',12,cx,2,oz+46.6,Math.PI);
-  floorSign(['GO DOWN'],cx,oz+20,1.8);
-  ceilSign(['STAGE 10'],cx-8,oz+14,1.8);
+  floorSign(['GO DOWN'],cx,oz+20,2.4);
+  floorSign(['THE WAY OPENS'],cx+12,oz+36,2.6);
+  ceilSign(['STAGE 10'],cx-8,oz+14,2.2);
+  ceilSign(['DEAN'],cx+10,oz+40,2);
   // exit slide
   slideMouth.set(cx,2,cz+2);
   slideMat=new THREE.MeshStandardMaterial({color:SLIDE_COLOR,roughness:0.1,metalness:0.1,
