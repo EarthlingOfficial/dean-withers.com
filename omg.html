@@ -464,21 +464,24 @@ function init(){
   buildShadowFig();
   buildBlackFig();
   buildDoorVideoPlane();
+  buildMusic();
   setupControls();
   setupTouch();
   setupPost();
 
   // ── PRE-COMPILE ALL SHADERS ──
-  // Doors glow via emissive material (no per-door PointLight), so revealing a
-  // door no longer changes the scene light count and can't trigger a runtime
-  // shader recompile — that was the play-time / move-after-play stutter.
-  // This compile warms the door + wall programs up front so the first movement
-  // doesn't hitch. All the original sticker/sign glow lights are intact.
+  // Full compile front-loads all shader work into the loading screen (where
+  // it's hidden) so the game STARTS smooth — without it the cost lands on the
+  // first seconds of play as a start-up stutter. With doors now emissive
+  // (no per-door light), revealing a door still can't trigger a runtime
+  // recompile. The remaining load cost is the sticker/sign glow lights, which
+  // are gated to desktop only (see T / floorSign / ceilSign) — so mobile gets
+  // a small, fast compile while desktop keeps the full atmosphere.
   doorList.forEach(d=>{ d.grp.visible=true; });
   renderer.compile(scene,camera);
   doorList.forEach(d=>{ d.grp.visible=false; });
 
-  // A couple of warm-up renders to push post-process shaders through the GPU too
+  // Warm-up renders to push the post-process shaders through the GPU too
   renderer.setRenderTarget(renderTarget);
   renderer.render(scene,camera);
   renderer.setRenderTarget(null);
@@ -623,10 +626,15 @@ function T(lines,w,h,col,bg,fs,px,py,pz,ry){
   mesh.position.set(px,py,pz);
   if(ry!==undefined)mesh.rotation.y=ry;
   scene.add(mesh);
-  const gl=new THREE.PointLight(glCol,0.45,7);
-  const off=ry!==undefined?0.5:0.4;
-  gl.position.set(px+(ry!==undefined?Math.sin(ry+Math.PI)*off:0),py,pz+(ry!==undefined?Math.cos(ry+Math.PI)*off:off));
-  scene.add(gl);
+  // Glow halo is desktop-only — keeps full atmosphere on desktop, but spares
+  // mobile ~30+ point lights (smaller shaders = faster load + smoother start).
+  // The sticker itself is MeshBasic, so it stays full-bright on mobile anyway.
+  if(!isMobile){
+    const gl=new THREE.PointLight(glCol,0.45,7);
+    const off=ry!==undefined?0.5:0.4;
+    gl.position.set(px+(ry!==undefined?Math.sin(ry+Math.PI)*off:0),py,pz+(ry!==undefined?Math.cos(ry+Math.PI)*off:off));
+    scene.add(gl);
+  }
   return mesh;
 }
 
@@ -634,13 +642,13 @@ function floorSign(lines,px,pz,sz){
   sz=sz||1.8;
   const r=shapePanelMesh(lines,sz,sz);
   r.mesh.position.set(px,0.02,pz);r.mesh.rotation.x=-Math.PI/2;scene.add(r.mesh);
-  const gl=new THREE.PointLight(r.gl,0.35,5);gl.position.set(px,0.6,pz);scene.add(gl);
+  if(!isMobile){const gl=new THREE.PointLight(r.gl,0.35,5);gl.position.set(px,0.6,pz);scene.add(gl);}
 }
 function ceilSign(lines,px,pz,sz){
   sz=sz||1.8;
   const r=shapePanelMesh(lines,sz,sz);
   r.mesh.position.set(px,WH-0.02,pz);r.mesh.rotation.x=Math.PI/2;scene.add(r.mesh);
-  const gl=new THREE.PointLight(r.gl,0.3,5);gl.position.set(px,WH-0.7,pz);scene.add(gl);
+  if(!isMobile){const gl=new THREE.PointLight(r.gl,0.3,5);gl.position.set(px,WH-0.7,pz);scene.add(gl);}
 }
 
 function walls(ox,oz,W,D,o){
@@ -1209,6 +1217,107 @@ function sfxStatic(){blip(200,0.15,'square',0.05);}
 function sfxOpen(){blip(330,0.6,'sine',0.10);blip(495,0.6,'sine',0.07);}
 function sfxUI(){blip(440,0.12,'sine',0.05);}
 
+// ════ DUCKING ════
+// Lowers footsteps + music while a TV clip or door video is playing so the
+// video audio sits clearly on top. Pure gain math — no new systems, no lag.
+let duckLevel=1, duckTarget=1;
+
+// ════ FOOTSTEPS + DARK FOLLOWER (synthesized) ════
+let noiseBuf=null;
+function getNoiseBuf(){
+  const a=ac();if(!a)return null;
+  if(!noiseBuf){
+    const len=Math.floor(a.sampleRate*0.4);
+    noiseBuf=a.createBuffer(1,len,a.sampleRate);
+    const d=noiseBuf.getChannelData(0);
+    for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+  }
+  return noiseBuf;
+}
+// one footstep = a short filtered noise thump with a quick gain envelope
+function footstep(vol,cut,dur,rateLo,rateHi){
+  const a=ac();if(!a)return;
+  const buf=getNoiseBuf();if(!buf)return;
+  vol=(vol||0.085)*duckLevel;
+  if(vol<=0.0015)return;
+  const src=a.createBufferSource();src.buffer=buf;
+  src.playbackRate.value=(rateLo||0.85)+Math.random()*((rateHi||1.15)-(rateLo||0.85));
+  const lp=a.createBiquadFilter();lp.type='lowpass';lp.frequency.value=cut||340;
+  const g=a.createGain();
+  const t=a.currentTime,dd=dur||0.13;
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(vol,t+0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dd);
+  src.connect(lp);lp.connect(g);g.connect(a.destination);
+  src.start(t);src.stop(t+dd+0.02);
+}
+let stepAccum=0;
+const STRIDE=2.1;             // world units between footsteps
+const FOLLOW_DELAY=0.27;      // the dark follower lags this far behind you
+const followQueue=[];         // scheduled follower step times (sec)
+function updateFootsteps(t,movedDist,darkness){
+  // your own steps — distance based, so cadence matches movement and stops dead
+  stepAccum+=movedDist;
+  if(stepAccum>=STRIDE){
+    stepAccum-=STRIDE;
+    footstep(0.085,340,0.13,0.85,1.15);
+    // in the dark, something behind you picks up the step a beat later
+    if(darkness>0.34)followQueue.push({t:t+FOLLOW_DELAY,dk:darkness});
+  }
+  // fire any follower steps now due — these keep going one beat after you stop
+  for(let i=followQueue.length-1;i>=0;i--){
+    if(t>=followQueue[i].t){
+      const dk=followQueue[i].dk;
+      footstep(0.05*Math.min(1,dk*1.4),205,0.2,0.62,0.82); // quieter, lower, draggier
+      followQueue.splice(i,1);
+    }
+  }
+}
+
+// ════ MUSIC (two liminal tracks, random bursts) ════
+const MUSIC_URLS=[
+  'https://earthlingofficial.com/srsstudio-life-is-just-nothing-else-pioggia-liminal-tranquillo-328126.mp3',
+  'https://earthlingofficial.com/9jackjack8-drowsy-liminal-dreamcore-512448.mp3'
+];
+const MUSIC_BURSTS=[10,20,30,45,60]; // possible play lengths (sec) — pick one at random
+const MUSIC_GAP=[12,45];             // random silent gap between bursts (sec)
+const MUSIC_CEILING=0.42;            // loudest the music gets (0..1)
+const MUSIC_FADE=2.6;                // fade in / fade out seconds
+let musicEls=[],musicActive=null,musicVol=0,musicTarget=0,musicStarted=false;
+function buildMusic(){
+  musicEls=MUSIC_URLS.map(u=>{
+    const a=new Audio();a.src=u;a.preload='metadata';a.loop=true;a.volume=0;
+    return a;
+  });
+}
+function startMusicCycle(){
+  if(musicStarted)return;musicStarted=true;
+  scheduleBurst(2+Math.random()*4);
+}
+function scheduleBurst(delay){
+  setTimeout(()=>{
+    if(ending)return;
+    musicActive=musicEls[Math.floor(Math.random()*musicEls.length)];
+    const d=musicActive.duration; // start at a random offset so the same intro doesn't repeat
+    musicActive.currentTime=(isFinite(d)&&d>30)?Math.random()*(d-25):0;
+    musicVol=0;musicActive.play().catch(()=>{});
+    musicTarget=MUSIC_CEILING;
+    const hold=MUSIC_BURSTS[Math.floor(Math.random()*MUSIC_BURSTS.length)];
+    setTimeout(()=>{ musicTarget=0; }, (hold+MUSIC_FADE)*1000);            // begin fade-out
+    setTimeout(()=>{                                                       // pause + queue next
+      if(musicActive)musicActive.pause();
+      const gap=MUSIC_GAP[0]+Math.random()*(MUSIC_GAP[1]-MUSIC_GAP[0]);
+      scheduleBurst(gap);
+    }, (hold+MUSIC_FADE*2)*1000);
+  }, delay*1000);
+}
+function updateMusic(dt){
+  const speed=MUSIC_CEILING/MUSIC_FADE; // linear fade over MUSIC_FADE secs
+  if(musicVol<musicTarget)musicVol=Math.min(musicTarget,musicVol+speed*dt);
+  else if(musicVol>musicTarget)musicVol=Math.max(musicTarget,musicVol-speed*dt);
+  if(musicActive)musicActive.volume=Math.max(0,Math.min(1,musicVol*duckLevel));
+}
+
 // ════ UI HELPERS ════
 function setObjective(t){$('obj').textContent=t;}
 function flashFact(t){const el=$('fact');el.textContent=t;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),5200);}
@@ -1272,6 +1381,7 @@ function rideSlide(){
   setObjective('');
   $('hint').style.display='none';
   if(videoIframe)videoIframe.src='';
+  musicTarget=0;followQueue.length=0;
   whisper('down, then. mind the drop.');
   $('fade').classList.add('on');
   setTimeout(()=>{window.location.href='veganbrosstage10.html';},1300);
@@ -1315,6 +1425,8 @@ function setupTouch(){
 // ════ GAME ════
 function startGame(){
   if(started)return;started=true;ac();
+  if(AC&&AC.state==='suspended')AC.resume();
+  startMusicCycle();
   const ov=$('connect');ov.classList.add('fade');setTimeout(()=>ov.style.display='none',1700);
   if(matchMedia('(hover:hover) and (pointer:fine)').matches)document.body.requestPointerLock&&document.body.requestPointerLock();
   setObjective(isMobile?'Find every screen. Tap WATCH. Archive all five.':'Find every screen. Press [E] to watch. Archive all five.');
@@ -1343,7 +1455,15 @@ function animate(){
   const wantX=camera.position.x,wantZ=camera.position.z;
   camera.position.copy(before);
   tryMove(wantX,wantZ);
+  const movedDist=Math.hypot(camera.position.x-before.x,camera.position.z-before.z);
   camera.position.y=2;
+
+  // audio: duck while watching a screen, then drive footsteps + music
+  const watching=(videoObj&&videoObj.visible)||doorVideoState==='playing';
+  duckTarget=watching?0.18:1;
+  duckLevel+=(duckTarget-duckLevel)*Math.min(1,dt*4);
+  updateFootsteps(t,movedDist,darknessAt(camera.position.x,camera.position.z));
+  updateMusic(dt);
 
   if(++fuzzFrame%3===0)updateFuzz();
 
