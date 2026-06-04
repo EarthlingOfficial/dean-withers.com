@@ -469,16 +469,18 @@ function init(){
   setupPost();
 
   // ── PRE-COMPILE ALL SHADERS ──
-  // Doors now glow via emissive material (no per-door PointLight), so revealing
-  // a door no longer changes the scene light count and can't trigger a runtime
-  // shader recompile. Decorative glow lights were removed too, so the shaders
-  // are small and this compile is fast — it just warms door/wall programs and
-  // kills the first-movement stutter.
+  // Full compile front-loads all shader work into the loading screen (where
+  // it's hidden) so the game STARTS smooth — without it the cost lands on the
+  // first seconds of play as a start-up stutter. With doors now emissive
+  // (no per-door light), revealing a door still can't trigger a runtime
+  // recompile. The remaining load cost is the sticker/sign glow lights, which
+  // are gated to desktop only (see T / floorSign / ceilSign) — so mobile gets
+  // a small, fast compile while desktop keeps the full atmosphere.
   doorList.forEach(d=>{ d.grp.visible=true; });
   renderer.compile(scene,camera);
   doorList.forEach(d=>{ d.grp.visible=false; });
 
-  // A couple of warm-up renders to push post-process shaders through the GPU too
+  // Warm-up renders to push the post-process shaders through the GPU too
   renderer.setRenderTarget(renderTarget);
   renderer.render(scene,camera);
   renderer.setRenderTarget(null);
@@ -611,21 +613,27 @@ function txt(lines,w,h,col,bg,fs){
   return new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat);
 }
 
-// Panels are MeshBasic (self-lit at full brightness), so the per-panel glow
-// PointLights that used to live here were pure decoration — and ~50 of them
-// bloated every wall/floor shader, which is what made compile (load) slow and
-// caused the movement hitches. Removed. The panels still read bright.
 function T(lines,w,h,col,bg,fs,px,py,pz,ry){
   if(typeof lines==='string')lines=[lines];
-  let mesh;
+  let mesh,glCol;
   if(bg){
     mesh=txt(lines,w,h,col,bg,fs);
+    glCol=col&&col.startsWith('#c')?0xc8a040:col&&col.startsWith('#a')?0x884422:0x442211;
   } else {
-    const r=shapePanelMesh(lines,w,h);mesh=r.mesh;
+    const r=shapePanelMesh(lines,w,h);mesh=r.mesh;glCol=r.gl;
   }
   mesh.position.set(px,py,pz);
   if(ry!==undefined)mesh.rotation.y=ry;
   scene.add(mesh);
+  // Glow halo is desktop-only — keeps full atmosphere on desktop, but spares
+  // mobile ~30+ point lights (smaller shaders = faster load + smoother start).
+  // The sticker itself is MeshBasic, so it stays full-bright on mobile anyway.
+  if(!isMobile){
+    const gl=new THREE.PointLight(glCol,0.45,7);
+    const off=ry!==undefined?0.5:0.4;
+    gl.position.set(px+(ry!==undefined?Math.sin(ry+Math.PI)*off:0),py,pz+(ry!==undefined?Math.cos(ry+Math.PI)*off:off));
+    scene.add(gl);
+  }
   return mesh;
 }
 
@@ -633,11 +641,13 @@ function floorSign(lines,px,pz,sz){
   sz=sz||1.8;
   const r=shapePanelMesh(lines,sz,sz);
   r.mesh.position.set(px,0.02,pz);r.mesh.rotation.x=-Math.PI/2;scene.add(r.mesh);
+  if(!isMobile){const gl=new THREE.PointLight(r.gl,0.35,5);gl.position.set(px,0.6,pz);scene.add(gl);}
 }
 function ceilSign(lines,px,pz,sz){
   sz=sz||1.8;
   const r=shapePanelMesh(lines,sz,sz);
   r.mesh.position.set(px,WH-0.02,pz);r.mesh.rotation.x=Math.PI/2;scene.add(r.mesh);
+  if(!isMobile){const gl=new THREE.PointLight(r.gl,0.3,5);gl.position.set(px,WH-0.7,pz);scene.add(gl);}
 }
 
 function walls(ox,oz,W,D,o){
