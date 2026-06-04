@@ -78,6 +78,12 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
  background:rgba(200,184,106,.16);border:1px solid rgba(200,184,106,.45);color:#c8b86a;font-size:11px;letter-spacing:2px;
  display:none;align-items:center;justify-content:center;z-index:20;pointer-events:auto}
 
+/* SKIP VIDEO BUTTON (testing) */
+#skipbtn{display:none;position:fixed;bottom:20px;right:20px;background:rgba(0,0,0,.75);border:1px solid rgba(200,184,106,.28);
+ color:#c8b86a;font-size:9px;letter-spacing:3px;padding:7px 14px;z-index:30;cursor:pointer;
+ font-family:'Courier New',monospace;pointer-events:auto}
+#skipbtn:hover{background:rgba(200,184,106,.12)}
+
 /* JOYSTICKS */
 .jz{position:fixed;bottom:22px;width:96px;height:96px;background:rgba(255,255,255,.02);border:1px solid rgba(200,184,106,.12);border-radius:50%;touch-action:none;z-index:20}
 #lj{left:18px}#rj{right:18px}
@@ -91,8 +97,6 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 
 <!-- CONNECT / LOADING OVERLAY -->
 <div id="connect">
-
-  <!-- Phase 1: Loading bar shown immediately -->
   <div id="c-phase1">
     <div id="c-series">A VEGAN BROS. SERIES</div>
     <div id="c-title">GO DEAN!</div>
@@ -100,8 +104,6 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
     <div id="c-loadbar"><div id="c-loadfill"></div></div>
     <div id="c-loadtxt">INITIALISING</div>
   </div>
-
-  <!-- Phase 2: Disclaimer + tap prompt — revealed once scene is ready -->
   <div id="c-phase2">
     <div class="c-p2-series">A VEGAN BROS. SERIES</div>
     <div class="c-p2-title">GO DEAN!</div>
@@ -117,7 +119,6 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
     <div id="c-main">TAP TO CONNECT TO DEAN</div>
     <div id="c-sub">earthlingofficial.com</div>
   </div>
-
 </div>
 
 <div id="hud">
@@ -136,6 +137,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 <div id="strobe"></div>
 <div id="fade"></div>
 <div id="ibtn">WATCH</div>
+<button id="skipbtn">SKIP VIDEO</button>
 
 <!-- Door video element (hidden — feeds a Three.js VideoTexture) -->
 <video id="doorvideo" playsinline webkit-playsinline style="display:none;position:fixed;left:-9999px"></video>
@@ -176,13 +178,13 @@ const VIDS=[
 ];
 const GATE_TOTAL=VIDS.filter(v=>v.gate).length;
 
-// ── DOOR AI VIDEOS (MP4s — door appears after watching the matching TV) ──
+// ── DOOR AI VIDEOS (MP4s — door appears after watching matching TV) ──
 const DOOR_VIDS=[
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
   null,null,null,null,
 ];
 
-// ── TOKENS (shape + timestamp shown at end of each door video) ──
+// ── TOKENS ──
 const TOKENS=[
   {shape:'circle',  time:'2:37'},
   {shape:'triangle',time:null},
@@ -287,7 +289,7 @@ let factTimer=26,factIdx=0,whisperTimer=420;
 // CSS3D video
 let videoObj=null, videoIframe=null, activeTV=null;
 
-// ── DOOR VIDEO PLAYER ──
+// ── DOOR VIDEO PLANE (VideoTexture plane for corridor) ──
 let doorVideoState='closed';
 let activeDoor=null;
 const doorVideo=$('doorvideo');
@@ -298,43 +300,289 @@ function buildDoorVideoPlane(){
   tex.minFilter=THREE.LinearFilter;
   tex.magFilter=THREE.LinearFilter;
   const mat=new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide});
-  doorVideoPlane=new THREE.Mesh(new THREE.PlaneGeometry(1.45,3.3),mat);
+  doorVideoPlane=new THREE.Mesh(new THREE.PlaneGeometry(2.6,1.9),mat);
   doorVideoPlane.visible=false;
   scene.add(doorVideoPlane);
 }
 
-function openDoorVideo(door){
-  const url=DOOR_VIDS[door.vidIdx];
-  door.grp.children.forEach(c=>{ c.visible=false; });
+// ════════════════════════════════════════════════════════════════
+// CORRIDOR SYSTEM
+// ════════════════════════════════════════════════════════════════
+let corridorActive=false;
+let corridorDoor=null;
+let corridorMeshes=[];
+let corridorColliders=[];
+let corridorCloseWallAdded=false;
+const corridorSlidePos=new THREE.Vector3();
+const corridorEntryPos=new THREE.Vector3();
+let corridorEntryRot=0;
+let corridorVideoPos=null;
+// states: 'idle' | 'entering' | 'locked' | 'at_slide' | 'video_playing' | 'video_done'
+let corridorState='idle';
+
+// Returns {fdx,fdz,pdx,pdz}: forward (through door) & perpendicular directions
+function corridorDir(ry){
+  return{
+    fdx:-Math.sin(ry), fdz:-Math.cos(ry),
+    pdx: Math.cos(ry), pdz:-Math.sin(ry)
+  };
+}
+
+function buildCorridor(door){
+  const ry=door.grp.rotation.y;
+  const{fdx,fdz,pdx,pdz}=corridorDir(ry);
+  const ox=door.grp.position.x, oz=door.grp.position.z;
+  const HW=1.5;   // half corridor width
+  const H=WH;
+  const TW=T_WALL;
+  const CL=22;    // main corridor length
+  const RL=8;     // slide room extra depth
+  const TL=CL+RL; // total length
+
+  // Build a corridor-axis-aligned box, compute world AABB for collider
+  function cBox(along,perp,wd,ht,dp,mat){
+    const cx=ox+fdx*along+pdx*perp;
+    const cz=oz+fdz*along+pdz*perp;
+    const m=new THREE.Mesh(new THREE.BoxGeometry(wd,ht,dp),mat||matWall.clone());
+    m.position.set(cx,ht/2,cz);
+    m.rotation.y=ry;
+    m.castShadow=true; m.receiveShadow=true;
+    scene.add(m);
+    const bb=new THREE.Box3().setFromObject(m);
+    const col={x0:bb.min.x,x1:bb.max.x,z0:bb.min.z,z1:bb.max.z};
+    colliders.push(col);
+    corridorColliders.push(col);
+    corridorMeshes.push(m);
+    return m;
+  }
+
+  // Thin flat box for floor / ceiling
+  function cFlat(along,y,mat){
+    const cx=ox+fdx*along, cz=oz+fdz*along;
+    const m=new THREE.Mesh(new THREE.BoxGeometry(HW*2,0.06,TL),mat.clone?mat.clone():mat);
+    m.position.set(cx,y,cz);
+    m.rotation.y=ry;
+    scene.add(m);
+    corridorMeshes.push(m);
+    return m;
+  }
+
+  // ── WALLS ──
+  cBox(TL/2,  HW, TW, H, TL);          // left wall
+  cBox(TL/2, -HW, TW, H, TL);          // right wall
+  cBox(TL+TW/2, 0, HW*2+TW*2, H, TW); // far end wall
+
+  // ── FLOOR & CEILING ──
+  cFlat(TL/2, 0.03, matFloor);
+  cFlat(TL/2, H-0.03, matCeil);
+
+  // ── LIGHTS ──
+  // Main warm corridor light
+  const lx1=ox+fdx*(TL*0.35), lz1=oz+fdz*(TL*0.35);
+  const L1=new THREE.PointLight(0xf0edd8,1.6,28);
+  L1.position.set(lx1,3.4,lz1); scene.add(L1); corridorMeshes.push(L1);
+  // Eerie green at the slide end
+  const lx2=ox+fdx*(TL*0.88), lz2=oz+fdz*(TL*0.88);
+  const L2=new THREE.PointLight(0x44ff88,0.9,16);
+  L2.position.set(lx2,3.2,lz2); scene.add(L2); corridorMeshes.push(L2);
+
+  // ── CEILING LIGHT PANELS ──
+  [0.25,0.55,0.8].forEach(t=>{
+    const px=ox+fdx*(TL*t), pz=oz+fdz*(TL*t);
+    const pm=new THREE.Mesh(new THREE.PlaneGeometry(0.8,0.3),matPanel);
+    pm.position.set(px,H-0.02,pz); pm.rotation.x=Math.PI/2; pm.rotation.z=-ry;
+    scene.add(pm); corridorMeshes.push(pm);
+  });
+
+  // ── SLIDE ROOM SIGN ──
+  const signM=txt(['[ E ]  ENTER  SLIDE'],1.9,0.52,'#33ff88','#001108',13);
+  signM.position.set(ox+fdx*(TL-0.55),2.5,oz+fdz*(TL-0.55));
+  signM.rotation.y=ry+Math.PI;
+  scene.add(signM); corridorMeshes.push(signM);
+
+  // ── WALL SCRAWL ──
+  const scrawlM=txt(['"every door opens from your side, Dean."'],2.6,0.42,'#443322',null,9);
+  scrawlM.position.set(
+    ox+fdx*(CL*0.45)+pdx*(HW-0.08),
+    1.9,
+    oz+fdz*(CL*0.45)+pdz*(HW-0.08)
+  );
+  scrawlM.rotation.y=ry+Math.PI/2;
+  scene.add(scrawlM); corridorMeshes.push(scrawlM);
+
+  // ── SECOND SCRAWL opposite wall ──
+  const scrawlM2=txt(['no exit','the archive holds everything'],1.8,0.6,'#222211',null,8);
+  scrawlM2.position.set(
+    ox+fdx*(CL*0.7)-pdx*(HW-0.08),
+    2.2,
+    oz+fdz*(CL*0.7)-pdz*(HW-0.08)
+  );
+  scrawlM2.rotation.y=ry-Math.PI/2;
+  scene.add(scrawlM2); corridorMeshes.push(scrawlM2);
+
+  // ── STORE POSITIONS ──
+  // Slide proximity position — 2 units from far end
+  corridorSlidePos.set(ox+fdx*(TL-2.5), 1.65, oz+fdz*(TL-2.5));
+
+  // Video plane position — against the far end wall, centred, facing back
+  corridorVideoPos={
+    x: ox+fdx*(TL-0.18),
+    y: 1.95,
+    z: oz+fdz*(TL-0.18),
+    ry: ry+Math.PI
+  };
+}
+
+function enterCorridor(door){
+  if(corridorActive||door.used)return;
   door.used=true;
-  activeDoor=door;
+  door.grp.visible=false; // door disappears
+
+  corridorActive=true;
+  corridorDoor=door;
+  corridorState='entering';
+  corridorMeshes=[];
+  corridorColliders=[];
+  corridorCloseWallAdded=false;
+
+  // Save entry state for return
+  corridorEntryPos.copy(camera.position);
+  corridorEntryRot=camera.rotation.y;
+
+  buildCorridor(door);
+
+  // Teleport player just inside corridor (1.8 units in)
+  const ry=door.grp.rotation.y;
+  const{fdx,fdz}=corridorDir(ry);
+  const ox=door.grp.position.x, oz=door.grp.position.z;
+  camera.position.set(ox+fdx*1.8, 2, oz+fdz*1.8);
+  // Face INTO the corridor (W key moves in fdx,fdz direction)
+  camera.rotation.y=ry;
+  camera.rotation.x=0;
+
+  sfxOpen();
+  whisper('the door is gone.\nthe corridor is ahead.');
+  setObjective('Walk forward. No way back.');
+}
+
+function addClosingWall(){
+  if(corridorCloseWallAdded||!corridorDoor)return;
+  corridorCloseWallAdded=true;
+
+  const ry=corridorDoor.grp.rotation.y;
+  const{fdx,fdz,pdx,pdz}=corridorDir(ry);
+  const ox=corridorDoor.grp.position.x, oz=corridorDoor.grp.position.z;
+  const HW=1.5, H=WH, TW=T_WALL;
+
+  // Appears 4 units inside the corridor
+  const along=4.2;
+  const cx=ox+fdx*along, cz=oz+fdz*along;
+
+  const wMat=new THREE.MeshStandardMaterial({
+    color:WALL_COLOR,roughness:0.35,metalness:0.12,
+    emissive:0x0d0c04,emissiveIntensity:0.45
+  });
+  const m=new THREE.Mesh(new THREE.BoxGeometry(HW*2+TW*2,H,TW),wMat);
+  m.position.set(cx,H/2,cz);
+  m.rotation.y=ry;
+  m.castShadow=true; m.receiveShadow=true;
+  scene.add(m);
+
+  const bb=new THREE.Box3().setFromObject(m);
+  const col={x0:bb.min.x,x1:bb.max.x,z0:bb.min.z,z1:bb.max.z};
+  colliders.push(col);
+  corridorColliders.push(col);
+  corridorMeshes.push(m);
+
+  corridorState='locked';
+  whisper('the wall seals behind you.');
+  sfxUI();
+  setObjective('No exit. Reach the slide room ahead.');
+}
+
+function openCorridorVideo(){
+  const door=corridorDoor; if(!door)return;
+  const url=DOOR_VIDS[door.vidIdx];
+
   if(!url){
-    flashFact('AI VIDEO NOT YET UPLOADED\nCOME BACK SOON.');
-    collectToken(door.vidIdx);
-    activeDoor=null;
+    // Placeholder — no video yet
+    corridorState='video_done';
+    flashFact('VIDEO NOT YET UPLOADED\nCOME BACK SOON.');
+    setObjective('Press [ E ] to collect token and return.');
     return;
   }
+
+  corridorState='video_playing';
   doorVideoState='playing';
   doorVideo.src=url;
   doorVideo.play().catch(()=>{});
-  const ry=door.grp.rotation.y;
-  doorVideoPlane.position.set(
-    door.grp.position.x + Math.sin(ry)*0.06,
-    1.65,
-    door.grp.position.z + Math.cos(ry)*0.06
-  );
-  doorVideoPlane.rotation.y=ry;
-  doorVideoPlane.visible=true;
-  doorVideo.onended=()=>{ closeDoorVideo(); };
+
+  if(doorVideoPlane){
+    doorVideoPlane.position.set(
+      corridorVideoPos.x,
+      corridorVideoPos.y,
+      corridorVideoPos.z
+    );
+    doorVideoPlane.rotation.y=corridorVideoPos.ry;
+    doorVideoPlane.visible=true;
+  }
+
+  doorVideo.onended=()=>corridorVideoEnded();
+  setObjective('Watch the archive.  [ E ] to close when done.');
 }
 
-function closeDoorVideo(){
+function corridorVideoEnded(){
   doorVideoState='closed';
-  doorVideo.pause();
-  doorVideo.src='';
+  doorVideo.pause(); doorVideo.src='';
   if(doorVideoPlane)doorVideoPlane.visible=false;
-  if(activeDoor){collectToken(activeDoor.vidIdx);activeDoor=null;}
+  corridorState='video_done';
+  setObjective('Token acquired.  [ E ] to return.');
 }
+
+function exitCorridor(){
+  if(!corridorDoor)return;
+
+  // Grant token
+  collectToken(corridorDoor.vidIdx);
+
+  // Fade out, remove geometry, teleport back
+  const fadeEl=$('fade');
+  fadeEl.classList.add('on');
+
+  setTimeout(()=>{
+    for(const m of corridorMeshes){
+      scene.remove(m);
+      if(m.geometry)m.geometry.dispose();
+      if(m.material&&m.material.dispose)m.material.dispose();
+    }
+    for(const col of corridorColliders){
+      const idx=colliders.indexOf(col);
+      if(idx!==-1)colliders.splice(idx,1);
+    }
+    corridorMeshes=[];
+    corridorColliders=[];
+    corridorActive=false;
+    corridorDoor=null;
+    corridorState='idle';
+    corridorCloseWallAdded=false;
+    doorVideoState='closed';
+
+    // Return player to just inside the room (facing away from where door was)
+    camera.position.copy(corridorEntryPos);
+    camera.rotation.y=corridorEntryRot+Math.PI;
+    camera.rotation.x=0;
+
+    const obj=archived.size>=GATE_TOTAL?
+      'Every record archived. The slide is open — step in.':
+      (isMobile?'Find every screen. Tap WATCH. Archive all five.':'Find every screen. Press [E] to watch. Archive all five.');
+    setObjective(obj);
+
+    setTimeout(()=>fadeEl.classList.remove('on'),300);
+  },1200);
+}
+// ════════════════════════════════════════════════════════════════
+// END CORRIDOR SYSTEM
+// ════════════════════════════════════════════════════════════════
 
 // ── TOKEN SYSTEM ──
 const collectedTokens=new Set();
@@ -464,35 +712,26 @@ function init(){
   buildShadowFig();
   buildBlackFig();
   buildDoorVideoPlane();
+  buildMusic();
   setupControls();
   setupTouch();
   setupPost();
+  setupSkipBtn();
 
-  // ── PRE-COMPILE ALL SHADERS ──
-  // Full compile front-loads all shader work into the loading screen (where
-  // it's hidden) so the game STARTS smooth — without it the cost lands on the
-  // first seconds of play as a start-up stutter. With doors now emissive
-  // (no per-door light), revealing a door still can't trigger a runtime
-  // recompile. The remaining load cost is the sticker/sign glow lights, which
-  // are gated to desktop only (see T / floorSign / ceilSign) — so mobile gets
-  // a small, fast compile while desktop keeps the full atmosphere.
+  // Pre-compile shaders
   doorList.forEach(d=>{ d.grp.visible=true; });
   renderer.compile(scene,camera);
   doorList.forEach(d=>{ d.grp.visible=false; });
 
-  // Warm-up renders to push the post-process shaders through the GPU too
   renderer.setRenderTarget(renderTarget);
   renderer.render(scene,camera);
   renderer.setRenderTarget(null);
   renderer.render(postScene,postCamera);
 
-  // ── TRANSITION LOADING SCREEN TO READY STATE ──
   const loadFill=$('c-loadfill');
   const loadTxt=$('c-loadtxt');
   const phase1=$('c-phase1');
   const phase2=$('c-phase2');
-
-  // Animate load bar to 100% over ~1.2s, then show disclaimer
   loadFill.style.width='100%';
   loadTxt.textContent='READY';
   setTimeout(()=>{
@@ -507,6 +746,17 @@ function init(){
   addEventListener('resize',onResize);
   setObjective(isMobile?'Tap WATCH at each screen. Archive all five.':'Press [E] at each screen. Archive all five.');
   animate();
+}
+
+function setupSkipBtn(){
+  $('skipbtn').addEventListener('click',()=>{
+    if(corridorState==='video_playing'){
+      corridorVideoEnded();
+    } else if(corridorState==='at_slide'){
+      corridorState='video_done';
+      setObjective('Press [ E ] to collect token and return.');
+    }
+  });
 }
 
 function onResize(){
@@ -625,9 +875,6 @@ function T(lines,w,h,col,bg,fs,px,py,pz,ry){
   mesh.position.set(px,py,pz);
   if(ry!==undefined)mesh.rotation.y=ry;
   scene.add(mesh);
-  // Glow halo is desktop-only — keeps full atmosphere on desktop, but spares
-  // mobile ~30+ point lights (smaller shaders = faster load + smoother start).
-  // The sticker itself is MeshBasic, so it stays full-bright on mobile anyway.
   if(!isMobile){
     const gl=new THREE.PointLight(glCol,0.45,7);
     const off=ry!==undefined?0.5:0.4;
@@ -678,9 +925,6 @@ function roomLights(ox,oz,W,D){
 }
 
 // ════ WHITE DOOR SPAWNER ════
-// Door glows via emissive material — NO PointLight. This is the key fix:
-// toggling grp.visible no longer changes the scene's light count, so revealing
-// a door on TV-play can't force a wall-shader recompile (the play-time stutter).
 function spawnDoor(vidIdx,x,z,ry){
   const grp=new THREE.Group();
   const wMat=new THREE.MeshStandardMaterial({color:0xf2ede4,roughness:0.22,metalness:0.04,emissive:0x3a3320,emissiveIntensity:0.6});
@@ -752,7 +996,6 @@ function playTV(tv){
     tv.archived=true;archived.add(tv.vidIdx);
     updateArch();
     whisper(WHISPERS[Math.floor(Math.random()*WHISPERS.length)]);
-    // Reveal matching door — free now: door has no light, so no recompile.
     const door=doorList.find(d=>d.vidIdx===tv.vidIdx);
     if(door&&!door.shown){door.shown=true;door.grp.visible=true;whisper('a door appeared.');}
     crowdEnabled=true;
@@ -973,27 +1216,39 @@ function shadowSilhouette(){
   x.beginPath();x.ellipse(95,252,8,10,0,0,Math.PI*2);x.fill();
   x.filter='blur(2px)';
   x.fillStyle='rgba(150,28,28,0.32)';x.beginPath();x.arc(52,36,2.7,0,Math.PI*2);x.fill();
-  x.fillStyle='rgba(150,28,28,0.22)';x.beginPath();x.arc(65,38,1.9,0,Math.PI*2);x.fill();
+  x.beginPath();x.arc(64,36,2.7,0,Math.PI*2);x.fill();
   x.filter='none';
   const g=x.createLinearGradient(0,0,0,384);
-  g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(0.085,'rgba(0,0,0,1)');
+  g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(0.08,'rgba(0,0,0,1)');
   g.addColorStop(0.88,'rgba(0,0,0,1)');g.addColorStop(1,'rgba(0,0,0,0)');
   x.globalCompositeOperation='destination-in';x.fillStyle=g;x.fillRect(0,0,128,384);
   x.globalCompositeOperation='source-over';
-  return c;
+  return new THREE.CanvasTexture(c);
 }
 function makeShadowFrames(){
-  const base=shadowSilhouette();
-  const frames=[new THREE.CanvasTexture(base)];
-  for(let f=0;f<4;f++){
-    const c=document.createElement('canvas');c.width=128;c.height=384;const x=c.getContext('2d');
-    const amp=4+f*3;let y=0;
-    while(y<384){
-      const h=6+Math.random()*36;const dx=(Math.random()*2-1)*amp;
-      x.drawImage(base,0,y,128,h,dx,y,128,h);
-      if(Math.random()<0.3){x.globalAlpha=0.22;x.drawImage(base,0,y,128,h,dx+(Math.random()*8-4),y,128,h);x.globalAlpha=1;}
-      y+=h;
-    }
+  const frames=[];
+  for(let f=0;f<6;f++){
+    const c=document.createElement('canvas');c.width=128;c.height=384;
+    const x=c.getContext('2d');
+    x.clearRect(0,0,128,384);
+    const jx=(Math.random()-0.5)*3,jy=(Math.random()-0.5)*4;
+    x.filter='blur('+(4+Math.random()*4)+'px)';
+    x.fillStyle='rgba(4,4,8,0.92)';
+    x.beginPath();x.ellipse(58+jx,38+jy,14+Math.random()*3,18+Math.random()*3,0.06+Math.random()*0.2,0,Math.PI*2);x.fill();
+    x.fillRect(50+jx,55+jy,15,11);
+    x.beginPath();x.moveTo(22+jx,80+jy);x.quadraticCurveTo(58+jx,62+jy,98+jx,82+jy);x.lineTo(92+jx,210+jy);
+    x.quadraticCurveTo(90+jx,300+jy,82+jx,362+jy);x.lineTo(42+jx,362+jy);
+    x.quadraticCurveTo(34+jx,300+jy,32+jx,210+jy);x.closePath();x.fill();
+    x.beginPath();x.moveTo(94+jx,86+jy);x.quadraticCurveTo(112+jx,98+jy,110+jx,160+jy);
+    x.quadraticCurveTo(110+jx,212+jy,101+jx,248+jy);
+    x.lineTo(90+jx,246+jy);x.quadraticCurveTo(98+jx,200+jy,92+jx,150+jy);
+    x.quadraticCurveTo(90+jx,108+jy,94+jx,86+jy);x.closePath();x.fill();
+    x.filter='none';
+    const g=x.createLinearGradient(0,0,0,384);
+    g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(0.08,'rgba(0,0,0,1)');
+    g.addColorStop(0.88,'rgba(0,0,0,1)');g.addColorStop(1,'rgba(0,0,0,0)');
+    x.globalCompositeOperation='destination-in';x.fillStyle=g;x.fillRect(0,0,128,384);
+    x.globalCompositeOperation='source-over';
     frames.push(new THREE.CanvasTexture(c));
   }
   return frames;
@@ -1166,7 +1421,7 @@ function solidAt(x,z,extra){
   return false;
 }
 function isOpen(x,z){
-  if(x<-46||x>190||z<2||z>94)return false;
+  if(x<-46||x>190||z<-30||z>130)return false;
   return !solidAt(x,z,0.5);
 }
 function tryMove(nx,nz){
@@ -1216,6 +1471,101 @@ function sfxStatic(){blip(200,0.15,'square',0.05);}
 function sfxOpen(){blip(330,0.6,'sine',0.10);blip(495,0.6,'sine',0.07);}
 function sfxUI(){blip(440,0.12,'sine',0.05);}
 
+// ════ DUCKING ════
+let duckLevel=1, duckTarget=1;
+
+// ════ FOOTSTEPS + DARK FOLLOWER ════
+let noiseBuf=null;
+function getNoiseBuf(){
+  const a=ac();if(!a)return null;
+  if(!noiseBuf){
+    const len=Math.floor(a.sampleRate*0.4);
+    noiseBuf=a.createBuffer(1,len,a.sampleRate);
+    const d=noiseBuf.getChannelData(0);
+    for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+  }
+  return noiseBuf;
+}
+function footstep(vol,cut,dur,rateLo,rateHi){
+  const a=ac();if(!a)return;
+  const buf=getNoiseBuf();if(!buf)return;
+  vol=(vol||0.085)*duckLevel;
+  if(vol<=0.0015)return;
+  const src=a.createBufferSource();src.buffer=buf;
+  src.playbackRate.value=(rateLo||0.85)+Math.random()*((rateHi||1.15)-(rateLo||0.85));
+  const lp=a.createBiquadFilter();lp.type='lowpass';lp.frequency.value=cut||340;
+  const g=a.createGain();
+  const t=a.currentTime,dd=dur||0.13;
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(vol,t+0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dd);
+  src.connect(lp);lp.connect(g);g.connect(a.destination);
+  src.start(t);src.stop(t+dd+0.02);
+}
+let stepAccum=0;
+const STRIDE=2.1;
+const FOLLOW_DELAY=0.27;
+const followQueue=[];
+function updateFootsteps(t,movedDist,darkness){
+  stepAccum+=movedDist;
+  if(stepAccum>=STRIDE){
+    stepAccum-=STRIDE;
+    footstep(0.085,340,0.13,0.85,1.15);
+    if(darkness>0.34)followQueue.push({t:t+FOLLOW_DELAY,dk:darkness});
+  }
+  for(let i=followQueue.length-1;i>=0;i--){
+    if(t>=followQueue[i].t){
+      const dk=followQueue[i].dk;
+      footstep(0.05*Math.min(1,dk*1.4),205,0.2,0.62,0.82);
+      followQueue.splice(i,1);
+    }
+  }
+}
+
+// ════ MUSIC ════
+const MUSIC_URLS=[
+  'https://earthlingofficial.com/srsstudio-life-is-just-nothing-else-pioggia-liminal-tranquillo-328126.mp3',
+  'https://earthlingofficial.com/9jackjack8-drowsy-liminal-dreamcore-512448.mp3'
+];
+const MUSIC_BURSTS=[10,20,30,45,60];
+const MUSIC_GAP=[12,45];
+const MUSIC_CEILING=0.42;
+const MUSIC_FADE=2.6;
+let musicEls=[],musicActive=null,musicVol=0,musicTarget=0,musicStarted=false;
+function buildMusic(){
+  musicEls=MUSIC_URLS.map(u=>{
+    const a=new Audio();a.src=u;a.preload='metadata';a.loop=true;a.volume=0;
+    return a;
+  });
+}
+function startMusicCycle(){
+  if(musicStarted)return;musicStarted=true;
+  scheduleBurst(2+Math.random()*4);
+}
+function scheduleBurst(delay){
+  setTimeout(()=>{
+    if(ending)return;
+    musicActive=musicEls[Math.floor(Math.random()*musicEls.length)];
+    const d=musicActive.duration;
+    musicActive.currentTime=(isFinite(d)&&d>30)?Math.random()*(d-25):0;
+    musicVol=0;musicActive.play().catch(()=>{});
+    musicTarget=MUSIC_CEILING;
+    const hold=MUSIC_BURSTS[Math.floor(Math.random()*MUSIC_BURSTS.length)];
+    setTimeout(()=>{ musicTarget=0; }, (hold+MUSIC_FADE)*1000);
+    setTimeout(()=>{
+      if(musicActive)musicActive.pause();
+      const gap=MUSIC_GAP[0]+Math.random()*(MUSIC_GAP[1]-MUSIC_GAP[0]);
+      scheduleBurst(gap);
+    }, (hold+MUSIC_FADE*2)*1000);
+  }, delay*1000);
+}
+function updateMusic(dt){
+  const speed=MUSIC_CEILING/MUSIC_FADE;
+  if(musicVol<musicTarget)musicVol=Math.min(musicTarget,musicVol+speed*dt);
+  else if(musicVol>musicTarget)musicVol=Math.max(musicTarget,musicVol-speed*dt);
+  if(musicActive)musicActive.volume=Math.max(0,Math.min(1,musicVol*duckLevel));
+}
+
 // ════ UI HELPERS ════
 function setObjective(t){$('obj').textContent=t;}
 function flashFact(t){const el=$('fact');el.textContent=t;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),5200);}
@@ -1232,6 +1582,43 @@ function updateSanityHUD(){
 function updateInteract(){
   const hint=$('hint'),ib=$('ibtn');
   let label=null; nearTV=null; nearDoor=null;
+
+  // ── CORRIDOR STATE MACHINE ──
+  if(corridorActive){
+    $('xh').classList.remove('lock');
+
+    if(corridorState==='video_playing'){
+      if(isMobile){ib.textContent='CLOSE';ib.style.display='flex';hint.style.display='none';}
+      else{hint.style.display='block';hint.textContent='[ E ] CLOSE';ib.style.display='none';}
+      $('skipbtn').style.display='block';
+      return;
+    }
+    if(corridorState==='video_done'){
+      $('skipbtn').style.display='none';
+      if(isMobile){ib.textContent='RETURN';ib.style.display='flex';hint.style.display='none';}
+      else{hint.style.display='block';hint.textContent='[ E ] RETURN';ib.style.display='none';}
+      $('xh').classList.add('lock');
+      return;
+    }
+    // Check proximity to slide room end
+    if(corridorState==='locked'||corridorState==='at_slide'){
+      if(camera.position.distanceTo(corridorSlidePos)<3.5){
+        corridorState='at_slide';
+        if(isMobile){ib.textContent='ENTER';ib.style.display='flex';hint.style.display='none';}
+        else{hint.style.display='block';hint.textContent='[ E ] ENTER';ib.style.display='none';}
+        $('xh').classList.add('lock');
+        $('skipbtn').style.display='none';
+        return;
+      }
+    }
+    // Walking through corridor — no prompt
+    $('skipbtn').style.display='none';
+    hint.style.display='none'; ib.style.display='none';
+    return;
+  }
+  // ── END CORRIDOR ──
+
+  $('skipbtn').style.display='none';
 
   if(doorVideoState==='playing'){
     if(isMobile){ib.textContent='CLOSE';ib.style.display='flex';hint.style.display='none';}
@@ -1268,10 +1655,28 @@ function updateInteract(){
 function interact(){
   if(!started||ending)return;
   sfxUI();
+
+  // Corridor interactions take priority
+  if(corridorActive){
+    if(corridorState==='video_playing'){corridorVideoEnded();return;}
+    if(corridorState==='video_done'){exitCorridor();return;}
+    if(corridorState==='at_slide'){openCorridorVideo();return;}
+    return;
+  }
+
   if(doorVideoState==='playing'){closeDoorVideo();return;}
   if(nearTV==='SLIDE'){rideSlide();return;}
-  if(nearDoor){openDoorVideo(nearDoor);return;}
+  if(nearDoor){enterCorridor(nearDoor);return;}   // ← corridor instead of openDoorVideo
   if(nearTV)playTV(nearTV);
+}
+
+// Keep closeDoorVideo for legacy (not used in main flow anymore but keeps code clean)
+function closeDoorVideo(){
+  doorVideoState='closed';
+  doorVideo.pause();
+  doorVideo.src='';
+  if(doorVideoPlane)doorVideoPlane.visible=false;
+  if(activeDoor){collectToken(activeDoor.vidIdx);activeDoor=null;}
 }
 
 function rideSlide(){
@@ -1279,6 +1684,7 @@ function rideSlide(){
   setObjective('');
   $('hint').style.display='none';
   if(videoIframe)videoIframe.src='';
+  musicTarget=0;followQueue.length=0;
   whisper('down, then. mind the drop.');
   $('fade').classList.add('on');
   setTimeout(()=>{window.location.href='veganbrosstage10.html';},1300);
@@ -1322,6 +1728,8 @@ function setupTouch(){
 // ════ GAME ════
 function startGame(){
   if(started)return;started=true;ac();
+  if(AC&&AC.state==='suspended')AC.resume();
+  startMusicCycle();
   const ov=$('connect');ov.classList.add('fade');setTimeout(()=>ov.style.display='none',1700);
   if(matchMedia('(hover:hover) and (pointer:fine)').matches)document.body.requestPointerLock&&document.body.requestPointerLock();
   setObjective(isMobile?'Find every screen. Tap WATCH. Archive all five.':'Find every screen. Press [E] to watch. Archive all five.');
@@ -1350,7 +1758,23 @@ function animate(){
   const wantX=camera.position.x,wantZ=camera.position.z;
   camera.position.copy(before);
   tryMove(wantX,wantZ);
+  const movedDist=Math.hypot(camera.position.x-before.x,camera.position.z-before.z);
   camera.position.y=2;
+
+  // ── CORRIDOR: close wall once player walks ~4.5 units in ──
+  if(corridorActive&&corridorState==='entering'&&!corridorCloseWallAdded){
+    const distFromDoor=Math.hypot(
+      camera.position.x-corridorDoor.grp.position.x,
+      camera.position.z-corridorDoor.grp.position.z
+    );
+    if(distFromDoor>4.5) addClosingWall();
+  }
+
+  const watching=(videoObj&&videoObj.visible)||doorVideoState==='playing';
+  duckTarget=watching?0.18:1;
+  duckLevel+=(duckTarget-duckLevel)*Math.min(1,dt*4);
+  updateFootsteps(t,movedDist,darknessAt(camera.position.x,camera.position.z));
+  updateMusic(dt);
 
   if(++fuzzFrame%3===0)updateFuzz();
 
