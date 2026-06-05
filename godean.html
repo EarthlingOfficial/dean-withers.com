@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GO DEAN! — Vegan Horror Backrooms</title>
+<link href="https://fonts.googleapis.com/css2?family=Rubik+Glitch&family=Share+Tech+Mono&family=Libre+Baskerville:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --black:    #060502;
+  --bg:       #0b0900;
+  --yr-wall:  #c8b96e;
+  --yr-dark:  #a89848;
+  --neon:     #39ff14;
+  --toxic:    #b5ff00;
+  --blood:    #8b0000;
+  --crimson:  #c0392b;
+  --flicker:  #f5e882;
+  --muted:    #7a6a3a;
+  --text:     #e8d882;
+  --mono:     'Share Tech Mono', monospace;
+  --display:  'Rubik Glitch', cursive;
+  --serif:    'Libre Baskerville', serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  overflow-x: hidden;
+  cursor: crosshair;
+}
+
+/* ── SCANLINE OVERLAY ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(0,0,0,0.18) 3px,
+    rgba(0,0,0,0.18) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── VIGNETTE ── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.75) 100%);
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* ── BACKROOMS WALLPAPER PATTERN ── */
+.wallpaper-bg {
+  background-color: #1a1500;
+  background-image:
+    repeating-linear-gradient(0deg,   transparent, transparent 38px, rgba(168,152,72,0.07) 38px, rgba(168,152,72,0.07) 40px),
+    repeating-linear-gradient(90deg,  transparent, transparent 38px, rgba(168,152,72,0.07) 38px, rgba(168,152,72,0.07) 40px),
+    repeating-linear-gradient(45deg,  rgba(168,152,72,0.03) 0px, rgba(168,152,72,0.03) 2px, transparent 2px, transparent 20px),
+    repeating-linear-gradient(-45deg, rgba(168,152,72,0.03) 0px, rgba(168,152,72,0.03) 2px, transparent 2px, transparent 20px);
+}
+
+/* ══════════════ NAV ══════════════ */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 2.5rem;
+  background: rgba(6,5,2,0.88);
+  border-bottom: 1px solid rgba(200,185,110,0.15);
+  backdrop-filter: blur(4px);
+}
+
+.nav-logo {
+  font-family: var(--display);
+  font-size: 1.1rem;
+  color: var(--neon);
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-shadow: 0 0 12px rgba(57,255,20,0.5);
+  animation: flicker-logo 6s infinite;
+}
+
+.nav-links {
+  display: flex;
+  gap: 2rem;
+  list-style: none;
+}
+
+.nav-links a {
+  color: var(--yr-wall);
+  text-decoration: none;
+  font-size: 0.72rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--neon); }
+
+.nav-tag {
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  text-transform: uppercase;
+  border: 1px solid var(--muted);
+  padding: 0.25rem 0.6rem;
+  border-radius: 2px;
+}
+
+/* ══════════════ HERO ══════════════ */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 6rem 2rem 4rem;
+  overflow: hidden;
+}
+
+.hero .wallpaper-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+/* Corridor depth illusion */
+.hero-corridor {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 50%,
+      transparent 30%,
+      rgba(10,8,0,0.6) 60%,
+      rgba(6,5,2,0.95) 100%),
+    radial-gradient(ellipse 40% 30% at 50% 50%,
+      rgba(200,185,80,0.04) 0%,
+      transparent 100%);
+  z-index: 1;
+}
+
+/* Flickering ceiling lights */
+.lights-strip {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg,
+    transparent 0%, var(--flicker) 20%, transparent 30%,
+    var(--flicker) 50%, transparent 60%,
+    var(--flicker) 80%, transparent 100%);
+  opacity: 0.4;
+  animation: flicker-strip 3s infinite;
+  z-index: 2;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 3;
+  text-align: center;
+  width: 100%;
+  max-width: 1100px;
+}
+
+/* ── TITLE ── */
+.hero-eyebrow {
+  font-size: 0.65rem;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.8rem;
+  animation: fade-in 1s 0.3s both;
+}
+
+.hero-title {
+  font-family: var(--display);
+  font-size: clamp(4.5rem, 12vw, 9rem);
+  line-height: 0.9;
+  color: var(--text);
+  text-shadow:
+    2px 0 0 rgba(57,255,20,0.6),
+    -2px 0 0 rgba(192,57,43,0.5),
+    0 0 60px rgba(200,185,80,0.2);
+  animation: glitch-title 4s infinite, fade-in 0.8s 0.1s both;
+  position: relative;
+  display: inline-block;
+}
+
+.hero-title::before,
+.hero-title::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  font-family: var(--display);
+  font-size: inherit;
+}
+
+.hero-title::before {
+  color: rgba(57,255,20,0.6);
+  animation: glitch-clip-1 4s infinite;
+  clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+  transform: translate(-3px, 0);
+}
+
+.hero-title::after {
+  color: rgba(192,57,43,0.6);
+  animation: glitch-clip-2 4s infinite;
+  clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+  transform: translate(3px, 0);
+}
+
+.hero-subtitle {
+  font-size: clamp(0.75rem, 1.8vw, 1rem);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--neon);
+  text-shadow: 0 0 18px rgba(57,255,20,0.6);
+  margin: 1rem 0 0.5rem;
+  animation: fade-in 1s 0.5s both;
+}
+
+.hero-tagline {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(0.85rem, 1.5vw, 1.05rem);
+  color: rgba(232,216,130,0.55);
+  margin-bottom: 2.5rem;
+  animation: fade-in 1s 0.7s both;
+  letter-spacing: 0.04em;
+}
+
+/* ── VIDEO FRAME ── */
+.video-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  animation: fade-in 1.2s 0.9s both;
+}
+
+.video-frame-outer {
+  position: relative;
+  padding: 3px;
+  background: linear-gradient(135deg, var(--yr-wall) 0%, var(--blood) 50%, var(--yr-dark) 100%);
+  border-radius: 3px;
+  box-shadow:
+    0 0 0 1px rgba(200,185,80,0.2),
+    0 0 40px rgba(57,255,20,0.08),
+    0 0 80px rgba(139,0,0,0.15),
+    0 30px 80px rgba(0,0,0,0.8);
+  animation: frame-glow 4s ease-in-out infinite alternate;
+}
+
+.video-frame-inner {
+  position: relative;
+  background: #000;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.video-frame-inner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(0,0,0,0.08) 3px,
+    rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.video-frame-inner iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16/9;
+  border: none;
+}
+
+/* corner glyphs */
+.video-corner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-color: var(--neon);
+  border-style: solid;
+  opacity: 0.7;
+  animation: corner-flicker 2.5s infinite;
+  z-index: 10;
+}
+.vc-tl { top: -12px; left: -12px; border-width: 2px 0 0 2px; }
+.vc-tr { top: -12px; right: -12px; border-width: 2px 2px 0 0; }
+.vc-bl { bottom: -12px; left: -12px; border-width: 0 0 2px 2px; }
+.vc-br { bottom: -12px; right: -12px; border-width: 0 2px 2px 0; }
+
+/* status readout */
+.video-hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  margin-top: 0.8rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.hud-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--neon);
+  margin-right: 0.4rem;
+  animation: blink 1.4s infinite;
+}
+
+/* ══════════════ SECTION BASE ══════════════ */
+section {
+  position: relative;
+  padding: 6rem 2rem;
+}
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.section-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--blood);
+  margin-bottom: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.section-label::before {
+  content: '';
+  display: block;
+  width: 30px;
+  height: 1px;
+  background: var(--blood);
+}
+
+.section-title {
+  font-family: var(--display);
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  color: var(--text);
+  line-height: 1.05;
+  margin-bottom: 1.5rem;
+  text-shadow: 1px 0 0 rgba(57,255,20,0.3), -1px 0 0 rgba(192,57,43,0.3);
+}
+
+.section-body {
+  font-family: var(--serif);
+  font-size: 1rem;
+  line-height: 1.85;
+  color: rgba(232,216,130,0.7);
+  max-width: 680px;
+}
+
+.accent { color: var(--neon); }
+.blood  { color: var(--crimson); }
+
+/* ══════════════ ABOUT ══════════════ */
+.about { background: #0d0b00; }
+
+.about-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem 5rem;
+  margin-top: 3rem;
+}
+
+.about-card {
+  border-left: 2px solid var(--blood);
+  padding-left: 1.4rem;
+}
+
+.about-card h3 {
+  font-family: var(--display);
+  font-size: 1.1rem;
+  color: var(--toxic);
+  margin-bottom: 0.6rem;
+  text-shadow: 0 0 10px rgba(181,255,0,0.3);
+}
+
+.about-card p {
+  font-family: var(--serif);
+  font-size: 0.9rem;
+  line-height: 1.75;
+  color: rgba(232,216,130,0.6);
+}
+
+/* ══════════════ DEBATE ══════════════ */
+.debate { wallpaper-bg: true; }
+.debate.wallpaper-bg { }
+
+.debate-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+  margin-top: 3rem;
+}
+
+.debate-vs {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.player-card {
+  flex: 1;
+  background: rgba(6,5,2,0.8);
+  border: 1px solid rgba(200,185,80,0.2);
+  padding: 1.2rem 1rem;
+  text-align: center;
+  position: relative;
+  border-radius: 2px;
+}
+
+.player-card.you { border-color: rgba(57,255,20,0.4); }
+.player-card.dean { border-color: rgba(139,0,0,0.5); }
+
+.player-card .tag {
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 0.3rem;
+  opacity: 0.6;
+}
+
+.player-card .name {
+  font-family: var(--display);
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.player-card.you .name  { color: var(--neon); text-shadow: 0 0 12px rgba(57,255,20,0.5); }
+.player-card.dean .name { color: var(--crimson); text-shadow: 0 0 12px rgba(192,57,43,0.4); }
+
+.vs-glyph {
+  font-family: var(--display);
+  font-size: 1.8rem;
+  color: var(--text);
+  opacity: 0.4;
+  flex-shrink: 0;
+}
+
+.mechanic-flow {
+  list-style: none;
+  counter-reset: step;
+}
+
+.mechanic-flow li {
+  counter-increment: step;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid rgba(200,185,80,0.08);
+  font-family: var(--serif);
+  font-size: 0.9rem;
+  color: rgba(232,216,130,0.65);
+  line-height: 1.6;
+}
+
+.mechanic-flow li::before {
+  content: counter(step, decimal-leading-zero);
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--neon);
+  min-width: 26px;
+  margin-top: 0.1rem;
+  opacity: 0.8;
+}
+
+/* ══════════════ LEVELS ══════════════ */
+.levels { background: #0b0a00; }
+
+.levels-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 3rem;
+}
+
+.level-card {
+  background: rgba(10,8,0,0.9);
+  border: 1px solid rgba(200,185,80,0.12);
+  border-top: 2px solid;
+  padding: 1.6rem 1.3rem;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s, transform 0.3s;
+  border-radius: 2px;
+}
+
+.level-card:hover {
+  transform: translateY(-3px);
+}
+
+.level-card.active { border-top-color: var(--neon); }
+.level-card.locked { border-top-color: var(--muted); opacity: 0.6; }
+.level-card.coming { border-top-color: var(--crimson); }
+
+.level-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 60px;
+  background: linear-gradient(to bottom, rgba(200,185,80,0.04), transparent);
+}
+
+.level-num {
+  font-size: 0.55rem;
+  letter-spacing: 0.3em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+}
+
+.level-name {
+  font-family: var(--display);
+  font-size: 1.05rem;
+  color: var(--text);
+  margin-bottom: 0.7rem;
+  line-height: 1.1;
+}
+
+.level-desc {
+  font-family: var(--serif);
+  font-size: 0.8rem;
+  line-height: 1.65;
+  color: rgba(232,216,130,0.5);
+}
+
+.level-status {
+  display: inline-block;
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-top: 0.9rem;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid;
+  border-radius: 1px;
+}
+
+.active .level-status  { color: var(--neon);    border-color: var(--neon);    background: rgba(57,255,20,0.06); }
+.locked .level-status  { color: var(--muted);   border-color: var(--muted);  background: transparent; }
+.coming .level-status  { color: var(--crimson); border-color: var(--crimson); background: rgba(192,57,43,0.06); }
+
+/* ══════════════ MANIFESTO BAND ══════════════ */
+.manifesto {
+  background: var(--blood);
+  padding: 4rem 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.manifesto::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0px,
+    transparent 60px,
+    rgba(0,0,0,0.15) 60px,
+    rgba(0,0,0,0.15) 61px
+  );
+}
+
+.manifesto blockquote {
+  position: relative;
+  z-index: 1;
+  font-family: var(--display);
+  font-size: clamp(1.4rem, 4vw, 2.6rem);
+  color: var(--text);
+  text-align: center;
+  line-height: 1.2;
+  text-shadow:
+    2px 0 0 rgba(57,255,20,0.25),
+    -2px 0 0 rgba(10,8,0,0.4);
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+.manifesto cite {
+  display: block;
+  font-family: var(--mono);
+  font-style: normal;
+  font-size: 0.65rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(232,216,130,0.5);
+  margin-top: 1.2rem;
+}
+
+/* ══════════════ JOIN ══════════════ */
+.join {
+  background: #0d0b00;
+  text-align: center;
+}
+
+.join .section-label { justify-content: center; }
+.join .section-label::before { display: none; }
+
+.join .section-body { margin: 0 auto 2.5rem; text-align: left; }
+
+.cta-row {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 0.85rem 2rem;
+  border-radius: 2px;
+  transition: all 0.2s;
+  cursor: pointer;
+  border: none;
+  display: inline-block;
+}
+
+.btn-primary {
+  background: var(--neon);
+  color: #060502;
+  box-shadow: 0 0 25px rgba(57,255,20,0.3);
+}
+.btn-primary:hover {
+  background: var(--toxic);
+  box-shadow: 0 0 40px rgba(57,255,20,0.5);
+  transform: translateY(-2px);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid rgba(200,185,80,0.3);
+}
+.btn-ghost:hover {
+  border-color: var(--text);
+  background: rgba(200,185,80,0.05);
+}
+
+/* ══════════════ FOOTER ══════════════ */
+footer {
+  background: #060502;
+  border-top: 1px solid rgba(200,185,80,0.1);
+  padding: 2rem 2.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+footer .f-logo {
+  font-family: var(--display);
+  font-size: 1rem;
+  color: var(--neon);
+  text-shadow: 0 0 10px rgba(57,255,20,0.4);
+}
+
+footer .f-copy {
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+footer .f-vegan {
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  text-transform: uppercase;
+  border: 1px solid rgba(57,255,20,0.2);
+  padding: 0.25rem 0.6rem;
+  border-radius: 1px;
+  color: rgba(57,255,20,0.5);
+}
+
+/* ══════════════ TICKER ══════════════ */
+.ticker-wrap {
+  overflow: hidden;
+  background: rgba(57,255,20,0.07);
+  border-top: 1px solid rgba(57,255,20,0.15);
+  border-bottom: 1px solid rgba(57,255,20,0.15);
+  padding: 0.55rem 0;
+  position: relative;
+  z-index: 5;
+}
+
+.ticker {
+  display: flex;
+  white-space: nowrap;
+  animation: ticker-run 28s linear infinite;
+  gap: 0;
+}
+
+.ticker span {
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--neon);
+  padding: 0 3rem;
+  opacity: 0.7;
+}
+
+.ticker span::after {
+  content: '//';
+  margin-left: 3rem;
+  opacity: 0.3;
+}
+
+/* ══════════════ ANIMATIONS ══════════════ */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glitch-title {
+  0%, 90%, 100% { transform: translate(0); filter: none; }
+  91%  { transform: translate(-3px, 0); filter: hue-rotate(90deg); }
+  92%  { transform: translate( 3px, 0); filter: none; }
+  93%  { transform: translate(0, 2px);  filter: saturate(2); }
+  94%  { transform: translate(0);       filter: none; }
+}
+
+@keyframes glitch-clip-1 {
+  0%, 89%, 100% { transform: translate(-3px, 0); opacity: 0; }
+  90%, 93% { opacity: 1; }
+  91% { transform: translate(-5px, -2px); clip-path: polygon(0 15%, 100% 15%, 100% 40%, 0 40%); }
+  92% { transform: translate(-1px, 1px); clip-path: polygon(0 0, 100% 0, 100% 25%, 0 25%); }
+}
+
+@keyframes glitch-clip-2 {
+  0%, 91%, 100% { transform: translate(3px, 0); opacity: 0; }
+  92%, 95% { opacity: 1; }
+  93% { transform: translate(5px, 2px); clip-path: polygon(0 60%, 100% 60%, 100% 80%, 0 80%); }
+  94% { transform: translate(2px, -1px); clip-path: polygon(0 70%, 100% 70%, 100% 100%, 0 100%); }
+}
+
+@keyframes flicker-logo {
+  0%, 96%, 100% { opacity: 1; }
+  97% { opacity: 0.4; }
+  98% { opacity: 1; }
+  99% { opacity: 0.2; }
+}
+
+@keyframes flicker-strip {
+  0%, 100% { opacity: 0.35; }
+  20% { opacity: 0.6; }
+  40% { opacity: 0.2; }
+  60% { opacity: 0.5; }
+  80% { opacity: 0.1; }
+}
+
+@keyframes frame-glow {
+  from { box-shadow: 0 0 0 1px rgba(200,185,80,0.2), 0 0 40px rgba(57,255,20,0.06), 0 0 80px rgba(139,0,0,0.12), 0 30px 80px rgba(0,0,0,0.8); }
+  to   { box-shadow: 0 0 0 1px rgba(200,185,80,0.3), 0 0 60px rgba(57,255,20,0.12), 0 0 100px rgba(139,0,0,0.2), 0 30px 80px rgba(0,0,0,0.8); }
+}
+
+@keyframes corner-flicker {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 0.3; }
+  75% { opacity: 0.9; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.1; }
+}
+
+@keyframes ticker-run {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* ══════════════ RESPONSIVE ══════════════ */
+@media (max-width: 768px) {
+  .about-grid   { grid-template-columns: 1fr; gap: 2rem; }
+  .debate-layout { grid-template-columns: 1fr; }
+  .levels-grid  { grid-template-columns: 1fr; }
+  nav { padding: 0.8rem 1.2rem; }
+  .nav-links { gap: 1rem; }
+  .nav-tag { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">GO DEAN!</a>
+  <ul class="nav-links">
+    <li><a href="#about">About</a></li>
+    <li><a href="#debate">The Debate</a></li>
+    <li><a href="#levels">Levels</a></li>
+    <li><a href="#join">Join</a></li>
+  </ul>
+  <span class="nav-tag">⬡ Ethical Vegan Project</span>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="wallpaper-bg" style="position:absolute;inset:0;"></div>
+  <div class="hero-corridor"></div>
+  <div class="lights-strip"></div>
+
+  <div class="hero-content">
+    <p class="hero-eyebrow">⚠ Level 01 — Active Transmission</p>
+
+    <h1 class="hero-title" data-text="GO DEAN!">GO DEAN!</h1>
+
+    <p class="hero-subtitle">Vegan Horror · Backrooms Edition</p>
+    <p class="hero-tagline">Where real-world debates become infinite liminal nightmares</p>
+
+    <div class="video-wrapper">
+      <div class="video-frame-outer">
+        <div class="video-frame-inner">
+          <iframe
+            src="https://www.youtube.com/embed/88Cmn1Xnyro?si=LW-apvUsZJQ6O1bY"
+            title="GO DEAN! — Vegan Horror Backrooms Game"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerpolicy="strict-origin-when-cross-origin"
+            allowfullscreen>
+          </iframe>
+        </div>
+        <span class="video-corner vc-tl"></span>
+        <span class="video-corner vc-tr"></span>
+        <span class="video-corner vc-bl"></span>
+        <span class="video-corner vc-br"></span>
+      </div>
+      <div class="video-hud">
+        <span><span class="hud-dot"></span>LIVE — Dean.exe is running</span>
+        <span>LEVEL_01 / BACKROOMS_SECTOR_07</span>
+        <span>ETHICAL_VEGAN_ENGINE v1.0</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker">
+    <span>Go Dean</span><span>Vegan Horror Game</span><span>Real World Debates Become Levels</span>
+    <span>Earthling vs Dean Withers</span><span>The Backrooms Have No Exit</span><span>Every Debate Unlocks A New Level</span>
+    <span>Go Vegan</span><span>The Animals Are Watching</span><span>You Cannot Escape the Truth</span>
+    <!-- duplicate for seamless loop -->
+    <span>Go Dean</span><span>Vegan Horror Game</span><span>Real World Debates Become Levels</span>
+    <span>Earthling vs Dean Withers</span><span>The Backrooms Have No Exit</span><span>Every Debate Unlocks A New Level</span>
+    <span>Go Vegan</span><span>The Animals Are Watching</span><span>You Cannot Escape the Truth</span>
+  </div>
+</div>
+
+<!-- ABOUT -->
+<section class="about wallpaper-bg" id="about">
+  <div class="container">
+    <p class="section-label">System Log // About</p>
+    <h2 class="section-title">The Game That<br>Reality Builds</h2>
+    <p class="section-body">
+      <span class="accent">GO DEAN!</span> is an ethical vegan horror project set inside the backrooms — those
+      infinite, liminal corridors where the wallpaper never ends and the fluorescent lights
+      <span class="blood">never stop flickering.</span> But this backrooms has a twist: it evolves in real time,
+      fed by actual debates happening in the world above.
+    </p>
+
+    <div class="about-grid">
+      <div class="about-card">
+        <h3>The Backrooms Conceit</h3>
+        <p>You're trapped in a maze of faded yellow walls and humming lights. The maze is Dean Withers' logic. Every corridor is an argument. Every dead end is a dodge. You — the Earthling — must find the exit.</p>
+      </div>
+      <div class="about-card">
+        <h3>Vegan Horror</h3>
+        <p>This isn't jump scares. It's the slow, creeping horror of cognitive dissonance — the discomfort that comes when someone is confronted with the reality of what they fund every single day.</p>
+      </div>
+      <div class="about-card">
+        <h3>Real-World Engine</h3>
+        <p>Every new debate between the Earthling and Dean Withers generates a new level. The game grows. The maze deepens. The walls close in. The discourse <em>is</em> the content.</p>
+      </div>
+      <div class="about-card">
+        <h3>Ethical Foundation</h3>
+        <p>Built on the principle that animals are not ours to use. The horror isn't fictional — it happens billions of times a day. GO DEAN! makes you feel that truth.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DEBATE MECHANIC -->
+<section class="debate wallpaper-bg" id="debate" style="background:#100e00;">
+  <div class="container">
+    <p class="section-label">Game Mechanic // The Engine</p>
+    <h2 class="section-title">Debate Becomes<br><span class="accent">Level.</span></h2>
+
+    <div class="debate-layout">
+      <div>
+        <div class="debate-vs">
+          <div class="player-card you">
+            <p class="tag">The Challenger</p>
+            <p class="name">Earthling</p>
+          </div>
+          <div class="vs-glyph">VS</div>
+          <div class="player-card dean">
+            <p class="tag">Trapped Inside</p>
+            <p class="name">Dean Withers</p>
+          </div>
+        </div>
+        <p class="section-body" style="font-size:0.9rem;">
+          Dean Withers has been entered into the game. He's in there now —
+          wandering the backrooms, surrounded by his own arguments.
+          Every time we debate in the real world, the game listens.
+          A new level spawns. New corridors. New logic traps. New horror.
+        </p>
+      </div>
+
+      <div>
+        <ol class="mechanic-flow">
+          <li>The Earthling challenges Dean Withers to a debate on veganism in the real world.</li>
+          <li>The debate happens — live, recorded, in comments, wherever truth meets resistance.</li>
+          <li>Key arguments, deflections and fallacies are extracted from the debate.</li>
+          <li>A new backrooms level is architected from Dean's logic — each room a claim, each corridor a dodge.</li>
+          <li>The level goes live. Players navigate Dean's maze. They find the exit: the truth.</li>
+          <li>More debates. More levels. The backrooms grows. Dean runs further. We follow.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MANIFESTO BAND -->
+<div class="manifesto">
+  <blockquote>
+    "The animals aren't asking you to love them.<br>They're asking you to stop."
+    <cite>— Ethical Vegan Project / GO DEAN!</cite>
+  </blockquote>
+</div>
+
+<!-- LEVELS -->
+<section class="levels" id="levels">
+  <div class="container">
+    <p class="section-label">Map // Known Levels</p>
+    <h2 class="section-title">The Maze So Far</h2>
+    <p class="section-body" style="margin-bottom:0;">Each level is a real debate. Each corridor is a real argument. The further you go, the deeper the logic goes.</p>
+
+    <div class="levels-grid">
+      <div class="level-card active">
+        <p class="level-num">Level 00</p>
+        <h3 class="level-name">The Awakening<br>Corridor</h3>
+        <p class="level-desc">The entry point. Yellow walls. Buzzing lights. Dean appears at the far end. The first argument echoes: "But I need protein."</p>
+        <span class="level-status">Playable Now</span>
+      </div>
+
+      <div class="level-card active">
+        <p class="level-num">Level 01</p>
+        <h3 class="level-name">The Naturalness<br>Labyrinth</h3>
+        <p class="level-desc">Winding halls lined with "It's natural to eat meat" — but the corridors loop. Nature offers no moral permission. Find the exit.</p>
+        <span class="level-status">Active — Video Above</span>
+      </div>
+
+      <div class="level-card coming">
+        <p class="level-num">Level 02</p>
+        <h3 class="level-name">The Circle<br>of Pleasure</h3>
+        <p class="level-desc">"But it tastes good." The walls repeat it. The floor repeats it. Every room is a taste bud. Where does pleasure end and harm begin?</p>
+        <span class="level-status">Incoming — Next Debate</span>
+      </div>
+
+      <div class="level-card locked">
+        <p class="level-num">Level 03</p>
+        <h3 class="level-name">The Apex<br>Predator Vault</h3>
+        <p class="level-desc">Deep in the backrooms. The argument that we're at the top of the food chain. But a maze has no top. Only walls.</p>
+        <span class="level-status">Locked — Debate Required</span>
+      </div>
+
+      <div class="level-card locked">
+        <p class="level-num">Level 04</p>
+        <h3 class="level-name">The Cultural<br>Exemption Wing</h3>
+        <p class="level-desc">Culture as shield. Tradition as armour. The corridors here are older, darker, harder to navigate. But the exit exists.</p>
+        <span class="level-status">Locked — Debate Required</span>
+      </div>
+
+      <div class="level-card locked">
+        <p class="level-num">Level ??</p>
+        <h3 class="level-name">The Final<br>Room</h3>
+        <p class="level-desc">We don't know what's in here yet. Every debate we have brings us closer. Some say Dean is already waiting inside.</p>
+        <span class="level-status">Unknown</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- JOIN -->
+<section class="join" id="join">
+  <div class="container">
+    <p class="section-label">Transmission // Join</p>
+    <h2 class="section-title">Enter the Backrooms</h2>
+    <p class="section-body">
+      This project is alive. It grows with every debate, every share, every person who watches and
+      thinks: <em>wait — they're right.</em> Follow along. Watch the debates. Play the levels.
+      <span class="accent">The animals need you in here with us.</span>
+    </p>
+    <div class="cta-row">
+      <a href="https://www.youtube.com/watch?v=88Cmn1Xnyro" target="_blank" class="btn btn-primary">▶ Watch Level 01</a>
+      <a href="#debate" class="btn btn-ghost">How It Works</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <span class="f-logo">GO DEAN!</span>
+  <span class="f-copy">An Ethical Vegan Project — The Backrooms Never End</span>
+  <span class="f-vegan">⬡ Go Vegan</span>
+</footer>
+
+</body>
+</html>
