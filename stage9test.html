@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>GO DEAN — Stage 9: The Backrooms</title>
+<title>Go Dean! — Stage 9: The Hypogeum</title>
+<link rel="preconnect" href="https://www.youtube.com">
+<link rel="preconnect" href="https://i.ytimg.com">
+<link rel="preconnect" href="https://googleads.g.doubleclick.net">
+<link rel="preconnect" href="https://www.google.com">
 <style>
 *{box-sizing:border-box}
 body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monospace;touch-action:none;-webkit-user-select:none;user-select:none}
@@ -12,11 +16,27 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 #css3d iframe{border:0;pointer-events:auto;background:#000}
 
 /* CONNECT OVERLAY */
-#connect{position:fixed;inset:0;background:#0c0b06;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;cursor:pointer;transition:opacity 1.6s}
+#connect{position:fixed;inset:0;background:#0c0b06;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;transition:opacity 1.6s}
 #connect.fade{opacity:0;pointer-events:none}
-#c-latin{color:#252318;font-size:clamp(8px,1.4vw,12px);letter-spacing:5px;margin-bottom:36px;text-align:center;line-height:2}
-#c-main{color:#c8b86a;font-size:clamp(18px,4.5vw,34px);letter-spacing:8px;animation:pulse 2.4s ease-in-out infinite;text-align:center}
-#c-sub{color:#2a2820;font-size:10px;letter-spacing:3px;margin-top:18px}
+
+/* PHASE 1 — LOADING */
+#c-phase1{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+#c-series{color:#252318;font-size:clamp(7px,1.1vw,10px);letter-spacing:6px;margin-bottom:18px}
+#c-title{color:#c8b86a;font-size:clamp(22px,5.5vw,42px);letter-spacing:10px;margin-bottom:6px}
+#c-stage{color:#3a3628;font-size:clamp(9px,1.4vw,12px);letter-spacing:5px;margin-bottom:40px}
+#c-loadbar{width:180px;height:2px;background:rgba(200,184,106,.12);border:1px solid rgba(200,184,106,.14);margin-bottom:14px;overflow:hidden}
+#c-loadfill{height:100%;width:0%;background:#c8b86a;transition:width .4s ease}
+#c-loadtxt{color:#252318;font-size:9px;letter-spacing:4px}
+
+/* PHASE 2 — DISCLAIMER + TAP */
+#c-phase2{display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 28px;max-width:600px}
+#c-phase2 .c-p2-series{color:#252318;font-size:clamp(7px,1.1vw,10px);letter-spacing:6px;margin-bottom:12px}
+#c-phase2 .c-p2-title{color:#c8b86a;font-size:clamp(18px,4vw,30px);letter-spacing:8px;margin-bottom:4px}
+#c-phase2 .c-p2-stage{color:#2e2b22;font-size:clamp(8px,1.2vw,11px);letter-spacing:4px;margin-bottom:28px}
+#c-disclaimer{color:#1e1d17;font-size:clamp(8px,1.15vw,10px);letter-spacing:1.5px;line-height:2;margin-bottom:28px;border-top:1px solid rgba(200,184,106,.08);border-bottom:1px solid rgba(200,184,106,.08);padding:18px 0;text-align:left}
+#c-disclaimer b{color:#2a2820;letter-spacing:2px}
+#c-main{color:#c8b86a;font-size:clamp(14px,3.2vw,24px);letter-spacing:8px;animation:pulse 2.4s ease-in-out infinite;cursor:pointer}
+#c-sub{color:#1e1d17;font-size:9px;letter-spacing:3px;margin-top:14px}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.25}}
 
 /* HUD */
@@ -48,11 +68,6 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 #fade{position:fixed;inset:0;background:#000;pointer-events:none;z-index:120;opacity:0;transition:opacity 1.2s ease}
 #fade.on{opacity:1}
 
-/* DOOR VIDEO OVERLAY */
-#doormask{position:fixed;inset:0;background:#000;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:60}
-#doorvideo{max-width:90vw;max-height:82vh;border:1px solid rgba(200,184,106,.2);display:block}
-#doorhint{color:#4a4030;font-size:10px;letter-spacing:4px;margin-top:14px;text-align:center}
-
 /* TOKEN FLASH */
 #tokenmask{position:fixed;inset:0;background:rgba(0,0,0,.96);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:65;pointer-events:none}
 #tokenlabel{color:#c8b86a;font-size:13px;letter-spacing:6px;margin-top:18px;text-align:center}
@@ -62,6 +77,12 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 #ibtn{position:fixed;bottom:132px;left:50%;transform:translateX(-50%);min-width:60px;height:36px;padding:0 16px;border-radius:18px;
  background:rgba(200,184,106,.16);border:1px solid rgba(200,184,106,.45);color:#c8b86a;font-size:11px;letter-spacing:2px;
  display:none;align-items:center;justify-content:center;z-index:20;pointer-events:auto}
+
+/* SKIP VIDEO BUTTON (testing) */
+#skipbtn{display:none;position:fixed;bottom:20px;right:20px;background:rgba(0,0,0,.75);border:1px solid rgba(200,184,106,.28);
+ color:#c8b86a;font-size:9px;letter-spacing:3px;padding:7px 14px;z-index:30;cursor:pointer;
+ font-family:'Courier New',monospace;pointer-events:auto}
+#skipbtn:hover{background:rgba(200,184,106,.12)}
 
 /* JOYSTICKS */
 .jz{position:fixed;bottom:22px;width:96px;height:96px;background:rgba(255,255,255,.02);border:1px solid rgba(200,184,106,.12);border-radius:50%;touch-action:none;z-index:20}
@@ -73,11 +94,34 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 <script src="https://unpkg.com/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>
 </head>
 <body>
+
+<!-- CONNECT / LOADING OVERLAY -->
 <div id="connect">
-  <div id="c-latin">Deanus Politicus Carnivorus Paradoxus<br>now indexed</div>
-  <div id="c-main">TAP TO CONNECT TO DEAN</div>
-  <div id="c-sub">earthlingofficial.com</div>
+  <div id="c-phase1">
+    <div id="c-series">A VEGAN BROS. SERIES</div>
+    <div id="c-title">GO DEAN!</div>
+    <div id="c-stage">STAGE 9 — THE HYPOGEUM</div>
+    <div id="c-loadbar"><div id="c-loadfill"></div></div>
+    <div id="c-loadtxt">INITIALISING</div>
+    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v2 — TUBE SLIDES / PILLARS / NEW STICKERS</div>
+  </div>
+  <div id="c-phase2">
+    <div class="c-p2-series">A VEGAN BROS. SERIES</div>
+    <div class="c-p2-title">GO DEAN!</div>
+    <div class="c-p2-stage">STAGE 9 — THE HYPOGEUM</div>
+    <div id="c-disclaimer">
+      <b>NOTICE &amp; DISCLAIMER</b><br><br>
+      Go Dean! / Vegan Bros. is a non-profit work of parody and satire produced in the public interest.<br><br>
+      All statements attributed to the named individual are direct quotes verified by the video evidence presented within this game. No claim is made beyond the documented record. The creator's voice and identity appear in the majority of recordings herein, establishing authorship and a documented right of reply to statements made on the public record.<br><br>
+      This work constitutes transformative commentary protected under fair use and fair dealing principles. It serves the purposes of public accountability, journalistic record-keeping, fact-checking, and historical documentation.<br><br>
+      Go Dean! / Vegan Bros. is produced in support of animal welfare, ethical veganism, and sustainable and inclusive food systems. It does not generate revenue.<br><br>
+      <b>IT EXISTS FOR THE ANIMALS.</b>
+    </div>
+    <div id="c-main">TAP TO CONNECT TO DEAN</div>
+    <div id="c-sub">earthlingofficial.com</div>
+  </div>
 </div>
+
 <div id="hud">
   <div class="ht">DEAN</div>
   <div style="display:flex;flex-direction:column;align-items:flex-end">
@@ -94,12 +138,10 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 <div id="strobe"></div>
 <div id="fade"></div>
 <div id="ibtn">WATCH</div>
+<button id="skipbtn">SKIP VIDEO</button>
 
-<!-- DOOR VIDEO OVERLAY -->
-<div id="doormask">
-  <video id="doorvideo" playsinline webkit-playsinline></video>
-  <div id="doorhint">[ E ] CLOSE</div>
-</div>
+<!-- Door video element (hidden — feeds a Three.js VideoTexture) -->
+<video id="doorvideo" playsinline webkit-playsinline style="display:none;position:fixed;left:-9999px"></video>
 
 <!-- TOKEN FLASH -->
 <div id="tokenmask">
@@ -115,7 +157,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 
 <script>
 // ════════════════════════════════════════════════════════════════
-// GO DEAN — STAGE 9: THE BACKROOMS  (Stage 9 full build)
+// GO DEAN! — STAGE 9: THE HYPOGEUM  (A Vegan Bros. Series)
 // ════════════════════════════════════════════════════════════════
 const $=id=>document.getElementById(id);
 const isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
@@ -137,14 +179,13 @@ const VIDS=[
 ];
 const GATE_TOTAL=VIDS.filter(v=>v.gate).length;
 
-// ── DOOR AI VIDEOS (MP4s — door appears after watching the matching TV) ──
-// Door 0 = vid 0, door 1 = vid 1, etc.
+// ── DOOR AI VIDEOS (MP4s — door appears after watching matching TV) ──
 const DOOR_VIDS=[
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
   null,null,null,null,
 ];
 
-// ── TOKENS (shape + timestamp shown at end of each door video) ──
+// ── TOKENS ──
 const TOKENS=[
   {shape:'circle',  time:'2:37'},
   {shape:'triangle',time:null},
@@ -153,7 +194,7 @@ const TOKENS=[
   {shape:'pill',    time:null},
 ];
 
-// ── DARK FACTS (30 — original 14 + 16 hardline additions) ──
+// ── DARK FACTS ──
 const FACTS=[
   '80 BILLION LAND ANIMALS ARE KILLED\nFOR FOOD EVERY YEAR.',
   'A DAIRY COW IS FORCIBLY INSEMINATED\nSO SHE LACTATES. AGAIN. AND AGAIN.',
@@ -196,7 +237,7 @@ const SCRAWLS=[
   'he called it a microaggression','bark like a dog','HE LAUGHED FOR THE PIGS',
 ];
 
-// ── WHISPERS (clinical voice + hardline additions) ──
+// ── WHISPERS ──
 const WHISPERS=[
   'the specimen does not recognise the room.',
   'observe: he condemns the cage, then pays the keeper.',
@@ -227,9 +268,9 @@ let fuzzCanvas,fuzzCtx,fuzzTex,fuzzFrame=0;
 
 const colliders=[];
 const lights=[];
-const roomLightRefs=[];    // {light, orig} — for blackout
+const roomLightRefs=[];
 const tvList=[];
-const doorList=[];         // {grp, vidIdx, wp, shown, used}
+const doorList=[];
 let started=false,ending=false;
 let sanity=100;
 const archived=new Set();
@@ -249,64 +290,489 @@ let factTimer=26,factIdx=0,whisperTimer=420;
 // CSS3D video
 let videoObj=null, videoIframe=null, activeTV=null;
 
-// ── BLACKOUT ──
-let blackoutState='off'; // 'off'|'flicker'|'dark'
-
-function startBlackout(){
-  if(blackoutState!=='off')return;
-  blackoutState='flicker';
-  let tick=0;
-  const fi=setInterval(()=>{
-    tick++;
-    const on=tick%2===0;
-    roomLightRefs.forEach(r=>r.light.intensity=on?r.orig:0);
-    if(tick>=10){
-      clearInterval(fi);
-      roomLightRefs.forEach(r=>r.light.intensity=0);
-      blackoutState='dark';
-      setTimeout(()=>{
-        let rt=0;
-        const ri=setInterval(()=>{
-          rt++;
-          const on2=rt%2===0;
-          roomLightRefs.forEach(r=>r.light.intensity=on2?r.orig:0);
-          if(rt>=8){clearInterval(ri);roomLightRefs.forEach(r=>r.light.intensity=r.orig);blackoutState='off';}
-        },220);
-      },10000);
-    }
-  },170);
-}
-
-// ── DOOR VIDEO PLAYER ──
-let doorVideoState='closed'; // 'closed'|'playing'
+// ── DOOR VIDEO PLANE (VideoTexture plane for corridor) ──
+let doorVideoState='closed';
 let activeDoor=null;
 const doorVideo=$('doorvideo');
+let doorVideoPlane=null;
 
-function openDoorVideo(door){
-  const url=DOOR_VIDS[door.vidIdx];
-  door.grp.visible=false;   // door disappears
-  door.used=true;
-  activeDoor=door;
-  if(!url){
-    flashFact('AI VIDEO NOT YET UPLOADED\nCOME BACK SOON.');
-    collectToken(door.vidIdx);
-    activeDoor=null;
-    return;
+function buildDoorVideoPlane(){
+  const tex=new THREE.VideoTexture(doorVideo);
+  tex.minFilter=THREE.LinearFilter;
+  tex.magFilter=THREE.LinearFilter;
+  const mat=new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide});
+  doorVideoPlane=new THREE.Mesh(new THREE.PlaneGeometry(1.45,3.3),mat);
+  doorVideoPlane.visible=false;
+  scene.add(doorVideoPlane);
+}
+
+// ════════════════════════════════════════════════════════════════
+// CORRIDOR SYSTEM
+// ════════════════════════════════════════════════════════════════
+let corridorActive=false;
+let corridorDoor=null;
+let corridorCloseWallAdded=false;
+const corridorEntryPos=new THREE.Vector3();
+let corridorEntryRot=0;
+// states: 'idle' | 'door_video' | 'entering' | 'locked' | 'at_end'
+let corridorState='idle';
+
+const BRUTAL_STICKERS=[
+  ['80 BILLION','KILLED PER YEAR'],
+  ['YOUR HAND.','THE KNIFE.','YOUR CHOICE.'],
+  ['FORCIBLY INSEMINATED','AGAIN AND AGAIN','UNTIL SHE BREAKS'],
+  ['HER CALF IS TAKEN','WITHIN 24 HOURS','SHE CALLS FOR DAYS'],
+  ['MALE CHICKS','GROUND ALIVE','DAY ONE'],
+  ['THE BOLT GUN MISSES OFTEN','MANY ENTER THE KNIFE','STILL AWAKE'],
+  ['PIGS ENTER THE','SCALDING TANK','STILL BREATHING'],
+  ['BEAK. TAIL. TESTICLE.','CUT WITHOUT ANAESTHETIC','STANDARD PRACTICE'],
+  ['YOU PAID A STRANGER','TO DO WHAT','YOU COULD NEVER WATCH'],
+  ['THE DRAIN NEVER','STOPS RUNNING RED'],
+  ['GESTATION CRATE','TOO SMALL TO TURN','HER WHOLE LIFE'],
+  ['115 DECIBELS','LOUDER THAN A CHAINSAW','NOBODY COMES'],
+  ['YOU SAY BACON','SO YOU NEVER HAVE TO','SAY PIG'],
+  ['DAIRY IS GRIEF','PACKAGED AND SOLD'],
+  ['IT FOUGHT THE WHOLE WAY DOWN','IT DID NOT WANT TO DIE','IT LOST.'],
+  ['THE KNIFE IS HELD','BY YOUR APPETITE'],
+  ['THEY SMELL THE BLOOD','OF THE ONE BEFORE'],
+  ['YOU WEPT FOR THE DOG','AND CHEWED ON ITS TWIN'],
+  ['"FREE RANGE"','ENDS AT THE SAME BLADE'],
+  ['EVERY GLASS OF MILK','IS A MOTHER','GRIEVING HER CHILD'],
+  ['VEAL: A CALF CHAINED','KEPT ANAEMIC','SO THE MEAT STAYS PALE'],
+  ['FISH FEEL PAIN.','BILLIONS SUFFOCATE','ON DECKS EVERY DAY.'],
+  // ── NEW HARDLINE STATEMENTS ──
+  ['ANIMALS ARE NOT','OURS TO USE.','PERIOD.'],
+  ['YOUR PLATE','IS A CRIME SCENE'],
+  ['VEGANISM IS NOT','A LIFESTYLE CHOICE','IT IS A MORAL OBLIGATION'],
+  ['EVERY MEAL IS A VOTE.','WHAT ARE YOU CHOOSING?'],
+  ['SPECIESISM:','DISCRIMINATION','BY ANY OTHER NAME'],
+  ['IF YOU WOULD NOT DO IT','TO YOUR DOG,','STOP DOING IT TO PIGS'],
+  ['THE FISHING NET','DOES NOT SPARE','THE DOLPHIN'],
+  ['WOOL HURTS.','DOWN HURTS.','LEATHER HURTS.'],
+  ['HUNTING IS NOT','CONSERVATION.','IT IS KILLING.'],
+  ['ZOOS: PRISONS','WITH BETTER','PUBLIC RELATIONS'],
+  ['THERE IS NO','HUMANE SLAUGHTER.','ONLY SLAUGHTER.'],
+  ['WHAT YOU EAT','IS WHAT YOU ARE','WILLING TO PAY FOR'],
+  ['IT SCREAMS.','YOU CANNOT HEAR IT','FROM THE SUPERMARKET'],
+  ['THE CLIMATE CRISIS','HAS A DIET.','GO VEGAN.'],
+  ['ANTIBIOTIC RESISTANCE:','YOUR MEAT HABIT','IS THE CAUSE'],
+  ['THEY CALLED IT DOMINION.','WE CALL IT DOMINATION.'],
+  ['SENTIENT.','SUFFERING.','SILENCED.'],
+  ['YOU DO NOT NEED MEAT TO SURVIVE.','THEY NEEDED TO LIVE.'],
+  ['THE OCEAN IS EMPTYING.','TRAWLERS SCRAPE THE FLOOR.','YOUR FISH DISH DID THIS.'],
+  ['SHE WILL NEVER KNOW','WHAT PEACE FEELS LIKE.','YOU COULD CHANGE THAT.'],
+];
+
+// Forward & perpendicular directions for a door rotation
+function corridorDir(ry){
+  return{fdx:-Math.sin(ry),fdz:-Math.cos(ry),pdx:Math.cos(ry),pdz:-Math.sin(ry)};
+}
+
+// Pre-build corridor geometry HIDDEN when the door first appears — zero lag on entry
+function prebuildCorridorForDoor(door){
+  if(door.corridorBuilt)return;
+  door.corridorBuilt=true;
+  const ry=door.grp.rotation.y;
+  const{fdx,fdz,pdx,pdz}=corridorDir(ry);
+  const ox=door.grp.position.x, oz=door.grp.position.z;
+
+  // Dimensions — bigger room to properly host the slide
+  const H=WH, TW=T_WALL;
+  const HW=1.6;   // corridor half-width
+  const CL=26;    // corridor length
+  const RW=6.5;   // exit room half-width (big enough for tube slide)
+  const RL=18;    // exit room length
+  const TL=CL+RL;
+
+  door.cRy=ry; door.cOx=ox; door.cOz=oz;
+  door.cFdx=fdx; door.cFdz=fdz;
+  door.cEndPos=new THREE.Vector3(ox+fdx*(TL-3),1.65,oz+fdz*(TL-3));
+
+  // Per-door style variety
+  const vi=door.vidIdx;
+  const WALL_TINTS =[0xc2b280,0xb4aec4,0xc4b870,0xa8bfb4,0xbcb478];
+  const COR_LIGHTS =[0xd0b870,0xc0b0e8,0xd8c860,0xa8e4d0,0xe8d888];
+  const ROOM_LIGHTS=[0x22cc55,0x5522ee,0xee4422,0x22aaee,0xddaa22];
+  const wTint =WALL_TINTS [vi%5];
+  const cLCol =COR_LIGHTS [vi%5];
+  const rLCol =ROOM_LIGHTS[vi%5];
+
+  const wMat=new THREE.MeshStandardMaterial({
+    color:wTint,roughness:0.42,metalness:0.12,
+    emissive:0x080600,emissiveIntensity:0.18
+  });
+
+  function addH(m){m.visible=false;scene.add(m);door.corridorHiddenMeshes.push(m);return m;}
+  function addCol(cx,cz,wd,dp){
+    const s=Math.abs(Math.sin(ry)),c2=Math.abs(Math.cos(ry));
+    const bx=(wd*c2+dp*s)/2,bz=(wd*s+dp*c2)/2;
+    door.corridorHiddenColliders.push({x0:cx-bx,x1:cx+bx,z0:cz-bz,z1:cz+bz});
   }
-  doorVideoState='playing';
-  doorVideo.src=url;
-  doorVideo.play().catch(()=>{});
-  $('doormask').style.display='flex';
-  doorVideo.onended=()=>{ closeDoorVideo(); };
+  function mkBox(along,perp,wd,ht,dp){
+    const cx=ox+fdx*along+pdx*perp,cz=oz+fdz*along+pdz*perp;
+    const m=new THREE.Mesh(new THREE.BoxGeometry(wd,ht,dp),wMat.clone());
+    m.position.set(cx,ht/2,cz);m.rotation.y=ry;addH(m);addCol(cx,cz,wd,dp);
+  }
+  function mkFlat(along,perp,y,mat,wd,dp){
+    const cx=ox+fdx*along+pdx*perp,cz=oz+fdz*along+pdz*perp;
+    const m=new THREE.Mesh(new THREE.BoxGeometry(wd,0.06,dp),mat);
+    m.position.set(cx,y,cz);m.rotation.y=ry;addH(m);
+  }
+
+  // ── CORRIDOR MAIN WALLS ──
+  mkBox(CL/2,  HW, TW, H, CL);
+  mkBox(CL/2, -HW, TW, H, CL);
+
+  // ── PILLAR COLUMNS — alternating sides every 6 units (visual variety) ──
+  const colMat=new THREE.MeshStandardMaterial({
+    color:new THREE.Color(wTint).multiplyScalar(0.72).getHex(),
+    roughness:0.5,metalness:0.22,emissive:0x040300,emissiveIntensity:0.28
+  });
+  for(let ai=6;ai<CL-2;ai+=6){
+    const side=(Math.floor(ai/6)%2===0)?1:-1;
+    const px=ox+fdx*ai+pdx*(HW-0.16)*side;
+    const pz=oz+fdz*ai+pdz*(HW-0.16)*side;
+    const pillar=new THREE.Mesh(new THREE.BoxGeometry(0.26,H,0.4),colMat.clone());
+    pillar.position.set(px,H/2,pz);pillar.rotation.y=ry;addH(pillar);
+    const cap=new THREE.Mesh(new THREE.BoxGeometry(0.36,0.16,0.52),colMat.clone());
+    cap.position.set(px,H-0.08,pz);cap.rotation.y=ry;addH(cap);
+  }
+
+  // ── CEILING RIBS every 5 units ──
+  const ribMat=new THREE.MeshStandardMaterial({
+    color:new THREE.Color(wTint).multiplyScalar(0.88).getHex(),roughness:0.44,metalness:0.18
+  });
+  for(let ri=5;ri<CL;ri+=5){
+    const rib=new THREE.Mesh(new THREE.BoxGeometry(HW*2+TW,0.1,0.2),ribMat.clone());
+    rib.position.set(ox+fdx*ri,H-0.05,oz+fdz*ri);rib.rotation.y=ry;addH(rib);
+  }
+
+  // ── JUNCTION (corridor → exit room) ──
+  mkBox(CL,  (HW+RW)/2, RW-HW, H, TW);
+  mkBox(CL, -(HW+RW)/2, RW-HW, H, TW);
+
+  // ── EXIT ROOM WALLS ──
+  mkBox(CL+RL/2,  RW, TW, H, RL);
+  mkBox(CL+RL/2, -RW, TW, H, RL);
+  mkBox(TL+TW/2,  0,  RW*2+TW*2, H, TW);
+
+  // ── FLOOR / CEILING ──
+  mkFlat(CL/2,    0, 0.03,   matFloor, HW*2, CL);
+  mkFlat(CL/2,    0, H-0.03, matCeil,  HW*2, CL);
+  mkFlat(CL+RL/2, 0, 0.03,   matFloor, RW*2, RL);
+  mkFlat(CL+RL/2, 0, H-0.03, matCeil,  RW*2, RL);
+
+  // ── SEALING WALL (pre-built 2.5 units in — player spawns at 5, past it) ──
+  mkBox(2.5, 0, HW*2+TW*2, H, TW);
+
+  // ── PERFORMANCE-SAFE LIGHTING (single PointLight, no shadows) ──
+  const cL=new THREE.PointLight(cLCol,1.7,CL+10);
+  cL.position.set(ox+fdx*(CL*0.5),3.0,oz+fdz*(CL*0.5));
+  addH(cL);
+
+  // ── EMISSIVE CEILING STRIP (corridor) ──
+  const strip=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.05,CL*0.88),
+    new THREE.MeshBasicMaterial({color:0xffe8b0}));
+  strip.position.set(ox+fdx*(CL/2),H-0.02,oz+fdz*(CL/2));
+  strip.rotation.y=ry;addH(strip);
+
+  // ── EXIT ROOM LIGHT ──
+  const rL=new THREE.PointLight(rLCol,1.3,RW*3+6);
+  rL.position.set(ox+fdx*(CL+RL*0.5),3.0,oz+fdz*(CL+RL*0.5));
+  addH(rL);
+
+  // ── EXIT ROOM CEILING PANEL (emissive, tinted with accent color) ──
+  const rStrip=new THREE.Mesh(new THREE.BoxGeometry(RW*1.3,0.06,RL*0.72),
+    new THREE.MeshBasicMaterial({color:new THREE.Color(rLCol).lerp(new THREE.Color(0xffeebb),0.55)}));
+  rStrip.position.set(ox+fdx*(CL+RL*0.5),H-0.02,oz+fdz*(CL+RL*0.5));
+  rStrip.rotation.y=ry;addH(rStrip);
+
+  // ── TUBE SLIDE — same style as main area, varied shape per door ──
+  // Slide runs from back of room (high) to near junction (low), varied curvature per door
+  const curveOffsets=[[0,0],[0.4,-0.3],[-0.3,0.4],[0.3,0.3],[-0.4,-0.2]];
+  const co=curveOffsets[vi%5];
+  const sTop=CL+RL*0.88, sMid=CL+RL*0.55, sLow=CL+RL*0.28, sTip=CL+RL*0.06;
+  const slidePoints=[
+    new THREE.Vector3(ox+fdx*sTop  +pdx*co[0]*1.5, H*0.78, oz+fdz*sTop  +pdz*co[0]*1.5),
+    new THREE.Vector3(ox+fdx*sMid  +pdx*co[1]*1.2, H*0.52, oz+fdz*sMid  +pdz*co[1]*1.2),
+    new THREE.Vector3(ox+fdx*sLow  +pdx*co[0]*0.6, H*0.26, oz+fdz*sLow  +pdz*co[0]*0.6),
+    new THREE.Vector3(ox+fdx*sTip  +pdx*co[1]*0.4, H*0.06, oz+fdz*sTip  +pdz*co[1]*0.4),
+    new THREE.Vector3(ox+fdx*(CL+RL*(-0.02))+pdx*0, -0.55, oz+fdz*(CL+RL*(-0.02))+pdz*0),
+  ];
+  const slideCurve=new THREE.CatmullRomCurve3(slidePoints);
+  const slideGeo=new THREE.TubeGeometry(slideCurve,90,1.25,16,false);
+  const slideAccent=new THREE.Color(rLCol).lerp(new THREE.Color(0x22cc55),0.55);
+  const slideTubeMat=new THREE.MeshStandardMaterial({
+    color:0x1aaa44,roughness:0.16,metalness:0.14,
+    emissive:slideAccent,emissiveIntensity:0.6,side:THREE.DoubleSide
+  });
+  const slideTube=new THREE.Mesh(slideGeo,slideTubeMat);
+  addH(slideTube);
+
+  // ── PLACEHOLDER / TOKEN SCREEN on back wall ──
+  const hasVideo=DOOR_VIDS[vi]!==null;
+  {
+    const phW=3.2,phH=2.1;
+    const phCv=document.createElement('canvas');phCv.width=512;phCv.height=336;
+    const phX=phCv.getContext('2d');
+    phX.fillStyle='#040302';phX.fillRect(0,0,512,336);
+    const borderCol=hasVideo?'#22cc44':'#664400';
+    phX.strokeStyle=borderCol;phX.lineWidth=4;phX.strokeRect(6,6,500,324);
+    // Scan-line texture
+    for(let sl=0;sl<336;sl+=4){
+      phX.fillStyle='rgba(255,200,80,0.045)';phX.fillRect(0,sl,512,2);
+    }
+    if(hasVideo){
+      phX.fillStyle='#22cc44';phX.font='bold 30px "Courier New",monospace';phX.textAlign='center';
+      phX.fillText('TOKEN '+(vi+1)+' — SLOT ACTIVE',256,96);
+      phX.fillStyle='#114422';phX.font='16px "Courier New",monospace';
+      phX.fillText('EVIDENCE LOCKED IN',256,148);phX.fillText('COLLECT & RETURN',256,176);
+    } else {
+      phX.fillStyle='#996622';phX.font='bold 26px "Courier New",monospace';phX.textAlign='center';
+      phX.fillText('SIGNAL LOST',256,88);
+      phX.fillStyle='#664400';phX.font='14px "Courier New",monospace';
+      phX.fillText('SLOT '+(vi+1)+' — UPLOAD PENDING',256,132);
+      phX.fillText('CONTENT NOT YET AVAILABLE',256,158);
+      phX.fillText('CHECK EARTHLINGOFFICIAL.COM',256,186);
+      // Glitch lines
+      phX.strokeStyle='rgba(200,100,0,0.22)';phX.lineWidth=1;
+      for(let g=0;g<6;g++){
+        phX.beginPath();phX.moveTo(0,50+Math.random()*240);
+        phX.lineTo(512,50+Math.random()*240);phX.stroke();
+      }
+    }
+    const phMesh=new THREE.Mesh(new THREE.PlaneGeometry(phW,phH),
+      new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(phCv),side:THREE.DoubleSide}));
+    phMesh.position.set(ox+fdx*(TL-0.55),2.3,oz+fdz*(TL-0.55));
+    phMesh.rotation.y=ry+Math.PI;addH(phMesh);
+    // Screen glow
+    const phGL=new THREE.PointLight(hasVideo?0x22cc44:0xcc6600,0.9,7);
+    phGL.position.set(ox+fdx*(TL-1.1),2.3,oz+fdz*(TL-1.1));addH(phGL);
+  }
+
+  // ── STICKERS — varied offset per door, more per bigger corridor ──
+  const SCOLOR_SETS=[
+    ['#cc2211','#c8a040','#aa3311','#887755','#cc3322'],
+    ['#8822cc','#6633aa','#4422aa','#993388','#772299'],
+    ['#cc4422','#aa3311','#882200','#cc6633','#aa4422'],
+    ['#2288cc','#1166aa','#004488','#2299bb','#1177aa'],
+    ['#cc9922','#aa7711','#886600','#ccaa33','#aa8822'],
+  ];
+  const sCols=SCOLOR_SETS[vi%5];
+  let si=vi*7+3;   // door-specific sticker offset
+  const numStickers=Math.floor(CL/2.5)-1;
+  const heightBases=[1.25,1.05,1.4,0.95,1.3];
+  const hBase=heightBases[vi%5];
+  for(let i=0;i<numStickers;i++){
+    const along=3.8+i*2.5;
+    const side=i%2===0?1:-1;
+    const lines=BRUTAL_STICKERS[si%BRUTAL_STICKERS.length]; si++;
+    const sw=1.3,sh=Math.max(0.3,lines.length*0.26);
+    const col=sCols[i%sCols.length];
+    const sm=txt(lines,sw,sh,col,null,8);
+    // Slightly varied heights make walls feel lived-in
+    const hVar=(Math.sin(i*1.7+vi)*0.5+0.5)*0.8;
+    sm.position.set(
+      ox+fdx*along+pdx*(HW-0.06)*side,
+      hBase+hVar,
+      oz+fdz*along+pdz*(HW-0.06)*side
+    );
+    sm.rotation.y=ry+(side>0?Math.PI/2:-Math.PI/2);
+    addH(sm);
+  }
+
+  // ── FLOOR TEXT — unique per door ──
+  const FLOOR_LINES=[
+    ['"it did not want to die"','"the drain never stops"'],
+    ['"forcibly inseminated"','"calf taken within 24 hours"'],
+    ['"ground alive on day one"','"nobody ever comes"'],
+    ['"the bolt gun misses often"','"awake when the knife arrives"'],
+    ['"they smell the blood before"','"it did not want to die"'],
+  ];
+  const fl=FLOOR_LINES[vi%5];
+  const ftA=txt([fl[0]],2.2,0.3,'#1a1000',null,9);
+  ftA.position.set(ox+fdx*(CL*0.35),0.03,oz+fdz*(CL*0.35));
+  ftA.rotation.x=-Math.PI/2;ftA.rotation.z=-ry;addH(ftA);
+  const ftB=txt([fl[1]],2.0,0.28,'#330800',null,8);
+  ftB.position.set(ox+fdx*(CL*0.7),0.03,oz+fdz*(CL*0.7));
+  ftB.rotation.x=-Math.PI/2;ftB.rotation.z=-ry;addH(ftB);
+  const ftC=txt(['"collect the token. return."'],2.4,0.28,'#0a3a10',null,9);
+  ftC.position.set(ox+fdx*(CL+RL*0.4),0.03,oz+fdz*(CL+RL*0.4));
+  ftC.rotation.x=-Math.PI/2;ftC.rotation.z=-ry;addH(ftC);
+
+  // ── END SIGN ──
+  const endSign=txt(['[ E ]  COLLECT TOKEN  &  RETURN'],2.6,0.52,'#44ee88',null,13);
+  endSign.position.set(ox+fdx*(TL-1.0),2.6,oz+fdz*(TL-1.0));
+  endSign.rotation.y=ry+Math.PI;addH(endSign);
 }
 
-function closeDoorVideo(){
-  doorVideoState='closed';
-  doorVideo.pause();
-  doorVideo.src='';
-  $('doormask').style.display='none';
-  if(activeDoor){collectToken(activeDoor.vidIdx);activeDoor=null;}
+// Called when player presses E at a shown door
+function enterCorridor(door){
+  if(corridorActive||door.used)return;
+  door.used=true;
+  door.grp.visible=false;
+
+  corridorActive=true;
+  corridorDoor=door;
+  corridorCloseWallAdded=false;
+  corridorEntryPos.copy(camera.position);
+  corridorEntryRot=camera.rotation.y;
+
+  // Ensure corridor is pre-built
+  if(!door.corridorBuilt)prebuildCorridorForDoor(door);
+
+  const url=DOOR_VIDS[door.vidIdx];
+  if(url){
+    // Play video AT the door opening — player stays in room watching
+    corridorState='door_video';
+    doorVideoState='playing';
+    doorVideo.src=url;
+    doorVideo.play().catch(()=>{});
+    doorVideoPlane.position.set(door.grp.position.x,1.65,door.grp.position.z);
+    doorVideoPlane.rotation.y=door.grp.rotation.y;
+    doorVideoPlane.visible=true;
+    doorVideo.onended=()=>_revealCorridor();
+    setObjective('Watch the archive.  [ E ] to skip.');
+    duckTarget=0.12;
+  } else {
+    // No video — show SIGNAL LOST placeholder panel in door frame
+    corridorState='door_video';
+    const phW=2.2,phH=1.5;
+    const phCv=document.createElement('canvas');phCv.width=512;phCv.height=336;
+    const phX=phCv.getContext('2d');
+    phX.fillStyle='#040302';phX.fillRect(0,0,512,336);
+    phX.strokeStyle='#664400';phX.lineWidth=4;phX.strokeRect(6,6,500,324);
+    for(let sl=0;sl<336;sl+=4){phX.fillStyle='rgba(200,120,0,0.05)';phX.fillRect(0,sl,512,2);}
+    phX.fillStyle='#cc7700';phX.font='bold 38px "Courier New",monospace';phX.textAlign='center';
+    phX.fillText('SIGNAL LOST',256,100);
+    phX.fillStyle='#774400';phX.font='16px "Courier New",monospace';
+    phX.fillText('SLOT '+(door.vidIdx+1)+' — CONTENT PENDING',256,148);
+    phX.fillText('CHECK EARTHLINGOFFICIAL.COM',256,178);
+    phX.fillText('FOR RELEASE DATE',256,202);
+    phX.strokeStyle='rgba(180,90,0,0.25)';phX.lineWidth=1;
+    for(let g=0;g<8;g++){
+      phX.beginPath();phX.moveTo(0,30+Math.random()*280);
+      phX.lineTo(512,30+Math.random()*280);phX.stroke();
+    }
+    const phTex=new THREE.CanvasTexture(phCv);
+    const phMesh=new THREE.Mesh(new THREE.PlaneGeometry(phW,phH),
+      new THREE.MeshBasicMaterial({map:phTex,side:THREE.DoubleSide}));
+    phMesh.position.set(door.grp.position.x,1.65,door.grp.position.z);
+    phMesh.rotation.y=door.grp.rotation.y;
+    scene.add(phMesh);
+    door.corridorHiddenMeshes.push(phMesh);
+    setTimeout(()=>{
+      scene.remove(phMesh);
+      _revealCorridor();
+    },2500);
+    setObjective('Archive not yet available.  Corridor is open.');
+  }
+  sfxOpen();
 }
+
+// Video ends (or skipped) → reveal corridor, teleport player in
+function _revealCorridor(){
+  if(corridorState!=='door_video')return;
+  doorVideoState='closed';
+  doorVideo.pause(); doorVideo.src='';
+  doorVideoPlane.visible=false;
+  duckTarget=1;
+
+  const door=corridorDoor; if(!door)return;
+
+  // Flip all hidden meshes visible — instant appearance, no lag
+  door.corridorHiddenMeshes.forEach(m=>{ m.visible=true; });
+  // Activate colliders
+  door.corridorHiddenColliders.forEach(col=>colliders.push(col));
+
+  corridorState='locked'; // already sealed — sealing wall was pre-built behind spawn
+
+  // Teleport 5 units in — player spawns PAST the pre-built sealing wall at 2.5 units
+  camera.position.set(
+    door.cOx+door.cFdx*5,
+    2,
+    door.cOz+door.cFdz*5
+  );
+  camera.rotation.y=door.cRy;
+  camera.rotation.x=0;
+
+  whisper('the wall seals behind you.\nno way back.');
+  setObjective('Walk to the end of the corridor.');
+  sfxOpen();
+  setTimeout(()=>sfxUI(),600);
+}
+
+// Triggered from animate() once player is 4.5+ units inside
+function addClosingWall(){
+  if(corridorCloseWallAdded||!corridorDoor)return;
+  corridorCloseWallAdded=true;
+
+  const door=corridorDoor;
+  const{fdx,fdz,pdx,pdz}=corridorDir(door.cRy);
+  const ox=door.cOx, oz=door.cOz;
+  const HW=1.5, H=WH, TW=T_WALL;
+  const cx=ox+fdx*4.8, cz=oz+fdz*4.8;
+
+  const wMat=new THREE.MeshStandardMaterial({
+    color:WALL_COLOR,roughness:0.35,metalness:0.12,
+    emissive:0x110800,emissiveIntensity:0.6
+  });
+  const m=new THREE.Mesh(new THREE.BoxGeometry(HW*2+TW*2,H,TW),wMat);
+  m.position.set(cx,H/2,cz); m.rotation.y=door.cRy; m.receiveShadow=true;
+  m.visible=true; scene.add(m);
+  door.corridorHiddenMeshes.push(m);
+
+  const s=Math.abs(Math.sin(door.cRy)),c=Math.abs(Math.cos(door.cRy));
+  const bw=HW*2+TW*2, bd=TW;
+  const bx=(bw*c+bd*s)/2, bz=(bw*s+bd*c)/2;
+  const col={x0:cx-bx,x1:cx+bx,z0:cz-bz,z1:cz+bz};
+  colliders.push(col);
+  door.corridorHiddenColliders.push(col);
+
+  corridorState='locked';
+  whisper('sealed.\nno exit.');
+  sfxUI();
+  setObjective('Reach the end. Collect the token.');
+}
+
+// Player reaches far end and presses E
+function exitCorridor(){
+  const door=corridorDoor; if(!door)return;
+  collectToken(door.vidIdx);
+
+  const fadeEl=$('fade');
+  fadeEl.classList.add('on');
+  setTimeout(()=>{
+    door.corridorHiddenMeshes.forEach(m=>{
+      scene.remove(m);
+      if(m.geometry)m.geometry.dispose();
+      if(m.material&&m.material.dispose)m.material.dispose();
+    });
+    door.corridorHiddenColliders.forEach(col=>{
+      const idx=colliders.indexOf(col);
+      if(idx!==-1)colliders.splice(idx,1);
+    });
+    door.corridorHiddenMeshes=[];
+    door.corridorHiddenColliders=[];
+    corridorActive=false;
+    corridorDoor=null;
+    corridorState='idle';
+    corridorCloseWallAdded=false;
+    doorVideoState='closed';
+
+    camera.position.copy(corridorEntryPos);
+    camera.rotation.y=corridorEntryRot+Math.PI;
+    camera.rotation.x=0;
+
+    setObjective(archived.size>=GATE_TOTAL?
+      'Every record archived. The slide is open — step in.':
+      (isMobile?'Find every screen. Tap WATCH. Archive all five.':'Find every screen. Press [E] to watch. Archive all five.'));
+    setTimeout(()=>fadeEl.classList.remove('on'),300);
+  },1200);
+}
+// ════════════════════════════════════════════════════════════════
+// END CORRIDOR SYSTEM
+// ════════════════════════════════════════════════════════════════
 
 // ── TOKEN SYSTEM ──
 const collectedTokens=new Set();
@@ -435,9 +901,34 @@ function init(){
   buildWorld();
   buildShadowFig();
   buildBlackFig();
+  buildDoorVideoPlane();
+  buildMusic();
   setupControls();
   setupTouch();
   setupPost();
+  setupSkipBtn();
+
+  // Pre-compile shaders
+  doorList.forEach(d=>{ d.grp.visible=true; });
+  renderer.compile(scene,camera);
+  doorList.forEach(d=>{ d.grp.visible=false; });
+
+  renderer.setRenderTarget(renderTarget);
+  renderer.render(scene,camera);
+  renderer.setRenderTarget(null);
+  renderer.render(postScene,postCamera);
+
+  const loadFill=$('c-loadfill');
+  const loadTxt=$('c-loadtxt');
+  const phase1=$('c-phase1');
+  const phase2=$('c-phase2');
+  loadFill.style.width='100%';
+  loadTxt.textContent='READY';
+  setTimeout(()=>{
+    phase1.style.display='none';
+    phase2.style.display='flex';
+  },1300);
+
   $('connect').addEventListener('click',startGame);
   $('connect').addEventListener('touchstart',startGame,{passive:true});
   $('ibtn').addEventListener('click',interact);
@@ -445,6 +936,12 @@ function init(){
   addEventListener('resize',onResize);
   setObjective(isMobile?'Tap WATCH at each screen. Archive all five.':'Press [E] at each screen. Archive all five.');
   animate();
+}
+
+function setupSkipBtn(){
+  $('skipbtn').addEventListener('click',()=>{
+    if(corridorState==='door_video') _revealCorridor();
+  });
 }
 
 function onResize(){
@@ -563,10 +1060,12 @@ function T(lines,w,h,col,bg,fs,px,py,pz,ry){
   mesh.position.set(px,py,pz);
   if(ry!==undefined)mesh.rotation.y=ry;
   scene.add(mesh);
-  const gl=new THREE.PointLight(glCol,0.45,7);
-  const off=ry!==undefined?0.5:0.4;
-  gl.position.set(px+(ry!==undefined?Math.sin(ry+Math.PI)*off:0),py,pz+(ry!==undefined?Math.cos(ry+Math.PI)*off:off));
-  scene.add(gl);
+  if(!isMobile){
+    const gl=new THREE.PointLight(glCol,0.45,7);
+    const off=ry!==undefined?0.5:0.4;
+    gl.position.set(px+(ry!==undefined?Math.sin(ry+Math.PI)*off:0),py,pz+(ry!==undefined?Math.cos(ry+Math.PI)*off:off));
+    scene.add(gl);
+  }
   return mesh;
 }
 
@@ -574,13 +1073,13 @@ function floorSign(lines,px,pz,sz){
   sz=sz||1.8;
   const r=shapePanelMesh(lines,sz,sz);
   r.mesh.position.set(px,0.02,pz);r.mesh.rotation.x=-Math.PI/2;scene.add(r.mesh);
-  const gl=new THREE.PointLight(r.gl,0.35,5);gl.position.set(px,0.6,pz);scene.add(gl);
+  if(!isMobile){const gl=new THREE.PointLight(r.gl,0.35,5);gl.position.set(px,0.6,pz);scene.add(gl);}
 }
 function ceilSign(lines,px,pz,sz){
   sz=sz||1.8;
   const r=shapePanelMesh(lines,sz,sz);
   r.mesh.position.set(px,WH-0.02,pz);r.mesh.rotation.x=Math.PI/2;scene.add(r.mesh);
-  const gl=new THREE.PointLight(r.gl,0.3,5);gl.position.set(px,WH-0.7,pz);scene.add(gl);
+  if(!isMobile){const gl=new THREE.PointLight(r.gl,0.3,5);gl.position.set(px,WH-0.7,pz);scene.add(gl);}
 }
 
 function walls(ox,oz,W,D,o){
@@ -613,25 +1112,24 @@ function roomLights(ox,oz,W,D){
 // ════ WHITE DOOR SPAWNER ════
 function spawnDoor(vidIdx,x,z,ry){
   const grp=new THREE.Group();
-  const wMat=new THREE.MeshStandardMaterial({color:0xf2ede4,roughness:0.22,metalness:0.04,emissive:0x161208,emissiveIntensity:0.2});
+  const wMat=new THREE.MeshStandardMaterial({color:0xf2ede4,roughness:0.22,metalness:0.04,emissive:0x3a3320,emissiveIntensity:0.6});
   const dp=new THREE.Mesh(new THREE.BoxGeometry(1.45,3.3,0.09),wMat);
   dp.position.set(0,1.65,0);dp.castShadow=true;grp.add(dp);
-  const fMat=new THREE.MeshStandardMaterial({color:0xe2ddd4,roughness:0.3,metalness:0.03});
+  const fMat=new THREE.MeshStandardMaterial({color:0xe2ddd4,roughness:0.3,metalness:0.03,emissive:0x1a160c,emissiveIntensity:0.4});
   const fTop=new THREE.Mesh(new THREE.BoxGeometry(1.75,0.12,0.13),fMat);fTop.position.set(0,3.36,0);grp.add(fTop);
   const fL=new THREE.Mesh(new THREE.BoxGeometry(0.13,3.4,0.13),fMat);fL.position.set(-0.82,1.65,0);grp.add(fL);
   const fR=new THREE.Mesh(new THREE.BoxGeometry(0.13,3.4,0.13),fMat);fR.position.set(0.82,1.65,0);grp.add(fR);
-  const hMat=new THREE.MeshStandardMaterial({color:0xc8a830,roughness:0.12,metalness:0.9});
+  const hMat=new THREE.MeshStandardMaterial({color:0xc8a830,roughness:0.12,metalness:0.9,emissive:0x2a2008,emissiveIntensity:0.5});
   const handle=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.24,0.13),hMat);
   handle.position.set(0.56,1.46,0.11);grp.add(handle);
   const hBase=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.06),hMat);
   hBase.position.set(0.56,1.46,0.07);grp.add(hBase);
-  const gl=new THREE.PointLight(0xf5f0e0,0.55,8);
-  gl.position.set(0,2.2,0.7);grp.add(gl);
   grp.position.set(x,0,z);
   if(ry!==undefined)grp.rotation.y=ry;
   grp.visible=false;
   scene.add(grp);
-  const d={grp,vidIdx,wp:new THREE.Vector3(x,1.6,z),shown:false,used:false};
+  const d={grp,vidIdx,wp:new THREE.Vector3(x,1.6,z),shown:false,used:false,
+    corridorBuilt:false,corridorHiddenMeshes:[],corridorHiddenColliders:[]};
   doorList.push(d);
   return d;
 }
@@ -668,6 +1166,7 @@ function addTV(x,z,vidIdx,angle,opts){
     wp:new THREE.Vector3(x,2,z),nx,nz,angle:angle||0,label:lbl,seen:false,archived:false};
   tvList.push(tv);return tv;
 }
+
 function playTV(tv){
   const v=VIDS[tv.vidIdx];
   if(!v.url){flashFact('SIGNAL LOST\n'+v.lbl);sfxStatic();return;}
@@ -677,19 +1176,19 @@ function playTV(tv){
     videoObj.position.set(tv.wp.x+tv.nx*0.09,tv.wp.y,tv.wp.z+tv.nz*0.09);
     videoObj.rotation.set(0,tv.angle,0);
     videoObj.visible=true;
-    videoIframe.src=v.url+'?autoplay=1&mute=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1';
+    videoIframe.src=v.url+'?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1';
   } else { flashFact(v.lbl+'\n(screen offline)'); }
   if(v.gate&&!tv.archived){
     tv.archived=true;archived.add(tv.vidIdx);
     updateArch();
     whisper(WHISPERS[Math.floor(Math.random()*WHISPERS.length)]);
-    // Reveal the matching door
     const door=doorList.find(d=>d.vidIdx===tv.vidIdx);
-    if(door&&!door.shown){door.shown=true;door.grp.visible=true;whisper('a door appeared.');}
-    // Enable crowd
+    if(door&&!door.shown){
+      door.shown=true;door.grp.visible=true;
+      prebuildCorridorForDoor(door); // build corridor hidden now — zero lag on entry later
+      whisper('a door appeared.');
+    }
     crowdEnabled=true;
-    // Trigger blackout 10s after play
-    setTimeout(()=>{if(started&&!ending)startBlackout();},10000);
     if(archived.size>=GATE_TOTAL)openSlide();
   }
 }
@@ -719,9 +1218,6 @@ function updateVideoVisibility(){
 }
 
 // ════ WORLD ════
-// Layout: R4(-48,0) — R1(0,0) — R2(48,0)
-//                      |           |
-//                    R3(0,48) — R5a(48,48) — R5b(96,48) — END(144,48)
 function buildWorld(){
   buildR1(0,0);
   buildR2(48,0);
@@ -732,7 +1228,6 @@ function buildWorld(){
   buildEnd(144,48);
 }
 
-// ROOM 1 — Spawn / Archive Record (vid 0)
 function buildR1(ox,oz){
   floorCeil(ox,oz,48,48);roomLights(ox,oz,48,48);
   walls(ox,oz,48,48,{s:true,e:true,w:true});
@@ -749,14 +1244,12 @@ function buildR1(ox,oz){
   floorSign(['HE DID THIS TO HIMSELF'],cx+8,oz+32,3);
   ceilSign(['WATCHING'],cx,oz+18,2);
   ceilSign(['THE ARCHIVE'],cx-12,oz+38,2.4);
-  // Door vid 0 on north wall
   spawnDoor(0, cx-10, oz+2, 0);
   buildSlide([new THREE.Vector3(ox+3,2.6,oz+1),new THREE.Vector3(ox+3,2.4,oz+5),
               new THREE.Vector3(ox+5,1.6,oz+9),new THREE.Vector3(ox+7,0.7,oz+12),
               new THREE.Vector3(ox+8,-0.6,oz+15)],false);
 }
 
-// ROOM 2 — The Mirror (vid 1)
 function buildR2(ox,oz){
   floorCeil(ox,oz,48,48);roomLights(ox,oz,48,48);
   walls(ox,oz,48,48,{w:true,s:true});
@@ -774,11 +1267,9 @@ function buildR2(ox,oz){
   floorSign(['mask slipped'],cx-14,oz+8,2);
   ceilSign(['dairy is violence'],cx+10,oz+36,2.6);
   ceilSign(['PARADOX'],cx-8,oz+14,1.8);
-  // Door vid 1 on north wall
   spawnDoor(1, cx+10, oz+2, 0);
 }
 
-// ROOM 4 — The Echo Chamber (vid 3)
 function buildR4(ox,oz){
   floorCeil(ox,oz,48,48);roomLights(ox,oz,48,48);
   walls(ox,oz,48,48,{e:true});
@@ -795,11 +1286,9 @@ function buildR4(ox,oz){
   floorSign(['crazy vegan'],cx-12,oz+40,2.4);
   ceilSign(['bark like a dog'],cx+10,oz+10,2.8);
   ceilSign(['MICRO'],cx-6,oz+42,1.8);
-  // Door vid 3 on south wall
   spawnDoor(3, cx, oz+46, Math.PI);
 }
 
-// ROOM 3 — The Observatory (vid 2)
 function buildR3(ox,oz){
   floorCeil(ox,oz,48,48);roomLights(ox,oz,48,48);
   walls(ox,oz,48,48,{n:true,e:true});
@@ -814,11 +1303,9 @@ function buildR3(ox,oz){
   floorSign(['115 dB'],cx+14,oz+8,2);
   ceilSign(['selective empathy'],cx-10,oz+36,2.6);
   ceilSign(['SEO TRAP'],cx+6,oz+14,2);
-  // Door vid 2 on west wall
   spawnDoor(2, ox+2, cz, Math.PI/2);
 }
 
-// ROOM 5a — The Caloric Classroom (vid 4)
 function buildR5a(ox,oz){
   floorCeil(ox,oz,48,48);roomLights(ox,oz,48,48);
   walls(ox,oz,48,48,{n:true,w:true,e:true});
@@ -837,11 +1324,9 @@ function buildR5a(ox,oz){
   floorSign(['MEAT: 25:1'],cx-14,oz+10,2);
   ceilSign(['hypocrite'],cx+10,oz+38,2.2);
   ceilSign(['THERMODYNAMICS'],cx-6,oz+16,2.8);
-  // Door vid 4 on south wall
   spawnDoor(4, cx, oz+46, Math.PI);
 }
 
-// ROOM 5b — The Admission Room
 function buildR5b(ox,oz){
   floorCeil(ox,oz,48,48);
   walls(ox,oz,48,48,{w:true,e:true});
@@ -863,7 +1348,6 @@ function buildR5b(ox,oz){
   ceilSign(['always convenience'],cx-8,oz+40,2.4);
 }
 
-// END ROOM — green slide to Stage 10
 function buildEnd(ox,oz){
   floorCeil(ox,oz,48,48);
   walls(ox,oz,48,48,{w:true});
@@ -921,7 +1405,6 @@ function shadowSilhouette(){
   x.lineTo(90,246);x.quadraticCurveTo(98,200,92,150);x.quadraticCurveTo(90,108,94,86);x.closePath();x.fill();
   x.beginPath();x.ellipse(95,252,8,10,0,0,Math.PI*2);x.fill();
   x.filter='blur(2px)';
-  x.fillStyle='rgba(150,28,28,0.32)';x.beginPath();x.arc(52,36,2.7,0,Math.PI*2);x.fill();
   x.fillStyle='rgba(150,28,28,0.22)';x.beginPath();x.arc(65,38,1.9,0,Math.PI*2);x.fill();
   x.filter='none';
   const g=x.createLinearGradient(0,0,0,384);
@@ -983,35 +1466,32 @@ function buildShadowFig(){
 function placeNear(minD,maxD,behind){
   for(let i=0;i<24;i++){
     let a;
-    if(behind){a=camera.rotation.y+Math.PI+(Math.random()-0.5)*1.2;}
+    if(behind){a=camera.rotation.y+Math.PI+(Math.random()*1.2-0.6);}
     else{a=Math.random()*Math.PI*2;}
-    const r=minD+Math.random()*(maxD-minD);
-    const px=camera.position.x+Math.sin(a)*r,pz=camera.position.z+Math.cos(a)*r;
-    if(isOpen(px,pz))return{x:px,z:pz};
+    const d=minD+Math.random()*(maxD-minD);
+    const x=camera.position.x+Math.sin(a)*d;
+    const z=camera.position.z+Math.cos(a)*d;
+    if(isOpen(x,z))return{x,z};
   }
   return null;
 }
 function updateShadowFig(dt){
-  const s=shadowFig;if(!s.sprite)return;
-  if(s.frames&&s.sprite.material.opacity>0.02){
-    shadowGlitchT--;
-    if(shadowGlitchT<=0){
-      s.sprite.material.map=s.frames[(Math.random()*s.frames.length)|0];
-      s.sprite.material.needsUpdate=true;
-      shadowGlitchT=3+((Math.random()*5)|0);
-    }
-    s.sprite.position.x=s.x+(Math.random()*2-1)*0.035;
-    s.sprite.position.y=1.3+(Math.random()*2-1)*0.02;
-  }
-  s.sprite.position.z=s.z;
+  const s=shadowFig;if(!s.sprite||!s.frames)return;
+  s.peekCooldown=Math.max(0,s.peekCooldown-1);
+  s.sprite.position.set(s.x,1.3,s.z);
+  if(s.light)s.light.position.set(s.x,1.4,s.z);
   const dx=s.x-camera.position.x,dz=s.z-camera.position.z;
   const dist=Math.hypot(dx,dz);
   const fwdX=Math.sin(camera.rotation.y),fwdZ=Math.cos(camera.rotation.y);
   const dot=(dx*fwdX+dz*fwdZ)/Math.max(0.1,dist);
-  const looking=dot>0.75&&dist<14;
-  const veryClose=dist<2.5;
-  s.peekCooldown=Math.max(0,s.peekCooldown-1);
-  if(veryClose&&looking&&jumpscareReady&&s.sprite.material.opacity>0.15){
+  const looking=dot>0.7&&dist<22;
+  shadowGlitchT+=dt;
+  if(shadowGlitchT>0.12){
+    shadowGlitchT=0;
+    const fi=Math.floor(Math.random()*s.frames.length);
+    s.sprite.material.map=s.frames[fi];s.sprite.material.needsUpdate=true;
+  }
+  if(s.sprite.material.opacity>0.3&&dist<2.4&&jumpscareReady){
     jumpscareReady=false;strobeOnce();sfxScare();
     s.sprite.material.opacity=0;if(s.light)s.light.intensity=0;
     sanity=Math.max(0,sanity-12);
@@ -1118,7 +1598,7 @@ function solidAt(x,z,extra){
   return false;
 }
 function isOpen(x,z){
-  if(x<-46||x>190||z<2||z>94)return false;
+  if(x<-46||x>190||z<-30||z>130)return false;
   return !solidAt(x,z,0.5);
 }
 function tryMove(nx,nz){
@@ -1168,6 +1648,101 @@ function sfxStatic(){blip(200,0.15,'square',0.05);}
 function sfxOpen(){blip(330,0.6,'sine',0.10);blip(495,0.6,'sine',0.07);}
 function sfxUI(){blip(440,0.12,'sine',0.05);}
 
+// ════ DUCKING ════
+let duckLevel=1, duckTarget=1;
+
+// ════ FOOTSTEPS + DARK FOLLOWER ════
+let noiseBuf=null;
+function getNoiseBuf(){
+  const a=ac();if(!a)return null;
+  if(!noiseBuf){
+    const len=Math.floor(a.sampleRate*0.4);
+    noiseBuf=a.createBuffer(1,len,a.sampleRate);
+    const d=noiseBuf.getChannelData(0);
+    for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+  }
+  return noiseBuf;
+}
+function footstep(vol,cut,dur,rateLo,rateHi){
+  const a=ac();if(!a)return;
+  const buf=getNoiseBuf();if(!buf)return;
+  vol=(vol||0.085)*duckLevel;
+  if(vol<=0.0015)return;
+  const src=a.createBufferSource();src.buffer=buf;
+  src.playbackRate.value=(rateLo||0.85)+Math.random()*((rateHi||1.15)-(rateLo||0.85));
+  const lp=a.createBiquadFilter();lp.type='lowpass';lp.frequency.value=cut||340;
+  const g=a.createGain();
+  const t=a.currentTime,dd=dur||0.13;
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(vol,t+0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dd);
+  src.connect(lp);lp.connect(g);g.connect(a.destination);
+  src.start(t);src.stop(t+dd+0.02);
+}
+let stepAccum=0;
+const STRIDE=2.1;
+const FOLLOW_DELAY=0.27;
+const followQueue=[];
+function updateFootsteps(t,movedDist,darkness){
+  stepAccum+=movedDist;
+  if(stepAccum>=STRIDE){
+    stepAccum-=STRIDE;
+    footstep(0.085,340,0.13,0.85,1.15);
+    if(darkness>0.34)followQueue.push({t:t+FOLLOW_DELAY,dk:darkness});
+  }
+  for(let i=followQueue.length-1;i>=0;i--){
+    if(t>=followQueue[i].t){
+      const dk=followQueue[i].dk;
+      footstep(0.05*Math.min(1,dk*1.4),205,0.2,0.62,0.82);
+      followQueue.splice(i,1);
+    }
+  }
+}
+
+// ════ MUSIC ════
+const MUSIC_URLS=[
+  'https://earthlingofficial.com/srsstudio-life-is-just-nothing-else-pioggia-liminal-tranquillo-328126.mp3',
+  'https://earthlingofficial.com/9jackjack8-drowsy-liminal-dreamcore-512448.mp3'
+];
+const MUSIC_BURSTS=[10,20,30,45,60];
+const MUSIC_GAP=[12,45];
+const MUSIC_CEILING=0.42;
+const MUSIC_FADE=2.6;
+let musicEls=[],musicActive=null,musicVol=0,musicTarget=0,musicStarted=false;
+function buildMusic(){
+  musicEls=MUSIC_URLS.map(u=>{
+    const a=new Audio();a.src=u;a.preload='metadata';a.loop=true;a.volume=0;
+    return a;
+  });
+}
+function startMusicCycle(){
+  if(musicStarted)return;musicStarted=true;
+  scheduleBurst(2+Math.random()*4);
+}
+function scheduleBurst(delay){
+  setTimeout(()=>{
+    if(ending)return;
+    musicActive=musicEls[Math.floor(Math.random()*musicEls.length)];
+    const d=musicActive.duration;
+    musicActive.currentTime=(isFinite(d)&&d>30)?Math.random()*(d-25):0;
+    musicVol=0;musicActive.play().catch(()=>{});
+    musicTarget=MUSIC_CEILING;
+    const hold=MUSIC_BURSTS[Math.floor(Math.random()*MUSIC_BURSTS.length)];
+    setTimeout(()=>{ musicTarget=0; }, (hold+MUSIC_FADE)*1000);
+    setTimeout(()=>{
+      if(musicActive)musicActive.pause();
+      const gap=MUSIC_GAP[0]+Math.random()*(MUSIC_GAP[1]-MUSIC_GAP[0]);
+      scheduleBurst(gap);
+    }, (hold+MUSIC_FADE*2)*1000);
+  }, delay*1000);
+}
+function updateMusic(dt){
+  const speed=MUSIC_CEILING/MUSIC_FADE;
+  if(musicVol<musicTarget)musicVol=Math.min(musicTarget,musicVol+speed*dt);
+  else if(musicVol>musicTarget)musicVol=Math.max(musicTarget,musicVol-speed*dt);
+  if(musicActive)musicActive.volume=Math.max(0,Math.min(1,musicVol*duckLevel));
+}
+
 // ════ UI HELPERS ════
 function setObjective(t){$('obj').textContent=t;}
 function flashFact(t){const el=$('fact');el.textContent=t;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),5200);}
@@ -1185,19 +1760,42 @@ function updateInteract(){
   const hint=$('hint'),ib=$('ibtn');
   let label=null; nearTV=null; nearDoor=null;
 
-  // Door video is playing — show close hint and exit
-  if(doorVideoState==='playing'){
-    if(isMobile){ib.textContent='CLOSE';ib.style.display='flex';hint.style.display='none';}
-    else{hint.style.display='block';hint.textContent='[ E ] CLOSE';ib.style.display='none';}
+  // ── CORRIDOR STATE MACHINE ──
+  if(corridorActive){
     $('xh').classList.remove('lock');
+
+    if(corridorState==='door_video'){
+      // Video playing at door — show skip
+      if(isMobile){ib.textContent='SKIP';ib.style.display='flex';hint.style.display='none';}
+      else{hint.style.display='block';hint.textContent='[ E ] SKIP VIDEO';ib.style.display='none';}
+      $('skipbtn').style.display='block';
+      return;
+    }
+    // Check proximity to corridor far end
+    if((corridorState==='locked'||corridorState==='entering')&&corridorDoor&&
+        camera.position.distanceTo(corridorDoor.cEndPos)<3.5){
+      corridorState='at_end';
+    }
+    if(corridorState==='at_end'){
+      $('skipbtn').style.display='none';
+      if(isMobile){ib.textContent='COLLECT & RETURN';ib.style.display='flex';hint.style.display='none';}
+      else{hint.style.display='block';hint.textContent='[ E ] COLLECT & RETURN';ib.style.display='none';}
+      $('xh').classList.add('lock');
+      return;
+    }
+    // Walking — no prompt
+    $('skipbtn').style.display='none';
+    hint.style.display='none'; ib.style.display='none';
     return;
   }
+  // ── END CORRIDOR ──
+
+  $('skipbtn').style.display='none';
 
   if(slideOpen&&camera.position.distanceTo(slideMouth)<3.2){
     nearTV='SLIDE';label='STEP IN';$('xh').classList.add('lock');
   } else {
     $('xh').classList.remove('lock');
-    // Check doors first (shown, not used)
     for(const d of doorList){
       if(!d.shown||d.used)continue;
       if(camera.position.distanceTo(d.wp)<3.5){nearDoor=d;label='ENTER';$('xh').classList.add('lock');break;}
@@ -1222,10 +1820,27 @@ function updateInteract(){
 function interact(){
   if(!started||ending)return;
   sfxUI();
+
+  // Corridor interactions take priority
+  if(corridorActive){
+    if(corridorState==='door_video'){_revealCorridor();return;}
+    if(corridorState==='at_end'){exitCorridor();return;}
+    return;
+  }
+
   if(doorVideoState==='playing'){closeDoorVideo();return;}
   if(nearTV==='SLIDE'){rideSlide();return;}
-  if(nearDoor){openDoorVideo(nearDoor);return;}
+  if(nearDoor){enterCorridor(nearDoor);return;}   // ← corridor instead of openDoorVideo
   if(nearTV)playTV(nearTV);
+}
+
+// Keep closeDoorVideo for legacy (not used in main flow anymore but keeps code clean)
+function closeDoorVideo(){
+  doorVideoState='closed';
+  doorVideo.pause();
+  doorVideo.src='';
+  if(doorVideoPlane)doorVideoPlane.visible=false;
+  if(activeDoor){collectToken(activeDoor.vidIdx);activeDoor=null;}
 }
 
 function rideSlide(){
@@ -1233,6 +1848,7 @@ function rideSlide(){
   setObjective('');
   $('hint').style.display='none';
   if(videoIframe)videoIframe.src='';
+  musicTarget=0;followQueue.length=0;
   whisper('down, then. mind the drop.');
   $('fade').classList.add('on');
   setTimeout(()=>{window.location.href='veganbrosstage10.html';},1300);
@@ -1276,6 +1892,8 @@ function setupTouch(){
 // ════ GAME ════
 function startGame(){
   if(started)return;started=true;ac();
+  if(AC&&AC.state==='suspended')AC.resume();
+  startMusicCycle();
   const ov=$('connect');ov.classList.add('fade');setTimeout(()=>ov.style.display='none',1700);
   if(matchMedia('(hover:hover) and (pointer:fine)').matches)document.body.requestPointerLock&&document.body.requestPointerLock();
   setObjective(isMobile?'Find every screen. Tap WATCH. Archive all five.':'Find every screen. Press [E] to watch. Archive all five.');
@@ -1289,13 +1907,11 @@ function animate(){
 
   if(!started){renderer.setRenderTarget(null);renderer.render(scene,camera);return;}
 
-  // Touch look
   if(td.r.a){
     camera.rotation.y-=td.r.mx*0.03;
     camera.rotation.x=Math.max(-Math.PI/2.4,Math.min(Math.PI/2.4,camera.rotation.x-td.r.my*0.03));
   }
 
-  // Movement
   vel.x-=vel.x*10*dt;vel.z-=vel.z*10*dt;
   const dz=Number(kW)-Number(kS),dxk=Number(kD)-Number(kA);
   if(kW||kS)vel.z+=dz*40*dt;
@@ -1306,11 +1922,20 @@ function animate(){
   const wantX=camera.position.x,wantZ=camera.position.z;
   camera.position.copy(before);
   tryMove(wantX,wantZ);
+  const movedDist=Math.hypot(camera.position.x-before.x,camera.position.z-before.z);
   camera.position.y=2;
+
+  // ── CORRIDOR: close wall once player walks ~4.5 units in ──
+  // sealing wall is pre-built — no dynamic trigger needed
+
+  const watching=(videoObj&&videoObj.visible)||doorVideoState==='playing';
+  duckTarget=watching?0.18:1;
+  duckLevel+=(duckTarget-duckLevel)*Math.min(1,dt*4);
+  updateFootsteps(t,movedDist,darknessAt(camera.position.x,camera.position.z));
+  updateMusic(dt);
 
   if(++fuzzFrame%3===0)updateFuzz();
 
-  // Systems
   updateShadowFig(dt);
   updateBlackFig();
   updateCrowd(dt,t);
@@ -1318,18 +1943,14 @@ function animate(){
   updateVideoVisibility();
   updateSanityHUD();
 
-  // Sanity slow regen
   if(shadowFig.sprite.material.opacity<0.1&&blackFig.sprite.material.opacity<0.1&&crowd.length===0)
     sanity=Math.min(100,sanity+3*dt);
 
-  // Facts
   factTimer-=dt;
   if(factTimer<=0){flashFact(FACTS[factIdx++%FACTS.length]);factTimer=18+Math.random()*22;}
-  // Whispers
   whisperTimer--;
   if(whisperTimer<=0){whisper(WHISPERS[Math.floor(Math.random()*WHISPERS.length)]);whisperTimer=600+Math.floor(Math.random()*600);}
 
-  // Render
   renderer.setRenderTarget(renderTarget);renderer.render(scene,camera);
   renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
   if(css3d)css3d.render(scene,camera);
