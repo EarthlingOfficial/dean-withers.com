@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>GO DEAN — Stage 9: The Backrooms</title>
+<title>Go Dean! — Stage 9: The Hypogeum</title>
+<link rel="preconnect" href="https://www.youtube.com">
+<link rel="preconnect" href="https://i.ytimg.com">
+<link rel="preconnect" href="https://googleads.g.doubleclick.net">
+<link rel="preconnect" href="https://www.google.com">
 <style>
 *{box-sizing:border-box}
 body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monospace;touch-action:none;-webkit-user-select:none;user-select:none}
@@ -12,11 +16,27 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 #css3d iframe{border:0;pointer-events:auto;background:#000}
 
 /* CONNECT OVERLAY */
-#connect{position:fixed;inset:0;background:#0c0b06;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;cursor:pointer;transition:opacity 1.6s}
+#connect{position:fixed;inset:0;background:#0c0b06;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;transition:opacity 1.6s}
 #connect.fade{opacity:0;pointer-events:none}
-#c-latin{color:#252318;font-size:clamp(8px,1.4vw,12px);letter-spacing:5px;margin-bottom:36px;text-align:center;line-height:2}
-#c-main{color:#c8b86a;font-size:clamp(18px,4.5vw,34px);letter-spacing:8px;animation:pulse 2.4s ease-in-out infinite;text-align:center}
-#c-sub{color:#2a2820;font-size:10px;letter-spacing:3px;margin-top:18px}
+
+/* PHASE 1 — LOADING */
+#c-phase1{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+#c-series{color:#252318;font-size:clamp(7px,1.1vw,10px);letter-spacing:6px;margin-bottom:18px}
+#c-title{color:#c8b86a;font-size:clamp(22px,5.5vw,42px);letter-spacing:10px;margin-bottom:6px}
+#c-stage{color:#3a3628;font-size:clamp(9px,1.4vw,12px);letter-spacing:5px;margin-bottom:40px}
+#c-loadbar{width:180px;height:2px;background:rgba(200,184,106,.12);border:1px solid rgba(200,184,106,.14);margin-bottom:14px;overflow:hidden}
+#c-loadfill{height:100%;width:0%;background:#c8b86a;transition:width .4s ease}
+#c-loadtxt{color:#252318;font-size:9px;letter-spacing:4px}
+
+/* PHASE 2 — DISCLAIMER + TAP */
+#c-phase2{display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 28px;max-width:600px}
+#c-phase2 .c-p2-series{color:#252318;font-size:clamp(7px,1.1vw,10px);letter-spacing:6px;margin-bottom:12px}
+#c-phase2 .c-p2-title{color:#c8b86a;font-size:clamp(18px,4vw,30px);letter-spacing:8px;margin-bottom:4px}
+#c-phase2 .c-p2-stage{color:#2e2b22;font-size:clamp(8px,1.2vw,11px);letter-spacing:4px;margin-bottom:28px}
+#c-disclaimer{color:#1e1d17;font-size:clamp(8px,1.15vw,10px);letter-spacing:1.5px;line-height:2;margin-bottom:28px;border-top:1px solid rgba(200,184,106,.08);border-bottom:1px solid rgba(200,184,106,.08);padding:18px 0;text-align:left}
+#c-disclaimer b{color:#2a2820;letter-spacing:2px}
+#c-main{color:#c8b86a;font-size:clamp(14px,3.2vw,24px);letter-spacing:8px;animation:pulse 2.4s ease-in-out infinite;cursor:pointer}
+#c-sub{color:#1e1d17;font-size:9px;letter-spacing:3px;margin-top:14px}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.25}}
 
 /* HUD */
@@ -58,6 +78,12 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
  background:rgba(200,184,106,.16);border:1px solid rgba(200,184,106,.45);color:#c8b86a;font-size:11px;letter-spacing:2px;
  display:none;align-items:center;justify-content:center;z-index:20;pointer-events:auto}
 
+/* SKIP VIDEO BUTTON (testing) */
+#skipbtn{display:none;position:fixed;bottom:20px;right:20px;background:rgba(0,0,0,.75);border:1px solid rgba(200,184,106,.28);
+ color:#c8b86a;font-size:9px;letter-spacing:3px;padding:7px 14px;z-index:30;cursor:pointer;
+ font-family:'Courier New',monospace;pointer-events:auto}
+#skipbtn:hover{background:rgba(200,184,106,.12)}
+
 /* JOYSTICKS */
 .jz{position:fixed;bottom:22px;width:96px;height:96px;background:rgba(255,255,255,.02);border:1px solid rgba(200,184,106,.12);border-radius:50%;touch-action:none;z-index:20}
 #lj{left:18px}#rj{right:18px}
@@ -68,11 +94,34 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 <script src="https://unpkg.com/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>
 </head>
 <body>
+
+<!-- CONNECT / LOADING OVERLAY -->
 <div id="connect">
-  <div id="c-latin">Deanus Politicus Carnivorus Paradoxus<br>now indexed</div>
-  <div id="c-main">TAP TO CONNECT TO DEAN</div>
-  <div id="c-sub">earthlingofficial.com</div>
+  <div id="c-phase1">
+    <div id="c-series">A VEGAN BROS. SERIES</div>
+    <div id="c-title">GO DEAN!</div>
+    <div id="c-stage">STAGE 9 — THE HYPOGEUM</div>
+    <div id="c-loadbar"><div id="c-loadfill"></div></div>
+    <div id="c-loadtxt">INITIALISING</div>
+    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v3 — LIMINAL SPACES / TV PROPS</div>
+  </div>
+  <div id="c-phase2">
+    <div class="c-p2-series">A VEGAN BROS. SERIES</div>
+    <div class="c-p2-title">GO DEAN!</div>
+    <div class="c-p2-stage">STAGE 9 — THE HYPOGEUM</div>
+    <div id="c-disclaimer">
+      <b>NOTICE &amp; DISCLAIMER</b><br><br>
+      Go Dean! / Vegan Bros. is a non-profit work of parody and satire produced in the public interest.<br><br>
+      All statements attributed to the named individual are direct quotes verified by the video evidence presented within this game. No claim is made beyond the documented record. The creator's voice and identity appear in the majority of recordings herein, establishing authorship and a documented right of reply to statements made on the public record.<br><br>
+      This work constitutes transformative commentary protected under fair use and fair dealing principles. It serves the purposes of public accountability, journalistic record-keeping, fact-checking, and historical documentation.<br><br>
+      Go Dean! / Vegan Bros. is produced in support of animal welfare, ethical veganism, and sustainable and inclusive food systems. It does not generate revenue.<br><br>
+      <b>IT EXISTS FOR THE ANIMALS.</b>
+    </div>
+    <div id="c-main">TAP TO CONNECT TO DEAN</div>
+    <div id="c-sub">earthlingofficial.com</div>
+  </div>
 </div>
+
 <div id="hud">
   <div class="ht">DEAN</div>
   <div style="display:flex;flex-direction:column;align-items:flex-end">
@@ -89,6 +138,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 <div id="strobe"></div>
 <div id="fade"></div>
 <div id="ibtn">WATCH</div>
+<button id="skipbtn">SKIP VIDEO</button>
 
 <!-- Door video element (hidden — feeds a Three.js VideoTexture) -->
 <video id="doorvideo" playsinline webkit-playsinline style="display:none;position:fixed;left:-9999px"></video>
@@ -107,7 +157,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 
 <script>
 // ════════════════════════════════════════════════════════════════
-// GO DEAN — STAGE 9: THE BACKROOMS  (Stage 9 full build)
+// GO DEAN! — STAGE 9: THE HYPOGEUM  (A Vegan Bros. Series)
 // ════════════════════════════════════════════════════════════════
 const $=id=>document.getElementById(id);
 const isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
@@ -119,24 +169,23 @@ const VIDS=[
   {url:'https://www.youtube.com/embed/fkoWAO_CdWA',lbl:'THE OBSERVATORY',gate:true},
   {url:'https://www.youtube.com/embed/jDQ9zZ0IGFw',lbl:'THE ECHO CHAMBER',gate:true},
   {url:'https://www.youtube.com/embed/RNWmEeJLGnI',lbl:'THE CALORIC CON',gate:true},
-  {url:null,lbl:'DEBATE 06 — SIGNAL LOST'},
-  {url:null,lbl:'DEBATE 07 — SIGNAL LOST'},
-  {url:null,lbl:'DEBATE 08 — SIGNAL LOST'},
-  {url:null,lbl:'DEBATE 09 — SIGNAL LOST'},
-  {url:null,lbl:'DEBATE 10 — SIGNAL LOST'},
-  {url:null,lbl:'DEBATE 11 — SIGNAL LOST'},
-  {url:null,lbl:'DEBATE 12 — SIGNAL LOST'},
+  {url:null,lbl:'DEBATE 06 — PENDING'},
+  {url:null,lbl:'DEBATE 07 — PENDING'},
+  {url:null,lbl:'DEBATE 08 — PENDING'},
+  {url:null,lbl:'DEBATE 09 — PENDING'},
+  {url:null,lbl:'DEBATE 10 — PENDING'},
+  {url:null,lbl:'DEBATE 11 — PENDING'},
+  {url:null,lbl:'DEBATE 12 — PENDING'},
 ];
 const GATE_TOTAL=VIDS.filter(v=>v.gate).length;
 
-// ── DOOR AI VIDEOS (MP4s — door appears after watching the matching TV) ──
-// Door 0 = vid 0, door 1 = vid 1, etc.
+// ── DOOR AI VIDEOS (MP4s — door appears after watching matching TV) ──
 const DOOR_VIDS=[
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
   null,null,null,null,
 ];
 
-// ── TOKENS (shape + timestamp shown at end of each door video) ──
+// ── TOKENS ──
 const TOKENS=[
   {shape:'circle',  time:'2:37'},
   {shape:'triangle',time:null},
@@ -145,7 +194,7 @@ const TOKENS=[
   {shape:'pill',    time:null},
 ];
 
-// ── DARK FACTS (30 — original 14 + 16 hardline additions) ──
+// ── DARK FACTS ──
 const FACTS=[
   '80 BILLION LAND ANIMALS ARE KILLED\nFOR FOOD EVERY YEAR.',
   'A DAIRY COW IS FORCIBLY INSEMINATED\nSO SHE LACTATES. AGAIN. AND AGAIN.',
@@ -184,11 +233,11 @@ const SCRAWLS=[
   'INDEXED FOREVER','HE DID THIS TO HIMSELF','watching me watching you',
   'Deanus Politicus Carnivorus Paradoxus','THE PARADOX REMAINS UNRESOLVED',
   'i can feel you pull me down','11:40 — THE ADMISSION','18:07 — HE LAUGHED',
-  'CRAZY VEGAN','EPISODE 4 OF 8','SIGNAL LOST','the mask slipped for 0.3 seconds',
+  'CRAZY VEGAN','EPISODE 4 OF 8','the mask slipped for 0.3 seconds',
   'he called it a microaggression','bark like a dog','HE LAUGHED FOR THE PIGS',
 ];
 
-// ── WHISPERS (clinical voice + hardline additions) ──
+// ── WHISPERS ──
 const WHISPERS=[
   'the specimen does not recognise the room.',
   'observe: he condemns the cage, then pays the keeper.',
@@ -219,9 +268,9 @@ let fuzzCanvas,fuzzCtx,fuzzTex,fuzzFrame=0;
 
 const colliders=[];
 const lights=[];
-const roomLightRefs=[];    // kept for compat
+const roomLightRefs=[];
 const tvList=[];
-const doorList=[];         // {grp, vidIdx, wp, shown, used}
+const doorList=[];
 let started=false,ending=false;
 let sanity=100;
 const archived=new Set();
@@ -241,8 +290,8 @@ let factTimer=26,factIdx=0,whisperTimer=420;
 // CSS3D video
 let videoObj=null, videoIframe=null, activeTV=null;
 
-// ── DOOR VIDEO PLAYER (plays in 3D door frame via VideoTexture) ──
-let doorVideoState='closed'; // 'closed'|'playing'
+// ── DOOR VIDEO PLANE (VideoTexture plane for corridor) ──
+let doorVideoState='closed';
 let activeDoor=null;
 const doorVideo=$('doorvideo');
 let doorVideoPlane=null;
@@ -251,47 +300,1028 @@ function buildDoorVideoPlane(){
   const tex=new THREE.VideoTexture(doorVideo);
   tex.minFilter=THREE.LinearFilter;
   tex.magFilter=THREE.LinearFilter;
-  // Portrait door: 1.45 wide × 3.3 tall
   const mat=new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide});
   doorVideoPlane=new THREE.Mesh(new THREE.PlaneGeometry(1.45,3.3),mat);
   doorVideoPlane.visible=false;
   scene.add(doorVideoPlane);
 }
 
-function openDoorVideo(door){
-  const url=DOOR_VIDS[door.vidIdx];
-  // Hide door visual children (panel, frame, handle, glow) but keep group
-  door.grp.children.forEach(c=>{ c.visible=false; });
-  door.used=true;
-  activeDoor=door;
-  if(!url){
-    flashFact('AI VIDEO NOT YET UPLOADED\nCOME BACK SOON.');
-    collectToken(door.vidIdx);
-    activeDoor=null;
-    return;
-  }
-  doorVideoState='playing';
-  doorVideo.src=url;
-  doorVideo.play().catch(()=>{});
-  // Position the video plane at the door's world location
-  const ry=door.grp.rotation.y;
-  doorVideoPlane.position.set(
-    door.grp.position.x + Math.sin(ry)*0.06,
-    1.65,
-    door.grp.position.z + Math.cos(ry)*0.06
-  );
-  doorVideoPlane.rotation.y=ry;
-  doorVideoPlane.visible=true;
-  doorVideo.onended=()=>{ closeDoorVideo(); };
+// ════════════════════════════════════════════════════════════════
+// CORRIDOR SYSTEM
+// ════════════════════════════════════════════════════════════════
+let corridorActive=false;
+let corridorDoor=null;
+let corridorCloseWallAdded=false;
+const corridorEntryPos=new THREE.Vector3();
+let corridorEntryRot=0;
+// states: 'idle' | 'door_video' | 'entering' | 'locked' | 'at_end'
+let corridorState='idle';
+
+const BRUTAL_STICKERS=[
+  ['80 BILLION','KILLED PER YEAR'],
+  ['YOUR HAND.','THE KNIFE.','YOUR CHOICE.'],
+  ['FORCIBLY INSEMINATED','AGAIN AND AGAIN','UNTIL SHE BREAKS'],
+  ['HER CALF IS TAKEN','WITHIN 24 HOURS','SHE CALLS FOR DAYS'],
+  ['MALE CHICKS','GROUND ALIVE','DAY ONE'],
+  ['THE BOLT GUN MISSES OFTEN','MANY ENTER THE KNIFE','STILL AWAKE'],
+  ['PIGS ENTER THE','SCALDING TANK','STILL BREATHING'],
+  ['BEAK. TAIL. TESTICLE.','CUT WITHOUT ANAESTHETIC','STANDARD PRACTICE'],
+  ['YOU PAID A STRANGER','TO DO WHAT','YOU COULD NEVER WATCH'],
+  ['THE DRAIN NEVER','STOPS RUNNING RED'],
+  ['GESTATION CRATE','TOO SMALL TO TURN','HER WHOLE LIFE'],
+  ['115 DECIBELS','LOUDER THAN A CHAINSAW','NOBODY COMES'],
+  ['YOU SAY BACON','SO YOU NEVER HAVE TO','SAY PIG'],
+  ['DAIRY IS GRIEF','PACKAGED AND SOLD'],
+  ['IT FOUGHT THE WHOLE WAY DOWN','IT DID NOT WANT TO DIE','IT LOST.'],
+  ['THE KNIFE IS HELD','BY YOUR APPETITE'],
+  ['THEY SMELL THE BLOOD','OF THE ONE BEFORE'],
+  ['YOU WEPT FOR THE DOG','AND CHEWED ON ITS TWIN'],
+  ['"FREE RANGE"','ENDS AT THE SAME BLADE'],
+  ['EVERY GLASS OF MILK','IS A MOTHER','GRIEVING HER CHILD'],
+  ['VEAL: A CALF CHAINED','KEPT ANAEMIC','SO THE MEAT STAYS PALE'],
+  ['FISH FEEL PAIN.','BILLIONS SUFFOCATE','ON DECKS EVERY DAY.'],
+  ['ANIMALS ARE NOT','OURS TO USE.','PERIOD.'],
+  ['YOUR PLATE','IS A CRIME SCENE'],
+  ['VEGANISM IS NOT','A LIFESTYLE CHOICE','IT IS A MORAL OBLIGATION'],
+  ['EVERY MEAL IS A VOTE.','WHAT ARE YOU CHOOSING?'],
+  ['SPECIESISM:','DISCRIMINATION','BY ANY OTHER NAME'],
+  ['IF YOU WOULD NOT DO IT','TO YOUR DOG,','STOP DOING IT TO PIGS'],
+  ['THE FISHING NET','DOES NOT SPARE','THE DOLPHIN'],
+  ['WOOL HURTS.','DOWN HURTS.','LEATHER HURTS.'],
+  ['HUNTING IS NOT','CONSERVATION.','IT IS KILLING.'],
+  ['ZOOS: PRISONS','WITH BETTER','PUBLIC RELATIONS'],
+  ['THERE IS NO','HUMANE SLAUGHTER.','ONLY SLAUGHTER.'],
+  ['WHAT YOU EAT','IS WHAT YOU ARE','WILLING TO PAY FOR'],
+  ['IT SCREAMS.','YOU CANNOT HEAR IT','FROM THE SUPERMARKET'],
+  ['THE CLIMATE CRISIS','HAS A DIET.','GO VEGAN.'],
+  ['ANTIBIOTIC RESISTANCE:','YOUR MEAT HABIT','IS THE CAUSE'],
+  ['THEY CALLED IT DOMINION.','WE CALL IT DOMINATION.'],
+  ['SENTIENT.','SUFFERING.','SILENCED.'],
+  ['YOU DO NOT NEED MEAT TO SURVIVE.','THEY NEEDED TO LIVE.'],
+  ['THE OCEAN IS EMPTYING.','TRAWLERS SCRAPE THE FLOOR.','YOUR FISH DISH DID THIS.'],
+  ['SHE WILL NEVER KNOW','WHAT PEACE FEELS LIKE.','YOU COULD CHANGE THAT.'],
+];
+
+// Forward & perpendicular directions for a door rotation
+function corridorDir(ry){
+  return{fdx:-Math.sin(ry),fdz:-Math.cos(ry),pdx:Math.cos(ry),pdz:-Math.sin(ry)};
 }
 
-function closeDoorVideo(){
-  doorVideoState='closed';
-  doorVideo.pause();
-  doorVideo.src='';
-  if(doorVideoPlane)doorVideoPlane.visible=false;
-  if(activeDoor){collectToken(activeDoor.vidIdx);activeDoor=null;}
+// Pre-build corridor geometry HIDDEN when the door first appears — zero lag on entry
+function prebuildCorridorForDoor(door){
+  if(door.corridorBuilt)return;
+  door.corridorBuilt=true;
+  const ry=door.grp.rotation.y;
+  const{fdx,fdz,pdx,pdz}=corridorDir(ry);
+  const ox=door.grp.position.x, oz=door.grp.position.z;
+
+  const H=WH, TW=T_WALL;
+  const HW=1.6;
+  const CL=26;
+
+  // Per-door varied exit room sizes — each liminal space has its own footprint
+  const ROOM_SIZES=[
+    {RW:14, RL:50}, // 0 — Pool Room
+    {RW:12, RL:44}, // 1 — Office
+    {RW:16, RL:54}, // 2 — Mall Atrium
+    {RW: 9, RL:48}, // 3 — Hotel Corridor
+    {RW:13, RL:46}, // 4 — Brutalist Basement
+  ];
+  const vi=door.vidIdx;
+  const{RW,RL}=ROOM_SIZES[vi%5];
+  const TL=CL+RL;
+
+  door.cRy=ry; door.cOx=ox; door.cOz=oz;
+  door.cFdx=fdx; door.cFdz=fdz;
+  door.cEndPos=new THREE.Vector3(ox+fdx*(TL-3),1.65,oz+fdz*(TL-3));
+
+  // Per-door style variety
+  const WALL_TINTS =[0xb8ccd8, 0xd0cfc4, 0xe0d8b8, 0xb06868, 0xaaaaaa];
+  const COR_LIGHTS =[0xd0b870, 0xc0b0e8, 0xd8c860, 0xa8e4d0, 0xe8d888];
+  const ROOM_LIGHTS=[0xa0c8ff, 0xe8f0ff, 0xffe8a0, 0xff9090, 0xffcc44];
+  const wTint =WALL_TINTS [vi%5];
+  const cLCol =COR_LIGHTS [vi%5];
+  const rLCol =ROOM_LIGHTS[vi%5];
+
+  const wMat=new THREE.MeshStandardMaterial({
+    color:wTint,roughness:0.42,metalness:0.12,
+    emissive:0x080600,emissiveIntensity:0.18
+  });
+
+  function addH(m){m.visible=false;scene.add(m);door.corridorHiddenMeshes.push(m);return m;}
+  function addCol(cx,cz,wd,dp){
+    const s=Math.abs(Math.sin(ry)),c2=Math.abs(Math.cos(ry));
+    const bx=(wd*c2+dp*s)/2,bz=(wd*s+dp*c2)/2;
+    door.corridorHiddenColliders.push({x0:cx-bx,x1:cx+bx,z0:cz-bz,z1:cz+bz});
+  }
+  function mkBox(along,perp,wd,ht,dp){
+    const cx=ox+fdx*along+pdx*perp,cz=oz+fdz*along+pdz*perp;
+    const m=new THREE.Mesh(new THREE.BoxGeometry(wd,ht,dp),wMat.clone());
+    m.position.set(cx,ht/2,cz);m.rotation.y=ry;addH(m);addCol(cx,cz,wd,dp);
+  }
+  function mkFlat(along,perp,y,mat,wd,dp){
+    const cx=ox+fdx*along+pdx*perp,cz=oz+fdz*along+pdz*perp;
+    const m=new THREE.Mesh(new THREE.BoxGeometry(wd,0.06,dp),mat);
+    m.position.set(cx,y,cz);m.rotation.y=ry;addH(m);
+  }
+
+  // ── Prop TV helper — non-interactive, looks exactly like main-area TVs ──
+  function mkPropTV(along, perp, height, tvFaceAngle, labelStr, frameW, frameH){
+    frameW=frameW||2.5; frameH=frameH||1.7;
+    const scrW=frameW-0.3, scrH=frameH-0.3;
+    const cx=ox+fdx*along+pdx*perp, cz=oz+fdz*along+pdz*perp;
+    const grp=new THREE.Group();
+    const frame=new THREE.Mesh(
+      new THREE.BoxGeometry(frameW,frameH,0.14),
+      new THREE.MeshStandardMaterial({color:0x040404,roughness:1})
+    );
+    grp.add(frame);
+    const scr=new THREE.Mesh(
+      new THREE.PlaneGeometry(scrW,scrH),
+      new THREE.MeshBasicMaterial({map:fuzzTex,side:THREE.DoubleSide})
+    );
+    scr.position.set(0,0,0.08);
+    frame.add(scr);
+    const gl=new THREE.PointLight(0x557799,0.3,6);
+    gl.position.set(0,0,0.55);
+    grp.add(gl);
+    grp.position.set(cx,height,cz);
+    grp.rotation.y=tvFaceAngle;
+    addH(grp);
+    if(labelStr){
+      const lbl=txt([labelStr],3,0.26,'#6a6450',null,9);
+      lbl.position.set(cx,height-(frameH/2+0.2),cz);
+      lbl.rotation.y=tvFaceAngle;
+      addH(lbl);
+    }
+    return grp;
+  }
+
+  // ── CORRIDOR MAIN WALLS ──
+  mkBox(CL/2,  HW, TW, H, CL);
+  mkBox(CL/2, -HW, TW, H, CL);
+
+  // ── PILLAR COLUMNS — alternating sides every 6 units ──
+  const colMat=new THREE.MeshStandardMaterial({
+    color:new THREE.Color(wTint).multiplyScalar(0.72).getHex(),
+    roughness:0.5,metalness:0.22,emissive:0x040300,emissiveIntensity:0.28
+  });
+  for(let ai=6;ai<CL-2;ai+=6){
+    const side=(Math.floor(ai/6)%2===0)?1:-1;
+    const px=ox+fdx*ai+pdx*(HW-0.16)*side;
+    const pz=oz+fdz*ai+pdz*(HW-0.16)*side;
+    const pillar=new THREE.Mesh(new THREE.BoxGeometry(0.26,H,0.4),colMat.clone());
+    pillar.position.set(px,H/2,pz);pillar.rotation.y=ry;addH(pillar);
+    const cap=new THREE.Mesh(new THREE.BoxGeometry(0.36,0.16,0.52),colMat.clone());
+    cap.position.set(px,H-0.08,pz);cap.rotation.y=ry;addH(cap);
+  }
+
+  // ── CEILING RIBS every 5 units ──
+  const ribMat=new THREE.MeshStandardMaterial({
+    color:new THREE.Color(wTint).multiplyScalar(0.88).getHex(),roughness:0.44,metalness:0.18
+  });
+  for(let ri=5;ri<CL;ri+=5){
+    const rib=new THREE.Mesh(new THREE.BoxGeometry(HW*2+TW,0.1,0.2),ribMat.clone());
+    rib.position.set(ox+fdx*ri,H-0.05,oz+fdz*ri);rib.rotation.y=ry;addH(rib);
+  }
+
+  // ── JUNCTION (corridor → exit room) ──
+  mkBox(CL,  (HW+RW)/2, RW-HW, H, TW);
+  mkBox(CL, -(HW+RW)/2, RW-HW, H, TW);
+
+  // ── EXIT ROOM WALLS ──
+  mkBox(CL+RL/2,  RW, TW, H, RL);
+  mkBox(CL+RL/2, -RW, TW, H, RL);
+  mkBox(TL+TW/2,  0,  RW*2+TW*2, H, TW);
+
+  // ── FLOOR / CEILING ──
+  mkFlat(CL/2,    0, 0.03,   matFloor, HW*2, CL);
+  mkFlat(CL/2,    0, H-0.03, matCeil,  HW*2, CL);
+  mkFlat(CL+RL/2, 0, 0.03,   matFloor, RW*2, RL);
+  mkFlat(CL+RL/2, 0, H-0.03, matCeil,  RW*2, RL);
+
+  // ── SEALING WALL (pre-built 2.5 units in) ──
+  mkBox(2.5, 0, HW*2+TW*2, H, TW);
+
+  // ── CORRIDOR LIGHT ──
+  const cL=new THREE.PointLight(cLCol,1.7,CL+10);
+  cL.position.set(ox+fdx*(CL*0.5),3.0,oz+fdz*(CL*0.5));
+  addH(cL);
+
+  // ── EMISSIVE CEILING STRIP (corridor) ──
+  const strip=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.05,CL*0.88),
+    new THREE.MeshBasicMaterial({color:0xffe8b0}));
+  strip.position.set(ox+fdx*(CL/2),H-0.02,oz+fdz*(CL/2));
+  strip.rotation.y=ry;addH(strip);
+
+  // ── STICKERS on corridor walls ──
+  const SCOLOR_SETS=[
+    ['#cc2211','#c8a040','#aa3311','#887755','#cc3322'],
+    ['#8822cc','#6633aa','#4422aa','#993388','#772299'],
+    ['#cc4422','#aa3311','#882200','#cc6633','#aa4422'],
+    ['#2288cc','#1166aa','#004488','#2299bb','#1177aa'],
+    ['#cc9922','#aa7711','#886600','#ccaa33','#aa8822'],
+  ];
+  const sCols=SCOLOR_SETS[vi%5];
+  let si=vi*7+3;
+  const numStickers=Math.floor(CL/2.5)-1;
+  const heightBases=[1.25,1.05,1.4,0.95,1.3];
+  const hBase=heightBases[vi%5];
+  for(let i=0;i<numStickers;i++){
+    const along=3.8+i*2.5;
+    const side=i%2===0?1:-1;
+    const lines=BRUTAL_STICKERS[si%BRUTAL_STICKERS.length]; si++;
+    const sw=1.3,sh=Math.max(0.3,lines.length*0.26);
+    const col=sCols[i%sCols.length];
+    const sm=txt(lines,sw,sh,col,null,8);
+    const hVar=(Math.sin(i*1.7+vi)*0.5+0.5)*0.8;
+    sm.position.set(
+      ox+fdx*along+pdx*(HW-0.06)*side,
+      hBase+hVar,
+      oz+fdz*along+pdz*(HW-0.06)*side
+    );
+    sm.rotation.y=ry+(side>0?Math.PI/2:-Math.PI/2);
+    addH(sm);
+  }
+
+  // ── FLOOR TEXT ──
+  const FLOOR_LINES=[
+    ['"it did not want to die"','"the drain never stops"'],
+    ['"forcibly inseminated"','"calf taken within 24 hours"'],
+    ['"ground alive on day one"','"nobody ever comes"'],
+    ['"the bolt gun misses often"','"awake when the knife arrives"'],
+    ['"they smell the blood before"','"it did not want to die"'],
+  ];
+  const fl=FLOOR_LINES[vi%5];
+  {
+    const ftA=txt([fl[0]],2.2,0.3,'#1a1000',null,9);
+    ftA.position.set(ox+fdx*(CL*0.35),0.03,oz+fdz*(CL*0.35));
+    ftA.rotation.x=-Math.PI/2;ftA.rotation.z=-ry;addH(ftA);
+    const ftB=txt([fl[1]],2.0,0.28,'#330800',null,8);
+    ftB.position.set(ox+fdx*(CL*0.7),0.03,oz+fdz*(CL*0.7));
+    ftB.rotation.x=-Math.PI/2;ftB.rotation.z=-ry;addH(ftB);
+    const ftC=txt(['"collect the token. return."'],2.4,0.28,'#0a3a10',null,9);
+    ftC.position.set(ox+fdx*(CL+RL*0.4),0.03,oz+fdz*(CL+RL*0.4));
+    ftC.rotation.x=-Math.PI/2;ftC.rotation.z=-ry;addH(ftC);
+  }
+
+  // ── TUBE SLIDE ──
+  const curveOffsets=[[0,0],[0.4,-0.3],[-0.3,0.4],[0.3,0.3],[-0.4,-0.2]];
+  const co=curveOffsets[vi%5];
+  const sTop=CL+RL*0.88, sMid=CL+RL*0.55, sLow=CL+RL*0.28, sTip=CL+RL*0.06;
+  const slidePoints=[
+    new THREE.Vector3(ox+fdx*sTop  +pdx*co[0]*1.5, H*0.78, oz+fdz*sTop  +pdz*co[0]*1.5),
+    new THREE.Vector3(ox+fdx*sMid  +pdx*co[1]*1.2, H*0.52, oz+fdz*sMid  +pdz*co[1]*1.2),
+    new THREE.Vector3(ox+fdx*sLow  +pdx*co[0]*0.6, H*0.26, oz+fdz*sLow  +pdz*co[0]*0.6),
+    new THREE.Vector3(ox+fdx*sTip  +pdx*co[1]*0.4, H*0.06, oz+fdz*sTip  +pdz*co[1]*0.4),
+    new THREE.Vector3(ox+fdx*(CL+RL*(-0.02))+pdx*0, -0.55, oz+fdz*(CL+RL*(-0.02))+pdz*0),
+  ];
+  const slideCurve=new THREE.CatmullRomCurve3(slidePoints);
+  const slideGeo=new THREE.TubeGeometry(slideCurve,90,1.25,16,false);
+  const slideAccent=new THREE.Color(rLCol).lerp(new THREE.Color(0x22cc55),0.55);
+  const slideTubeMat=new THREE.MeshStandardMaterial({
+    color:0x1aaa44,roughness:0.16,metalness:0.14,
+    emissive:slideAccent,emissiveIntensity:0.6,side:THREE.DoubleSide
+  });
+  const slideTube=new THREE.Mesh(slideGeo,slideTubeMat);
+  addH(slideTube);
+
+  // ── END SIGN — same trigger as always ──
+  const endSign=txt(['[ E ]  COLLECT TOKEN  &  RETURN'],2.6,0.52,'#44ee88',null,13);
+  endSign.position.set(ox+fdx*(TL-1.0),2.6,oz+fdz*(TL-1.0));
+  endSign.rotation.y=ry+Math.PI;addH(endSign);
+  // End glow light
+  const endGL=new THREE.PointLight(0x44ee88,1.1,9);
+  endGL.position.set(ox+fdx*(TL-1.8),2.6,oz+fdz*(TL-1.8));
+  addH(endGL);
+
+  // ═══════════════════════════════════════════════════════════
+  // PER-THEME LIMINAL SPACE — MASSIVE VARIED EXIT ROOMS
+  // ═══════════════════════════════════════════════════════════
+
+  if(vi===0){
+    // ─────────────────────────────────────────────
+    // THEME 0 — THE POOL ROOM
+    // An empty indoor swimming pool, cold and wet and still.
+    // ─────────────────────────────────────────────
+    const poolTileFloor=new THREE.MeshStandardMaterial({color:0x2a6a8a,roughness:0.45,metalness:0.08});
+    const poolTileWall=new THREE.MeshStandardMaterial({color:0x3a8aaa,roughness:0.35,metalness:0.1});
+
+    // Overhead cold-blue fluorescent strips every 9 units
+    for(let al=CL+7; al<TL-4; al+=9){
+      const rL=new THREE.PointLight(0xa0d0ff,1.1,22);
+      rL.position.set(ox+fdx*al,H-0.5,oz+fdz*al);
+      addH(rL);
+      const fluor=new THREE.Mesh(new THREE.BoxGeometry(RW*1.5,0.05,0.32),
+        new THREE.MeshBasicMaterial({color:0xc0e8ff}));
+      fluor.position.set(ox+fdx*al,H-0.02,oz+fdz*al);
+      fluor.rotation.y=ry;addH(fluor);
+    }
+    // A second ambient fill light
+    {const rL2=new THREE.PointLight(0x8ab8e8,0.6,RW*2+14);
+     rL2.position.set(ox+fdx*(CL+RL*0.55),2.8,oz+fdz*(CL+RL*0.55));addH(rL2);}
+
+    // Pool basin — lowered floor, tiled walls
+    const bL=RL*0.72, bW=RW*1.55, bAlong=CL+RL*0.18, bDepth=0.88;
+    // Pool floor (lower)
+    {const cx2=ox+fdx*(bAlong+bL/2),cz2=oz+fdz*(bAlong+bL/2);
+     const m=new THREE.Mesh(new THREE.BoxGeometry(bW,0.06,bL),poolTileFloor.clone());
+     m.position.set(cx2,-bDepth+0.03,cz2);m.rotation.y=ry;addH(m);}
+    // Pool basin left wall
+    {const cx2=ox+fdx*(bAlong+bL/2)+pdx*(bW/2),cz2=oz+fdz*(bAlong+bL/2)+pdz*(bW/2);
+     const m=new THREE.Mesh(new THREE.BoxGeometry(TW,bDepth+0.06,bL),poolTileWall.clone());
+     m.position.set(cx2,-bDepth/2,cz2);m.rotation.y=ry;addH(m);}
+    // Pool basin right wall
+    {const cx2=ox+fdx*(bAlong+bL/2)-pdx*(bW/2),cz2=oz+fdz*(bAlong+bL/2)-pdz*(bW/2);
+     const m=new THREE.Mesh(new THREE.BoxGeometry(TW,bDepth+0.06,bL),poolTileWall.clone());
+     m.position.set(cx2,-bDepth/2,cz2);m.rotation.y=ry;addH(m);}
+    // Pool basin near end wall
+    {const cx2=ox+fdx*bAlong,cz2=oz+fdz*bAlong;
+     const m=new THREE.Mesh(new THREE.BoxGeometry(bW+TW*2,bDepth+0.06,TW),poolTileWall.clone());
+     m.position.set(cx2,-bDepth/2,cz2);m.rotation.y=ry;addH(m);}
+    // Pool deck edge strips (coping tiles — raised lip)
+    for(const side of [1,-1]){
+      const cx2=ox+fdx*(bAlong+bL/2)+pdx*(bW/2+0.3)*side;
+      const cz2=oz+fdz*(bAlong+bL/2)+pdz*(bW/2+0.3)*side;
+      const m=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.1,bL),
+        new THREE.MeshStandardMaterial({color:0xd0d8cc,roughness:0.5}));
+      m.position.set(cx2,0.05,cz2);m.rotation.y=ry;addH(m);
+    }
+
+    // Lane dividers on pool floor
+    for(let li=1;li<5;li++){
+      const lanePerp=(li/5-0.5)*bW*0.9;
+      const cx2=ox+fdx*(bAlong+bL/2)+pdx*lanePerp;
+      const cz2=oz+fdz*(bAlong+bL/2)+pdz*lanePerp;
+      const lane=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.02,bL),
+        new THREE.MeshBasicMaterial({color:li%2===0?0x1133cc:0xcc1122}));
+      lane.position.set(cx2,-bDepth+0.04,cz2);lane.rotation.y=ry;addH(lane);
+    }
+
+    // Diving platform at the deep end
+    {const al=CL+RL*0.82;
+     const px=ox+fdx*al,pz=oz+fdz*al;
+     const platMat=new THREE.MeshStandardMaterial({color:0x888888,roughness:0.5,metalness:0.2});
+     const board=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.12,3.8),platMat.clone());
+     board.position.set(px,2.6,pz);addH(board);
+     const leg=new THREE.Mesh(new THREE.BoxGeometry(0.12,2.6,0.12),
+       new THREE.MeshStandardMaterial({color:0x555566,roughness:0.5,metalness:0.5}));
+     leg.position.set(px,1.3,pz);addH(leg);
+     const base=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.1,0.9),platMat.clone());
+     base.position.set(px,0.05,pz);addH(base);}
+
+    // Starting blocks every few lane positions
+    for(let bi=0;bi<4;bi++){
+      const bperp=(bi/3-0.5)*bW*0.72;
+      const bcx=ox+fdx*(bAlong-0.3)+pdx*bperp;
+      const bcz=oz+fdz*(bAlong-0.3)+pdz*bperp;
+      const blk=new THREE.Mesh(new THREE.BoxGeometry(0.65,0.35,0.55),
+        new THREE.MeshStandardMaterial({color:0x334466,roughness:0.7}));
+      blk.position.set(bcx,0.18,bcz);blk.rotation.y=ry;addH(blk);
+    }
+
+    // TVs on pool deck walls — 4 total
+    const poolLbls=['CAM 01 — DECK A','CAM 02 — DEEP END','CAM 03 — DECK B','CAM 04 — ENTRY'];
+    const poolTVAlongs=[CL+8, CL+20, CL+32, CL+42];
+    const poolTVSides=[1,-1,1,-1];
+    for(let ti=0;ti<poolTVAlongs.length;ti++){
+      const al=poolTVAlongs[ti], side=poolTVSides[ti];
+      if(al>=TL-5) continue;
+      const ang=ry+(side>0?Math.PI/2:-Math.PI/2);
+      mkPropTV(al,(RW-0.15)*side,2.05,ang,poolLbls[ti]);
+    }
+    // Extra wide TV at far end
+    mkPropTV(TL-2,0,2.1,ry+Math.PI,'OVERVIEW',3.5,2.2);
+
+    // Floor text
+    {const fx=txt(['"the pool has been empty since 2008."','"the lights do not know this."'],4.2,0.38,'#0a2a3a',null,9);
+     fx.position.set(ox+fdx*(CL+RL*0.55),0.03,oz+fdz*(CL+RL*0.55));
+     fx.rotation.x=-Math.PI/2;fx.rotation.z=-ry;addH(fx);}
+
+    // Wet floor sign (yellow warning)
+    {const wfx=ox+fdx*(CL+RL*0.22),wfz=oz+fdz*(CL+RL*0.22);
+     const wf=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.9,0.55),
+       new THREE.MeshStandardMaterial({color:0xeebb00,roughness:0.5,emissive:0x664400,emissiveIntensity:0.3}));
+     wf.position.set(wfx,0.45,wfz);addH(wf);}
+
+  }else if(vi===1){
+    // ─────────────────────────────────────────────
+    // THEME 1 — THE OFFICE
+    // An open-plan office, 2am on a Tuesday, chairs still pushed in.
+    // ─────────────────────────────────────────────
+    const carpetMat=new THREE.MeshStandardMaterial({color:0x3a3a4a,roughness:0.95});
+    const deskMat=new THREE.MeshStandardMaterial({color:0x7a7a6a,roughness:0.7});
+    const partMat=new THREE.MeshStandardMaterial({color:0x888877,roughness:0.88});
+    const chairMat=new THREE.MeshStandardMaterial({color:0x223344,roughness:0.8});
+
+    // Carpet overlay on floor
+    {const m=new THREE.Mesh(new THREE.BoxGeometry(RW*1.9,0.04,RL*0.96),carpetMat.clone());
+     m.position.set(ox+fdx*(CL+RL*0.5),0.04,oz+fdz*(CL+RL*0.5));m.rotation.y=ry;addH(m);}
+
+    // Cold fluorescent lights with close ribs
+    for(let al=CL+5;al<TL-3;al+=6){
+      const rL=new THREE.PointLight(0xe0ecff,0.7,14);
+      rL.position.set(ox+fdx*al,H-0.3,oz+fdz*al);addH(rL);
+    }
+    // Drop ceiling ribs 1.4 apart
+    for(let ri=CL+2;ri<TL;ri+=1.4){
+      const rib=new THREE.Mesh(new THREE.BoxGeometry(RW*2+TW,0.04,0.1),
+        new THREE.MeshStandardMaterial({color:0xbbbbaa,roughness:0.85}));
+      rib.position.set(ox+fdx*ri,H-0.03,oz+fdz*ri);rib.rotation.y=ry;addH(rib);
+    }
+    // Fluorescent tube fixtures
+    for(let al=CL+5;al<TL-3;al+=10){
+      for(const side of [-1,0,1]){
+        const fcx=ox+fdx*al+pdx*side*(RW*0.44);
+        const fcz=oz+fdz*al+pdz*side*(RW*0.44);
+        const fluor=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.04,2.8),
+          new THREE.MeshBasicMaterial({color:0xd8eeff}));
+        fluor.position.set(fcx,H-0.02,fcz);fluor.rotation.y=ry;addH(fluor);
+      }
+    }
+
+    // Desk clusters — 3 rows of desks
+    const deskAlongs=[CL+7, CL+16, CL+25, CL+34];
+    for(let di=0;di<deskAlongs.length;di++){
+      const al=deskAlongs[di];
+      if(al>=TL-5) continue;
+      for(const side of [1,-1]){
+        // Desk surface
+        const dcx=ox+fdx*al+pdx*(RW*0.46)*side;
+        const dcz=oz+fdz*al+pdz*(RW*0.46)*side;
+        const desk=new THREE.Mesh(new THREE.BoxGeometry(2.0,0.07,2.6),deskMat.clone());
+        desk.position.set(dcx,0.76,dcz);desk.rotation.y=ry;addH(desk);
+        // Desk legs
+        for(const lx of [-0.8,0.8]) for(const lz of [-1.1,1.1]){
+          const leg=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.76,0.07),deskMat.clone());
+          leg.position.set(dcx+pdx*lx+fdx*lz*0.2,0.38,dcz+pdz*lx+fdz*lz*0.2);addH(leg);
+        }
+        // Chair
+        const chx=dcx-fdx*1.2,chz=dcz-fdz*1.2;
+        const cseat=new THREE.Mesh(new THREE.BoxGeometry(0.55,0.07,0.55),chairMat.clone());
+        cseat.position.set(chx,0.52,chz);addH(cseat);
+        const cback=new THREE.Mesh(new THREE.BoxGeometry(0.55,0.65,0.07),chairMat.clone());
+        cback.position.set(chx,0.85,chz+fdz*0.25);cback.rotation.y=ry;addH(cback);
+        const cleg=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.52,0.07),chairMat.clone());
+        cleg.position.set(chx,0.26,chz);addH(cleg);
+        // Monitor on desk
+        const tvAngle=ry+(side>0?Math.PI/2:-Math.PI/2);
+        mkPropTV(al,RW*0.46*side,1.44,tvAngle,null,1.6,1.1);
+      }
+    }
+
+    // Partition walls (waist height, perpendicular every 9u)
+    for(let al=CL+10;al<TL-8;al+=11){
+      const cx2=ox+fdx*al,cz2=oz+fdz*al;
+      const partH=1.4;
+      const m=new THREE.Mesh(new THREE.BoxGeometry(RW*1.5,partH,0.09),partMat.clone());
+      m.position.set(cx2,partH/2,cz2);m.rotation.y=ry;addH(m);
+      addCol(cx2,cz2,RW*1.5,0.09);
+      // L-return partition
+      const side=(Math.floor(al/11)%2===0)?1:-1;
+      const px2=ox+fdx*(al+3)+pdx*RW*0.34*side;
+      const pz2=oz+fdz*(al+3)+pdz*RW*0.34*side;
+      const m2=new THREE.Mesh(new THREE.BoxGeometry(0.09,partH,3.8),partMat.clone());
+      m2.position.set(px2,partH/2,pz2);m2.rotation.y=ry;addH(m2);
+    }
+
+    // Large presentation TV on far wall
+    mkPropTV(TL-1.5,0,2.1,ry+Math.PI,'PRESENTATION',4.5,2.8);
+    // Side wall TVs
+    mkPropTV(CL+RL*0.3, RW-0.14, 2.0, ry+Math.PI/2,'SCREEN B');
+    mkPropTV(CL+RL*0.65,-RW+0.14, 2.0, ry-Math.PI/2,'SCREEN C');
+
+    {const ofTxt=txt(['"you are still here."','"the meeting ended hours ago."'],3.5,0.36,'#2a2a1a',null,9);
+     ofTxt.position.set(ox+fdx*(CL+RL*0.52),0.04,oz+fdz*(CL+RL*0.52));
+     ofTxt.rotation.x=-Math.PI/2;ofTxt.rotation.z=-ry;addH(ofTxt);}
+
+    // Fire exit sign at end
+    {const fex=txt(['FIRE EXIT'],1.2,0.3,'#ff2200','#111111',10);
+     fex.position.set(ox+fdx*(TL-3),3.5,oz+fdz*(TL-3));fex.rotation.y=ry+Math.PI;addH(fex);
+     const feL=new THREE.PointLight(0xff2200,0.4,4);
+     feL.position.set(ox+fdx*(TL-3.5),3.5,oz+fdz*(TL-3.5));addH(feL);}
+
+  }else if(vi===2){
+    // ─────────────────────────────────────────────
+    // THEME 2 — THE MALL ATRIUM
+    // A shopping mall atrium at 3am. The lights are on. Nobody came.
+    // ─────────────────────────────────────────────
+    const marbMat=new THREE.MeshStandardMaterial({color:0xe8e0cc,roughness:0.35,metalness:0.12});
+    const storeMat=new THREE.MeshStandardMaterial({color:0x3a3830,roughness:0.7});
+    const glassMat=new THREE.MeshStandardMaterial({color:0x88aacc,roughness:0.1,metalness:0.05,transparent:true,opacity:0.3});
+
+    // Warm overhead flood lights
+    for(let al=CL+9;al<TL-5;al+=10){
+      const rL=new THREE.PointLight(0xffe090,1.3,22);
+      rL.position.set(ox+fdx*al,H-0.4,oz+fdz*al);addH(rL);
+    }
+    // Ceiling skylight panel grid
+    for(let al=CL+6;al<TL-6;al+=14){
+      const panel=new THREE.Mesh(new THREE.BoxGeometry(RW*1.4,0.06,5.5),
+        new THREE.MeshBasicMaterial({color:0xffd070}));
+      panel.position.set(ox+fdx*al,H-0.02,oz+fdz*al);panel.rotation.y=ry;addH(panel);
+    }
+
+    // Decorative columns (3 pairs)
+    for(let ci=0;ci<3;ci++){
+      const al=CL+9+ci*13;
+      if(al>=TL-8) continue;
+      for(const side of [1,-1]){
+        const pcx=ox+fdx*al+pdx*(RW*0.6)*side;
+        const pcz=oz+fdz*al+pdz*(RW*0.6)*side;
+        const col2=new THREE.Mesh(new THREE.BoxGeometry(0.8,H,0.8),marbMat.clone());
+        col2.position.set(pcx,H/2,pcz);col2.rotation.y=ry;addH(col2);
+        addCol(pcx,pcz,0.8,0.8);
+        const cap2=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.22,1.2),marbMat.clone());
+        cap2.position.set(pcx,H-0.11,pcz);addH(cap2);
+        const base2=new THREE.Mesh(new THREE.BoxGeometry(1.1,0.18,1.1),marbMat.clone());
+        base2.position.set(pcx,0.09,pcz);addH(base2);
+      }
+    }
+
+    // Upper balcony ledge both sides
+    for(const side of [1,-1]){
+      const lperp=(RW-1.1)*side;
+      const lcx=ox+fdx*(CL+RL*0.5)+pdx*lperp;
+      const lcz=oz+fdz*(CL+RL*0.5)+pdz*lperp;
+      const ledge=new THREE.Mesh(new THREE.BoxGeometry(TW+0.1,0.24,RL*0.82),marbMat.clone());
+      ledge.position.set(lcx,3.1,lcz);ledge.rotation.y=ry;addH(ledge);
+      // Railing posts
+      for(let ri=0;ri<Math.floor(RL*0.82/3);ri++){
+        const ral=CL+(RL-RL*0.82)/2+ri*3;
+        const rcx=ox+fdx*ral+pdx*lperp,rcz=oz+fdz*ral+pdz*lperp;
+        const post=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.65,0.07),marbMat.clone());
+        post.position.set(rcx,3.44,rcz);addH(post);
+      }
+    }
+
+    // Fountain base — centre of room
+    {const fal=CL+RL*0.32;
+     const fcx=ox+fdx*fal,fcz=oz+fdz*fal;
+     const fBase=new THREE.Mesh(new THREE.CylinderGeometry(4.0,4.4,0.5,24,1,false),marbMat.clone());
+     fBase.position.set(fcx,0.25,fcz);addH(fBase);
+     const fRim=new THREE.Mesh(new THREE.CylinderGeometry(4.1,4.1,0.14,24,1,true),marbMat.clone());
+     fRim.position.set(fcx,0.45,fcz);addH(fRim);
+     const fPool=new THREE.Mesh(new THREE.CylinderGeometry(3.7,3.7,0.16,24,1,false),
+       new THREE.MeshStandardMaterial({color:0x446688,roughness:0.25}));
+     fPool.position.set(fcx,0.08,fcz);addH(fPool);
+     // Fountain glow
+     const fGL=new THREE.PointLight(0x44aacc,0.6,8);fGL.position.set(fcx,0.4,fcz);addH(fGL);}
+
+    // Store fronts on side walls — glass panels + dark frame
+    const storeAlongs=[CL+8,CL+20,CL+33,CL+45];
+    for(let si2=0;si2<storeAlongs.length;si2++){
+      const al=storeAlongs[si2];
+      if(al>=TL-6) continue;
+      for(const side of [1,-1]){
+        const sx=ox+fdx*al+pdx*(RW-0.08)*side;
+        const sz=oz+fdz*al+pdz*(RW-0.08)*side;
+        // Frame
+        const fr=new THREE.Mesh(new THREE.BoxGeometry(0.15,H,6.5),storeMat.clone());
+        fr.position.set(sx,H/2,sz);fr.rotation.y=ry;addH(fr);
+        // Glass (2 panels)
+        for(const goff of [-1.4,1.4]){
+          const gcx=sx+fdx*goff, gcz=sz+fdz*goff;
+          const gp=new THREE.Mesh(new THREE.BoxGeometry(0.04,3.0,2.5),glassMat.clone());
+          gp.position.set(gcx,1.5,gcz);gp.rotation.y=ry;addH(gp);
+        }
+        // Store TV display
+        const tvAngle=ry+(side>0?Math.PI/2:-Math.PI/2);
+        mkPropTV(al,(RW-0.18)*side,2.0,tvAngle,null,3.0,1.9);
+        // Store name sign
+        const storeNames=['EMPTY UNIT','CLOSED UNTIL FURTHER NOTICE','NO VACANCY','UNIT '+String(si2*2+1)];
+        const sn=txt([storeNames[si2%storeNames.length]],2.6,0.3,'#4a4030',null,9);
+        sn.position.set(sx,3.3,sz);sn.rotation.y=ry+(side>0?Math.PI/2:-Math.PI/2);addH(sn);
+        break; // one per along
+      }
+    }
+
+    // Large directory display at entry and end
+    mkPropTV(CL+4,0,2.3,ry,'DIRECTORY',3.8,2.5);
+    mkPropTV(TL-2,0,2.1,ry+Math.PI,'EXIT OVERVIEW',4.0,2.6);
+
+    {const mTxt=txt(['"the mall closed in 2009."','"nobody told the lights."'],4.0,0.36,'#2a200c',null,9);
+     mTxt.position.set(ox+fdx*(CL+RL*0.6),0.03,oz+fdz*(CL+RL*0.6));
+     mTxt.rotation.x=-Math.PI/2;mTxt.rotation.z=-ry;addH(mTxt);}
+
+    // Benches (2)
+    for(let bi=0;bi<2;bi++){
+      const bal=CL+RL*0.46+bi*12;
+      if(bal>=TL-6) continue;
+      const bx=ox+fdx*bal,bz=oz+fdz*bal;
+      const bench=new THREE.Mesh(new THREE.BoxGeometry(3.2,0.12,0.7),marbMat.clone());
+      bench.position.set(bx,0.48,bz);addH(bench);
+      for(const leg of [-1.2,1.2]){
+        const bl=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.48,0.55),marbMat.clone());
+        bl.position.set(bx+pdx*leg,0.24,bz+pdz*leg);addH(bl);
+      }
+    }
+
+  }else if(vi===3){
+    // ─────────────────────────────────────────────
+    // THEME 3 — THE HOTEL CORRIDOR
+    // A long hotel corridor, every room number the same, the carpet never ends.
+    // ─────────────────────────────────────────────
+    const carpetHMat=new THREE.MeshStandardMaterial({color:0x3a0808,roughness:0.95});
+    const doorFrMat=new THREE.MeshStandardMaterial({color:0x7a5535,roughness:0.6});
+    const doorPnMat=new THREE.MeshStandardMaterial({color:0x1a0c04,roughness:0.9});
+    const sconceMat=new THREE.MeshBasicMaterial({color:0xffcc88});
+
+    // Rich burgundy carpet
+    {const m=new THREE.Mesh(new THREE.BoxGeometry(RW*1.85,0.04,RL*0.97),carpetHMat.clone());
+     m.position.set(ox+fdx*(CL+RL*0.5),0.04,oz+fdz*(CL+RL*0.5));m.rotation.y=ry;addH(m);}
+
+    // Carpet runner stripe down center
+    {const m=new THREE.Mesh(new THREE.BoxGeometry(0.8,0.05,RL*0.97),
+       new THREE.MeshStandardMaterial({color:0x660022,roughness:0.9}));
+     m.position.set(ox+fdx*(CL+RL*0.5),0.05,oz+fdz*(CL+RL*0.5));m.rotation.y=ry;addH(m);}
+
+    // Sconce lights every 7 units on both sides
+    for(let al=CL+7;al<TL-5;al+=7){
+      for(const side of [1,-1]){
+        const scx=ox+fdx*al+pdx*(RW-0.22)*side;
+        const scz=oz+fdz*al+pdz*(RW-0.22)*side;
+        const rL=new THREE.PointLight(0xff7744,0.85,9);
+        rL.position.set(scx,2.3,scz);addH(rL);
+        // Sconce fixture
+        const sfx=new THREE.Mesh(new THREE.BoxGeometry(0.32,0.26,0.24),sconceMat.clone());
+        sfx.position.set(scx,2.3,scz);addH(sfx);
+        const sback=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.28,0.08),
+          new THREE.MeshStandardMaterial({color:0x8a6030,roughness:0.5}));
+        sback.position.set(scx,2.3,scz);sback.rotation.y=ry;addH(sback);
+      }
+    }
+    // Main ambient fill
+    {const rL2=new THREE.PointLight(0xff8855,0.5,RW*2+12);
+     rL2.position.set(ox+fdx*(CL+RL*0.5),H-0.4,oz+fdz*(CL+RL*0.5));addH(rL2);}
+
+    // Room door frames on both sides every 10 units
+    let roomNum=401+vi*20;
+    for(let al=CL+8;al<TL-7;al+=10){
+      for(const side of [1,-1]){
+        const dfx=ox+fdx*al+pdx*(RW-0.06)*side;
+        const dfz=oz+fdz*al+pdz*(RW-0.06)*side;
+        // Frame left post
+        const fL=new THREE.Mesh(new THREE.BoxGeometry(0.13,3.1,0.16),doorFrMat.clone());
+        fL.position.set(dfx+pdx*0.56*side,1.55,dfz+pdz*0.56*side);fL.rotation.y=ry;addH(fL);
+        // Frame right post
+        const fR=new THREE.Mesh(new THREE.BoxGeometry(0.13,3.1,0.16),doorFrMat.clone());
+        fR.position.set(dfx-pdx*0.56*side,1.55,dfz-pdz*0.56*side);fR.rotation.y=ry;addH(fR);
+        // Frame top
+        const fTop=new THREE.Mesh(new THREE.BoxGeometry(1.38,0.16,0.16),doorFrMat.clone());
+        fTop.position.set(dfx,3.18,dfz);fTop.rotation.y=ry;addH(fTop);
+        // Dark door panel
+        const dp2=new THREE.Mesh(new THREE.BoxGeometry(1.1,3.0,0.07),doorPnMat.clone());
+        dp2.position.set(dfx,1.5,dfz);dp2.rotation.y=ry;addH(dp2);
+        // Room number
+        const numMesh=txt([String(roomNum)],0.46,0.24,'#c8b870',null,10);
+        numMesh.position.set(dfx+pdx*0.38*side,2.2,dfz+pdz*0.38*side);
+        numMesh.rotation.y=ry+(side>0?Math.PI/2:-Math.PI/2);addH(numMesh);
+        // Peephole
+        const peep=new THREE.Mesh(new THREE.SphereGeometry(0.04,6,4),
+          new THREE.MeshStandardMaterial({color:0xc8a040,roughness:0.2,metalness:0.8}));
+        peep.position.set(dfx,1.95,dfz);addH(peep);
+        roomNum++;
+      }
+      roomNum++;
+    }
+
+    // Wall paneling — recessed panels every 6 units
+    for(let al=CL+4;al<TL-4;al+=6){
+      for(const side of [1,-1]){
+        const wx=ox+fdx*al+pdx*(RW-0.08)*side;
+        const wz=oz+fdz*al+pdz*(RW-0.08)*side;
+        const panel=new THREE.Mesh(new THREE.BoxGeometry(0.04,1.2,2.2),
+          new THREE.MeshStandardMaterial({color:0x8a6040,roughness:0.7,emissive:0x110800,emissiveIntensity:0.2}));
+        panel.position.set(wx,1.5,wz);panel.rotation.y=ry;addH(panel);
+      }
+    }
+
+    // TVs on stands in corridor — 3 sets
+    const hotelTVAlongs=[CL+13,CL+23,CL+35,CL+45];
+    const hotelLbls=['FLOOR CAM 01','FLOOR CAM 02','FLOOR CAM 03','FLOOR CAM 04'];
+    for(let ti=0;ti<hotelTVAlongs.length;ti++){
+      const al=hotelTVAlongs[ti];
+      if(al>=TL-5) continue;
+      const scx=ox+fdx*al,scz=oz+fdz*al;
+      // Stand pole
+      const stand=new THREE.Mesh(new THREE.BoxGeometry(0.08,1.1,0.08),
+        new THREE.MeshStandardMaterial({color:0x222222,roughness:0.7,metalness:0.5}));
+      stand.position.set(scx,0.55,scz);addH(stand);
+      const base=new THREE.Mesh(new THREE.BoxGeometry(0.65,0.06,0.5),
+        new THREE.MeshStandardMaterial({color:0x222222,roughness:0.7}));
+      base.position.set(scx,0.03,scz);addH(base);
+      mkPropTV(al,0,1.82,ry+Math.PI,hotelLbls[ti],2.0,1.4);
+    }
+
+    // End wall — large ornate TV above mantle
+    mkPropTV(TL-1.8,0,2.1,ry+Math.PI,'SURVEILLANCE',3.8,2.4);
+
+    // Chair at end
+    {const cal=TL-5;
+     const cx2=ox+fdx*cal,cz2=oz+fdz*cal;
+     const cseat=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.1,0.65),
+       new THREE.MeshStandardMaterial({color:0x4a2222,roughness:0.9}));
+     cseat.position.set(cx2,0.5,cz2);addH(cseat);
+     const cback=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.85,0.1),
+       new THREE.MeshStandardMaterial({color:0x4a2222,roughness:0.9}));
+     cback.position.set(cx2,0.93,cz2+fdz*0.28);cback.rotation.y=ry;addH(cback);
+     for(const lpos of [[-0.28,-0.28],[-0.28,0.28],[0.28,-0.28],[0.28,0.28]]){
+       const cl=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.5,0.06),
+         new THREE.MeshStandardMaterial({color:0x2a1a1a,roughness:0.8}));
+       cl.position.set(cx2+pdx*lpos[0]+fdx*lpos[1]*0.3,0.25,cz2+pdz*lpos[0]+fdz*lpos[1]*0.3);addH(cl);
+     }}
+
+    {const htTxt=txt(['"do not disturb."','"room 419 has not checked out since tuesday."'],4.5,0.4,'#1a0808',null,9);
+     htTxt.position.set(ox+fdx*(CL+RL*0.55),0.04,oz+fdz*(CL+RL*0.55));
+     htTxt.rotation.x=-Math.PI/2;htTxt.rotation.z=-ry;addH(htTxt);}
+
+  }else{
+    // ─────────────────────────────────────────────
+    // THEME 4 — THE BRUTALIST BASEMENT
+    // Raw concrete, exposed infrastructure, sodium light.
+    // ─────────────────────────────────────────────
+    const concMat=new THREE.MeshStandardMaterial({color:0x888878,roughness:0.92});
+    const pipeMat=new THREE.MeshStandardMaterial({color:0x2a2a2a,roughness:0.55,metalness:0.65});
+    const utilMat=new THREE.MeshStandardMaterial({color:0x2a3a1a,roughness:0.7,metalness:0.35});
+
+    // Sodium industrial lights — pendant fixtures
+    for(let al=CL+7;al<TL-4;al+=9){
+      const rL=new THREE.PointLight(0xff8800,1.6,22);
+      rL.position.set(ox+fdx*al,H-0.6,oz+fdz*al);addH(rL);
+      // Pendant shade
+      const pshade=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.28,0.3,10),
+        new THREE.MeshStandardMaterial({color:0x333322,roughness:0.7,metalness:0.5}));
+      pshade.position.set(ox+fdx*al,H-0.15,oz+fdz*al);addH(pshade);
+      const pbulb=new THREE.Mesh(new THREE.SphereGeometry(0.17,8,6),
+        new THREE.MeshBasicMaterial({color:0xffcc44}));
+      pbulb.position.set(ox+fdx*al,H-0.44,oz+fdz*al);addH(pbulb);
+      // Cage
+      const pcage=new THREE.Mesh(new THREE.CylinderGeometry(0.24,0.24,0.32,10,1,true),
+        new THREE.MeshStandardMaterial({color:0x222222,roughness:0.8,metalness:0.6,wireframe:true}));
+      pcage.position.set(ox+fdx*al,H-0.44,oz+fdz*al);addH(pcage);
+    }
+
+    // Concrete floor overlay
+    {const m=new THREE.Mesh(new THREE.BoxGeometry(RW*1.9,0.04,RL*0.97),concMat.clone());
+     m.position.set(ox+fdx*(CL+RL*0.5),0.04,oz+fdz*(CL+RL*0.5));m.rotation.y=ry;addH(m);}
+
+    // Heavy support columns — 3 pairs
+    for(let ci=0;ci<3;ci++){
+      const al=CL+10+ci*12;
+      if(al>=TL-8) continue;
+      for(const side of [1,-1]){
+        const pcx=ox+fdx*al+pdx*(RW*0.52)*side;
+        const pcz=oz+fdz*al+pdz*(RW*0.52)*side;
+        const col2=new THREE.Mesh(new THREE.BoxGeometry(1.1,H,1.1),concMat.clone());
+        col2.position.set(pcx,H/2,pcz);col2.rotation.y=ry;addH(col2);
+        addCol(pcx,pcz,1.1,1.1);
+        // Beam across ceiling
+        const bx=new THREE.Mesh(new THREE.BoxGeometry(RW*0.85,0.28,0.55),concMat.clone());
+        bx.position.set(ox+fdx*al,H-0.14,oz+fdz*al);bx.rotation.y=ry;addH(bx);
+      }
+    }
+
+    // Pipes along ceiling — 3 runs
+    for(let pi=0;pi<3;pi++){
+      const pPerp=(pi-1)*RW*0.44;
+      // Main horizontal pipe run
+      const pcx=ox+fdx*(CL+RL*0.5)+pdx*pPerp;
+      const pcz=oz+fdz*(CL+RL*0.5)+pdz*pPerp;
+      const pipe=new THREE.Mesh(new THREE.CylinderGeometry(0.13,0.13,RL*0.93,10),pipeMat.clone());
+      pipe.rotation.x=Math.PI/2;
+      pipe.position.set(pcx,H-0.35,pcz);
+      pipe.rotation.z=ry;
+      addH(pipe);
+      // Pipe brackets every 8 units
+      for(let pbi=CL+4;pbi<TL-4;pbi+=8){
+        const brx=ox+fdx*pbi+pdx*pPerp,brz=oz+fdz*pbi+pdz*pPerp;
+        const br=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.28,0.12),pipeMat.clone());
+        br.position.set(brx,H-0.2,brz);addH(br);
+      }
+    }
+    // Vertical drop pipes
+    for(let vp=0;vp<4;vp++){
+      const val=CL+8+vp*10, vside=(vp%2===0?1:-1)*RW*0.36;
+      const vpx=ox+fdx*val+pdx*vside,vpz=oz+fdz*val+pdz*vside;
+      const vpipe=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,H*0.7,8),pipeMat.clone());
+      vpipe.position.set(vpx,H*0.35,vpz);addH(vpipe);
+      const elbow=new THREE.Mesh(new THREE.TorusGeometry(0.12,0.07,6,8,Math.PI/2),pipeMat.clone());
+      elbow.position.set(vpx,H-0.35,vpz);addH(elbow);
+    }
+
+    // Utility boxes / fuse panels on walls
+    for(let bi=0;bi<5;bi++){
+      const al=CL+6+bi*9, side=bi%2===0?1:-1;
+      if(al>=TL-5) continue;
+      const bx=ox+fdx*al+pdx*(RW-0.08)*side;
+      const bz=oz+fdz*al+pdz*(RW-0.08)*side;
+      const box2=new THREE.Mesh(new THREE.BoxGeometry(0.95,0.75,0.15),utilMat.clone());
+      box2.position.set(bx,1.6,bz);box2.rotation.y=ry;addH(box2);
+      // Box door
+      const bdoor=new THREE.Mesh(new THREE.BoxGeometry(0.88,0.68,0.04),
+        new THREE.MeshStandardMaterial({color:0x1a2a0a,roughness:0.8}));
+      bdoor.position.set(bx,1.6,bz);bdoor.rotation.y=ry;addH(bdoor);
+      // Indicator light
+      const indCol=bi%3===0?0xff2200:0x22aa22;
+      const ind=new THREE.Mesh(new THREE.SphereGeometry(0.04,6,4),
+        new THREE.MeshBasicMaterial({color:indCol}));
+      ind.position.set(bx+pdx*(side>0?0.3:-0.3),1.82,bz+pdz*(side>0?0.3:-0.3));addH(ind);
+      const indL=new THREE.PointLight(indCol,0.3,3);
+      indL.position.copy(ind.position);addH(indL);
+    }
+
+    // Drain channel on floor — centre run
+    {const dcx=ox+fdx*(CL+RL*0.5),dcz=oz+fdz*(CL+RL*0.5);
+     const drain=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.05,RL*0.88),
+       new THREE.MeshStandardMaterial({color:0x111111,roughness:0.95}));
+     drain.position.set(dcx,0.02,dcz);drain.rotation.y=ry;addH(drain);
+     // Grate segments
+     for(let gi=CL+4;gi<TL-4;gi+=3.5){
+       const gcx=ox+fdx*gi,gcz=oz+fdz*gi;
+       const grate=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.04,3.0),
+         new THREE.MeshStandardMaterial({color:0x333322,roughness:0.9,metalness:0.4,wireframe:true}));
+       grate.position.set(gcx,0.03,gcz);grate.rotation.y=ry;addH(grate);
+     }}
+
+    // TVs on utility stands — 4 sets
+    const brutAlongs=[CL+7,CL+17,CL+27,CL+37];
+    const brutSides=[1,-1,1,-1];
+    const brutLbls=['SECTOR A','SECTOR B','SECTOR C','SECTOR D'];
+    for(let ti=0;ti<brutAlongs.length;ti++){
+      const al=brutAlongs[ti];
+      if(al>=TL-5) continue;
+      const side=brutSides[ti];
+      const stcx=ox+fdx*al+pdx*(RW*0.32)*side;
+      const stcz=oz+fdz*al+pdz*(RW*0.32)*side;
+      // Stand
+      const stand=new THREE.Mesh(new THREE.BoxGeometry(0.09,1.15,0.09),
+        new THREE.MeshStandardMaterial({color:0x333333,roughness:0.8,metalness:0.6}));
+      stand.position.set(stcx,0.57,stcz);addH(stand);
+      const sbase=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.06,0.5),
+        new THREE.MeshStandardMaterial({color:0x333333,roughness:0.8}));
+      sbase.position.set(stcx,0.03,stcz);addH(sbase);
+      const ang=ry+(side>0?Math.PI/2:-Math.PI/2);
+      mkPropTV(al,RW*0.32*side,1.84,ang,brutLbls[ti]);
+    }
+
+    // End wall overview TV
+    mkPropTV(TL-1.8,0,2.1,ry+Math.PI,'BASEMENT CAM',3.8,2.4);
+
+    // Wall-mounted TVs on both long walls
+    mkPropTV(CL+RL*0.35, RW-0.14, 2.1, ry+Math.PI/2,'CAM EAST');
+    mkPropTV(CL+RL*0.7, -RW+0.14, 2.1, ry-Math.PI/2,'CAM WEST');
+
+    {const brTxt=txt(['"something drains here."','"it has not stopped since the building opened."'],4.5,0.38,'#1a1a0a',null,9);
+     brTxt.position.set(ox+fdx*(CL+RL*0.58),0.04,oz+fdz*(CL+RL*0.58));
+     brTxt.rotation.x=-Math.PI/2;brTxt.rotation.z=-ry;addH(brTxt);}
+
+    // Concrete stain marks on floor
+    for(let si3=0;si3<6;si3++){
+      const sal=CL+5+si3*7, sperp=(Math.sin(si3*2.1)*0.5)*RW*0.7;
+      const scx2=ox+fdx*sal+pdx*sperp,scz2=oz+fdz*sal+pdz*sperp;
+      const stain=new THREE.Mesh(new THREE.PlaneGeometry(0.9+Math.random()*0.8,0.5+Math.random()*0.6),
+        new THREE.MeshStandardMaterial({color:0x222211,roughness:1,transparent:true,opacity:0.55}));
+      stain.position.set(scx2,0.045,scz2);stain.rotation.x=-Math.PI/2;addH(stain);
+    }
+  }
 }
+
+// Called when player presses E at a shown door
+function enterCorridor(door){
+  if(corridorActive||door.used)return;
+  door.used=true;
+  door.grp.visible=false;
+
+  corridorActive=true;
+  corridorDoor=door;
+  corridorCloseWallAdded=false;
+  corridorEntryPos.copy(camera.position);
+  corridorEntryRot=camera.rotation.y;
+
+  if(!door.corridorBuilt)prebuildCorridorForDoor(door);
+
+  const url=DOOR_VIDS[door.vidIdx];
+  if(url){
+    corridorState='door_video';
+    doorVideoState='playing';
+    doorVideo.src=url;
+    doorVideo.play().catch(()=>{});
+    doorVideoPlane.position.set(door.grp.position.x,1.65,door.grp.position.z);
+    doorVideoPlane.rotation.y=door.grp.rotation.y;
+    doorVideoPlane.visible=true;
+    doorVideo.onended=()=>_revealCorridor();
+    setObjective('Watch the archive.  [ E ] to skip.');
+    duckTarget=0.12;
+  } else {
+    // No video — enter the corridor directly with a brief dramatic pause
+    corridorState='door_video';
+    setObjective('The corridor is open. Enter.');
+    setTimeout(()=>_revealCorridor(), 600);
+  }
+  sfxOpen();
+}
+
+// Video ends (or skipped) → reveal corridor, teleport player in
+function _revealCorridor(){
+  if(corridorState!=='door_video')return;
+  doorVideoState='closed';
+  doorVideo.pause(); doorVideo.src='';
+  doorVideoPlane.visible=false;
+  duckTarget=1;
+
+  const door=corridorDoor; if(!door)return;
+
+  door.corridorHiddenMeshes.forEach(m=>{ m.visible=true; });
+  door.corridorHiddenColliders.forEach(col=>colliders.push(col));
+
+  corridorState='locked';
+
+  camera.position.set(
+    door.cOx+door.cFdx*5,
+    2,
+    door.cOz+door.cFdz*5
+  );
+  camera.rotation.y=door.cRy;
+  camera.rotation.x=0;
+
+  whisper('the wall seals behind you.\nno way back.');
+  setObjective('Walk to the end of the corridor.');
+  sfxOpen();
+  setTimeout(()=>sfxUI(),600);
+}
+
+// Triggered from animate() once player is 4.5+ units inside
+function addClosingWall(){
+  if(corridorCloseWallAdded||!corridorDoor)return;
+  corridorCloseWallAdded=true;
+
+  const door=corridorDoor;
+  const{fdx,fdz,pdx,pdz}=corridorDir(door.cRy);
+  const ox=door.cOx, oz=door.cOz;
+  const HW=1.5, H=WH, TW=T_WALL;
+  const cx=ox+fdx*4.8, cz=oz+fdz*4.8;
+
+  const wMat=new THREE.MeshStandardMaterial({
+    color:WALL_COLOR,roughness:0.35,metalness:0.12,
+    emissive:0x110800,emissiveIntensity:0.6
+  });
+  const m=new THREE.Mesh(new THREE.BoxGeometry(HW*2+TW*2,H,TW),wMat);
+  m.position.set(cx,H/2,cz); m.rotation.y=door.cRy; m.receiveShadow=true;
+  m.visible=true; scene.add(m);
+  door.corridorHiddenMeshes.push(m);
+
+  const s=Math.abs(Math.sin(door.cRy)),c=Math.abs(Math.cos(door.cRy));
+  const bw=HW*2+TW*2, bd=TW;
+  const bx=(bw*c+bd*s)/2, bz=(bw*s+bd*c)/2;
+  const col={x0:cx-bx,x1:cx+bx,z0:cz-bz,z1:cz+bz};
+  colliders.push(col);
+  door.corridorHiddenColliders.push(col);
+
+  corridorState='locked';
+  whisper('sealed.\nno exit.');
+  sfxUI();
+  setObjective('Reach the end. Collect the token.');
+}
+
+// Player reaches far end and presses E
+function exitCorridor(){
+  const door=corridorDoor; if(!door)return;
+  collectToken(door.vidIdx);
+
+  const fadeEl=$('fade');
+  fadeEl.classList.add('on');
+  setTimeout(()=>{
+    door.corridorHiddenMeshes.forEach(m=>{
+      scene.remove(m);
+      if(m.geometry)m.geometry.dispose();
+      if(m.material&&m.material.dispose)m.material.dispose();
+    });
+    door.corridorHiddenColliders.forEach(col=>{
+      const idx=colliders.indexOf(col);
+      if(idx!==-1)colliders.splice(idx,1);
+    });
+    door.corridorHiddenMeshes=[];
+    door.corridorHiddenColliders=[];
+    corridorActive=false;
+    corridorDoor=null;
+    corridorState='idle';
+    corridorCloseWallAdded=false;
+    doorVideoState='closed';
+
+    camera.position.copy(corridorEntryPos);
+    camera.rotation.y=corridorEntryRot+Math.PI;
+    camera.rotation.x=0;
+
+    setObjective(archived.size>=GATE_TOTAL?
+      'Every record archived. The slide is open — step in.':
+      (isMobile?'Find every screen. Tap WATCH. Archive all five.':'Find every screen. Press [E] to watch. Archive all five.'));
+    setTimeout(()=>fadeEl.classList.remove('on'),300);
+  },1200);
+}
+// ════════════════════════════════════════════════════════════════
+// END CORRIDOR SYSTEM
+// ════════════════════════════════════════════════════════════════
 
 // ── TOKEN SYSTEM ──
 const collectedTokens=new Set();
@@ -421,9 +1451,32 @@ function init(){
   buildShadowFig();
   buildBlackFig();
   buildDoorVideoPlane();
+  buildMusic();
   setupControls();
   setupTouch();
   setupPost();
+  setupSkipBtn();
+
+  doorList.forEach(d=>{ d.grp.visible=true; });
+  renderer.compile(scene,camera);
+  doorList.forEach(d=>{ d.grp.visible=false; });
+
+  renderer.setRenderTarget(renderTarget);
+  renderer.render(scene,camera);
+  renderer.setRenderTarget(null);
+  renderer.render(postScene,postCamera);
+
+  const loadFill=$('c-loadfill');
+  const loadTxt=$('c-loadtxt');
+  const phase1=$('c-phase1');
+  const phase2=$('c-phase2');
+  loadFill.style.width='100%';
+  loadTxt.textContent='READY';
+  setTimeout(()=>{
+    phase1.style.display='none';
+    phase2.style.display='flex';
+  },1300);
+
   $('connect').addEventListener('click',startGame);
   $('connect').addEventListener('touchstart',startGame,{passive:true});
   $('ibtn').addEventListener('click',interact);
@@ -431,6 +1484,12 @@ function init(){
   addEventListener('resize',onResize);
   setObjective(isMobile?'Tap WATCH at each screen. Archive all five.':'Press [E] at each screen. Archive all five.');
   animate();
+}
+
+function setupSkipBtn(){
+  $('skipbtn').addEventListener('click',()=>{
+    if(corridorState==='door_video') _revealCorridor();
+  });
 }
 
 function onResize(){
@@ -549,10 +1608,12 @@ function T(lines,w,h,col,bg,fs,px,py,pz,ry){
   mesh.position.set(px,py,pz);
   if(ry!==undefined)mesh.rotation.y=ry;
   scene.add(mesh);
-  const gl=new THREE.PointLight(glCol,0.45,7);
-  const off=ry!==undefined?0.5:0.4;
-  gl.position.set(px+(ry!==undefined?Math.sin(ry+Math.PI)*off:0),py,pz+(ry!==undefined?Math.cos(ry+Math.PI)*off:off));
-  scene.add(gl);
+  if(!isMobile){
+    const gl=new THREE.PointLight(glCol,0.45,7);
+    const off=ry!==undefined?0.5:0.4;
+    gl.position.set(px+(ry!==undefined?Math.sin(ry+Math.PI)*off:0),py,pz+(ry!==undefined?Math.cos(ry+Math.PI)*off:off));
+    scene.add(gl);
+  }
   return mesh;
 }
 
@@ -560,13 +1621,13 @@ function floorSign(lines,px,pz,sz){
   sz=sz||1.8;
   const r=shapePanelMesh(lines,sz,sz);
   r.mesh.position.set(px,0.02,pz);r.mesh.rotation.x=-Math.PI/2;scene.add(r.mesh);
-  const gl=new THREE.PointLight(r.gl,0.35,5);gl.position.set(px,0.6,pz);scene.add(gl);
+  if(!isMobile){const gl=new THREE.PointLight(r.gl,0.35,5);gl.position.set(px,0.6,pz);scene.add(gl);}
 }
 function ceilSign(lines,px,pz,sz){
   sz=sz||1.8;
   const r=shapePanelMesh(lines,sz,sz);
   r.mesh.position.set(px,WH-0.02,pz);r.mesh.rotation.x=Math.PI/2;scene.add(r.mesh);
-  const gl=new THREE.PointLight(r.gl,0.3,5);gl.position.set(px,WH-0.7,pz);scene.add(gl);
+  if(!isMobile){const gl=new THREE.PointLight(r.gl,0.3,5);gl.position.set(px,WH-0.7,pz);scene.add(gl);}
 }
 
 function walls(ox,oz,W,D,o){
@@ -599,25 +1660,24 @@ function roomLights(ox,oz,W,D){
 // ════ WHITE DOOR SPAWNER ════
 function spawnDoor(vidIdx,x,z,ry){
   const grp=new THREE.Group();
-  const wMat=new THREE.MeshStandardMaterial({color:0xf2ede4,roughness:0.22,metalness:0.04,emissive:0x161208,emissiveIntensity:0.2});
+  const wMat=new THREE.MeshStandardMaterial({color:0xf2ede4,roughness:0.22,metalness:0.04,emissive:0x3a3320,emissiveIntensity:0.6});
   const dp=new THREE.Mesh(new THREE.BoxGeometry(1.45,3.3,0.09),wMat);
   dp.position.set(0,1.65,0);dp.castShadow=true;grp.add(dp);
-  const fMat=new THREE.MeshStandardMaterial({color:0xe2ddd4,roughness:0.3,metalness:0.03});
+  const fMat=new THREE.MeshStandardMaterial({color:0xe2ddd4,roughness:0.3,metalness:0.03,emissive:0x1a160c,emissiveIntensity:0.4});
   const fTop=new THREE.Mesh(new THREE.BoxGeometry(1.75,0.12,0.13),fMat);fTop.position.set(0,3.36,0);grp.add(fTop);
   const fL=new THREE.Mesh(new THREE.BoxGeometry(0.13,3.4,0.13),fMat);fL.position.set(-0.82,1.65,0);grp.add(fL);
   const fR=new THREE.Mesh(new THREE.BoxGeometry(0.13,3.4,0.13),fMat);fR.position.set(0.82,1.65,0);grp.add(fR);
-  const hMat=new THREE.MeshStandardMaterial({color:0xc8a830,roughness:0.12,metalness:0.9});
+  const hMat=new THREE.MeshStandardMaterial({color:0xc8a830,roughness:0.12,metalness:0.9,emissive:0x2a2008,emissiveIntensity:0.5});
   const handle=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.24,0.13),hMat);
   handle.position.set(0.56,1.46,0.11);grp.add(handle);
   const hBase=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.06),hMat);
   hBase.position.set(0.56,1.46,0.07);grp.add(hBase);
-  const gl=new THREE.PointLight(0xf5f0e0,0.55,8);
-  gl.position.set(0,2.2,0.7);grp.add(gl);
   grp.position.set(x,0,z);
   if(ry!==undefined)grp.rotation.y=ry;
   grp.visible=false;
   scene.add(grp);
-  const d={grp,vidIdx,wp:new THREE.Vector3(x,1.6,z),shown:false,used:false};
+  const d={grp,vidIdx,wp:new THREE.Vector3(x,1.6,z),shown:false,used:false,
+    corridorBuilt:false,corridorHiddenMeshes:[],corridorHiddenColliders:[]};
   doorList.push(d);
   return d;
 }
@@ -654,9 +1714,10 @@ function addTV(x,z,vidIdx,angle,opts){
     wp:new THREE.Vector3(x,2,z),nx,nz,angle:angle||0,label:lbl,seen:false,archived:false};
   tvList.push(tv);return tv;
 }
+
 function playTV(tv){
   const v=VIDS[tv.vidIdx];
-  if(!v.url){flashFact('SIGNAL LOST\n'+v.lbl);sfxStatic();return;}
+  if(!v.url){flashFact(v.lbl+'\nUPLOAD PENDING');sfxStatic();return;}
   tv.seen=true;tintSeen(tv);
   if(videoObj){
     activeTV=tv;
@@ -669,10 +1730,12 @@ function playTV(tv){
     tv.archived=true;archived.add(tv.vidIdx);
     updateArch();
     whisper(WHISPERS[Math.floor(Math.random()*WHISPERS.length)]);
-    // Reveal the matching door
     const door=doorList.find(d=>d.vidIdx===tv.vidIdx);
-    if(door&&!door.shown){door.shown=true;door.grp.visible=true;whisper('a door appeared.');}
-    // Enable crowd
+    if(door&&!door.shown){
+      door.shown=true;door.grp.visible=true;
+      prebuildCorridorForDoor(door);
+      whisper('a door appeared.');
+    }
     crowdEnabled=true;
     if(archived.size>=GATE_TOTAL)openSlide();
   }
@@ -703,9 +1766,6 @@ function updateVideoVisibility(){
 }
 
 // ════ WORLD ════
-// Layout: R4(-48,0) — R1(0,0) — R2(48,0)
-//                      |           |
-//                    R3(0,48) — R5a(48,48) — R5b(96,48) — END(144,48)
 function buildWorld(){
   buildR1(0,0);
   buildR2(48,0);
@@ -716,7 +1776,6 @@ function buildWorld(){
   buildEnd(144,48);
 }
 
-// ROOM 1 — Spawn / Archive Record (vid 0)
 function buildR1(ox,oz){
   floorCeil(ox,oz,48,48);roomLights(ox,oz,48,48);
   walls(ox,oz,48,48,{s:true,e:true,w:true});
@@ -733,14 +1792,12 @@ function buildR1(ox,oz){
   floorSign(['HE DID THIS TO HIMSELF'],cx+8,oz+32,3);
   ceilSign(['WATCHING'],cx,oz+18,2);
   ceilSign(['THE ARCHIVE'],cx-12,oz+38,2.4);
-  // Door vid 0 on north wall
   spawnDoor(0, cx-10, oz+2, 0);
   buildSlide([new THREE.Vector3(ox+3,2.6,oz+1),new THREE.Vector3(ox+3,2.4,oz+5),
               new THREE.Vector3(ox+5,1.6,oz+9),new THREE.Vector3(ox+7,0.7,oz+12),
               new THREE.Vector3(ox+8,-0.6,oz+15)],false);
 }
 
-// ROOM 2 — The Mirror (vid 1)
 function buildR2(ox,oz){
   floorCeil(ox,oz,48,48);roomLights(ox,oz,48,48);
   walls(ox,oz,48,48,{w:true,s:true});
@@ -758,11 +1815,9 @@ function buildR2(ox,oz){
   floorSign(['mask slipped'],cx-14,oz+8,2);
   ceilSign(['dairy is violence'],cx+10,oz+36,2.6);
   ceilSign(['PARADOX'],cx-8,oz+14,1.8);
-  // Door vid 1 on north wall
   spawnDoor(1, cx+10, oz+2, 0);
 }
 
-// ROOM 4 — The Echo Chamber (vid 3)
 function buildR4(ox,oz){
   floorCeil(ox,oz,48,48);roomLights(ox,oz,48,48);
   walls(ox,oz,48,48,{e:true});
@@ -779,11 +1834,9 @@ function buildR4(ox,oz){
   floorSign(['crazy vegan'],cx-12,oz+40,2.4);
   ceilSign(['bark like a dog'],cx+10,oz+10,2.8);
   ceilSign(['MICRO'],cx-6,oz+42,1.8);
-  // Door vid 3 on south wall
   spawnDoor(3, cx, oz+46, Math.PI);
 }
 
-// ROOM 3 — The Observatory (vid 2)
 function buildR3(ox,oz){
   floorCeil(ox,oz,48,48);roomLights(ox,oz,48,48);
   walls(ox,oz,48,48,{n:true,e:true});
@@ -798,11 +1851,9 @@ function buildR3(ox,oz){
   floorSign(['115 dB'],cx+14,oz+8,2);
   ceilSign(['selective empathy'],cx-10,oz+36,2.6);
   ceilSign(['SEO TRAP'],cx+6,oz+14,2);
-  // Door vid 2 on west wall
   spawnDoor(2, ox+2, cz, Math.PI/2);
 }
 
-// ROOM 5a — The Caloric Classroom (vid 4)
 function buildR5a(ox,oz){
   floorCeil(ox,oz,48,48);roomLights(ox,oz,48,48);
   walls(ox,oz,48,48,{n:true,w:true,e:true});
@@ -821,11 +1872,9 @@ function buildR5a(ox,oz){
   floorSign(['MEAT: 25:1'],cx-14,oz+10,2);
   ceilSign(['hypocrite'],cx+10,oz+38,2.2);
   ceilSign(['THERMODYNAMICS'],cx-6,oz+16,2.8);
-  // Door vid 4 on south wall
   spawnDoor(4, cx, oz+46, Math.PI);
 }
 
-// ROOM 5b — The Admission Room
 function buildR5b(ox,oz){
   floorCeil(ox,oz,48,48);
   walls(ox,oz,48,48,{w:true,e:true});
@@ -847,7 +1896,6 @@ function buildR5b(ox,oz){
   ceilSign(['always convenience'],cx-8,oz+40,2.4);
 }
 
-// END ROOM — green slide to Stage 10
 function buildEnd(ox,oz){
   floorCeil(ox,oz,48,48);
   walls(ox,oz,48,48,{w:true});
@@ -905,7 +1953,6 @@ function shadowSilhouette(){
   x.lineTo(90,246);x.quadraticCurveTo(98,200,92,150);x.quadraticCurveTo(90,108,94,86);x.closePath();x.fill();
   x.beginPath();x.ellipse(95,252,8,10,0,0,Math.PI*2);x.fill();
   x.filter='blur(2px)';
-  x.fillStyle='rgba(150,28,28,0.32)';x.beginPath();x.arc(52,36,2.7,0,Math.PI*2);x.fill();
   x.fillStyle='rgba(150,28,28,0.22)';x.beginPath();x.arc(65,38,1.9,0,Math.PI*2);x.fill();
   x.filter='none';
   const g=x.createLinearGradient(0,0,0,384);
@@ -967,35 +2014,32 @@ function buildShadowFig(){
 function placeNear(minD,maxD,behind){
   for(let i=0;i<24;i++){
     let a;
-    if(behind){a=camera.rotation.y+Math.PI+(Math.random()-0.5)*1.2;}
+    if(behind){a=camera.rotation.y+Math.PI+(Math.random()*1.2-0.6);}
     else{a=Math.random()*Math.PI*2;}
-    const r=minD+Math.random()*(maxD-minD);
-    const px=camera.position.x+Math.sin(a)*r,pz=camera.position.z+Math.cos(a)*r;
-    if(isOpen(px,pz))return{x:px,z:pz};
+    const d=minD+Math.random()*(maxD-minD);
+    const x=camera.position.x+Math.sin(a)*d;
+    const z=camera.position.z+Math.cos(a)*d;
+    if(isOpen(x,z))return{x,z};
   }
   return null;
 }
 function updateShadowFig(dt){
-  const s=shadowFig;if(!s.sprite)return;
-  if(s.frames&&s.sprite.material.opacity>0.02){
-    shadowGlitchT--;
-    if(shadowGlitchT<=0){
-      s.sprite.material.map=s.frames[(Math.random()*s.frames.length)|0];
-      s.sprite.material.needsUpdate=true;
-      shadowGlitchT=3+((Math.random()*5)|0);
-    }
-    s.sprite.position.x=s.x+(Math.random()*2-1)*0.035;
-    s.sprite.position.y=1.3+(Math.random()*2-1)*0.02;
-  }
-  s.sprite.position.z=s.z;
+  const s=shadowFig;if(!s.sprite||!s.frames)return;
+  s.peekCooldown=Math.max(0,s.peekCooldown-1);
+  s.sprite.position.set(s.x,1.3,s.z);
+  if(s.light)s.light.position.set(s.x,1.4,s.z);
   const dx=s.x-camera.position.x,dz=s.z-camera.position.z;
   const dist=Math.hypot(dx,dz);
   const fwdX=Math.sin(camera.rotation.y),fwdZ=Math.cos(camera.rotation.y);
   const dot=(dx*fwdX+dz*fwdZ)/Math.max(0.1,dist);
-  const looking=dot>0.75&&dist<14;
-  const veryClose=dist<2.5;
-  s.peekCooldown=Math.max(0,s.peekCooldown-1);
-  if(veryClose&&looking&&jumpscareReady&&s.sprite.material.opacity>0.15){
+  const looking=dot>0.7&&dist<22;
+  shadowGlitchT+=dt;
+  if(shadowGlitchT>0.12){
+    shadowGlitchT=0;
+    const fi=Math.floor(Math.random()*s.frames.length);
+    s.sprite.material.map=s.frames[fi];s.sprite.material.needsUpdate=true;
+  }
+  if(s.sprite.material.opacity>0.3&&dist<2.4&&jumpscareReady){
     jumpscareReady=false;strobeOnce();sfxScare();
     s.sprite.material.opacity=0;if(s.light)s.light.intensity=0;
     sanity=Math.max(0,sanity-12);
@@ -1102,7 +2146,7 @@ function solidAt(x,z,extra){
   return false;
 }
 function isOpen(x,z){
-  if(x<-46||x>190||z<2||z>94)return false;
+  if(x<-46||x>190||z<-30||z>130)return false;
   return !solidAt(x,z,0.5);
 }
 function tryMove(nx,nz){
@@ -1152,6 +2196,101 @@ function sfxStatic(){blip(200,0.15,'square',0.05);}
 function sfxOpen(){blip(330,0.6,'sine',0.10);blip(495,0.6,'sine',0.07);}
 function sfxUI(){blip(440,0.12,'sine',0.05);}
 
+// ════ DUCKING ════
+let duckLevel=1, duckTarget=1;
+
+// ════ FOOTSTEPS + DARK FOLLOWER ════
+let noiseBuf=null;
+function getNoiseBuf(){
+  const a=ac();if(!a)return null;
+  if(!noiseBuf){
+    const len=Math.floor(a.sampleRate*0.4);
+    noiseBuf=a.createBuffer(1,len,a.sampleRate);
+    const d=noiseBuf.getChannelData(0);
+    for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+  }
+  return noiseBuf;
+}
+function footstep(vol,cut,dur,rateLo,rateHi){
+  const a=ac();if(!a)return;
+  const buf=getNoiseBuf();if(!buf)return;
+  vol=(vol||0.085)*duckLevel;
+  if(vol<=0.0015)return;
+  const src=a.createBufferSource();src.buffer=buf;
+  src.playbackRate.value=(rateLo||0.85)+Math.random()*((rateHi||1.15)-(rateLo||0.85));
+  const lp=a.createBiquadFilter();lp.type='lowpass';lp.frequency.value=cut||340;
+  const g=a.createGain();
+  const t=a.currentTime,dd=dur||0.13;
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(vol,t+0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dd);
+  src.connect(lp);lp.connect(g);g.connect(a.destination);
+  src.start(t);src.stop(t+dd+0.02);
+}
+let stepAccum=0;
+const STRIDE=2.1;
+const FOLLOW_DELAY=0.27;
+const followQueue=[];
+function updateFootsteps(t,movedDist,darkness){
+  stepAccum+=movedDist;
+  if(stepAccum>=STRIDE){
+    stepAccum-=STRIDE;
+    footstep(0.085,340,0.13,0.85,1.15);
+    if(darkness>0.34)followQueue.push({t:t+FOLLOW_DELAY,dk:darkness});
+  }
+  for(let i=followQueue.length-1;i>=0;i--){
+    if(t>=followQueue[i].t){
+      const dk=followQueue[i].dk;
+      footstep(0.05*Math.min(1,dk*1.4),205,0.2,0.62,0.82);
+      followQueue.splice(i,1);
+    }
+  }
+}
+
+// ════ MUSIC ════
+const MUSIC_URLS=[
+  'https://earthlingofficial.com/srsstudio-life-is-just-nothing-else-pioggia-liminal-tranquillo-328126.mp3',
+  'https://earthlingofficial.com/9jackjack8-drowsy-liminal-dreamcore-512448.mp3'
+];
+const MUSIC_BURSTS=[10,20,30,45,60];
+const MUSIC_GAP=[12,45];
+const MUSIC_CEILING=0.42;
+const MUSIC_FADE=2.6;
+let musicEls=[],musicActive=null,musicVol=0,musicTarget=0,musicStarted=false;
+function buildMusic(){
+  musicEls=MUSIC_URLS.map(u=>{
+    const a=new Audio();a.src=u;a.preload='metadata';a.loop=true;a.volume=0;
+    return a;
+  });
+}
+function startMusicCycle(){
+  if(musicStarted)return;musicStarted=true;
+  scheduleBurst(2+Math.random()*4);
+}
+function scheduleBurst(delay){
+  setTimeout(()=>{
+    if(ending)return;
+    musicActive=musicEls[Math.floor(Math.random()*musicEls.length)];
+    const d=musicActive.duration;
+    musicActive.currentTime=(isFinite(d)&&d>30)?Math.random()*(d-25):0;
+    musicVol=0;musicActive.play().catch(()=>{});
+    musicTarget=MUSIC_CEILING;
+    const hold=MUSIC_BURSTS[Math.floor(Math.random()*MUSIC_BURSTS.length)];
+    setTimeout(()=>{ musicTarget=0; }, (hold+MUSIC_FADE)*1000);
+    setTimeout(()=>{
+      if(musicActive)musicActive.pause();
+      const gap=MUSIC_GAP[0]+Math.random()*(MUSIC_GAP[1]-MUSIC_GAP[0]);
+      scheduleBurst(gap);
+    }, (hold+MUSIC_FADE*2)*1000);
+  }, delay*1000);
+}
+function updateMusic(dt){
+  const speed=MUSIC_CEILING/MUSIC_FADE;
+  if(musicVol<musicTarget)musicVol=Math.min(musicTarget,musicVol+speed*dt);
+  else if(musicVol>musicTarget)musicVol=Math.max(musicTarget,musicVol-speed*dt);
+  if(musicActive)musicActive.volume=Math.max(0,Math.min(1,musicVol*duckLevel));
+}
+
 // ════ UI HELPERS ════
 function setObjective(t){$('obj').textContent=t;}
 function flashFact(t){const el=$('fact');el.textContent=t;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),5200);}
@@ -1169,19 +2308,37 @@ function updateInteract(){
   const hint=$('hint'),ib=$('ibtn');
   let label=null; nearTV=null; nearDoor=null;
 
-  // Door video is playing — show close hint and exit
-  if(doorVideoState==='playing'){
-    if(isMobile){ib.textContent='CLOSE';ib.style.display='flex';hint.style.display='none';}
-    else{hint.style.display='block';hint.textContent='[ E ] CLOSE';ib.style.display='none';}
+  if(corridorActive){
     $('xh').classList.remove('lock');
+
+    if(corridorState==='door_video'){
+      if(isMobile){ib.textContent='SKIP';ib.style.display='flex';hint.style.display='none';}
+      else{hint.style.display='block';hint.textContent='[ E ] SKIP VIDEO';ib.style.display='none';}
+      $('skipbtn').style.display='block';
+      return;
+    }
+    if((corridorState==='locked'||corridorState==='entering')&&corridorDoor&&
+        camera.position.distanceTo(corridorDoor.cEndPos)<3.5){
+      corridorState='at_end';
+    }
+    if(corridorState==='at_end'){
+      $('skipbtn').style.display='none';
+      if(isMobile){ib.textContent='COLLECT & RETURN';ib.style.display='flex';hint.style.display='none';}
+      else{hint.style.display='block';hint.textContent='[ E ] COLLECT & RETURN';ib.style.display='none';}
+      $('xh').classList.add('lock');
+      return;
+    }
+    $('skipbtn').style.display='none';
+    hint.style.display='none'; ib.style.display='none';
     return;
   }
+
+  $('skipbtn').style.display='none';
 
   if(slideOpen&&camera.position.distanceTo(slideMouth)<3.2){
     nearTV='SLIDE';label='STEP IN';$('xh').classList.add('lock');
   } else {
     $('xh').classList.remove('lock');
-    // Check doors first (shown, not used)
     for(const d of doorList){
       if(!d.shown||d.used)continue;
       if(camera.position.distanceTo(d.wp)<3.5){nearDoor=d;label='ENTER';$('xh').classList.add('lock');break;}
@@ -1206,10 +2363,25 @@ function updateInteract(){
 function interact(){
   if(!started||ending)return;
   sfxUI();
+
+  if(corridorActive){
+    if(corridorState==='door_video'){_revealCorridor();return;}
+    if(corridorState==='at_end'){exitCorridor();return;}
+    return;
+  }
+
   if(doorVideoState==='playing'){closeDoorVideo();return;}
   if(nearTV==='SLIDE'){rideSlide();return;}
-  if(nearDoor){openDoorVideo(nearDoor);return;}
+  if(nearDoor){enterCorridor(nearDoor);return;}
   if(nearTV)playTV(nearTV);
+}
+
+function closeDoorVideo(){
+  doorVideoState='closed';
+  doorVideo.pause();
+  doorVideo.src='';
+  if(doorVideoPlane)doorVideoPlane.visible=false;
+  if(activeDoor){collectToken(activeDoor.vidIdx);activeDoor=null;}
 }
 
 function rideSlide(){
@@ -1217,6 +2389,7 @@ function rideSlide(){
   setObjective('');
   $('hint').style.display='none';
   if(videoIframe)videoIframe.src='';
+  musicTarget=0;followQueue.length=0;
   whisper('down, then. mind the drop.');
   $('fade').classList.add('on');
   setTimeout(()=>{window.location.href='veganbrosstage10.html';},1300);
@@ -1260,6 +2433,8 @@ function setupTouch(){
 // ════ GAME ════
 function startGame(){
   if(started)return;started=true;ac();
+  if(AC&&AC.state==='suspended')AC.resume();
+  startMusicCycle();
   const ov=$('connect');ov.classList.add('fade');setTimeout(()=>ov.style.display='none',1700);
   if(matchMedia('(hover:hover) and (pointer:fine)').matches)document.body.requestPointerLock&&document.body.requestPointerLock();
   setObjective(isMobile?'Find every screen. Tap WATCH. Archive all five.':'Find every screen. Press [E] to watch. Archive all five.');
@@ -1273,13 +2448,11 @@ function animate(){
 
   if(!started){renderer.setRenderTarget(null);renderer.render(scene,camera);return;}
 
-  // Touch look
   if(td.r.a){
     camera.rotation.y-=td.r.mx*0.03;
     camera.rotation.x=Math.max(-Math.PI/2.4,Math.min(Math.PI/2.4,camera.rotation.x-td.r.my*0.03));
   }
 
-  // Movement
   vel.x-=vel.x*10*dt;vel.z-=vel.z*10*dt;
   const dz=Number(kW)-Number(kS),dxk=Number(kD)-Number(kA);
   if(kW||kS)vel.z+=dz*40*dt;
@@ -1290,11 +2463,17 @@ function animate(){
   const wantX=camera.position.x,wantZ=camera.position.z;
   camera.position.copy(before);
   tryMove(wantX,wantZ);
+  const movedDist=Math.hypot(camera.position.x-before.x,camera.position.z-before.z);
   camera.position.y=2;
+
+  const watching=(videoObj&&videoObj.visible)||doorVideoState==='playing';
+  duckTarget=watching?0.18:1;
+  duckLevel+=(duckTarget-duckLevel)*Math.min(1,dt*4);
+  updateFootsteps(t,movedDist,darknessAt(camera.position.x,camera.position.z));
+  updateMusic(dt);
 
   if(++fuzzFrame%3===0)updateFuzz();
 
-  // Systems
   updateShadowFig(dt);
   updateBlackFig();
   updateCrowd(dt,t);
@@ -1302,18 +2481,14 @@ function animate(){
   updateVideoVisibility();
   updateSanityHUD();
 
-  // Sanity slow regen
   if(shadowFig.sprite.material.opacity<0.1&&blackFig.sprite.material.opacity<0.1&&crowd.length===0)
     sanity=Math.min(100,sanity+3*dt);
 
-  // Facts
   factTimer-=dt;
   if(factTimer<=0){flashFact(FACTS[factIdx++%FACTS.length]);factTimer=18+Math.random()*22;}
-  // Whispers
   whisperTimer--;
   if(whisperTimer<=0){whisper(WHISPERS[Math.floor(Math.random()*WHISPERS.length)]);whisperTimer=600+Math.floor(Math.random()*600);}
 
-  // Render
   renderer.setRenderTarget(renderTarget);renderer.render(scene,camera);
   renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
   if(css3d)css3d.render(scene,camera);
