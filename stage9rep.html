@@ -1400,6 +1400,9 @@ function addTV(x,z,vidIdx,angle,opts){
 function playTV(tv){
   const v=VIDS[tv.vidIdx];
   if(!v.url){flashFact('SIGNAL LOST\n'+v.lbl);sfxStatic();return;}
+  if(tv.vidIdx===6&&(collectedTokens.size<5||archived.size<GATE_TOTAL)){
+    flashFact('COLLECT ALL 5 TOKENS FIRST.');sfxStatic();return;
+  }
   tv.seen=true;tintSeen(tv);
   if(v.isMP4){
     // Play MP4 fullscreen using doorVideo element
@@ -1418,7 +1421,7 @@ function playTV(tv){
     videoIframe.src=v.url+'?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1';
   } else { flashFact(v.lbl+'\n(screen offline)'); }
   // VIDS[7] = reward video on R5b spare TV — watching it drops the end wall
-  if(tv.vidIdx===7&&!endVideoActive){
+  if(tv.vidIdx===6&&!endVideoActive&&collectedTokens.size>=5&&archived.size>=GATE_TOTAL){
     endVideoActive=true;
     dropEndWall();
   }
@@ -1579,7 +1582,7 @@ function buildR5b(ox,oz){
   sp.castShadow=true;sp.shadow.mapSize.set(512,512);sp.shadow.bias=-0.003;
   scene.add(sp);scene.add(sp.target);
   ceilPanel(ox+10,oz+40);ceilPanel(ox+38,oz+40);
-  addTV(cx,oz+4,7,0);
+  addTV(cx,oz+4,6,0);
   T(['11:40','','Dean Withers admitted:','','"If a plant-based product tasted','identical to meat, I would go vegan','without needing convincing."','','the barrier was never philosophical.','it was always convenience.'],9,2.8,'#f5e8c0','#050300',16,cx,2.3,oz+46.6,Math.PI);
   T(['18:07 — the superchat:','"just killed 30 cows"','','he laughed.'],3.5,2.2,'#c8a060',null,12,ox+0.6,2,cz,Math.PI/2);
   T(['Deanus Politicus','Carnivorus Paradoxus'],5,1.4,'#c8b86a',null,11,cx,3.4,cz,0);
