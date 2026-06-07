@@ -171,8 +171,8 @@ const VIDS=[
   {url:'https://www.youtube.com/embed/jDQ9zZ0IGFw',lbl:'THE ECHO CHAMBER',gate:true},
   {url:'https://www.youtube.com/embed/RNWmEeJLGnI',lbl:'THE CALORIC CON',gate:true},
   {url:null,lbl:'DEBATE 06 — SIGNAL LOST'},
+  {url:'https://www.youtube.com/embed/RRSX2YF4tiI',lbl:'DEBATE 07',gate:false},
   {url:'https://www.youtube.com/embed/RRSX2YF4tiI',lbl:'THE FINAL RECORD',gate:false},
-  {url:null,lbl:'DEBATE 08 — SIGNAL LOST'},
   {url:null,lbl:'DEBATE 09 — SIGNAL LOST'},
   {url:null,lbl:'DEBATE 10 — SIGNAL LOST'},
   {url:null,lbl:'DEBATE 11 — SIGNAL LOST'},
@@ -1410,7 +1410,7 @@ function playTV(tv){
     videoIframe.src=v.url+'?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1';
   } else { flashFact(v.lbl+'\n(screen offline)'); }
   // VIDS[7] = reward video on R5b spare TV — watching it drops the end wall
-  if(tv.vidIdx===7&&!endVideoActive&&endSolved){
+  if(tv.vidIdx===7&&!endVideoActive){
     endVideoActive=true;
     dropEndWall();
   }
@@ -1602,13 +1602,15 @@ function buildEnd(ox,oz){
     emissive:0x1a0000,emissiveIntensity:0.9,
     transparent:true,opacity:1
   });
-  endWall=new THREE.Mesh(new THREE.BoxGeometry(48,WH,T_WALL),ewMat);
-  endWall.position.set(cx,WH/2,oz+T_WALL/2);
+  // Wall spans Z (depth of room), blocks X entry from R5b
+  endWall=new THREE.Mesh(new THREE.BoxGeometry(T_WALL,WH,48),ewMat);
+  endWall.position.set(ox+T_WALL/2,WH/2,oz+24);
   endWall.receiveShadow=true;
   scene.add(endWall);
-  colliders.push({x0:ox,x1:ox+48,z0:oz,z1:oz+T_WALL});
+  colliders.push({x0:ox,x1:ox+T_WALL,z0:oz,z1:oz+48});
   const ewLbl=txt(['WATCH THE FINAL RECORD','THEN THIS WALL FALLS'],5,0.5,'#cc2222',null,13);
-  ewLbl.position.set(cx,2.5,oz+T_WALL/2+0.1);
+  ewLbl.position.set(ox+T_WALL/2+0.12,2.5,oz+24);
+  ewLbl.rotation.y=-Math.PI/2;
   scene.add(ewLbl);
 
   // ── SLIDE (sealed until solved) ──
@@ -1750,7 +1752,7 @@ function dropEndWall(){
   // Find and remove the blocking wall collider
   for(let i=colliders.length-1;i>=0;i--){
     const c=colliders[i];
-    if(c.x0<=144&&c.x1>=192&&c.z0<=(48+T_WALL)&&c.z1>=(48)){
+    if(c.x0>=144&&c.x1<=(144+T_WALL+1)&&c.z0<=48&&c.z1>=96){
       colliders.splice(i,1); break;
     }
   }
@@ -1766,9 +1768,8 @@ function dropEndWall(){
       if(ewMesh.geometry)ewMesh.geometry.dispose();
     }
   },30);
-  openSlide();
-  whisper('the way opens.');
-  setObjective(isMobile?'Approach the slide. Tap to enter.':'Approach the slide. Press [E] to enter.');
+  whisper('the wall falls. solve the sequence.');
+  setObjective('Now solve the colour sequence. Shortest timestamp first.');
 }
 
 function solveSequence(){
