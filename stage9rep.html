@@ -562,6 +562,36 @@ function buildCorridorEndTV(door, addH){
   door.corridorTV = tv;
 }
 
+// Faster shape mesh for corridor stickers — 256px canvas instead of 512px
+function corridorShapeMesh(lines,w,h){
+  if(typeof lines==='string')lines=[lines];
+  const p=_SP[(_spI++)%_SP.length];
+  const W=256,H=Math.max(64,Math.round(256*h/w));
+  const c=document.createElement('canvas');c.width=W;c.height=H;
+  const x=c.getContext('2d');
+  x.clearRect(0,0,W,H);
+  x.shadowColor=p.bg;x.shadowBlur=28;
+  x.fillStyle=p.bg;
+  const mx=W/2,my=H/2,rr=Math.min(W,H)*0.44;
+  if(p.s==='circle'){x.beginPath();x.arc(mx,my,rr,0,Math.PI*2);x.fill();}
+  else if(p.s==='triangle'){x.beginPath();x.moveTo(mx,H*0.04);x.lineTo(W*0.96,H*0.96);x.lineTo(W*0.04,H*0.96);x.closePath();x.fill();}
+  else if(p.s==='diamond'){x.beginPath();x.moveTo(mx,H*0.03);x.lineTo(W*0.97,my);x.lineTo(mx,H*0.97);x.lineTo(W*0.03,my);x.closePath();x.fill();}
+  else if(p.s==='hex'){x.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3-Math.PI/6;x.lineTo(mx+rr*Math.cos(a),my+rr*Math.sin(a));}x.closePath();x.fill();}
+  else{const rx=W*0.09,ry2=H*0.09,rw=W*0.88,rh2=H*0.82,rx0=W*0.06,ry0=H*0.09;x.beginPath();x.moveTo(rx0+rx,ry0);x.lineTo(rx0+rw-rx,ry0);x.quadraticCurveTo(rx0+rw,ry0,rx0+rw,ry0+ry2);x.lineTo(rx0+rw,ry0+rh2-ry2);x.quadraticCurveTo(rx0+rw,ry0+rh2,rx0+rw-rx,ry0+rh2);x.lineTo(rx0+rx,ry0+rh2);x.quadraticCurveTo(rx0,ry0+rh2,rx0,ry0+rh2-ry2);x.lineTo(rx0,ry0+ry2);x.quadraticCurveTo(rx0,ry0,rx0+rx,ry0);x.closePath();x.fill();}
+  x.shadowBlur=0;
+  x.fillStyle='#ffffff';x.textAlign='center';x.textBaseline='middle';
+  const maxLen=lines.reduce((m,l)=>Math.max(m,l.length),1);
+  const lh=H/(lines.length+0.9);
+  const baseY=H/2-(lines.length-1)*lh/2;
+  lines.forEach((l,i)=>{
+    const fs=Math.min(lh*0.64,W/(maxLen*0.62+1));
+    x.font='bold '+Math.max(10,Math.round(fs))+'px "Courier New",monospace';
+    x.fillText(l,mx,baseY+i*lh);
+  });
+  const mat=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),transparent:true,side:THREE.DoubleSide,depthWrite:false});
+  return {mesh:new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat),gl:p.gl};
+}
+
 // Pre-build corridor geometry HIDDEN when the door first appears — zero lag on entry
 function prebuildCorridorForDoor(door){
   if(door.corridorBuilt)return;
@@ -706,14 +736,14 @@ function prebuildCorridorForDoor(door){
     const along=3.8+i*2.5;
     const side=i%2===0?1:-1;
     const lines=BRUTAL_STICKERS[si%BRUTAL_STICKERS.length]; si++;
-    const sw=1.3,sh=Math.max(0.3,lines.length*0.26);
-    const col=sCols[i%sCols.length];
-    const sm=txt(lines,sw,sh,col,null,8);
+    const sw=1.4,sh=Math.max(1.0,lines.length*0.5);
+    const r=corridorShapeMesh(lines,sw,sh);
+    const sm=r.mesh;
     const hVar=(Math.sin(i*1.7+vi)*0.5+0.5)*0.8;
     sm.position.set(
-      ox+fdx*along+pdx*(HW-0.06)*side,
+      ox+fdx*along+pdx*(HW-TW/2-0.05)*side,
       hBase+hVar,
-      oz+fdz*along+pdz*(HW-0.06)*side
+      oz+fdz*along+pdz*(HW-TW/2-0.05)*side
     );
     sm.rotation.y=ry-side*(Math.PI/2);
     addH(sm);
@@ -727,14 +757,14 @@ function prebuildCorridorForDoor(door){
     const along=CL+2+i*(RL*0.18);
     const side=i%2===0?1:-1;
     const lines=BRUTAL_STICKERS[siR%BRUTAL_STICKERS.length]; siR++;
-    const sw=1.6,sh=Math.max(0.35,lines.length*0.32);
-    const col=sCols[(i+2)%sCols.length];
-    const sm=txt(lines,sw,sh,col,null,9);
+    const sw=1.6,sh=Math.max(1.1,lines.length*0.55);
+    const r=corridorShapeMesh(lines,sw,sh);
+    const sm=r.mesh;
     const hVar=(Math.sin(i*2.3+vi+1)*0.5+0.5)*0.9;
     sm.position.set(
-      ox+fdx*along+pdx*(RW-0.08)*side,
+      ox+fdx*along+pdx*(RW-TW/2-0.05)*side,
       1.1+hVar,
-      oz+fdz*along+pdz*(RW-0.08)*side
+      oz+fdz*along+pdz*(RW-TW/2-0.05)*side
     );
     sm.rotation.y=ry-side*(Math.PI/2);
     addH(sm);
@@ -772,22 +802,23 @@ function enterCorridor(door){
   corridorEntryPos.copy(camera.position);
   corridorEntryRot=camera.rotation.y;
 
-  // ── INSTANT BLACK — build geometry while screen is opaque, zero perceived lag ──
+  sfxOpen();
+
+  // Pre-load the video src BEFORE going black so it starts buffering immediately
+  const url=DOOR_VIDS[door.vidIdx];
+  if(url){ doorVideo.src=url; doorVideo.load(); }
+
+  // Instant black — build geometry while opaque
   const fadeEl=$('fade');
   fadeEl.style.transition='none';
   fadeEl.style.opacity='1';
 
-  sfxOpen();
-
-  // Build the corridor geometry inside rAF frames while screen is black.
   requestAnimationFrame(()=>{
     requestAnimationFrame(()=>{
-      // All the heavy canvas/texture/mesh work happens here, screen still black.
       prebuildCorridorForDoor(door);
 
-      const url=DOOR_VIDS[door.vidIdx];
       if(url){
-        // Fade back in to show the door-video playing at the door frame
+        // Fade back in — video was pre-buffering during build
         requestAnimationFrame(()=>{
           fadeEl.style.transition='opacity 0.4s ease';
           fadeEl.style.opacity='0';
@@ -795,7 +826,6 @@ function enterCorridor(door){
         });
         corridorState='door_video';
         doorVideoState='playing';
-        doorVideo.src=url;
         doorVideo.play().catch(()=>{});
         doorVideoPlane.position.set(door.grp.position.x,1.65,door.grp.position.z);
         doorVideoPlane.rotation.y=door.grp.rotation.y;
@@ -804,10 +834,9 @@ function enterCorridor(door){
         setObjective('Watch the archive.  [ E ] to skip.');
         duckTarget=0.12;
       } else {
-        // No video — brief SIGNAL LOST flash then straight into corridor
         corridorState='door_video';
         setObjective('Archive not yet available.  Corridor open.');
-        setTimeout(()=>_revealCorridor(), 1800);
+        setTimeout(()=>_revealCorridor(),1800);
       }
     });
   });
@@ -1091,7 +1120,9 @@ function init(){
   setupPost();
   setupSkipBtn();
 
-  // Corridors build on-demand behind instant-black fade — fast load, no spike.
+  // Pre-compile main scene shaders so first movement has zero stall.
+  // Corridors are NOT included here — they build lazily on door entry.
+  renderer.compile(scene,camera);
 
   renderer.setRenderTarget(renderTarget);
   renderer.render(scene,camera);
@@ -2120,6 +2151,16 @@ function startGame(){
   const ov=$('connect');ov.classList.add('fade');setTimeout(()=>ov.style.display='none',1700);
   if(matchMedia('(hover:hover) and (pointer:fine)').matches)document.body.requestPointerLock&&document.body.requestPointerLock();
   setObjective(isMobile?'Find every screen. Tap WATCH. Archive all five.':'Find every screen. Press [E] to watch. Archive all five.');
+  // Warm up GPU shaders across several frames after connect so first movement is lag-free
+  let warmFrames=0;
+  const warmup=()=>{
+    renderer.setRenderTarget(renderTarget);
+    renderer.render(scene,camera);
+    renderer.setRenderTarget(null);
+    renderer.render(postScene,postCamera);
+    if(++warmFrames<8)requestAnimationFrame(warmup);
+  };
+  requestAnimationFrame(warmup);
 }
 
 // ════ ANIMATE ════
@@ -2137,9 +2178,9 @@ function animate(){
 
   vel.x-=vel.x*10*dt;vel.z-=vel.z*10*dt;
   const dz=Number(kW)-Number(kS),dxk=Number(kD)-Number(kA);
-  if(kW||kS)vel.z+=dz*40*dt;
-  if(kA||kD)vel.x-=dxk*40*dt;
-  if(td.l.a){vel.z-=td.l.my*26*dt;vel.x-=td.l.mx*26*dt;}
+  if(kW||kS)vel.z+=dz*48*dt;
+  if(kA||kD)vel.x-=dxk*48*dt;
+  if(td.l.a){vel.z-=td.l.my*32*dt;vel.x-=td.l.mx*32*dt;}
   const before=camera.position.clone();
   camera.translateX(-vel.x*dt);camera.translateZ(-vel.z*dt);
   const wantX=camera.position.x,wantZ=camera.position.z;
