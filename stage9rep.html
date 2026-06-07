@@ -171,7 +171,7 @@ const VIDS=[
   {url:'https://www.youtube.com/embed/jDQ9zZ0IGFw',lbl:'THE ECHO CHAMBER',gate:true},
   {url:'https://www.youtube.com/embed/RNWmEeJLGnI',lbl:'THE CALORIC CON',gate:true},
   {url:null,lbl:'DEBATE 06 — SIGNAL LOST'},
-  {url:null,lbl:'DEBATE 07 — SIGNAL LOST'},
+  {url:'https://github.com/EarthlingOfficial/dean-withers.com/releases/download/v1/0607.1.mp4',lbl:'THE FINAL RECORD',gate:false,isMP4:true},
   {url:null,lbl:'DEBATE 08 — SIGNAL LOST'},
   {url:null,lbl:'DEBATE 09 — SIGNAL LOST'},
   {url:null,lbl:'DEBATE 10 — SIGNAL LOST'},
@@ -191,11 +191,11 @@ const DOOR_VIDS=[
 
 // ── TOKENS ──
 const TOKENS=[
-  {shape:'circle',  time:'2:37'},
-  {shape:'triangle',time:null},
-  {shape:'diamond', time:null},
-  {shape:'hex',     time:null},
-  {shape:'pill',    time:null},
+  {shape:'circle',  time:'2:37', color:'#cc0066'}, // vidIdx 0 — red
+  {shape:'triangle',time:'0:28', color:'#1155cc'}, // vidIdx 1 — blue
+  {shape:'diamond', time:'0:09', color:'#6600cc'}, // vidIdx 2 — purple
+  {shape:'hex',     time:'2:09', color:'#007733'}, // vidIdx 3 — green
+  {shape:'pill',    time:'20:31',color:'#bb4400'}, // vidIdx 4 — orange
 ];
 
 // ── DARK FACTS ──
@@ -279,6 +279,27 @@ let started=false,ending=false;
 let sanity=100;
 const archived=new Set();
 let slideOpen=false, slideMouth=new THREE.Vector3(168,2,68), slideLight=null, slideMat=null;
+
+// ── ENDING SEQUENCE ──
+// Correct order: purple(0:09) → blue(0:28) → green(2:09) → red(2:37) → orange(20:31)
+const END_SEQUENCE=[2,1,3,0,4]; // vidIdx order shortest→longest timestamp
+const END_TV_COLORS=[
+  {vidIdx:0, hex:0xcc0066, css:'#cc0066', label:'2:37'},  // red
+  {vidIdx:1, hex:0x1155cc, css:'#1155cc', label:'0:28'},  // blue
+  {vidIdx:2, hex:0x6600cc, css:'#6600cc', label:'0:09'},  // purple
+  {vidIdx:3, hex:0x007733, css:'#007733', label:'2:09'},  // green
+  {vidIdx:4, hex:0xbb4400, css:'#bb4400', label:'20:31'}, // orange
+];
+const END_REWARD_VIDEO='https://github.com/EarthlingOfficial/dean-withers.com/releases/download/v1/0607.1.mp4';
+const EXIT_VIDEO='https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/MindVideo_20260607173600_104.mp4';
+let endTVs=[];          // {mesh,light,mat,screenMat,vidIdx,activated}
+let endSequencePos=0;   // how many correct so far
+let endSolved=false;    // all 5 correct
+let endVideoActive=false; // reward video watched on R5b TV
+let endWall=null;       // blocking wall between R5b and End — removed when video watched
+let exitVideoActive=false;
+let exitVideoCanSkip=false;
+let exitVideoEl=null;
 
 // Input
 let kW=0,kA=0,kS=0,kD=0;
@@ -972,7 +993,7 @@ function exitCorridor(){
     camera.rotation.x=0;
 
     setObjective(archived.size>=GATE_TOTAL?
-      'Every record archived. The slide is open — step in.':
+      'All archived. Find the end room. Order the timestamps — shortest first.':
       (isMobile?'Find every screen. Tap WATCH. Archive all five.':'Find every screen. Press [E] to watch. Archive all five.'));
     setTimeout(()=>fadeEl.classList.remove('on'),300);
   },1200);
@@ -990,8 +1011,7 @@ function collectToken(vidIdx){
   const tok=TOKENS[vidIdx];
   if(!tok)return;
   const tc=$('tokencanvas'), tx=tc.getContext('2d');
-  const cols=['#cc0066','#6600cc','#0088aa','#007733','#bb4400'];
-  const col=cols[vidIdx%cols.length];
+  const col=(tok&&tok.color)||'#c8b86a';
   tx.clearRect(0,0,180,180);
   tx.shadowColor=col; tx.shadowBlur=42;
   tx.fillStyle=col;
@@ -1382,13 +1402,27 @@ function playTV(tv){
   const v=VIDS[tv.vidIdx];
   if(!v.url){flashFact('SIGNAL LOST\n'+v.lbl);sfxStatic();return;}
   tv.seen=true;tintSeen(tv);
-  if(videoObj){
+  if(v.isMP4){
+    // Play MP4 fullscreen using doorVideo element
+    doorVideo.src=v.url;
+    doorVideo.style.cssText='position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:90;background:#000';
+    doorVideo.style.display='block';
+    doorVideo.play().catch(()=>{});
+    duckTarget=0.12;
+    setObjective(isMobile?'Tap anywhere to continue':'[ E ] to continue');
+    doorVideo.onended=()=>{ doorVideo.style.display='none'; doorVideo.src=''; duckTarget=1; setObjective(''); };
+  } else if(videoObj){
     activeTV=tv;
     videoObj.position.set(tv.wp.x+tv.nx*0.09,tv.wp.y,tv.wp.z+tv.nz*0.09);
     videoObj.rotation.set(0,tv.angle,0);
     videoObj.visible=true;
     videoIframe.src=v.url+'?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1';
   } else { flashFact(v.lbl+'\n(screen offline)'); }
+  // VIDS[7] = reward video on R5b spare TV — watching it drops the end wall
+  if(tv.vidIdx===7&&!endVideoActive){
+    endVideoActive=true;
+    dropEndWall();
+  }
   if(v.gate&&!tv.archived){
     tv.archived=true;archived.add(tv.vidIdx);
     updateArch();
@@ -1396,11 +1430,10 @@ function playTV(tv){
     const door=doorList.find(d=>d.vidIdx===tv.vidIdx);
     if(door&&!door.shown){
       door.shown=true;door.grp.visible=true;
-      // Corridor is already pre-built — no work to do here
       whisper('a door appeared.');
     }
     crowdEnabled=true;
-    if(archived.size>=GATE_TOTAL)openSlide();
+    if(archived.size>=GATE_TOTAL) setObjective('All archived. Find the TV in the next room.');
   }
 }
 function tintSeen(tv){
@@ -1563,15 +1596,33 @@ function buildEnd(ox,oz){
   floorCeil(ox,oz,48,48);
   walls(ox,oz,48,48,{w:true});
   const cx=ox+24,cz=oz+24;
-  const eL=new THREE.PointLight(0x6fae7a,1.1,30);eL.position.set(cx,WH-0.5,cz);scene.add(eL);lights.push({x:cx,z:cz,i:1.1});
-  const sL=new THREE.PointLight(0xbfeccb,0.9,20);sL.position.set(cx-2,3.2,cz+4);
-  sL.castShadow=true;sL.shadow.mapSize.set(512,512);sL.shadow.bias=-0.0025;sL.shadow.camera.far=22;scene.add(sL);
+  const eL=new THREE.PointLight(0x6fae7a,0.6,30);eL.position.set(cx,WH-0.5,cz);scene.add(eL);lights.push({x:cx,z:cz,i:0.6});
+  const sL=new THREE.PointLight(0xbfeccb,0.5,20);sL.position.set(cx-2,3.2,cz+4);scene.add(sL);
   T(["DEAN'S CHOICE"],5,0.62,'#c8b86a','#060300',20,cx,2.6,oz+1.2,0);
-  T(['the paradox remains unresolved.','','watch every record.','then the way down opens.'],5,0.86,'#6a8a6a','#040600',12,cx,2,oz+46.6,Math.PI);
-  floorSign(['GO DOWN'],cx,oz+20,2.4);
-  floorSign(['THE WAY OPENS'],cx+12,oz+36,2.6);
-  ceilSign(['STAGE 10'],cx-8,oz+14,2.2);
-  ceilSign(['DEAN'],cx+10,oz+40,2);
+  T(['order the timestamps.','shortest to longest.','activate each screen.'],4,0.8,'#4a6a4a','#040600',11,cx,2,oz+46.6,Math.PI);
+  floorSign(['ORDER THEM'],cx,oz+20,2.4);
+  floorSign(['SHORTEST → LONGEST'],cx+8,oz+36,3);
+  ceilSign(['THE SEQUENCE'],cx-8,oz+14,2.2);
+
+  // ── BLOCKING WALL — seals entry from R5b until reward video watched ──
+  // Sits at the west boundary of the end room (x = ox + T_WALL/2 = 144.5)
+  const ewMat=new THREE.MeshStandardMaterial({
+    color:0x1a1410,roughness:0.55,metalness:0.1,
+    emissive:0x1a0000,emissiveIntensity:0.9,
+    transparent:true,opacity:1
+  });
+  // Wall spans Z (depth of room), blocks X entry from R5b
+  endWall=new THREE.Mesh(new THREE.BoxGeometry(T_WALL,WH,48),ewMat);
+  endWall.position.set(ox+T_WALL/2,WH/2,oz+24);
+  endWall.receiveShadow=true;
+  scene.add(endWall);
+  colliders.push({x0:ox,x1:ox+T_WALL,z0:oz,z1:oz+48});
+  const ewLbl=txt(['WATCH THE FINAL RECORD','THEN THIS WALL FALLS'],5,0.5,'#cc2222',null,13);
+  ewLbl.position.set(ox+T_WALL/2+0.12,2.5,oz+24);
+  ewLbl.rotation.y=-Math.PI/2;
+  scene.add(ewLbl);
+
+  // ── SLIDE (sealed until solved) ──
   slideMouth.set(cx,2,cz+2);
   slideMat=new THREE.MeshStandardMaterial({color:SLIDE_COLOR,roughness:0.1,metalness:0.1,
     side:THREE.DoubleSide,emissive:0x002a10,emissiveIntensity:0.4});
@@ -1582,7 +1633,81 @@ function buildEnd(ox,oz){
   const geo=new THREE.TubeGeometry(curve,80,1.25,18,false);
   const slide=new THREE.Mesh(geo,slideMat);slide.castShadow=true;slide.receiveShadow=true;scene.add(slide);
   slideLight=new THREE.PointLight(0x33ff88,0.0,10);slideLight.position.set(cx,1.4,cz-3);scene.add(slideLight);
-  T(['SLIDE 09','SEALED'],2.4,2.4,'#2f5a3a',null,11,cx,3,cz+2.2,0);
+
+  // ── 5 SEQUENCE TVs ──
+  // Positions: north wall, south wall, east wall, west wall, ceiling
+  const tvPositions=[
+    {x:cx,    z:oz+2,    ry:0,           isCeiling:false}, // north wall
+    {x:cx,    z:oz+46,   ry:Math.PI,     isCeiling:false}, // south wall
+    {x:ox+2,  z:cz,      ry:Math.PI/2,   isCeiling:false}, // west wall
+    {x:ox+46, z:cz,      ry:-Math.PI/2,  isCeiling:false}, // east wall
+    {x:cx,    z:cz,      ry:0,           isCeiling:true},  // ceiling
+  ];
+  // Assign colors to positions — each position gets one color
+  // Order matches END_TV_COLORS by vidIdx
+  const posOrder=[2,1,3,0,4]; // which vidIdx goes to which position slot
+  tvPositions.forEach((pos,i)=>{
+    const ci=END_TV_COLORS.findIndex(c=>c.vidIdx===posOrder[i]);
+    const col=END_TV_COLORS[ci>=0?ci:i];
+    buildEndTV(pos,col);
+  });
+}
+
+function buildEndTV(pos,col){
+  const grp=new THREE.Group();
+
+  // Colour panel behind TV — big glowing slab so colour is clear even when screen is dark
+  const panelCol=new THREE.Color(col.hex).multiplyScalar(0.18);
+  const backPanel=new THREE.Mesh(
+    new THREE.BoxGeometry(3.6,2.8,0.06),
+    new THREE.MeshStandardMaterial({
+      color:panelCol,roughness:0.4,metalness:0.1,
+      emissive:new THREE.Color(col.hex),emissiveIntensity:0.55,
+      side:THREE.FrontSide
+    })
+  );
+  backPanel.position.set(0,pos.isCeiling?0:2,-0.1);
+  grp.add(backPanel);
+
+  // Dark frame
+  const frame=new THREE.Mesh(new THREE.BoxGeometry(2.5,1.7,0.12),
+    new THREE.MeshStandardMaterial({color:0x080808,roughness:0.9,metalness:0.3,emissive:0x020202}));
+  frame.position.set(0,pos.isCeiling?0:2,0);
+  grp.add(frame);
+
+  // Screen — starts as fuzz (dark)
+  const screenMat=new THREE.MeshBasicMaterial({map:fuzzTex,side:THREE.DoubleSide,color:0x111111});
+  const scr=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.4),screenMat);
+  scr.position.set(0,0,0.07);
+  frame.add(scr);
+
+  // Color label
+  const lbl=txt([col.label],2.2,0.26,col.css,null,10);
+  lbl.position.set(0,pos.isCeiling?0.98:-1.02,0.05);
+  frame.add(lbl);
+
+  // Glow light — starts off
+  const glow=new THREE.PointLight(col.hex,0,8);
+  glow.position.set(0,pos.isCeiling?0:2, pos.isCeiling?-0.8:0.8);
+  grp.add(glow);
+
+  // Position the group
+  grp.position.set(pos.x, pos.isCeiling?WH-0.01:0, pos.z);
+  if(pos.isCeiling){
+    grp.rotation.x=Math.PI/2;
+  } else {
+    grp.rotation.y=pos.ry;
+  }
+  scene.add(grp);
+
+  endTVs.push({
+    grp, frame, scr, screenMat, glow,
+    vidIdx:col.vidIdx,
+    col,
+    wp:new THREE.Vector3(pos.x, pos.isCeiling?WH-0.5:2, pos.z),
+    activated:false,
+    isCeiling:pos.isCeiling
+  });
 }
 
 function buildSlide(points,closed){
@@ -1593,12 +1718,131 @@ function buildSlide(points,closed){
   const m=new THREE.Mesh(geo,mat);m.castShadow=true;m.receiveShadow=true;scene.add(m);
   return m;
 }
+// ── SEQUENCE PUZZLE LOGIC ──
+function pressEndTV(tv){
+  if(endSolved||tv.activated)return;
+  const expectedVidIdx=END_SEQUENCE[endSequencePos];
+  if(tv.vidIdx===expectedVidIdx){
+    // Correct
+    tv.activated=true;
+    endSequencePos++;
+    tv.screenMat.color.setHex(tv.col.hex);
+    tv.screenMat.map=null;
+    tv.screenMat.needsUpdate=true;
+    tv.glow.intensity=2.2;
+    blip(330+endSequencePos*80,0.5,'sine',0.12);
+    whisper('correct.');
+    if(endSequencePos>=5) solveSequence();
+    else setObjective('Correct. '+(5-endSequencePos)+' remaining.');
+  } else {
+    // Wrong — reset all
+    endSequencePos=0;
+    endTVs.forEach(t=>{
+      if(t.activated){
+        t.activated=false;
+        t.screenMat.color.setHex(0x111111);
+        t.screenMat.map=fuzzTex;
+        t.screenMat.needsUpdate=true;
+        t.glow.intensity=0;
+      }
+    });
+    strobeOnce();
+    blip(80,0.4,'sawtooth',0.15);
+    sanity=Math.max(0,sanity-8);
+    flashFact('WRONG ORDER.\nRESET.');
+    setObjective('Wrong. Start again. Shortest timestamp first.');
+  }
+}
+
+function dropEndWall(){
+  if(!endWall)return;
+  // Remove collider for end wall
+  const ewZ0=168+48, ewZ1=168+48+T_WALL; // approximate — clear all end-room entry colliders
+  // Find and remove the blocking wall collider
+  for(let i=colliders.length-1;i>=0;i--){
+    const c=colliders[i];
+    if(c.x0>=144&&c.x1<=(144+T_WALL+1)&&c.z0<=48&&c.z1>=96){
+      colliders.splice(i,1); break;
+    }
+  }
+  // Fade wall out
+  const ewMesh=endWall; endWall=null;
+  let op=1;
+  const fade=setInterval(()=>{
+    op-=0.06;
+    if(ewMesh.material)ewMesh.material.opacity=Math.max(0,op);
+    if(op<=0){
+      clearInterval(fade);
+      scene.remove(ewMesh);
+      if(ewMesh.geometry)ewMesh.geometry.dispose();
+    }
+  },30);
+  whisper('the wall falls. solve the sequence.');
+  setObjective('Now solve the colour sequence. Shortest timestamp first.');
+}
+
+function solveSequence(){
+  if(endSolved)return;
+  endSolved=true;
+  sfxOpen();
+  blip(220,1.2,'sine',0.14);
+  blip(330,1.0,'sine',0.10);
+
+  // All screens go white — sequence complete
+  endTVs.forEach(t=>{
+    t.screenMat.color.setHex(0xffffff);
+    t.screenMat.map=null;
+    t.screenMat.needsUpdate=true;
+    t.glow.intensity=3.5;
+    t.glow.color.setHex(t.col.hex);
+  });
+
+  openSlide();
+  whisper('the sequence is broken open.');
+  setObjective('Approach the slide. Press [E] to enter.');
+}
+
+function startExitVideo(){
+  if(exitVideoActive)return;
+  exitVideoActive=true;
+  exitVideoCanSkip=false;
+
+  // Stop reward video
+  if(videoIframe)videoIframe.src='';
+  if(videoObj)videoObj.visible=false;
+
+  // Create fullscreen video element
+  exitVideoEl=document.createElement('video');
+  exitVideoEl.src=EXIT_VIDEO;
+  exitVideoEl.style.cssText='position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:90;background:#000';
+  exitVideoEl.playsInline=true;
+  exitVideoEl.autoplay=true;
+  exitVideoEl.onended=()=>finishExitVideo();
+  exitVideoEl.play().catch(()=>{});
+  document.body.appendChild(exitVideoEl);
+
+  setObjective('');
+  // Allow skip after 2 seconds
+  setTimeout(()=>{
+    exitVideoCanSkip=true;
+    setObjective(isMobile?'Tap to continue →':'[ E ] Continue →');
+  },2000);
+}
+
+function finishExitVideo(){
+  if(exitVideoEl){exitVideoEl.pause();exitVideoEl.remove();exitVideoEl=null;}
+  exitVideoActive=false;
+  ending=true;
+  $('fade').classList.add('on');
+  setTimeout(()=>{ window.location.href='veganbrosstage10.html'; },1200);
+}
+
 function openSlide(){
   if(slideOpen)return;slideOpen=true;
   if(slideMat){slideMat.emissive.setHex(0x0f7a3a);slideMat.emissiveIntensity=1.0;}
   if(slideLight)slideLight.intensity=1.8;
-  setObjective('Every record archived. The slide is open — step in.');
-  whisper('the way down opens. go, Dean.');
+  setObjective(isMobile?'Approach the slide. Tap to watch.':'Approach the slide. Press [E] to watch.');
+  whisper('the way down opens. approach it, Dean.');
   sfxOpen();
 }
 
@@ -2012,9 +2256,31 @@ function updateInteract(){
 
   $('skipbtn').style.display='none';
 
-  if(slideOpen&&camera.position.distanceTo(slideMouth)<3.2){
-    nearTV='SLIDE';label='STEP IN';$('xh').classList.add('lock');
-  } else {
+  // Exit video skip
+  if(exitVideoActive){
+    if(exitVideoCanSkip){
+      if(isMobile){$('ibtn').textContent='CONTINUE →';$('ibtn').style.display='flex';}
+      else{hint.style.display='block';hint.textContent='[ E ] CONTINUE →';}
+    }
+    return;
+  }
+
+  // End TVs — sequence puzzle
+  if(endSolved===false&&archived.size>=GATE_TOTAL){
+    for(const et of endTVs){
+      if(!et.activated&&camera.position.distanceTo(et.wp)<3.8){
+        nearTV={isEndTV:true,tv:et};
+        label=et.col.label;
+        $('xh').classList.add('lock');
+        break;
+      }
+    }
+  }
+
+  if(slideOpen&&endVideoActive&&camera.position.distanceTo(slideMouth)<3.2){
+    nearTV='SLIDE';label='WATCH';$('xh').classList.add('lock');
+  }
+  if(!nearTV){
     $('xh').classList.remove('lock');
     for(const d of doorList){
       if(!d.shown||d.used)continue;
@@ -2041,25 +2307,26 @@ function interact(){
   if(!started||ending)return;
   sfxUI();
 
+  // Exit video skip
+  if(exitVideoActive){
+    if(exitVideoCanSkip)finishExitVideo();
+    return;
+  }
+
   if(corridorActive){
-    // Skip the door-entry MP4
     if(corridorState==='door_video'){_revealCorridor();return;}
-
-    // Collect token and return to main room after watching corridor TV
     if(corridorState==='corridor_tv'){exitCorridor();return;}
-
-    // Player is near the corridor end TV — play it
     if(corridorState==='locked'&&corridorDoor){
       const ctv=corridorDoor.corridorTV;
-      if(ctv&&camera.position.distanceTo(ctv.wp)<4.5){
-        playCorridorTV(ctv);
-        return;
-      }
+      if(ctv&&camera.position.distanceTo(ctv.wp)<4.5){playCorridorTV(ctv);return;}
     }
     return;
   }
 
-  if(nearTV==='SLIDE'){rideSlide();return;}
+  // End TV sequence press
+  if(nearTV&&nearTV.isEndTV){pressEndTV(nearTV.tv);return;}
+
+  if(nearTV==='SLIDE'){startExitVideo();return;}
   if(nearDoor){enterCorridor(nearDoor);return;}
   if(nearTV)playTV(nearTV);
 }
