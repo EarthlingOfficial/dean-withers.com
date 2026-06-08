@@ -834,6 +834,11 @@ function enterCorridor(door){
 
   sfxOpen();
 
+  // Stop any playing main-room TV before starting corridor video
+  if(videoIframe){videoIframe.src='';}
+  if(videoObj){videoObj.visible=false;}
+  activeTV=null;
+
   // Pre-load the video src BEFORE going black so it starts buffering immediately
   const url=DOOR_VIDS[door.vidIdx];
   if(url){ doorVideo.src=url; doorVideo.load(); }
@@ -1111,9 +1116,9 @@ function init(){
   camera.rotation.y=Math.PI;
   clock=new THREE.Clock();
   renderer=new THREE.WebGLRenderer({canvas:$('c'),antialias:false});
-  renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+  renderer.setPixelRatio(isMobile?1.0:Math.min(devicePixelRatio,1.5));
   renderer.setSize(innerWidth,innerHeight);
-  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.enabled=!isMobile;
   renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   if(typeof THREE.CSS3DRenderer==='function'){
     css3d=new THREE.CSS3DRenderer();
@@ -1152,10 +1157,14 @@ function init(){
   // Corridors are NOT included here — they build lazily on door entry.
   renderer.compile(scene,camera);
 
-  renderer.setRenderTarget(renderTarget);
-  renderer.render(scene,camera);
-  renderer.setRenderTarget(null);
-  renderer.render(postScene,postCamera);
+  if(!isMobile){
+    renderer.setRenderTarget(renderTarget);
+    renderer.render(scene,camera);
+    renderer.setRenderTarget(null);
+    renderer.render(postScene,postCamera);
+  } else {
+    renderer.render(scene,camera);
+  }
 
   const loadFill=$('c-loadfill');
   const loadTxt=$('c-loadtxt');
@@ -2432,10 +2441,14 @@ function startGame(){
   // Warm up GPU shaders across several frames after connect so first movement is lag-free
   let warmFrames=0;
   const warmup=()=>{
-    renderer.setRenderTarget(renderTarget);
-    renderer.render(scene,camera);
-    renderer.setRenderTarget(null);
-    renderer.render(postScene,postCamera);
+    if(isMobile){
+      renderer.render(scene,camera);
+    } else {
+      renderer.setRenderTarget(renderTarget);
+      renderer.render(scene,camera);
+      renderer.setRenderTarget(null);
+      renderer.render(postScene,postCamera);
+    }
     if(++warmFrames<8)requestAnimationFrame(warmup);
   };
   requestAnimationFrame(warmup);
@@ -2447,7 +2460,7 @@ function animate(){
   const dt=Math.min(clock.getDelta(),0.05),t=clock.getElapsedTime();
   postMaterial.uniforms.uTime.value=t;
 
-  if(!started){renderer.setRenderTarget(null);renderer.render(scene,camera);return;}
+  if(!started){renderer.render(scene,camera);return;}
 
   if(td.r.a){
     camera.rotation.y-=td.r.mx*0.03;
@@ -2473,7 +2486,7 @@ function animate(){
   updateFootsteps(t,movedDist,darknessAt(camera.position.x,camera.position.z));
   updateMusic(dt);
 
-  if(++fuzzFrame%3===0)updateFuzz();
+  if(++fuzzFrame%(isMobile?10:3)===0)updateFuzz();
 
   updateShadowFig(dt);
   updateBlackFig();
@@ -2490,8 +2503,12 @@ function animate(){
   whisperTimer--;
   if(whisperTimer<=0){whisper(WHISPERS[Math.floor(Math.random()*WHISPERS.length)]);whisperTimer=600+Math.floor(Math.random()*600);}
 
-  renderer.setRenderTarget(renderTarget);renderer.render(scene,camera);
-  renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
+  if(isMobile){
+    renderer.render(scene,camera);
+  } else {
+    renderer.setRenderTarget(renderTarget);renderer.render(scene,camera);
+    renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
+  }
   if(css3d)css3d.render(scene,camera);
 }
 
