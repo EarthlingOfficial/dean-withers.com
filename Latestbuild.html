@@ -89,11 +89,25 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 #lj{left:18px}#rj{right:18px}
 .kn{position:absolute;top:50%;left:50%;width:34px;height:34px;margin:-17px 0 0 -17px;background:rgba(200,184,106,.3);border-radius:50%;pointer-events:none}
 @media(hover:hover) and (pointer:fine){.jz,#ibtn{display:none!important}}
+/* CONTENT WARNING */
+#cwarn{position:fixed;inset:0;background:#0c0b06;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;padding:28px}
+#cwarn h2{color:#c8b86a;font-size:clamp(13px,2.5vw,18px);letter-spacing:8px;margin:0 0 10px;text-transform:uppercase;font-weight:400}
+#cwarn p{color:#3a3628;font-size:clamp(9px,1.3vw,11px);letter-spacing:2px;line-height:2.1;text-align:center;max-width:500px;margin:0 0 30px}
+.cw-btn{font-family:'Courier New',monospace;font-size:11px;letter-spacing:4px;padding:9px 26px;cursor:pointer;border:1px solid rgba(200,184,106,.4);background:transparent;color:#c8b86a;margin:0 8px}
+.cw-btn.cw-exit{color:#3a3628;border-color:rgba(200,184,106,.12)}
+.cw-btn:hover{background:rgba(200,184,106,.08)}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://unpkg.com/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>
 </head>
 <body>
+
+<!-- CONTENT WARNING -->
+<div id="cwarn">
+  <h2>CONTENT WARNING</h2>
+  <p>This experience contains graphic descriptions of animal suffering, disturbing audio, flashing visuals, and psychological horror.<br>Intended for mature audiences only.</p>
+  <div><button class="cw-btn" onclick="document.getElementById('cwarn').style.display='none'">I UNDERSTAND &mdash; ENTER</button><button class="cw-btn cw-exit" onclick="history.back()">EXIT</button></div>
+</div>
 
 <!-- CONNECT / LOADING OVERLAY -->
 <div id="connect">
@@ -171,8 +185,7 @@ const VIDS=[
   {url:'https://www.youtube.com/embed/jDQ9zZ0IGFw',lbl:'THE ECHO CHAMBER',gate:true},
   {url:'https://www.youtube.com/embed/RNWmEeJLGnI',lbl:'THE CALORIC CON',gate:true},
   {url:null,lbl:'DEBATE 06 — SIGNAL LOST'},
-  {url:'https://www.youtube.com/embed/RRSX2YF4tiI',lbl:'DEBATE 07',gate:false},
-  {url:'https://www.youtube.com/embed/RRSX2YF4tiI',lbl:'THE FINAL RECORD',gate:false},
+  {url:'https://github.com/EarthlingOfficial/dean-withers.com/releases/download/v1/0607.1.mp4',lbl:'THE FINAL RECORD',gate:false,isMP4:true},
   {url:null,lbl:'DEBATE 09 — SIGNAL LOST'},
   {url:null,lbl:'DEBATE 10 — SIGNAL LOST'},
   {url:null,lbl:'DEBATE 11 — SIGNAL LOST'},
@@ -290,7 +303,7 @@ const END_TV_COLORS=[
   {vidIdx:3, hex:0x007733, css:'#007733', label:'2:09'},  // green
   {vidIdx:4, hex:0xbb4400, css:'#bb4400', label:'20:31'}, // orange
 ];
-const END_REWARD_VIDEO='https://www.youtube.com/embed/RRSX2YF4tiI';
+const END_REWARD_VIDEO='https://github.com/EarthlingOfficial/dean-withers.com/releases/download/v1/0607.1.mp4';
 const EXIT_VIDEO='https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/MindVideo_20260607173600_104.mp4';
 let endTVs=[];          // {mesh,light,mat,screenMat,vidIdx,activated}
 let endSequencePos=0;   // how many correct so far
@@ -1133,6 +1146,7 @@ function init(){
   buildWorld();
   buildShadowFig();
   buildBlackFig();
+  buildVeilChild();
   buildDoorVideoPlane();
   buildMusic();
   setupControls();
@@ -1401,8 +1415,20 @@ function addTV(x,z,vidIdx,angle,opts){
 function playTV(tv){
   const v=VIDS[tv.vidIdx];
   if(!v.url){flashFact('SIGNAL LOST\n'+v.lbl);sfxStatic();return;}
+  if(tv.vidIdx===6&&(collectedTokens.size<5||archived.size<GATE_TOTAL)){
+    flashFact('COLLECT ALL 5 TOKENS FIRST.');sfxStatic();return;
+  }
   tv.seen=true;tintSeen(tv);
-  if(videoObj){
+  if(v.isMP4){
+    // Play MP4 fullscreen using doorVideo element
+    doorVideo.src=v.url;
+    doorVideo.style.cssText='position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:90;background:#000';
+    doorVideo.style.display='block';
+    doorVideo.play().catch(()=>{});
+    duckTarget=0.12;
+    setObjective(isMobile?'Tap anywhere to continue':'[ E ] to continue');
+    doorVideo.onended=()=>{ doorVideo.style.display='none'; doorVideo.src=''; duckTarget=1; setObjective(''); };
+  } else if(videoObj){
     activeTV=tv;
     videoObj.position.set(tv.wp.x+tv.nx*0.09,tv.wp.y,tv.wp.z+tv.nz*0.09);
     videoObj.rotation.set(0,tv.angle,0);
@@ -1410,7 +1436,7 @@ function playTV(tv){
     videoIframe.src=v.url+'?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1';
   } else { flashFact(v.lbl+'\n(screen offline)'); }
   // VIDS[7] = reward video on R5b spare TV — watching it drops the end wall
-  if(tv.vidIdx===7&&!endVideoActive){
+  if(tv.vidIdx===6&&!endVideoActive&&collectedTokens.size>=5&&archived.size>=GATE_TOTAL){
     endVideoActive=true;
     dropEndWall();
   }
@@ -1424,7 +1450,7 @@ function playTV(tv){
       whisper('a door appeared.');
     }
     crowdEnabled=true;
-    if(archived.size>=GATE_TOTAL)openSlide();
+    if(archived.size>=GATE_TOTAL) setObjective('All archived. Find the TV in the next room.');
   }
 }
 function tintSeen(tv){
@@ -1571,7 +1597,7 @@ function buildR5b(ox,oz){
   sp.castShadow=true;sp.shadow.mapSize.set(512,512);sp.shadow.bias=-0.003;
   scene.add(sp);scene.add(sp.target);
   ceilPanel(ox+10,oz+40);ceilPanel(ox+38,oz+40);
-  addTV(cx,oz+4,7,0);
+  addTV(cx,oz+4,6,0);
   T(['11:40','','Dean Withers admitted:','','"If a plant-based product tasted','identical to meat, I would go vegan','without needing convincing."','','the barrier was never philosophical.','it was always convenience.'],9,2.8,'#f5e8c0','#050300',16,cx,2.3,oz+46.6,Math.PI);
   T(['18:07 — the superchat:','"just killed 30 cows"','','he laughed.'],3.5,2.2,'#c8a060',null,12,ox+0.6,2,cz,Math.PI/2);
   T(['Deanus Politicus','Carnivorus Paradoxus'],5,1.4,'#c8b86a',null,11,cx,3.4,cz,0);
@@ -1788,8 +1814,9 @@ function solveSequence(){
     t.glow.color.setHex(t.col.hex);
   });
 
-  whisper('correct. now watch the final record.');
-  setObjective('Sequence correct. Return to the previous room. Watch the final record.');
+  openSlide();
+  whisper('the sequence is broken open.');
+  setObjective('Approach the slide. Press [E] to enter.');
 }
 
 function startExitVideo(){
@@ -2032,6 +2059,124 @@ function updateBlackFig(){
       b.targetVis=0;if(b.vis<0.03){b.hide();blackCooldown=Math.max(blackCooldown,300);}
     }
   }
+}
+
+// ════ VEIL CHILD ════
+const VEIL_PNG='https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/1780911111958%5B1%5D.png';
+const VEIL_WPS=[
+  {x:8,y:0,z:2,ry:0,f:false},
+  {x:24,y:0,z:2,ry:0,f:false},
+  {x:40,y:0,z:2,ry:0,f:false},
+  {x:8,y:0,z:46,ry:Math.PI,f:false},
+  {x:24,y:0,z:46,ry:Math.PI,f:false},
+  {x:40,y:0,z:46,ry:Math.PI,f:false},
+  {x:2,y:0,z:14,ry:Math.PI/2,f:false},
+  {x:2,y:0,z:28,ry:Math.PI/2,f:false},
+  {x:2,y:0,z:40,ry:Math.PI/2,f:false},
+  {x:46,y:0,z:14,ry:-Math.PI/2,f:false},
+  {x:46,y:0,z:28,ry:-Math.PI/2,f:false},
+  {x:46,y:0,z:40,ry:-Math.PI/2,f:false},
+];
+const vc={mesh:null,glowMesh:null,lights:[],pos:new THREE.Vector3(8,1.35,2),wpIdx:0,yOff:0,yDir:1,opCycle:0,opacity:0,state:'lurking',stareT:0,cooldown:0,rndTimer:0};
+function buildVeilChild(){
+  vc.rndTimer=240+Math.random()*240;
+  const geo=new THREE.PlaneGeometry(1.15,2.7);
+  const mat=new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false,side:THREE.FrontSide,color:0xffffff});
+  vc.mesh=new THREE.Mesh(geo,mat);vc.mesh.renderOrder=5;scene.add(vc.mesh);
+  const gGeo=new THREE.PlaneGeometry(1.55,3.2);
+  const gMat=new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false,side:THREE.FrontSide,color:0x6688ff});
+  vc.glowMesh=new THREE.Mesh(gGeo,gMat);vc.glowMesh.renderOrder=4;scene.add(vc.glowMesh);
+  [[0x3355ff,2.0],[0x8833dd,2.2],[0xaabbff,1.8]].forEach(([col,range])=>{
+    const L=new THREE.PointLight(col,0,range);scene.add(L);vc.lights.push(L);
+  });
+  const loader=new THREE.TextureLoader();
+  loader.crossOrigin='anonymous';
+  loader.load(VEIL_PNG,(tex)=>{
+    tex.minFilter=THREE.LinearFilter;tex.magFilter=THREE.LinearFilter;
+    mat.map=tex;mat.needsUpdate=true;
+  },undefined,()=>{mat.color.setHex(0x060612);});
+  vc.wpIdx=Math.floor(Math.random()*VEIL_WPS.length);
+  _vcApplyWP();
+}
+function _vcApplyWP(){
+  const wp=VEIL_WPS[vc.wpIdx];
+  vc.yOff=Math.random()*1.2;
+  vc.pos.set(wp.x,wp.f?0.04:vc.yOff+1.35,wp.z);
+  if(vc.mesh){vc.mesh.rotation.set(wp.f?-Math.PI/2:0,wp.ry,0);vc.glowMesh.rotation.set(wp.f?-Math.PI/2:0,wp.ry,0);}
+}
+function _vcNextWP(){
+  let n,tries=0;
+  do{n=Math.floor(Math.random()*VEIL_WPS.length);tries++;}while((n===vc.wpIdx||!isOpen(VEIL_WPS[n].x,VEIL_WPS[n].z))&&tries<20);
+  vc.wpIdx=n;_vcApplyWP();
+}
+function _vcFlickerRoom(intense){
+  if(!roomLightRefs.length)return;
+  let i=0;const max=intense?10:5;
+  const tick=()=>{roomLightRefs.forEach(r=>r.light.intensity=r.orig*(i%2===0?(intense?0:0.1):1.0));if(++i<max)setTimeout(tick,35+Math.random()*65);else roomLightRefs.forEach(r=>r.light.intensity=r.orig);};
+  tick();
+}
+function sfxVeilCrack(){
+  const a=ac();if(!a)return;
+  const buf=a.createBuffer(1,Math.floor(a.sampleRate*0.11),a.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++){const env=Math.exp(-i/(a.sampleRate*0.014));d[i]=(Math.random()*2-1)*env;}
+  const src=a.createBufferSource();src.buffer=buf;
+  const hi=a.createBiquadFilter();hi.type='highpass';hi.frequency.value=2200;
+  const g=a.createGain();g.gain.value=1.6;
+  src.connect(hi);hi.connect(g);g.connect(a.destination);src.start();
+}
+function _vcStrike(){
+  if(vc.state==='cooldown')return;
+  vc.state='cooldown';vc.stareT=0;
+  sfxVeilCrack();_vcFlickerRoom(true);
+  const fd=$('fade');fd.style.transition='none';fd.style.opacity='1';
+  setTimeout(()=>{fd.style.transition='opacity 1.1s ease';fd.style.opacity='0';},80);
+  sanity=Math.max(0,sanity*0.5);
+  vc.opacity=0;
+  if(vc.mesh)vc.mesh.material.opacity=0;
+  if(vc.glowMesh)vc.glowMesh.material.opacity=0;
+  vc.lights.forEach(L=>L.intensity=0);
+  let best=0,bestD=0;
+  VEIL_WPS.forEach((wp,idx)=>{const d=Math.hypot(wp.x-camera.position.x,wp.z-camera.position.z);if(d>bestD){bestD=d;best=idx;}});
+  vc.wpIdx=best;_vcApplyWP();vc.cooldown=90;vc.rndTimer=240+Math.random()*240;
+}
+function updateVeilChild(dt,t){
+  const v=vc;if(!v.mesh)return;
+  if(v.state==='cooldown'){v.cooldown-=dt;if(v.cooldown<=0)v.state='lurking';return;}
+  const wp=VEIL_WPS[v.wpIdx];
+  const cdx=v.pos.x-camera.position.x,cdz=v.pos.z-camera.position.z;
+  const dist=Math.hypot(cdx,cdz);
+  if(dist<12&&v.opacity>0.06&&Math.random()<0.012)_vcFlickerRoom(false);
+  v.opCycle=((v.opCycle||0)+dt*0.072)%1;
+  const breath=0.08+0.20*(0.5+0.5*Math.sin(v.opCycle*Math.PI*2));
+  const shimmer=1+0.15*Math.sin(t*6.8)*Math.sin(t*3.3+0.7);
+  v.opacity=Math.min(0.42,breath*shimmer);
+  v.mesh.material.opacity=v.opacity;
+  v.glowMesh.material.opacity=v.opacity*0.18*(0.6+0.4*Math.sin(t*2.3+1.1));
+  if(v.opacity>0.04){
+    const lp=0.25+0.25*Math.sin(t*1.9+0.4);
+    v.lights[0].intensity=0.32*lp;
+    v.lights[1].intensity=0.24*Math.abs(Math.sin(t*2.7+1.3));
+    v.lights[2].intensity=0.18*lp;
+  } else {v.lights.forEach(L=>L.intensity=0);}
+  v.lights.forEach(L=>L.position.copy(v.pos));
+  if(!wp.f){
+    v.yOff+=dt*0.15*v.yDir;
+    if(v.yOff>2.9){v.yDir=-1;}
+    else if(v.yOff<0){v.yDir=1;v.yOff=0;if(Math.random()<0.65)_vcNextWP();}
+    v.pos.y=v.yOff+1.35;
+  }
+  v.mesh.position.copy(v.pos);
+  const gOff=0.07;
+  vc.glowMesh.position.set(v.pos.x+Math.sin(wp.ry)*gOff,v.pos.y,v.pos.z+Math.cos(wp.ry)*gOff);
+  const fwdX=Math.sin(camera.rotation.y),fwdZ=Math.cos(camera.rotation.y);
+  const dot=(cdx*fwdX+cdz*fwdZ)/Math.max(0.1,dist);
+  const staring=dot>0.78&&dist<20&&v.opacity>0.07;
+  if(staring){v.stareT+=dt;if(v.stareT>=3.0){_vcStrike();return;}}
+  else{v.stareT=Math.max(0,v.stareT-dt*0.4);}
+  v.rndTimer-=dt;
+  if(v.rndTimer<=0&&v.opacity>0.06&&dist<22){_vcStrike();return;}
+  if(v.rndTimer<=0)v.rndTimer=180+Math.random()*180;
 }
 
 // ════ COLLISION ════
@@ -2456,12 +2601,13 @@ function animate(){
 
   updateShadowFig(dt);
   updateBlackFig();
+  updateVeilChild(dt,t);
   updateCrowd(dt,t);
   updateInteract();
   updateVideoVisibility();
   updateSanityHUD();
 
-  if(shadowFig.sprite.material.opacity<0.1&&blackFig.sprite.material.opacity<0.1&&crowd.length===0)
+  if(shadowFig.sprite.material.opacity<0.1&&blackFig.sprite.material.opacity<0.1&&vc.state!=='cooldown'&&crowd.length===0)
     sanity=Math.min(100,sanity+3*dt);
 
   factTimer-=dt;
