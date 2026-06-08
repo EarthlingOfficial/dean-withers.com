@@ -553,10 +553,9 @@ function buildCorridorEndTV(door, addH){
   scr.position.set(0, 0, 0.08);
   frame.add(scr);
 
-  // Glow light
+  // Glow light — skip on mobile (saves a PointLight per corridor TV)
   const gl = new THREE.PointLight(0x557799, 0.3, 5);
-  gl.position.set(0, 2, 0.5);
-  grp.add(gl);
+  if(!isMobile){ gl.position.set(0, 2, 0.5); grp.add(gl); }
 
   // Label
   const v = VIDS[door.vidIdx % VIDS.length];
@@ -641,10 +640,9 @@ function prebuildCorridorForDoor(door){
   const cLCol =COR_LIGHTS [vi%5];
   const rLCol =ROOM_LIGHTS[vi%5];
 
-  const wMat=new THREE.MeshStandardMaterial({
-    color:wTint,roughness:0.42,metalness:0.12,
-    emissive:0x080600,emissiveIntensity:0.18
-  });
+  const wMat=isMobile
+    ? new THREE.MeshLambertMaterial({color:wTint,emissive:0x080600,emissiveIntensity:0.18})
+    : new THREE.MeshStandardMaterial({color:wTint,roughness:0.42,metalness:0.12,emissive:0x080600,emissiveIntensity:0.18});
 
   function addH(m){m.visible=false;scene.add(m);door.corridorHiddenMeshes.push(m);return m;}
   function addCol(cx,cz,wd,dp){
@@ -667,7 +665,8 @@ function prebuildCorridorForDoor(door){
   mkBox(CL/2,  HW, TW, H, CL);
   mkBox(CL/2, -HW, TW, H, CL);
 
-  // ── PILLAR COLUMNS — alternating sides every 6 units ──
+  // ── PILLAR COLUMNS — desktop only (decorative) ──
+  if(!isMobile){
   const colMat=new THREE.MeshStandardMaterial({
     color:new THREE.Color(wTint).multiplyScalar(0.72).getHex(),
     roughness:0.5,metalness:0.22,emissive:0x040300,emissiveIntensity:0.28
@@ -681,8 +680,10 @@ function prebuildCorridorForDoor(door){
     const cap=new THREE.Mesh(new THREE.BoxGeometry(0.36,0.16,0.52),colMat.clone());
     cap.position.set(px,H-0.08,pz);cap.rotation.y=ry;addH(cap);
   }
+  } // end !isMobile pillars
 
-  // ── CEILING RIBS every 5 units ──
+  // ── CEILING RIBS — desktop only (decorative) ──
+  if(!isMobile){
   const ribMat=new THREE.MeshStandardMaterial({
     color:new THREE.Color(wTint).multiplyScalar(0.88).getHex(),roughness:0.44,metalness:0.18
   });
@@ -690,6 +691,7 @@ function prebuildCorridorForDoor(door){
     const rib=new THREE.Mesh(new THREE.BoxGeometry(HW*2+TW,0.1,0.2),ribMat.clone());
     rib.position.set(ox+fdx*ri,H-0.05,oz+fdz*ri);rib.rotation.y=ry;addH(rib);
   }
+  } // end !isMobile ribs
 
   // ── JUNCTION (corridor → exit room) ──
   mkBox(CL,  (HW+RW)/2, RW-HW, H, TW);
@@ -709,10 +711,16 @@ function prebuildCorridorForDoor(door){
   // ── SEALING WALL (pre-built 2.5 units in) ──
   mkBox(2.5, 0, HW*2+TW*2, H, TW);
 
-  // ── CORRIDOR LIGHTING ──
+  // ── CORRIDOR LIGHTING — single light on mobile, two on desktop ──
+  if(isMobile){
+    const cL=new THREE.PointLight(0xd0c880,1.4,CL+RL+12);
+    cL.position.set(ox+fdx*(CL*0.5),3.0,oz+fdz*(CL*0.5));
+    addH(cL);
+  } else {
   const cL=new THREE.PointLight(cLCol,1.7,CL+10);
   cL.position.set(ox+fdx*(CL*0.5),3.0,oz+fdz*(CL*0.5));
   addH(cL);
+  }
 
   // ── EMISSIVE CEILING STRIP (corridor) ──
   const strip=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.05,CL*0.88),
@@ -720,10 +728,12 @@ function prebuildCorridorForDoor(door){
   strip.position.set(ox+fdx*(CL/2),H-0.02,oz+fdz*(CL/2));
   strip.rotation.y=ry;addH(strip);
 
-  // ── EXIT ROOM LIGHT ──
+  // ── EXIT ROOM LIGHT — desktop only (mobile uses single combined corridor light) ──
+  if(!isMobile){
   const rL=new THREE.PointLight(rLCol,1.3,RW*3+6);
   rL.position.set(ox+fdx*(CL+RL*0.5),3.0,oz+fdz*(CL+RL*0.5));
   addH(rL);
+  }
 
   // ── EXIT ROOM CEILING PANEL ──
   const rStrip=new THREE.Mesh(new THREE.BoxGeometry(RW*1.3,0.06,RL*0.72),
@@ -927,10 +937,9 @@ function addClosingWall(){
   const HW=1.5, H=WH, TW=T_WALL;
   const cx=ox+fdx*4.8, cz=oz+fdz*4.8;
 
-  const wMat=new THREE.MeshStandardMaterial({
-    color:WALL_COLOR,roughness:0.35,metalness:0.12,
-    emissive:0x110800,emissiveIntensity:0.6
-  });
+  const wMat=isMobile
+    ? new THREE.MeshLambertMaterial({color:WALL_COLOR,emissive:0x110800,emissiveIntensity:0.6})
+    : new THREE.MeshStandardMaterial({color:WALL_COLOR,roughness:0.35,metalness:0.12,emissive:0x110800,emissiveIntensity:0.6});
   const m=new THREE.Mesh(new THREE.BoxGeometry(HW*2+TW*2,H,TW),wMat);
   m.position.set(cx,H/2,cz); m.rotation.y=door.cRy; m.receiveShadow=true;
   m.visible=true; scene.add(m);
