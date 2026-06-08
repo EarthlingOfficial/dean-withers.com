@@ -13,7 +13,7 @@
 body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monospace;touch-action:none;-webkit-user-select:none;user-select:none}
 #c{position:fixed;inset:0;width:100%;height:100%;z-index:0}
 #css3d{position:fixed;inset:0;z-index:1;pointer-events:none}
-#css3d iframe{border:0;pointer-events:auto;background:#000}
+#css3d iframe{border:0;pointer-events:none;background:#000}
 
 /* CONNECT OVERLAY */
 #connect{position:fixed;inset:0;background:#0c0b06;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;transition:opacity 1.6s}
@@ -94,6 +94,33 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 <script src="https://unpkg.com/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>
 </head>
 <body>
+
+<!-- CONTENT WARNING OVERLAY -->
+<style>
+#cw-overlay{position:fixed;inset:0;background:#000;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;box-sizing:border-box}
+#cw-inner{max-width:620px;text-align:center}
+#cw-icon{font-size:clamp(32px,7vw,52px);margin-bottom:18px}
+#cw-title{color:#cc2222;font-family:'Courier New',monospace;font-size:clamp(13px,2.5vw,18px);letter-spacing:3px;font-weight:bold;margin-bottom:22px;line-height:1.5}
+#cw-body{color:#888880;font-family:'Courier New',monospace;font-size:clamp(10px,1.6vw,13px);letter-spacing:1px;line-height:1.85;margin-bottom:32px;border-top:1px solid rgba(180,30,30,.25);border-bottom:1px solid rgba(180,30,30,.25);padding:18px 0}
+.cw-btn{font-family:'Courier New',monospace;letter-spacing:3px;font-size:clamp(10px,1.8vw,13px);padding:12px 28px;cursor:pointer;border:none;margin:6px 10px;display:inline-block}
+#cw-accept{background:#cc2222;color:#fff}
+#cw-accept:hover{background:#ee3333}
+#cw-exit{background:transparent;color:#444;border:1px solid #333}
+#cw-exit:hover{color:#888}
+</style>
+<div id="cw-overlay">
+  <div id="cw-inner">
+    <div id="cw-icon">⚠️</div>
+    <div id="cw-title">CRITICAL CONTENT WARNING</div>
+    <div id="cw-body">This game is a work of animal advocacy and features unedited, highly graphic real-world footage of industrial animal slaughterhouses. The upcoming imagery contains severe violence, blood, and animal suffering.<br><br>This content is <strong style="color:#cc2222">STRICTLY NOT RECOMMENDED FOR MINORS</strong> or anyone sensitive to severe graphic violence.<br><br>If you choose to proceed, viewer discretion is heavily advised.</div>
+    <button class="cw-btn" id="cw-accept">I AM 18+ / I ACCEPT THE RISK</button>
+    <button class="cw-btn" id="cw-exit">EXIT GAME</button>
+  </div>
+</div>
+<script>
+document.getElementById('cw-accept').addEventListener('click',function(){document.getElementById('cw-overlay').style.display='none';});
+document.getElementById('cw-exit').addEventListener('click',function(){window.location.href='https://google.com';});
+</script>
 
 <!-- CONNECT / LOADING OVERLAY -->
 <div id="connect">
@@ -553,9 +580,10 @@ function buildCorridorEndTV(door, addH){
   scr.position.set(0, 0, 0.08);
   frame.add(scr);
 
-  // Glow light — skip on mobile (saves a PointLight per corridor TV)
+  // Glow light
   const gl = new THREE.PointLight(0x557799, 0.3, 5);
-  if(!isMobile){ gl.position.set(0, 2, 0.5); grp.add(gl); }
+  gl.position.set(0, 2, 0.5);
+  grp.add(gl);
 
   // Label
   const v = VIDS[door.vidIdx % VIDS.length];
@@ -640,9 +668,10 @@ function prebuildCorridorForDoor(door){
   const cLCol =COR_LIGHTS [vi%5];
   const rLCol =ROOM_LIGHTS[vi%5];
 
-  const wMat=isMobile
-    ? new THREE.MeshLambertMaterial({color:wTint,emissive:0x080600,emissiveIntensity:0.18})
-    : new THREE.MeshStandardMaterial({color:wTint,roughness:0.42,metalness:0.12,emissive:0x080600,emissiveIntensity:0.18});
+  const wMat=new THREE.MeshStandardMaterial({
+    color:wTint,roughness:0.42,metalness:0.12,
+    emissive:0x080600,emissiveIntensity:0.18
+  });
 
   function addH(m){m.visible=false;scene.add(m);door.corridorHiddenMeshes.push(m);return m;}
   function addCol(cx,cz,wd,dp){
@@ -665,8 +694,7 @@ function prebuildCorridorForDoor(door){
   mkBox(CL/2,  HW, TW, H, CL);
   mkBox(CL/2, -HW, TW, H, CL);
 
-  // ── PILLAR COLUMNS — desktop only (decorative) ──
-  if(!isMobile){
+  // ── PILLAR COLUMNS — alternating sides every 6 units ──
   const colMat=new THREE.MeshStandardMaterial({
     color:new THREE.Color(wTint).multiplyScalar(0.72).getHex(),
     roughness:0.5,metalness:0.22,emissive:0x040300,emissiveIntensity:0.28
@@ -680,10 +708,8 @@ function prebuildCorridorForDoor(door){
     const cap=new THREE.Mesh(new THREE.BoxGeometry(0.36,0.16,0.52),colMat.clone());
     cap.position.set(px,H-0.08,pz);cap.rotation.y=ry;addH(cap);
   }
-  } // end !isMobile pillars
 
-  // ── CEILING RIBS — desktop only (decorative) ──
-  if(!isMobile){
+  // ── CEILING RIBS every 5 units ──
   const ribMat=new THREE.MeshStandardMaterial({
     color:new THREE.Color(wTint).multiplyScalar(0.88).getHex(),roughness:0.44,metalness:0.18
   });
@@ -691,7 +717,6 @@ function prebuildCorridorForDoor(door){
     const rib=new THREE.Mesh(new THREE.BoxGeometry(HW*2+TW,0.1,0.2),ribMat.clone());
     rib.position.set(ox+fdx*ri,H-0.05,oz+fdz*ri);rib.rotation.y=ry;addH(rib);
   }
-  } // end !isMobile ribs
 
   // ── JUNCTION (corridor → exit room) ──
   mkBox(CL,  (HW+RW)/2, RW-HW, H, TW);
@@ -711,16 +736,10 @@ function prebuildCorridorForDoor(door){
   // ── SEALING WALL (pre-built 2.5 units in) ──
   mkBox(2.5, 0, HW*2+TW*2, H, TW);
 
-  // ── CORRIDOR LIGHTING — single light on mobile, two on desktop ──
-  if(isMobile){
-    const cL=new THREE.PointLight(0xd0c880,1.4,CL+RL+12);
-    cL.position.set(ox+fdx*(CL*0.5),3.0,oz+fdz*(CL*0.5));
-    addH(cL);
-  } else {
+  // ── CORRIDOR LIGHTING ──
   const cL=new THREE.PointLight(cLCol,1.7,CL+10);
   cL.position.set(ox+fdx*(CL*0.5),3.0,oz+fdz*(CL*0.5));
   addH(cL);
-  }
 
   // ── EMISSIVE CEILING STRIP (corridor) ──
   const strip=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.05,CL*0.88),
@@ -728,12 +747,10 @@ function prebuildCorridorForDoor(door){
   strip.position.set(ox+fdx*(CL/2),H-0.02,oz+fdz*(CL/2));
   strip.rotation.y=ry;addH(strip);
 
-  // ── EXIT ROOM LIGHT — desktop only (mobile uses single combined corridor light) ──
-  if(!isMobile){
+  // ── EXIT ROOM LIGHT ──
   const rL=new THREE.PointLight(rLCol,1.3,RW*3+6);
   rL.position.set(ox+fdx*(CL+RL*0.5),3.0,oz+fdz*(CL+RL*0.5));
   addH(rL);
-  }
 
   // ── EXIT ROOM CEILING PANEL ──
   const rStrip=new THREE.Mesh(new THREE.BoxGeometry(RW*1.3,0.06,RL*0.72),
@@ -942,9 +959,10 @@ function addClosingWall(){
   const HW=1.5, H=WH, TW=T_WALL;
   const cx=ox+fdx*4.8, cz=oz+fdz*4.8;
 
-  const wMat=isMobile
-    ? new THREE.MeshLambertMaterial({color:WALL_COLOR,emissive:0x110800,emissiveIntensity:0.6})
-    : new THREE.MeshStandardMaterial({color:WALL_COLOR,roughness:0.35,metalness:0.12,emissive:0x110800,emissiveIntensity:0.6});
+  const wMat=new THREE.MeshStandardMaterial({
+    color:WALL_COLOR,roughness:0.35,metalness:0.12,
+    emissive:0x110800,emissiveIntensity:0.6
+  });
   const m=new THREE.Mesh(new THREE.BoxGeometry(HW*2+TW*2,H,TW),wMat);
   m.position.set(cx,H/2,cz); m.rotation.y=door.cRy; m.receiveShadow=true;
   m.visible=true; scene.add(m);
@@ -1436,7 +1454,7 @@ function playTV(tv){
     videoObj.position.set(tv.wp.x+tv.nx*0.09,tv.wp.y,tv.wp.z+tv.nz*0.09);
     videoObj.rotation.set(0,tv.angle,0);
     videoObj.visible=true;
-    videoIframe.src=v.url+'?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1';
+    videoIframe.src=v.url+'?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&controls=0&iv_load_policy=3';
   } else { flashFact(v.lbl+'\n(screen offline)'); }
   // VIDS[7] = reward video on R5b spare TV — watching it drops the end wall
   if(tv.vidIdx===6&&!endVideoActive&&collectedTokens.size>=5&&archived.size>=GATE_TOTAL){
@@ -2363,7 +2381,7 @@ function playCorridorTV(tv){
     videoObj.rotation.set(0,tv.angle,0);
     videoObj.visible=true;
     if(v&&v.url){
-      videoIframe.src=v.url+'?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1';
+      videoIframe.src=v.url+'?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&controls=0&iv_load_policy=3';
     } else {
       // No URL yet — show signal lost on the iframe
       videoIframe.src='about:blank';
