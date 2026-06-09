@@ -992,7 +992,6 @@ function enterCorridor(door){
         doorVideoPlane.visible=true;
         doorVideo.onended=()=>_revealCorridor();
         setObjective('Watch the archive.  [ E ] to skip.');
-        duckTarget=0.12;
       } else {
         corridorState='door_video';
         setObjective('Archive not yet available.  Corridor open.');
@@ -1007,7 +1006,6 @@ function _revealCorridor(){
   doorVideoState='closed';
   doorVideo.pause(); doorVideo.src='';
   doorVideoPlane.visible=false;
-  duckTarget=1;
 
   const door=corridorDoor; if(!door)return;
 
@@ -1084,7 +1082,6 @@ function exitCorridor(){
   if(videoIframe)videoIframe.src='';
   if(videoObj)videoObj.visible=false;
   activeTV=null;
-  duckTarget=1;
   collectToken(door.vidIdx);
 
   const fadeEl=$('fade');
@@ -1529,9 +1526,8 @@ function playTV(tv){
     doorVideo.style.cssText='position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:90;background:#000';
     doorVideo.style.display='block';
     doorVideo.play().catch(()=>{});
-    duckTarget=0.12;
     setObjective(isMobile?'Tap anywhere to continue':'[ E ] to continue');
-    doorVideo.onended=()=>{ doorVideo.style.display='none'; doorVideo.src=''; duckTarget=1; setObjective(''); };
+    doorVideo.onended=()=>{ doorVideo.style.display='none'; doorVideo.src=''; setObjective(''); };
   } else if(videoObj){
     activeTV=tv;
     videoObj.position.set(tv.wp.x+tv.nx*0.09,tv.wp.y,tv.wp.z+tv.nz*0.09);
@@ -2199,8 +2195,6 @@ function sfxStatic(){blip(200,0.15,'square',0.05);}
 function sfxOpen(){blip(330,0.6,'sine',0.10);blip(495,0.6,'sine',0.07);}
 function sfxUI(){blip(440,0.12,'sine',0.05);}
 
-// ════ DUCKING ════
-let duckLevel=1, duckTarget=1;
 
 // ════ FOOTSTEPS + DARK FOLLOWER ════
 let noiseBuf=null;
@@ -2217,7 +2211,7 @@ function getNoiseBuf(){
 function footstep(vol,cut,dur,rateLo,rateHi){
   const a=ac();if(!a)return;
   const buf=getNoiseBuf();if(!buf)return;
-  vol=(vol||0.085)*duckLevel;
+  vol=(vol||0.085);
   if(vol<=0.0015)return;
   const src=a.createBufferSource();src.buffer=buf;
   src.playbackRate.value=(rateLo||0.85)+Math.random()*((rateHi||1.15)-(rateLo||0.85));
@@ -2257,7 +2251,7 @@ const MUSIC_URLS=[
 ];
 const MUSIC_BURSTS=[10,20,30,45,60];
 const MUSIC_GAP=[12,45];
-const MUSIC_CEILING=0.42;
+const MUSIC_CEILING=0.28;
 const MUSIC_FADE=2.6;
 let musicEls=[],musicActive=null,musicVol=0,musicTarget=0,musicStarted=false;
 function buildMusic(){
@@ -2291,7 +2285,7 @@ function updateMusic(dt){
   const speed=MUSIC_CEILING/MUSIC_FADE;
   if(musicVol<musicTarget)musicVol=Math.min(musicTarget,musicVol+speed*dt);
   else if(musicVol>musicTarget)musicVol=Math.max(musicTarget,musicVol-speed*dt);
-  if(musicActive)musicActive.volume=Math.max(0,Math.min(1,musicVol*duckLevel));
+  if(musicActive)musicActive.volume=Math.max(0,Math.min(1,musicVol));
 }
 
 // ════ UI HELPERS ════
@@ -2435,7 +2429,6 @@ function playCorridorTV(tv){
     }
   }
   corridorState='corridor_tv';
-  duckTarget=0.12;
   setObjective('Watch the record.  [ E ] to collect token & return.');
   whisper('watch it. then come back.');
 }
@@ -2543,8 +2536,6 @@ function animate(){
   camera.position.y=2;
 
   const watching=(videoObj&&videoObj.visible)||doorVideoState==='playing';
-  duckTarget=watching?0.18:1;
-  duckLevel+=(duckTarget-duckLevel)*Math.min(1,dt*4);
   updateFootsteps(t,movedDist,darknessAt(camera.position.x,camera.position.z));
   updateMusic(dt);
 
