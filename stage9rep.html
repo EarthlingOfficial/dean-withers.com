@@ -846,24 +846,21 @@ function enterCorridor(door){
         doorVideoState='playing';
         setObjective('Watch the archive.  [ E ] to skip.');
         duckTarget=0.12;
-        // Wait for enough data before showing — eliminates decode stutter
-        const _doPlay=()=>{
-          doorVideoPlane.visible=true;
-          doorVideo.play().catch(()=>{});
-          doorVideo.onended=()=>_revealCorridor();
-          requestAnimationFrame(()=>{
-            fadeEl.style.transition='opacity 0.4s ease';
-            fadeEl.style.opacity='0';
-            setTimeout(()=>{ fadeEl.style.transition=''; fadeEl.style.opacity=''; },450);
-          });
-        };
-        if(doorVideo.readyState>=3){
-          _doPlay();
-        } else {
-          doorVideo.addEventListener('canplaythrough',_doPlay,{once:true});
-          // Safety fallback — don't hang forever
-          setTimeout(()=>{ if(doorVideoState==='playing'&&!doorVideoPlane.visible)_doPlay(); },4000);
-        }
+        // Fade back in — video was pre-buffering during build
+        requestAnimationFrame(()=>{
+          fadeEl.style.transition='opacity 0.4s ease';
+          fadeEl.style.opacity='0';
+          setTimeout(()=>{ fadeEl.style.transition=''; fadeEl.style.opacity=''; },450);
+        });
+        corridorState='door_video';
+        doorVideoState='playing';
+        doorVideo.play().catch(()=>{});
+        doorVideoPlane.position.set(door.grp.position.x,1.65,door.grp.position.z);
+        doorVideoPlane.rotation.y=door.grp.rotation.y;
+        doorVideoPlane.visible=true;
+        doorVideo.onended=()=>_revealCorridor();
+        setObjective('Watch the archive.  [ E ] to skip.');
+        duckTarget=0.12;
       } else {
         corridorState='door_video';
         setObjective('Archive not yet available.  Corridor open.');
@@ -2061,6 +2058,7 @@ const childEnt={
   strikeReady:true,
   strikeCooldown:0,
   firstSeen:false,
+  hasBeenVisible:false,
   loaded:false,
 };
 const CHILD_MAX_VIS=0.74;
@@ -2082,7 +2080,7 @@ function setChildAnim(name){
 function buildChildEntity(){
   const loader=new THREE.GLTFLoader();
   loader.load(
-    'https://earthlingofficial.com/entity1%5B1%5D_rigged.glb',
+    'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/entity1%5B1%5D_rigged.glb',
     (gltf)=>{
       childEnt.mesh=gltf.scene;
       childEnt.mesh.scale.set(1,1,1);
@@ -2107,7 +2105,6 @@ function buildChildEntity(){
       scene.add(childEnt.light);
       childEnt.mesh.visible=false;
       scene.add(childEnt.mesh);
-      renderer.compile(scene,camera);
       childEnt.loaded=true;
     },
     undefined,
@@ -2147,7 +2144,7 @@ function updateChildEntity(dt,t){
     e.peekCooldown=Math.max(0,e.peekCooldown-1);
     return;
   }
-  if(looking&&dist<18){
+  if(looking&&dist<18&&e.hasBeenVisible){
     e.targetVis=0;
     e.vis=Math.max(0,e.vis-0.045);
     sanity=Math.max(0,sanity-0.045*dt*60);
@@ -2183,6 +2180,7 @@ function updateChildEntity(dt,t){
     e.targetVis=Math.min(CHILD_MAX_VIS,0.42+e.stage*0.08);
   }
   e.vis+=(e.targetVis-e.vis)*0.055;
+  if(e.vis>0.28)e.hasBeenVisible=true;
   setChildVis(e.vis);
   if(e.light){e.light.intensity=e.vis*0.38;}
   if(dist<CHILD_STRIKE_R&&e.strikeReady&&e.strikeCooldown<=0){
