@@ -92,6 +92,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://unpkg.com/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
 
@@ -1991,39 +1992,7 @@ function buildBlackFig(){
   blackFig.sprite.position.set(blackFig.x,1.15,blackFig.z);scene.add(blackFig.sprite);
 }
 
-// ════ CHILD ENTITY — THE SPECIMEN ════
-function childSilhouetteTex(){
-  const c=document.createElement('canvas');c.width=96;c.height=256;
-  const x=c.getContext('2d');
-  x.clearRect(0,0,96,256);
-  x.filter='blur(4px)';
-  x.fillStyle='rgba(2,2,6,0.93)';
-  x.beginPath();x.ellipse(48,24,15,17,0,0,Math.PI*2);x.fill();
-  x.fillRect(43,39,10,7);
-  x.beginPath();x.moveTo(24,55);x.quadraticCurveTo(48,47,72,55);
-  x.lineTo(66,128);x.quadraticCurveTo(64,166,60,196);x.lineTo(36,196);
-  x.quadraticCurveTo(32,166,30,128);x.closePath();x.fill();
-  x.beginPath();x.moveTo(72,60);x.quadraticCurveTo(87,76,86,124);
-  x.quadraticCurveTo(84,158,78,176);x.lineTo(70,174);
-  x.quadraticCurveTo(76,148,74,108);x.quadraticCurveTo(74,80,72,60);x.closePath();x.fill();
-  x.beginPath();x.moveTo(24,60);x.quadraticCurveTo(9,76,10,124);
-  x.quadraticCurveTo(12,158,18,176);x.lineTo(26,174);
-  x.quadraticCurveTo(20,148,22,108);x.quadraticCurveTo(22,80,24,60);x.closePath();x.fill();
-  x.beginPath();x.moveTo(36,196);x.quadraticCurveTo(34,218,36,250);x.lineTo(48,250);
-  x.quadraticCurveTo(48,218,48,196);x.closePath();x.fill();
-  x.beginPath();x.moveTo(60,196);x.quadraticCurveTo(62,218,60,250);x.lineTo(48,250);
-  x.quadraticCurveTo(48,218,48,196);x.closePath();x.fill();
-  x.filter='blur(1.5px)';x.fillStyle='rgba(180,220,255,0.28)';
-  x.beginPath();x.arc(42,23,1.8,0,Math.PI*2);x.fill();
-  x.beginPath();x.arc(54,23,1.8,0,Math.PI*2);x.fill();
-  x.filter='none';
-  const g=x.createLinearGradient(0,0,0,256);
-  g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(0.07,'rgba(0,0,0,1)');
-  g.addColorStop(0.91,'rgba(0,0,0,1)');g.addColorStop(1,'rgba(0,0,0,0)');
-  x.globalCompositeOperation='destination-in';x.fillStyle=g;x.fillRect(0,0,96,256);
-  x.globalCompositeOperation='source-over';
-  return new THREE.CanvasTexture(c);
-}
+// ════ CHILD ENTITY — 3D RIGGED MODEL ════
 function sfxZap(){
   const a=ac();if(!a)return;
   const len=Math.floor(a.sampleRate*0.07);
@@ -2072,7 +2041,7 @@ function killCorridorLights(){
   },2000);
 }
 const childEnt={
-  sprite:null,light:null,
+  mesh:null,mixer:null,clips:{},currentAnim:null,light:null,
   x:30,z:30,
   state:'hidden',
   vis:0,targetVis:0,
@@ -2082,38 +2051,73 @@ const childEnt={
   strikeReady:true,
   strikeCooldown:0,
   firstSeen:false,
-  lightsKilled:false,
+  loaded:false,
 };
 const CHILD_MAX_VIS=0.74;
 const CHILD_STRIKE_R=1.35;
 const CHILD_LULL=52*60;
+function setChildVis(v){
+  if(!childEnt.mesh)return;
+  childEnt.mesh.traverse(o=>{if(o.isMesh)o.material.opacity=v;});
+}
+function setChildAnim(name){
+  if(childEnt.currentAnim===name)return;
+  const prev=childEnt.clips[childEnt.currentAnim];
+  const next=childEnt.clips[name];
+  if(!next)return;
+  if(prev)prev.fadeOut(0.18);
+  next.reset().fadeIn(0.18).play();
+  childEnt.currentAnim=name;
+}
 function buildChildEntity(){
-  const mat=new THREE.SpriteMaterial({
-    map:childSilhouetteTex(),transparent:true,opacity:0,depthWrite:false
-  });
-  childEnt.sprite=new THREE.Sprite(mat);
-  childEnt.sprite.scale.set(0.72,1.88,1);
-  childEnt.sprite.position.set(childEnt.x,1.05,childEnt.z);
-  scene.add(childEnt.sprite);
-  childEnt.light=new THREE.PointLight(0x001228,0,6,2);
-  childEnt.light.position.set(childEnt.x,1.15,childEnt.z);
-  scene.add(childEnt.light);
+  const loader=new THREE.GLTFLoader();
+  loader.load(
+    'https://earthlingofficial.com/entity1%5B1%5D_rigged.glb',
+    (gltf)=>{
+      childEnt.mesh=gltf.scene;
+      childEnt.mesh.scale.set(1,1,1);
+      childEnt.mesh.position.set(childEnt.x,0,childEnt.z);
+      childEnt.mesh.traverse(o=>{
+        if(o.isMesh){
+          o.material=new THREE.MeshBasicMaterial({
+            color:0x010106,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide
+          });
+          o.castShadow=false;
+        }
+      });
+      childEnt.mixer=new THREE.AnimationMixer(childEnt.mesh);
+      gltf.animations.forEach(clip=>{
+        childEnt.clips[clip.name]=childEnt.mixer.clipAction(clip);
+        childEnt.clips[clip.name].loop=THREE.LoopRepeat;
+      });
+      if(childEnt.clips['Idle'])childEnt.clips['Idle'].play();
+      childEnt.currentAnim='Idle';
+      childEnt.light=new THREE.PointLight(0x001228,0,6,2);
+      childEnt.light.position.set(childEnt.x,1.15,childEnt.z);
+      scene.add(childEnt.light);
+      scene.add(childEnt.mesh);
+      childEnt.loaded=true;
+    },
+    undefined,
+    (err)=>console.error('child entity load error',err)
+  );
 }
 function spawnChildEnt(){
-  if(childEnt.state!=='hidden')return;
+  if(childEnt.state!=='hidden'||!childEnt.loaded)return;
   const p=placeNear(14,26,false);if(!p)return;
   childEnt.x=p.x;childEnt.z=p.z;
-  childEnt.sprite.position.set(p.x,1.05,p.z);
+  childEnt.mesh.position.set(p.x,0,p.z);
   childEnt.state='watching';
   childEnt.targetVis=CHILD_MAX_VIS*0.45;
 }
 function updateChildEntity(dt,t){
   const e=childEnt;
-  if(!e.sprite)return;
+  if(!e.loaded)return;
+  if(e.mixer)e.mixer.update(dt);
   if(e.strikeCooldown>0)e.strikeCooldown--;
   e.animT+=dt;
   e.stage=archived.size;
-  e.sprite.position.x=e.x;e.sprite.position.z=e.z;
+  e.mesh.position.x=e.x;e.mesh.position.z=e.z;
   if(e.light){e.light.position.x=e.x;e.light.position.z=e.z;}
   const dx=e.x-camera.position.x,dz=e.z-camera.position.z;
   const dist=Math.hypot(dx,dz);
@@ -2121,7 +2125,7 @@ function updateChildEntity(dt,t){
   const dot=(dx*fwdX+dz*fwdZ)/Math.max(0.1,dist);
   const looking=dot>0.70&&dist<20;
   if(e.state==='hidden'){
-    e.vis=0;e.sprite.material.opacity=0;
+    e.vis=0;setChildVis(0);
     if(e.light)e.light.intensity=0;
     if(e.strikeCooldown<=0&&e.stage>=1&&e.peekCooldown<=0){
       const chance=0.00035+e.stage*0.00055;
@@ -2139,54 +2143,40 @@ function updateChildEntity(dt,t){
       e.state='hidden';
       const p=placeNear(12,26,true);if(p){e.x=p.x;e.z=p.z;}
       e.peekCooldown=200+e.stage*50+Math.random()*220;
-      e.sprite.material.opacity=0;
+      setChildVis(0);
       if(e.light)e.light.intensity=0;
+      setChildAnim('Idle');
       return;
     }
+    setChildAnim('Idle');
   } else {
     const spd=0.7+e.stage*0.52;
     if(dist>2.2){
       const nx2=dx/dist,nz2=dz/dist;
       if(e.stage>=3&&dist<16){
         e.x-=nx2*spd*dt;e.z-=nz2*spd*dt;
-        e.state=spd>2.6?'run':'walk';
+        e.mesh.rotation.y=Math.atan2(nx2,nz2);
+        setChildAnim(spd>2.6?'Run':'Walk');
       } else if(e.stage>=2&&dist<10){
         e.x-=nx2*(spd*0.38)*dt;e.z-=nz2*(spd*0.38)*dt;
-        e.state='walk';
+        e.mesh.rotation.y=Math.atan2(nx2,nz2);
+        setChildAnim('Walk');
       } else {
-        e.state=Math.sin(e.animT*0.38)>0.55?'squat':'watching';
+        setChildAnim(Math.sin(e.animT*0.38)>0.55?'CreepySquat':'Idle');
       }
     } else {
-      e.state='squat';
+      setChildAnim('CreepySquat');
     }
     e.targetVis=Math.min(CHILD_MAX_VIS,0.42+e.stage*0.08);
   }
   e.vis+=(e.targetVis-e.vis)*0.055;
-  e.sprite.material.opacity=e.vis;
-  if(e.light){e.light.intensity=e.vis*0.38;e.light.color.setHex(0x00121e);}
-  const baseH=1.88;
-  if(e.state==='squat'){
-    const sq=0.62+0.16*Math.abs(Math.sin(e.animT*1.15));
-    e.sprite.scale.set(0.82,baseH*sq,1);
-    e.sprite.position.y=0.58*sq+0.36;
-  } else if(e.state==='run'){
-    const bob=Math.abs(Math.sin(e.animT*11))*0.09;
-    const sw=Math.sin(e.animT*11)*0.07;
-    e.sprite.scale.set(0.72+sw,baseH,1);
-    e.sprite.position.y=1.05+bob;
-  } else if(e.state==='walk'){
-    const bob=Math.abs(Math.sin(e.animT*4.8))*0.055;
-    e.sprite.scale.set(0.72,baseH,1);
-    e.sprite.position.y=1.05+bob;
-  } else {
-    e.sprite.scale.set(0.72,baseH,1);
-    e.sprite.position.y=1.05+Math.sin(e.animT*0.75)*0.038;
-  }
+  setChildVis(e.vis);
+  if(e.light){e.light.intensity=e.vis*0.38;}
   if(dist<CHILD_STRIKE_R&&e.strikeReady&&e.strikeCooldown<=0){
     e.strikeReady=false;
     sfxZap();strobeZap();
     sanity=Math.max(0,sanity-16);
-    e.vis=0;e.sprite.material.opacity=0;
+    setChildVis(0);e.vis=0;
     if(e.light)e.light.intensity=0;
     e.state='hidden';
     e.strikeCooldown=CHILD_LULL;
