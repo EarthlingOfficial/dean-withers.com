@@ -13,7 +13,7 @@
 body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monospace;touch-action:none;-webkit-user-select:none;user-select:none}
 #c{position:fixed;inset:0;width:100%;height:100%;z-index:0}
 #css3d{position:fixed;inset:0;z-index:1;pointer-events:none}
-#css3d iframe{border:0;pointer-events:none;background:#000}
+#css3d iframe{border:0;pointer-events:auto;background:#000}
 
 /* CONNECT OVERLAY */
 #connect{position:fixed;inset:0;background:#0c0b06;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;transition:opacity 1.6s}
@@ -94,33 +94,6 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 <script src="https://unpkg.com/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>
 </head>
 <body>
-
-<!-- CONTENT WARNING OVERLAY -->
-<style>
-#cw-overlay{position:fixed;inset:0;background:#000;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;box-sizing:border-box}
-#cw-inner{max-width:620px;text-align:center}
-#cw-icon{font-size:clamp(32px,7vw,52px);margin-bottom:18px}
-#cw-title{color:#cc2222;font-family:'Courier New',monospace;font-size:clamp(13px,2.5vw,18px);letter-spacing:3px;font-weight:bold;margin-bottom:22px;line-height:1.5}
-#cw-body{color:#888880;font-family:'Courier New',monospace;font-size:clamp(10px,1.6vw,13px);letter-spacing:1px;line-height:1.85;margin-bottom:32px;border-top:1px solid rgba(180,30,30,.25);border-bottom:1px solid rgba(180,30,30,.25);padding:18px 0}
-.cw-btn{font-family:'Courier New',monospace;letter-spacing:3px;font-size:clamp(10px,1.8vw,13px);padding:12px 28px;cursor:pointer;border:none;margin:6px 10px;display:inline-block}
-#cw-accept{background:#cc2222;color:#fff}
-#cw-accept:hover{background:#ee3333}
-#cw-exit{background:transparent;color:#444;border:1px solid #333}
-#cw-exit:hover{color:#888}
-</style>
-<div id="cw-overlay">
-  <div id="cw-inner">
-    <div id="cw-icon">⚠️</div>
-    <div id="cw-title">CRITICAL CONTENT WARNING</div>
-    <div id="cw-body">This game is a work of animal advocacy and features unedited, highly graphic real-world footage of industrial animal slaughterhouses. The upcoming imagery contains severe violence, blood, and animal suffering.<br><br>This content is <strong style="color:#cc2222">STRICTLY NOT RECOMMENDED FOR MINORS</strong> or anyone sensitive to severe graphic violence.<br><br>If you choose to proceed, viewer discretion is heavily advised.</div>
-    <button class="cw-btn" id="cw-accept">I AM 18+ / I ACCEPT THE RISK</button>
-    <button class="cw-btn" id="cw-exit">EXIT GAME</button>
-  </div>
-</div>
-<script>
-document.getElementById('cw-accept').addEventListener('click',function(){document.getElementById('cw-overlay').style.display='none';});
-document.getElementById('cw-exit').addEventListener('click',function(){window.location.href='https://google.com';});
-</script>
 
 <!-- CONNECT / LOADING OVERLAY -->
 <div id="connect">
@@ -209,7 +182,7 @@ const GATE_TOTAL=VIDS.filter(v=>v.gate).length;
 // ── DOOR AI VIDEOS (MP4s — door appears after watching matching TV) ──
 const DOOR_VIDS=[
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4', // door 0
-  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4', // door 1 — swap when ready
+  'https://earthlingofficial.com/MindVideo_20260607173600_104.mp4', // door 1 — MIND VIDEO
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4', // door 2 — swap when ready
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4', // door 3 — swap when ready
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4', // door 4 — swap when ready
@@ -851,11 +824,6 @@ function enterCorridor(door){
 
   sfxOpen();
 
-  // Stop any playing main-room TV before starting corridor video
-  if(videoIframe){videoIframe.src='';}
-  if(videoObj){videoObj.visible=false;}
-  activeTV=null;
-
   // Pre-load the video src BEFORE going black so it starts buffering immediately
   const url=DOOR_VIDS[door.vidIdx];
   if(url){ doorVideo.src=url; doorVideo.load(); }
@@ -1134,9 +1102,9 @@ function init(){
   camera.rotation.y=Math.PI;
   clock=new THREE.Clock();
   renderer=new THREE.WebGLRenderer({canvas:$('c'),antialias:false});
-  renderer.setPixelRatio(isMobile?1.0:Math.min(devicePixelRatio,1.5));
+  renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
   renderer.setSize(innerWidth,innerHeight);
-  renderer.shadowMap.enabled=!isMobile;
+  renderer.shadowMap.enabled=true;
   renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   if(typeof THREE.CSS3DRenderer==='function'){
     css3d=new THREE.CSS3DRenderer();
@@ -1164,6 +1132,7 @@ function init(){
   buildWorld();
   buildShadowFig();
   buildBlackFig();
+  buildChildEntity();
   buildDoorVideoPlane();
   buildMusic();
   setupControls();
@@ -1175,14 +1144,10 @@ function init(){
   // Corridors are NOT included here — they build lazily on door entry.
   renderer.compile(scene,camera);
 
-  if(!isMobile){
-    renderer.setRenderTarget(renderTarget);
-    renderer.render(scene,camera);
-    renderer.setRenderTarget(null);
-    renderer.render(postScene,postCamera);
-  } else {
-    renderer.render(scene,camera);
-  }
+  renderer.setRenderTarget(renderTarget);
+  renderer.render(scene,camera);
+  renderer.setRenderTarget(null);
+  renderer.render(postScene,postCamera);
 
   const loadFill=$('c-loadfill');
   const loadTxt=$('c-loadtxt');
@@ -1454,7 +1419,7 @@ function playTV(tv){
     videoObj.position.set(tv.wp.x+tv.nx*0.09,tv.wp.y,tv.wp.z+tv.nz*0.09);
     videoObj.rotation.set(0,tv.angle,0);
     videoObj.visible=true;
-    videoIframe.src=v.url+'?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&controls=0&iv_load_policy=3';
+    videoIframe.src=v.url+'?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1';
   } else { flashFact(v.lbl+'\n(screen offline)'); }
   // VIDS[7] = reward video on R5b spare TV — watching it drops the end wall
   if(tv.vidIdx===6&&!endVideoActive&&collectedTokens.size>=5&&archived.size>=GATE_TOTAL){
@@ -2025,6 +1990,213 @@ function buildBlackFig(){
   blackFig.sprite=new THREE.Sprite(mat);blackFig.sprite.scale.set(0.95,1.95,1);
   blackFig.sprite.position.set(blackFig.x,1.15,blackFig.z);scene.add(blackFig.sprite);
 }
+
+// ════ CHILD ENTITY — THE SPECIMEN ════
+function childSilhouetteTex(){
+  const c=document.createElement('canvas');c.width=96;c.height=256;
+  const x=c.getContext('2d');
+  x.clearRect(0,0,96,256);
+  x.filter='blur(4px)';
+  x.fillStyle='rgba(2,2,6,0.93)';
+  x.beginPath();x.ellipse(48,24,15,17,0,0,Math.PI*2);x.fill();
+  x.fillRect(43,39,10,7);
+  x.beginPath();x.moveTo(24,55);x.quadraticCurveTo(48,47,72,55);
+  x.lineTo(66,128);x.quadraticCurveTo(64,166,60,196);x.lineTo(36,196);
+  x.quadraticCurveTo(32,166,30,128);x.closePath();x.fill();
+  x.beginPath();x.moveTo(72,60);x.quadraticCurveTo(87,76,86,124);
+  x.quadraticCurveTo(84,158,78,176);x.lineTo(70,174);
+  x.quadraticCurveTo(76,148,74,108);x.quadraticCurveTo(74,80,72,60);x.closePath();x.fill();
+  x.beginPath();x.moveTo(24,60);x.quadraticCurveTo(9,76,10,124);
+  x.quadraticCurveTo(12,158,18,176);x.lineTo(26,174);
+  x.quadraticCurveTo(20,148,22,108);x.quadraticCurveTo(22,80,24,60);x.closePath();x.fill();
+  x.beginPath();x.moveTo(36,196);x.quadraticCurveTo(34,218,36,250);x.lineTo(48,250);
+  x.quadraticCurveTo(48,218,48,196);x.closePath();x.fill();
+  x.beginPath();x.moveTo(60,196);x.quadraticCurveTo(62,218,60,250);x.lineTo(48,250);
+  x.quadraticCurveTo(48,218,48,196);x.closePath();x.fill();
+  x.filter='blur(1.5px)';x.fillStyle='rgba(180,220,255,0.28)';
+  x.beginPath();x.arc(42,23,1.8,0,Math.PI*2);x.fill();
+  x.beginPath();x.arc(54,23,1.8,0,Math.PI*2);x.fill();
+  x.filter='none';
+  const g=x.createLinearGradient(0,0,0,256);
+  g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(0.07,'rgba(0,0,0,1)');
+  g.addColorStop(0.91,'rgba(0,0,0,1)');g.addColorStop(1,'rgba(0,0,0,0)');
+  x.globalCompositeOperation='destination-in';x.fillStyle=g;x.fillRect(0,0,96,256);
+  x.globalCompositeOperation='source-over';
+  return new THREE.CanvasTexture(c);
+}
+function sfxZap(){
+  const a=ac();if(!a)return;
+  const len=Math.floor(a.sampleRate*0.07);
+  const buf=a.createBuffer(1,len,a.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*(1-i/len);
+  const src=a.createBufferSource();src.buffer=buf;
+  const hp=a.createBiquadFilter();hp.type='highpass';hp.frequency.value=3400;
+  const g=a.createGain();
+  g.gain.setValueAtTime(0.38,a.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+0.065);
+  src.connect(hp);hp.connect(g);g.connect(a.destination);
+  src.start();src.stop(a.currentTime+0.07);
+  setTimeout(()=>{
+    const a2=ac();if(!a2)return;
+    const len2=Math.floor(a2.sampleRate*0.038);
+    const buf2=a2.createBuffer(1,len2,a2.sampleRate);
+    const d2=buf2.getChannelData(0);
+    for(let i=0;i<d2.length;i++)d2[i]=(Math.random()*2-1)*(1-i/d2.length);
+    const src2=a2.createBufferSource();src2.buffer=buf2;
+    const hp2=a2.createBiquadFilter();hp2.type='highpass';hp2.frequency.value=6200;
+    const g2=a2.createGain();
+    g2.gain.setValueAtTime(0.22,a2.currentTime);
+    g2.gain.exponentialRampToValueAtTime(0.0001,a2.currentTime+0.032);
+    src2.connect(hp2);hp2.connect(g2);g2.connect(a2.destination);
+    src2.start();src2.stop(a2.currentTime+0.04);
+  },28);
+}
+function strobeZap(){
+  const s=$('strobe');
+  s.style.transition='none';
+  s.style.opacity='0.95';
+  setTimeout(()=>{s.style.transition='opacity 0.15s ease-out';s.style.opacity='0';},48);
+}
+function killCorridorLights(){
+  setTimeout(()=>{
+    whisper('it found you first.');
+    let step=0;const steps=32;
+    const iv=setInterval(()=>{
+      step++;const frac=step/steps;
+      roomLightRefs.forEach(ref=>{
+        ref.light.intensity=ref.orig*Math.max(0.08,1-frac*1.4);
+      });
+      if(step>=steps)clearInterval(iv);
+    },55);
+  },2000);
+}
+const childEnt={
+  sprite:null,light:null,
+  x:30,z:30,
+  state:'hidden',
+  vis:0,targetVis:0,
+  animT:0,
+  peekCooldown:0,
+  stage:0,
+  strikeReady:true,
+  strikeCooldown:0,
+  firstSeen:false,
+  lightsKilled:false,
+};
+const CHILD_MAX_VIS=0.74;
+const CHILD_STRIKE_R=1.35;
+const CHILD_LULL=52*60;
+function buildChildEntity(){
+  const mat=new THREE.SpriteMaterial({
+    map:childSilhouetteTex(),transparent:true,opacity:0,depthWrite:false
+  });
+  childEnt.sprite=new THREE.Sprite(mat);
+  childEnt.sprite.scale.set(0.72,1.88,1);
+  childEnt.sprite.position.set(childEnt.x,1.05,childEnt.z);
+  scene.add(childEnt.sprite);
+  childEnt.light=new THREE.PointLight(0x001228,0,6,2);
+  childEnt.light.position.set(childEnt.x,1.15,childEnt.z);
+  scene.add(childEnt.light);
+}
+function spawnChildEnt(){
+  if(childEnt.state!=='hidden')return;
+  const p=placeNear(14,26,false);if(!p)return;
+  childEnt.x=p.x;childEnt.z=p.z;
+  childEnt.sprite.position.set(p.x,1.05,p.z);
+  childEnt.state='watching';
+  childEnt.targetVis=CHILD_MAX_VIS*0.45;
+}
+function updateChildEntity(dt,t){
+  const e=childEnt;
+  if(!e.sprite)return;
+  if(e.strikeCooldown>0)e.strikeCooldown--;
+  e.animT+=dt;
+  e.stage=archived.size;
+  e.sprite.position.x=e.x;e.sprite.position.z=e.z;
+  if(e.light){e.light.position.x=e.x;e.light.position.z=e.z;}
+  const dx=e.x-camera.position.x,dz=e.z-camera.position.z;
+  const dist=Math.hypot(dx,dz);
+  const fwdX=Math.sin(camera.rotation.y),fwdZ=Math.cos(camera.rotation.y);
+  const dot=(dx*fwdX+dz*fwdZ)/Math.max(0.1,dist);
+  const looking=dot>0.70&&dist<20;
+  if(e.state==='hidden'){
+    e.vis=0;e.sprite.material.opacity=0;
+    if(e.light)e.light.intensity=0;
+    if(e.strikeCooldown<=0&&e.stage>=1&&e.peekCooldown<=0){
+      const chance=0.00035+e.stage*0.00055;
+      if(Math.random()<chance)spawnChildEnt();
+    }
+    e.peekCooldown=Math.max(0,e.peekCooldown-1);
+    return;
+  }
+  if(looking&&dist<18){
+    e.targetVis=0;
+    e.vis=Math.max(0,e.vis-0.045);
+    sanity=Math.max(0,sanity-0.045*dt*60);
+    if(e.vis<=0){
+      if(!e.firstSeen){e.firstSeen=true;killCorridorLights();}
+      e.state='hidden';
+      const p=placeNear(12,26,true);if(p){e.x=p.x;e.z=p.z;}
+      e.peekCooldown=200+e.stage*50+Math.random()*220;
+      e.sprite.material.opacity=0;
+      if(e.light)e.light.intensity=0;
+      return;
+    }
+  } else {
+    const spd=0.7+e.stage*0.52;
+    if(dist>2.2){
+      const nx2=dx/dist,nz2=dz/dist;
+      if(e.stage>=3&&dist<16){
+        e.x-=nx2*spd*dt;e.z-=nz2*spd*dt;
+        e.state=spd>2.6?'run':'walk';
+      } else if(e.stage>=2&&dist<10){
+        e.x-=nx2*(spd*0.38)*dt;e.z-=nz2*(spd*0.38)*dt;
+        e.state='walk';
+      } else {
+        e.state=Math.sin(e.animT*0.38)>0.55?'squat':'watching';
+      }
+    } else {
+      e.state='squat';
+    }
+    e.targetVis=Math.min(CHILD_MAX_VIS,0.42+e.stage*0.08);
+  }
+  e.vis+=(e.targetVis-e.vis)*0.055;
+  e.sprite.material.opacity=e.vis;
+  if(e.light){e.light.intensity=e.vis*0.38;e.light.color.setHex(0x00121e);}
+  const baseH=1.88;
+  if(e.state==='squat'){
+    const sq=0.62+0.16*Math.abs(Math.sin(e.animT*1.15));
+    e.sprite.scale.set(0.82,baseH*sq,1);
+    e.sprite.position.y=0.58*sq+0.36;
+  } else if(e.state==='run'){
+    const bob=Math.abs(Math.sin(e.animT*11))*0.09;
+    const sw=Math.sin(e.animT*11)*0.07;
+    e.sprite.scale.set(0.72+sw,baseH,1);
+    e.sprite.position.y=1.05+bob;
+  } else if(e.state==='walk'){
+    const bob=Math.abs(Math.sin(e.animT*4.8))*0.055;
+    e.sprite.scale.set(0.72,baseH,1);
+    e.sprite.position.y=1.05+bob;
+  } else {
+    e.sprite.scale.set(0.72,baseH,1);
+    e.sprite.position.y=1.05+Math.sin(e.animT*0.75)*0.038;
+  }
+  if(dist<CHILD_STRIKE_R&&e.strikeReady&&e.strikeCooldown<=0){
+    e.strikeReady=false;
+    sfxZap();strobeZap();
+    sanity=Math.max(0,sanity-16);
+    e.vis=0;e.sprite.material.opacity=0;
+    if(e.light)e.light.intensity=0;
+    e.state='hidden';
+    e.strikeCooldown=CHILD_LULL;
+    const p=placeNear(18,30,true);if(p){e.x=p.x;e.z=p.z;}
+    setTimeout(()=>{e.strikeReady=true;},3200);
+    return;
+  }
+  if(dist<9&&e.vis>0.18)sanity=Math.max(0,sanity-0.9*dt);
+  e.peekCooldown=Math.max(0,e.peekCooldown-1);
+}
 function darknessAt(x,z){
   let lit=0;
   for(const f of lights){const d2=(f.x-x)*(f.x-x)+(f.z-z)*(f.z-z);lit+=f.i/(1+d2*0.06);}
@@ -2381,7 +2553,7 @@ function playCorridorTV(tv){
     videoObj.rotation.set(0,tv.angle,0);
     videoObj.visible=true;
     if(v&&v.url){
-      videoIframe.src=v.url+'?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&controls=0&iv_load_policy=3';
+      videoIframe.src=v.url+'?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1';
     } else {
       // No URL yet — show signal lost on the iframe
       videoIframe.src='about:blank';
@@ -2459,14 +2631,10 @@ function startGame(){
   // Warm up GPU shaders across several frames after connect so first movement is lag-free
   let warmFrames=0;
   const warmup=()=>{
-    if(isMobile){
-      renderer.render(scene,camera);
-    } else {
-      renderer.setRenderTarget(renderTarget);
-      renderer.render(scene,camera);
-      renderer.setRenderTarget(null);
-      renderer.render(postScene,postCamera);
-    }
+    renderer.setRenderTarget(renderTarget);
+    renderer.render(scene,camera);
+    renderer.setRenderTarget(null);
+    renderer.render(postScene,postCamera);
     if(++warmFrames<8)requestAnimationFrame(warmup);
   };
   requestAnimationFrame(warmup);
@@ -2478,7 +2646,7 @@ function animate(){
   const dt=Math.min(clock.getDelta(),0.05),t=clock.getElapsedTime();
   postMaterial.uniforms.uTime.value=t;
 
-  if(!started){renderer.render(scene,camera);return;}
+  if(!started){renderer.setRenderTarget(null);renderer.render(scene,camera);return;}
 
   if(td.r.a){
     camera.rotation.y-=td.r.mx*0.03;
@@ -2504,10 +2672,11 @@ function animate(){
   updateFootsteps(t,movedDist,darknessAt(camera.position.x,camera.position.z));
   updateMusic(dt);
 
-  if(++fuzzFrame%(isMobile?10:3)===0)updateFuzz();
+  if(++fuzzFrame%3===0)updateFuzz();
 
   updateShadowFig(dt);
   updateBlackFig();
+  updateChildEntity(dt,t);
   updateCrowd(dt,t);
   updateInteract();
   updateVideoVisibility();
@@ -2521,12 +2690,8 @@ function animate(){
   whisperTimer--;
   if(whisperTimer<=0){whisper(WHISPERS[Math.floor(Math.random()*WHISPERS.length)]);whisperTimer=600+Math.floor(Math.random()*600);}
 
-  if(isMobile){
-    renderer.render(scene,camera);
-  } else {
-    renderer.setRenderTarget(renderTarget);renderer.render(scene,camera);
-    renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
-  }
+  renderer.setRenderTarget(renderTarget);renderer.render(scene,camera);
+  renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
   if(css3d)css3d.render(scene,camera);
 }
 
