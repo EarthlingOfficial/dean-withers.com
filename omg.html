@@ -176,7 +176,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 <button id="skipbtn">SKIP VIDEO</button>
 
 <!-- Door video element (hidden — feeds a Three.js VideoTexture) -->
-<video id="doorvideo" playsinline webkit-playsinline style="display:none;position:fixed;left:-9999px"></video>
+<video id="doorvideo" playsinline webkit-playsinline style="opacity:0;pointer-events:none;position:fixed;left:-9999px;top:-9999px;width:1px;height:1px"></video>
 
 <!-- TOKEN FLASH -->
 <div id="tokenmask">
@@ -1527,7 +1527,7 @@ function playTV(tv){
     doorVideo.style.display='block';
     doorVideo.play().catch(()=>{});
     setObjective(isMobile?'Tap anywhere to continue':'[ E ] to continue');
-    doorVideo.onended=()=>{ doorVideo.style.display='none'; doorVideo.src=''; setObjective(''); };
+    doorVideo.onended=()=>{ doorVideo.style.cssText='opacity:0;pointer-events:none;position:fixed;left:-9999px;top:-9999px;width:1px;height:1px'; doorVideo.src=''; setObjective(''); };
   } else if(videoObj){
     activeTV=tv;
     videoObj.position.set(tv.wp.x+tv.nx*0.09,tv.wp.y,tv.wp.z+tv.nz*0.09);
