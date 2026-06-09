@@ -2428,7 +2428,7 @@ function playCorridorTV(tv){
     videoObj.rotation.set(0,tv.angle,0);
     videoObj.visible=true;
     if(v&&v.url){
-      videoIframe.src=v.url+'?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1';
+      videoIframe.src=v.url+'?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1';
     } else {
       videoIframe.src='about:blank';
       flashFact('SIGNAL LOST\n'+((v&&v.lbl)||'CORRIDOR ARCHIVE'));
