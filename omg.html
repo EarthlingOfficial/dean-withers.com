@@ -969,11 +969,11 @@ function enterCorridor(door){
   sfxOpen();
 
   const url=DOOR_VIDS[door.vidIdx];
-  if(url){ doorVideo.src=url; doorVideo.load(); }
+  if(url){ doorVideo.crossOrigin="anonymous"; doorVideo.src=url; doorVideo.load(); }
 
-  const fadeEl=$('fade');
-  fadeEl.style.transition='none';
-  fadeEl.style.opacity='1';
+  const fadeEl=$("fade");
+  fadeEl.style.transition="none";
+  fadeEl.style.opacity="1";
 
   requestAnimationFrame(()=>{
     requestAnimationFrame(()=>{
@@ -981,27 +981,26 @@ function enterCorridor(door){
 
       if(url){
         requestAnimationFrame(()=>{
-          fadeEl.style.transition='opacity 0.4s ease';
-          fadeEl.style.opacity='0';
-          setTimeout(()=>{ fadeEl.style.transition=''; fadeEl.style.opacity=''; },450);
+          fadeEl.style.transition="opacity 0.4s ease";
+          fadeEl.style.opacity="0";
+          setTimeout(()=>{ fadeEl.style.transition=""; fadeEl.style.opacity=""; },450);
         });
-        corridorState='door_video';
-        doorVideoState='playing';
+        corridorState="door_video";
+        doorVideoState="playing";
         doorVideo.play().catch(()=>{});
         doorVideoPlane.position.set(door.grp.position.x,1.65,door.grp.position.z);
         doorVideoPlane.rotation.y=door.grp.rotation.y;
         doorVideoPlane.visible=true;
         doorVideo.onended=()=>_revealCorridor();
-        setObjective('Watch the archive.  [ E ] to skip.');
+        setObjective("Watch the archive.  [ E ] to skip.");
       } else {
-        corridorState='door_video';
-        setObjective('Archive not yet available.  Corridor open.');
+        corridorState="door_video";
+        setObjective("Archive not yet available.  Corridor open.");
         setTimeout(()=>_revealCorridor(),1800);
       }
     });
   });
 }
-
 function _revealCorridor(){
   if(corridorState!=='door_video')return;
   doorVideoState='closed';
