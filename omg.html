@@ -176,7 +176,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 <button id="skipbtn">SKIP VIDEO</button>
 
 <!-- Door video element (hidden — feeds a Three.js VideoTexture) -->
-<video id="doorvideo" playsinline webkit-playsinline style="opacity:0;pointer-events:none;position:fixed;left:-9999px;top:-9999px;width:1px;height:1px"></video>
+<video id="doorvideo" playsinline webkit-playsinline crossorigin="anonymous" style="opacity:0;pointer-events:none;position:fixed;left:-9999px;top:-9999px;width:1px;height:1px"></video>
 
 <!-- TOKEN FLASH -->
 <div id="tokenmask">
@@ -354,11 +354,12 @@ let activeDoor=null;
 const doorVideo=$('doorvideo');
 let doorVideoPlane=null;
 
+let doorVideoTex=null;
 function buildDoorVideoPlane(){
-  const tex=new THREE.VideoTexture(doorVideo);
-  tex.minFilter=THREE.LinearFilter;
-  tex.magFilter=THREE.LinearFilter;
-  const mat=new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide});
+  doorVideoTex=new THREE.VideoTexture(doorVideo);
+  doorVideoTex.minFilter=THREE.LinearFilter;
+  doorVideoTex.magFilter=THREE.LinearFilter;
+  const mat=new THREE.MeshBasicMaterial({map:doorVideoTex,side:THREE.DoubleSide});
   doorVideoPlane=new THREE.Mesh(new THREE.PlaneGeometry(1.45,3.3),mat);
   doorVideoPlane.visible=false;
   scene.add(doorVideoPlane);
@@ -2557,6 +2558,7 @@ function animate(){
   whisperTimer--;
   if(whisperTimer<=0){whisper(WHISPERS[Math.floor(Math.random()*WHISPERS.length)]);whisperTimer=600+Math.floor(Math.random()*600);}
 
+  if(doorVideoTex&&doorVideoState==='playing'&&doorVideo.readyState>=2)doorVideoTex.needsUpdate=true;
   renderer.setRenderTarget(renderTarget);renderer.render(scene,camera);
   renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
   if(css3d)css3d.render(scene,camera);
