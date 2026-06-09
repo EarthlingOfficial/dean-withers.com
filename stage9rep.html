@@ -183,7 +183,7 @@ const GATE_TOTAL=VIDS.filter(v=>v.gate).length;
 // ── DOOR AI VIDEOS (MP4s — door appears after watching matching TV) ──
 const DOOR_VIDS=[
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4', // door 0
-  'https://earthlingofficial.com/MindVideo_20260607173600_104.mp4', // door 1 — MIND VIDEO
+  'https://github.com/EarthlingOfficial/dean-withers.com/releases/download/v2/playroom.mp4', // door 1 — PLAYROOM
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4', // door 2 — swap when ready
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4', // door 3 — swap when ready
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4', // door 4 — swap when ready
@@ -325,7 +325,7 @@ function buildDoorVideoPlane(){
   const tex=new THREE.VideoTexture(doorVideo);
   tex.minFilter=THREE.LinearFilter;
   tex.magFilter=THREE.LinearFilter;
-  const mat=new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide});
+  const mat=new THREE.MeshBasicMaterial({map:tex,side:THREE.FrontSide});
   doorVideoPlane=new THREE.Mesh(new THREE.PlaneGeometry(1.45,3.3),mat);
   doorVideoPlane.visible=false;
   scene.add(doorVideoPlane);
@@ -839,21 +839,31 @@ function enterCorridor(door){
       prebuildCorridorForDoor(door);
 
       if(url){
-        // Fade back in — video was pre-buffering during build
-        requestAnimationFrame(()=>{
-          fadeEl.style.transition='opacity 0.4s ease';
-          fadeEl.style.opacity='0';
-          setTimeout(()=>{ fadeEl.style.transition=''; fadeEl.style.opacity=''; },450);
-        });
-        corridorState='door_video';
-        doorVideoState='playing';
-        doorVideo.play().catch(()=>{});
+        // Position plane now while still black
         doorVideoPlane.position.set(door.grp.position.x,1.65,door.grp.position.z);
         doorVideoPlane.rotation.y=door.grp.rotation.y;
-        doorVideoPlane.visible=true;
-        doorVideo.onended=()=>_revealCorridor();
+        corridorState='door_video';
+        doorVideoState='playing';
         setObjective('Watch the archive.  [ E ] to skip.');
         duckTarget=0.12;
+        // Wait for enough data before showing — eliminates decode stutter
+        const _doPlay=()=>{
+          doorVideoPlane.visible=true;
+          doorVideo.play().catch(()=>{});
+          doorVideo.onended=()=>_revealCorridor();
+          requestAnimationFrame(()=>{
+            fadeEl.style.transition='opacity 0.4s ease';
+            fadeEl.style.opacity='0';
+            setTimeout(()=>{ fadeEl.style.transition=''; fadeEl.style.opacity=''; },450);
+          });
+        };
+        if(doorVideo.readyState>=3){
+          _doPlay();
+        } else {
+          doorVideo.addEventListener('canplaythrough',_doPlay,{once:true});
+          // Safety fallback — don't hang forever
+          setTimeout(()=>{ if(doorVideoState==='playing'&&!doorVideoPlane.visible)_doPlay(); },4000);
+        }
       } else {
         corridorState='door_video';
         setObjective('Archive not yet available.  Corridor open.');
@@ -2095,7 +2105,9 @@ function buildChildEntity(){
       childEnt.light=new THREE.PointLight(0x001228,0,6,2);
       childEnt.light.position.set(childEnt.x,1.15,childEnt.z);
       scene.add(childEnt.light);
+      childEnt.mesh.visible=false;
       scene.add(childEnt.mesh);
+      renderer.compile(scene,camera);
       childEnt.loaded=true;
     },
     undefined,
@@ -2107,6 +2119,7 @@ function spawnChildEnt(){
   const p=placeNear(14,26,false);if(!p)return;
   childEnt.x=p.x;childEnt.z=p.z;
   childEnt.mesh.position.set(p.x,0,p.z);
+  childEnt.mesh.visible=true;
   childEnt.state='watching';
   childEnt.targetVis=CHILD_MAX_VIS*0.45;
 }
@@ -2127,8 +2140,8 @@ function updateChildEntity(dt,t){
   if(e.state==='hidden'){
     e.vis=0;setChildVis(0);
     if(e.light)e.light.intensity=0;
-    if(e.strikeCooldown<=0&&e.stage>=1&&e.peekCooldown<=0){
-      const chance=0.00035+e.stage*0.00055;
+    if(e.strikeCooldown<=0&&e.peekCooldown<=0){
+      const chance=0.008+e.stage*0.004;
       if(Math.random()<chance)spawnChildEnt();
     }
     e.peekCooldown=Math.max(0,e.peekCooldown-1);
@@ -2589,6 +2602,7 @@ function setupControls(){
   }
   addEventListener('keydown',e=>{
     if(!started&&(e.code==='Space'||e.code==='Enter')){startGame();return;}
+    if(e.code==='KeyE'&&childEnt.loaded){const fwd={x:-Math.sin(camera.rotation.y)*2.5,z:-Math.cos(camera.rotation.y)*2.5};childEnt.x=camera.position.x+fwd.x;childEnt.z=camera.position.z+fwd.z;childEnt.mesh.position.set(childEnt.x,0,childEnt.z);childEnt.mesh.visible=true;childEnt.state='watching';childEnt.targetVis=CHILD_MAX_VIS;childEnt.vis=CHILD_MAX_VIS;setChildVis(CHILD_MAX_VIS);}
     switch(e.code){
       case'KeyW':kW=1;break;case'KeyA':kA=1;break;case'KeyS':kS=1;break;case'KeyD':kD=1;break;
       case'KeyE':interact();break;
