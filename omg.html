@@ -1537,7 +1537,7 @@ function playTV(tv){
     videoObj.position.set(tv.wp.x+tv.nx*0.09,tv.wp.y,tv.wp.z+tv.nz*0.09);
     videoObj.rotation.set(0,tv.angle,0);
     videoObj.visible=true;
-    videoIframe.src=v.url+'?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1';
+    videoIframe.src=v.url+'?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1';
   } else { flashFact(v.lbl+'\n(screen offline)'); }
   if(tv.vidIdx===6&&!endVideoActive&&collectedTokens.size>=5&&archived.size>=GATE_TOTAL){
     endVideoActive=true;
