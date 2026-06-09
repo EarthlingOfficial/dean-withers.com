@@ -15,22 +15,19 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 #css3d{position:fixed;inset:0;z-index:1;pointer-events:none}
 #css3d iframe{border:0;pointer-events:auto;background:#000}
 
-/* ── WARNING SCREEN ── */
-#warning{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:300;padding:24px}
-#warning-content{max-width:580px;text-align:center}
-#warning-badge{color:#991111;font-size:clamp(7px,1.1vw,10px);letter-spacing:8px;margin-bottom:20px;opacity:.75}
-#warning-icon{font-size:clamp(36px,6vw,56px);margin-bottom:16px;color:#cc2211;text-shadow:0 0 40px rgba(180,0,0,.6),0 0 80px rgba(180,0,0,.25);animation:warnpulse 2.8s ease-in-out infinite}
-@keyframes warnpulse{0%,100%{opacity:1;text-shadow:0 0 40px rgba(180,0,0,.6)}50%{opacity:.7;text-shadow:0 0 20px rgba(180,0,0,.3)}}
-#warning-title{color:#fff;font-size:clamp(15px,3.8vw,30px);letter-spacing:7px;margin-bottom:6px;text-shadow:0 0 24px rgba(220,0,0,.25)}
-#warning-sub{color:#aa3322;font-size:clamp(8px,1.4vw,12px);letter-spacing:5px;margin-bottom:28px}
-#warning-text{color:#664433;font-size:clamp(8px,1.25vw,11px);line-height:2.05;letter-spacing:1.4px;margin-bottom:30px;border-top:1px solid rgba(160,0,0,.18);border-bottom:1px solid rgba(160,0,0,.18);padding:20px 4px;text-align:left}
-#warning-text b{color:#884422;letter-spacing:2px}
-#warning-buttons{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-bottom:18px}
-#warning-enter{background:rgba(140,0,0,.22);border:1px solid rgba(180,0,0,.5);color:#cc2222;font-size:clamp(10px,1.7vw,13px);letter-spacing:5px;padding:13px 36px;cursor:pointer;font-family:'Courier New',monospace;transition:background .28s,color .28s,box-shadow .28s}
-#warning-enter:hover{background:rgba(180,0,0,.38);color:#ff3333;box-shadow:0 0 22px rgba(180,0,0,.25)}
-#warning-exit{background:transparent;border:1px solid rgba(255,255,255,.1);color:#2a2a2a;font-size:clamp(9px,1.5vw,11px);letter-spacing:4px;padding:13px 28px;cursor:pointer;font-family:'Courier New',monospace;transition:border-color .28s,color .28s}
-#warning-exit:hover{color:#555;border-color:rgba(255,255,255,.22)}
-#warning-age{color:#1a1410;font-size:8px;letter-spacing:3px}
+/* WARNING OVERLAY */
+#warning-overlay{position:fixed;inset:0;z-index:9999;background:#080603;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 32px;text-align:center;transition:opacity 0.9s}
+#warning-overlay .w-icon{color:#8b0000;font-size:clamp(20px,4vw,34px);letter-spacing:8px;margin-bottom:22px;animation:warnpulse 2.2s ease-in-out infinite}
+@keyframes warnpulse{0%,100%{opacity:1}50%{opacity:0.4}}
+#warning-overlay .w-title{color:#c8b86a;font-size:clamp(20px,4.5vw,34px);letter-spacing:8px;margin-bottom:6px}
+#warning-overlay .w-sub{color:#7a5a2a;font-size:clamp(9px,1.3vw,11px);letter-spacing:4px;margin-bottom:26px}
+#warning-overlay .w-body{color:#4a3a22;font-size:clamp(8px,1.2vw,10px);letter-spacing:1.8px;line-height:2.3;margin-bottom:36px;border-top:1px solid rgba(200,184,106,.08);border-bottom:1px solid rgba(200,184,106,.08);padding:16px 0;max-width:520px}
+#warning-overlay .w-body b{color:#5a4428;letter-spacing:3px}
+#warning-overlay .w-buttons{display:flex;gap:22px;justify-content:center}
+#warning-enter{padding:11px 40px;background:rgba(200,184,106,.07);border:1px solid rgba(200,184,106,.38);color:#c8b86a;font-family:'Courier New',monospace;font-size:11px;letter-spacing:5px;cursor:pointer;transition:background .2s}
+#warning-enter:hover{background:rgba(200,184,106,.16)}
+#warning-exit{padding:11px 40px;background:rgba(60,10,10,.12);border:1px solid rgba(120,20,20,.28);color:#5a2020;font-family:'Courier New',monospace;font-size:11px;letter-spacing:5px;cursor:pointer;transition:background .2s}
+#warning-exit:hover{background:rgba(80,15,15,.22)}
 
 /* CONNECT OVERLAY */
 #connect{position:fixed;inset:0;background:#0c0b06;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;transition:opacity 1.6s}
@@ -113,24 +110,23 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 </head>
 <body>
 
-<!-- ── WARNING SCREEN (shown first, before everything) ── -->
-<div id="warning">
-  <div id="warning-content">
-    <div id="warning-badge">CONTENT ADVISORY</div>
-    <div id="warning-icon">&#9888;</div>
-    <div id="warning-title">GRAPHIC FOOTAGE</div>
-    <div id="warning-sub">NOT SUITABLE FOR MINORS</div>
-    <div id="warning-text">
-      <b>WARNING — 18+ ONLY</b><br><br>
-      This experience contains real video footage of animal cruelty, slaughterhouse operations, and factory farming practices. Some scenes are graphic and deeply distressing.<br><br>
-      It also contains psychological horror elements, sudden audio scares, flashing strobe effects, disturbing imagery, and content designed to cause emotional discomfort.<br><br>
-      <b>YOU MUST BE 18 YEARS OR OLDER TO ENTER.<br>BY ENTERING YOU CONFIRM THIS.</b>
+<!-- WARNING OVERLAY (shown first, before loading) -->
+<div id="warning-overlay">
+  <div style="max-width:540px">
+    <div class="w-icon">⚠ WARNING</div>
+    <div class="w-title">GRAPHIC FOOTAGE</div>
+    <div class="w-sub">NOT FOR MINORS — 18+ ONLY</div>
+    <div class="w-body">
+      This experience contains <b>graphic footage of animal suffering</b>,
+      disturbing imagery, and content of a distressing nature.<br><br>
+      It is not suitable for minors or sensitive viewers.<br><br>
+      <b>VIEWER DISCRETION IS STRONGLY ADVISED.</b><br><br>
+      <span style="color:#2e2010;font-size:clamp(7px,1vw,9px);letter-spacing:1px">By entering you confirm you are 18 or over and consent to viewing this material.</span>
     </div>
-    <div id="warning-buttons">
-      <button id="warning-enter">I AM 18+ &mdash; ENTER</button>
+    <div class="w-buttons">
+      <button id="warning-enter">ENTER</button>
       <button id="warning-exit">EXIT</button>
     </div>
-    <div id="warning-age">BY ENTERING YOU CONFIRM YOU ARE AN ADULT AND CONSENT TO THIS CONTENT</div>
   </div>
 </div>
 
@@ -142,7 +138,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
     <div id="c-stage">STAGE 9 — THE HYPOGEUM</div>
     <div id="c-loadbar"><div id="c-loadfill"></div></div>
     <div id="c-loadtxt">INITIALISING</div>
-    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v4 — MONSTER / WARNING SCREEN</div>
+    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v3 — CORRIDOR TVS / STICKERS / ZERO-LAG DOORS</div>
   </div>
   <div id="c-phase2">
     <div class="c-p2-series">A VEGAN BROS. SERIES</div>
@@ -197,7 +193,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 <script>
 // ════════════════════════════════════════════════════════════════
 // GO DEAN! — STAGE 9: THE HYPOGEUM  (A Vegan Bros. Series)
-// BUILD v4 — Monster GLB / Warning Screen / Preloaded Entity
+// BUILD v3 — Corridor TVs / No corridor slides / Zero-lag doors
 // ════════════════════════════════════════════════════════════════
 const $=id=>document.getElementById(id);
 const isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
@@ -220,20 +216,20 @@ const GATE_TOTAL=VIDS.filter(v=>v.gate).length;
 
 // ── DOOR AI VIDEOS (MP4s — door appears after watching matching TV) ──
 const DOOR_VIDS=[
-  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
-  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
-  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
-  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
-  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
+  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4', // door 0
+  'https://github.com/EarthlingOfficial/dean-withers.com/releases/download/v2/playroom.mp4', // door 1 — blue triangle (v2)
+  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4', // door 2
+  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4', // door 3
+  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4', // door 4
 ];
 
 // ── TOKENS ──
 const TOKENS=[
-  {shape:'circle',  time:'2:37', color:'#cc0066'},
-  {shape:'triangle',time:'0:28', color:'#1155cc'},
-  {shape:'diamond', time:'0:09', color:'#6600cc'},
-  {shape:'hex',     time:'2:09', color:'#007733'},
-  {shape:'pill',    time:'20:31',color:'#bb4400'},
+  {shape:'circle',  time:'2:37', color:'#cc0066'}, // vidIdx 0 — red
+  {shape:'triangle',time:'0:28', color:'#1155cc'}, // vidIdx 1 — blue
+  {shape:'diamond', time:'0:09', color:'#6600cc'}, // vidIdx 2 — purple
+  {shape:'hex',     time:'2:09', color:'#007733'}, // vidIdx 3 — green
+  {shape:'pill',    time:'20:31',color:'#bb4400'}, // vidIdx 4 — orange
 ];
 
 // ── DARK FACTS ──
@@ -294,8 +290,6 @@ const WHISPERS=[
   'the cage was paid for at your checkout.',
   'you weep for the dog and chew on its twin.',
   'the knife is held by your appetite.',
-  'it follows you now. it always has.',
-  'something arrived with you. it remembers the blade.',
 ];
 
 // ── CONSTANTS ──
@@ -354,7 +348,7 @@ let factTimer=26,factIdx=0,whisperTimer=420;
 // CSS3D video
 let videoObj=null, videoIframe=null, activeTV=null;
 
-// ── DOOR VIDEO PLANE (VideoTexture plane for corridor) ──
+// ── DOOR VIDEO PLANE ──
 let doorVideoState='closed';
 let activeDoor=null;
 const doorVideo=$('doorvideo');
@@ -371,253 +365,209 @@ function buildDoorVideoPlane(){
 }
 
 // ════════════════════════════════════════════════════════════════
-// GLB MONSTER SYSTEM
+// ENTITY — entity1_merged.glb (see-through shadow, creepy AI)
 // ════════════════════════════════════════════════════════════════
-const monster={
-  group:null, mixer:null, loaded:false,
-  actions:{}, currentAction:null,
-  headBone:null, neckBone:null,
-  leftArmBones:[], rightArmBones:[],
-  state:'levitating',  // levitating | walking | running
-  x:40, z:20,
-  levPhase:0, levAmp:0, levY:0,
-  headTiltPhase:0,
-  armStretchPhase:0,
-  opacity:0, targetOpacity:0,
-  strikeReady:true, cooldown:0,
-  spawnDelay:60,       // frames before first appearance
-  light:null,
-  glbPath:'./attached_assets/entity1_merged_1780976061702.glb'
-};
+const ENTITY_GLB_URL='https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/entity1_merged.glb';
+let entityModel=null;
+let entityMixer=null;
+let entityClips=[];
+let entityCurrentAction=null;
+let entityActions={};
+let entityLoaded=false;
+let entityX=60,entityZ=60;
+let entityRot=0;
+let entityYOffset=0; // lifts model so feet sit on the floor
+let entityState='lurk'; // lurk | walk | stalk | run
+let entityStateTimer=0;
+let entityOpacity=0;
+let entityTargetOpacity=0;
 
-// Begin async load immediately — fires in background during loading screen
-// Uses fetch + arraybuffer so the browser can cache it before scene is up
-let _monsterGLTFPending=null;
-function preloadMonsterGLB(){
-  if(typeof THREE.GLTFLoader==='undefined')return;
-  try{
-    const loader=new THREE.GLTFLoader();
-    // store promise-like in pending; parsed once scene exists
-    loader.load(
-      monster.glbPath,
-      (gltf)=>{ _monsterGLTFPending=gltf; if(scene) _attachMonster(gltf); },
-      undefined,
-      (err)=>{ /* silently fail — game works without monster */ }
-    );
-  }catch(e){}
-}
+function buildEntity(){
+  if(typeof THREE.GLTFLoader!=='function'){return;}
+  const loader=new THREE.GLTFLoader();
+  loader.load(ENTITY_GLB_URL,gltf=>{
+    entityModel=gltf.scene;
 
-function _attachMonster(gltf){
-  if(!scene||monster.loaded)return;
-  monster.group=gltf.scene;
-  monster.group.scale.set(1.15,1.15,1.15);
-  monster.group.position.set(monster.x,0,monster.z);
-  monster.group.visible=false;
+    // Auto-scale: target ~1.85 world units tall
+    const box=new THREE.Box3().setFromObject(entityModel);
+    const size=new THREE.Vector3();
+    box.getSize(size);
+    const maxDim=Math.max(size.x,size.y,size.z)||1;
+    const autoScale=1.85/maxDim;
+    entityModel.scale.setScalar(autoScale);
 
-  // Shadows + bone discovery
-  monster.group.traverse(child=>{
-    if(child.isMesh){
-      child.castShadow=true;
-      child.receiveShadow=true;
-    }
-    // Discover bones by name for procedural animation
-    const n=(child.name||'').toLowerCase();
-    if(child.isBone||child.type==='Bone'){
-      if((n.includes('head')||n.includes('skull'))&&!monster.headBone) monster.headBone=child;
-      else if(n.includes('neck')&&!monster.neckBone) monster.neckBone=child;
-      else if(n.includes('upperarm')||n.includes('upper_arm')||n.includes('arm')){
-        if(n.includes('l')||n.includes('left')) monster.leftArmBones.push(child);
-        else if(n.includes('r')||n.includes('right')) monster.rightArmBones.push(child);
+    // Recompute bounding box after scale to find the floor offset
+    // so the model's lowest point sits exactly at world y=0
+    const scaledBox=new THREE.Box3().setFromObject(entityModel);
+    entityYOffset=-scaledBox.min.y; // positive if origin is above feet
+
+    // Apply see-through near-black shadow material to every mesh
+    entityModel.traverse(child=>{
+      if(child.isMesh){
+        child.material=new THREE.MeshLambertMaterial({
+          color:0x000008,
+          transparent:true,
+          opacity:0,
+          depthWrite:false,
+          side:THREE.FrontSide,
+        });
+        child.castShadow=true;
+        child.receiveShadow=false;
+        child.skeleton&&child.skeleton.bones&&child.skeleton.bones.forEach(b=>{b.matrixAutoUpdate=true;});
       }
-    }
-  });
+    });
 
-  scene.add(monster.group);
+    entityModel.position.set(entityX,entityYOffset,entityZ);
+    scene.add(entityModel);
 
-  // Animation mixer
-  if(gltf.animations&&gltf.animations.length>0){
-    monster.mixer=new THREE.AnimationMixer(monster.group);
+    // Animation mixer
+    entityMixer=new THREE.AnimationMixer(entityModel);
+    entityClips=gltf.animations||[];
 
-    // Detect animation slots by name (flexible — handles common naming schemes)
-    const clips=gltf.animations;
-    clips.forEach((clip,i)=>{
-      const n=clip.name.toLowerCase();
-      const action=monster.mixer.clipAction(clip);
+    // Pre-build actions — clip 0: idle/lurk, clip 1: walk, clip 2: run (if available)
+    entityClips.forEach((clip,i)=>{
+      const action=entityMixer.clipAction(clip);
       action.setLoop(THREE.LoopRepeat,Infinity);
-      if(n.includes('walk')&&!monster.actions.walk) monster.actions.walk=action;
-      else if(n.includes('run')&&!monster.actions.run)  monster.actions.run=action;
-      else if((n.includes('idle')||n.includes('levit')||n.includes('float')||n.includes('hover')||n.includes('tpose')||n.includes('t-pose')||n.includes('t_pose'))&&!monster.actions.idle) monster.actions.idle=action;
+      entityActions[i]=action;
     });
 
-    // Slot fallbacks by index if names didn't match
-    if(!monster.actions.idle&&clips.length>0) monster.actions.idle=monster.mixer.clipAction(clips[0]);
-    if(!monster.actions.walk&&clips.length>1) monster.actions.walk=monster.mixer.clipAction(clips[1]);
-    else if(!monster.actions.walk&&clips.length>0) monster.actions.walk=monster.mixer.clipAction(clips[0]);
-    if(!monster.actions.run&&clips.length>2)  monster.actions.run=monster.mixer.clipAction(clips[2]);
-    else if(!monster.actions.run&&monster.actions.walk) monster.actions.run=monster.actions.walk;
+    // Start with first clip
+    if(entityActions[0]){
+      entityActions[0].play();
+      entityCurrentAction=entityActions[0];
+    }
 
-    // Start in levitate/idle
-    const startAction=monster.actions.idle||monster.actions.walk;
-    if(startAction){ startAction.play(); monster.currentAction=startAction; }
-  }
+    entityLoaded=true;
 
-  // Red point light that travels with the monster
-  monster.light=new THREE.PointLight(0x440008,0,8,2);
-  scene.add(monster.light);
-
-  monster.loaded=true;
+    // Start in lurk state with random position
+    const p=placeNear(18,30,false);
+    if(p){entityX=p.x;entityZ=p.z;}
+    entityStateTimer=10+Math.random()*14;
+  },undefined,err=>{
+    // Silent fail — entity just won't appear
+  });
 }
 
-function _setMonsterAnim(key){
-  const next=monster.actions[key]||monster.actions.idle;
-  if(!next||next===monster.currentAction)return;
-  if(monster.currentAction) monster.currentAction.fadeOut(0.3);
-  next.reset().fadeIn(0.3).play();
-  monster.currentAction=next;
+function entitySwitchClip(idx,fadeDur){
+  if(!entityMixer||!entityClips.length)return;
+  fadeDur=fadeDur===undefined?0.35:fadeDur;
+  const clipIdx=Math.min(idx,entityClips.length-1);
+  const action=entityActions[clipIdx];
+  if(!action||action===entityCurrentAction)return;
+  if(entityCurrentAction)entityCurrentAction.fadeOut(fadeDur);
+  action.reset().fadeIn(fadeDur).play();
+  entityCurrentAction=action;
 }
 
-function updateMonster(dt,t){
-  if(!monster.loaded||!monster.group)return;
+function updateEntity(dt){
+  if(!entityLoaded||!entityModel)return;
 
-  // Attach if scene was ready after load resolved
-  if(_monsterGLTFPending&&!monster.loaded){ _attachMonster(_monsterGLTFPending); _monsterGLTFPending=null; return; }
-
-  if(monster.cooldown>0){ monster.cooldown-=dt; }
-  if(monster.spawnDelay>0){ monster.spawnDelay-=1; return; }
-
-  if(monster.mixer) monster.mixer.update(dt);
-
-  const cx=camera.position.x, cz=camera.position.z;
-  const dx=monster.x-cx, dz=monster.z-cz;
+  const dx=camera.position.x-entityX;
+  const dz=camera.position.z-entityZ;
   const dist=Math.hypot(dx,dz);
+  const elapsed=clock.getElapsedTime();
 
-  // ── FACING DIRECTION (player) ──
-  const angle=Math.atan2(cx-monster.x, cz-monster.z);
+  entityStateTimer-=dt;
 
-  // ── LEVITATION ──
-  monster.levPhase+=dt*(monster.state==='levitating'?1.05:0.4);
-  const levBase=monster.state==='levitating'?1.35:0;
-  monster.levY=levBase+Math.sin(monster.levPhase)*0.38+Math.sin(monster.levPhase*1.7)*0.12;
-
-  // ── PROCEDURAL HEAD TILT ──
-  monster.headTiltPhase+=dt*1.6;
-  if(monster.headBone){
-    monster.headBone.rotation.z=Math.sin(monster.headTiltPhase)*0.32+Math.sin(monster.headTiltPhase*2.3)*0.1;
-    monster.headBone.rotation.x=Math.sin(monster.headTiltPhase*0.85)*0.18;
-    monster.headBone.rotation.y=Math.sin(monster.headTiltPhase*0.55)*0.22;
-  } else if(monster.neckBone){
-    monster.neckBone.rotation.z=Math.sin(monster.headTiltPhase)*0.28;
-    monster.neckBone.rotation.x=Math.sin(monster.headTiltPhase*0.9)*0.14;
-  }
-
-  // ── ARMS STRETCHED (levitating state) ──
-  monster.armStretchPhase+=dt*0.85;
-  if(monster.state==='levitating'){
-    const stretchT=0.85+Math.sin(monster.armStretchPhase)*0.12;
-    monster.leftArmBones.forEach(b=>{
-      b.rotation.z=Math.PI*stretchT*0.38+Math.sin(monster.armStretchPhase*1.2)*0.08;
-      b.rotation.x=Math.sin(monster.armStretchPhase*0.7)*0.12;
-    });
-    monster.rightArmBones.forEach(b=>{
-      b.rotation.z=-(Math.PI*stretchT*0.38+Math.sin(monster.armStretchPhase*1.2)*0.08);
-      b.rotation.x=Math.sin(monster.armStretchPhase*0.7+1)*0.12;
-    });
-  }
-
-  // ── PLAYER LOOK CHECK ──
-  const fwdX=Math.sin(camera.rotation.y), fwdZ=Math.cos(camera.rotation.y);
-  const dot=dist>0.01?((-dx)*fwdX+(-dz)*fwdZ)/dist:0;
-  const playerLooking=dot>0.6&&dist<22;
-
-  // ── STATE MACHINE ──
-  if(monster.cooldown<=0){
-    if(dist>30){
-      if(monster.state!=='levitating'){ monster.state='levitating'; _setMonsterAnim('idle'); }
-      // Approach slowly while levitating
-      const spd=playerLooking?0.5:2.2;
-      const nx=monster.x+Math.sin(angle)*spd*dt;
-      const nz=monster.z+Math.cos(angle)*spd*dt;
-      if(isOpen(nx,nz)){ monster.x=nx; monster.z=nz; }
-
-    } else if(dist>14){
-      if(monster.state!=='walking'){ monster.state='walking'; _setMonsterAnim('walk'); }
-      const spd=playerLooking?0.9:3.0;
-      const nx=monster.x+Math.sin(angle)*spd*dt;
-      const nz=monster.z+Math.cos(angle)*spd*dt;
-      if(isOpen(nx,nz)){ monster.x=nx; monster.z=nz; }
-
-    } else if(dist>2.8){
-      if(monster.state!=='running'){ monster.state='running'; _setMonsterAnim('run'); }
-      const spd=5.8;
-      const nx=monster.x+Math.sin(angle)*spd*dt;
-      const nz=monster.z+Math.cos(angle)*spd*dt;
-      if(isOpen(nx,nz)){ monster.x=nx; monster.z=nz; }
-
-    } else {
-      // STRIKE range
-      if(monster.strikeReady){
-        monster.strikeReady=false;
-        strobeOnce(); sfxScare();
-        sanity=Math.max(0,sanity-24);
-        monster.group.visible=false;
-        monster.opacity=0; monster.targetOpacity=0;
-        monster.state='levitating'; _setMonsterAnim('idle');
-        monster.cooldown=28;
-        // Reposition behind/far from player
-        const p=placeNear(24,42,true);
-        if(p){ monster.x=p.x; monster.z=p.z; }
-        monster.spawnDelay=Math.round((22+Math.random()*18)*60);
-        setTimeout(()=>{ monster.strikeReady=true; },18000);
-      }
-    }
-  }
-
-  // ── VISIBILITY (fade in when not looked at, fade out when stared at) ──
-  if(playerLooking&&dist<20){
-    monster.targetOpacity=Math.max(0,monster.targetOpacity-dt*0.9);
-  } else if(dist<38&&!playerLooking){
-    monster.targetOpacity=Math.min(0.92,monster.targetOpacity+dt*0.35);
-  } else {
-    monster.targetOpacity=Math.max(0,monster.targetOpacity-dt*0.5);
-  }
-  monster.opacity+=(monster.targetOpacity-monster.opacity)*Math.min(1,dt*4);
-
-  if(monster.opacity<0.015){
-    monster.group.visible=false;
-    monster.light&&(monster.light.intensity=0);
-    // Occasionally reposition while invisible
-    if(Math.random()<0.004){
-      const p=placeNear(20,42,false);
-      if(p){ monster.x=p.x; monster.z=p.z; }
-    }
-  } else {
-    monster.group.visible=true;
-    monster.group.position.set(monster.x,monster.levY,monster.z);
-    monster.group.rotation.y=angle;
-
-    // Light follows monster
-    if(monster.light){
-      monster.light.position.set(monster.x,monster.levY+0.8,monster.z);
-      monster.light.intensity=monster.opacity*0.7;
-      monster.light.distance=10+Math.sin(monster.levPhase)*3;
-    }
-
-    // Apply opacity to all meshes
-    monster.group.traverse(child=>{
-      if(child.isMesh&&child.material){
-        if(Array.isArray(child.material)){
-          child.material.forEach(m=>{m.transparent=true;m.opacity=monster.opacity;});
+  switch(entityState){
+    case'lurk':{
+      // Barely visible, breathing / swaying in shadows
+      entityTargetOpacity=0.06+Math.abs(Math.sin(elapsed*0.28))*0.06;
+      if(entityStateTimer<=0){
+        if(dist<22&&Math.random()<0.6){
+          entityState='stalk';
+          entityStateTimer=7+Math.random()*9;
+          entitySwitchClip(1);
         } else {
-          child.material.transparent=true;
-          child.material.opacity=monster.opacity;
+          // Relocate silently
+          const p=placeNear(16,32,false);
+          if(p){entityX=p.x;entityZ=p.z;}
+          entityStateTimer=10+Math.random()*14;
         }
       }
-    });
+      break;
+    }
+    case'walk':{
+      // Slow deliberate walk toward player
+      entityTargetOpacity=0.11+Math.random()*0.015;
+      if(dist>0.8){
+        const spd=1.1;
+        const nx=entityX+(dx/dist)*spd*dt;
+        const nz=entityZ+(dz/dist)*spd*dt;
+        if(isOpen(nx,nz)){entityX=nx;entityZ=nz;}
+        entityRot=Math.atan2(dx,dz);
+      }
+      if(dist<5||entityStateTimer<=0){
+        if(dist<5){
+          entityState='stalk';
+          entityStateTimer=5+Math.random()*6;
+          entitySwitchClip(0);
+        } else {
+          const roll=Math.random();
+          if(roll<0.4){entityState='run';entityStateTimer=2.5+Math.random()*3.5;entitySwitchClip(2);}
+          else{entityState='lurk';entityStateTimer=14+Math.random()*10;entitySwitchClip(0);const p=placeNear(18,32,false);if(p){entityX=p.x;entityZ=p.z;}}
+        }
+      }
+      break;
+    }
+    case'stalk':{
+      // Orbit player from a distance, fading in and out
+      entityTargetOpacity=0.09+Math.abs(Math.sin(elapsed*0.65))*0.07;
+      const orbitAngle=Math.atan2(dz,dx)+0.35*dt;
+      const targetDist=7+Math.sin(elapsed*0.42)*3;
+      const ox2=camera.position.x-Math.cos(orbitAngle)*targetDist;
+      const oz2=camera.position.z-Math.sin(orbitAngle)*targetDist;
+      if(isOpen(ox2,oz2)){entityX=ox2;entityZ=oz2;}
+      entityRot=Math.atan2(camera.position.x-entityX,camera.position.z-entityZ);
+      if(entityStateTimer<=0){
+        const roll=Math.random();
+        if(roll<0.3){entityState='run';entityStateTimer=2+Math.random()*3;entitySwitchClip(2);}
+        else if(roll<0.6){entityState='walk';entityStateTimer=7+Math.random()*9;entitySwitchClip(1);}
+        else{entityState='lurk';entityStateTimer=14+Math.random()*10;entitySwitchClip(0);const p=placeNear(18,32,false);if(p){entityX=p.x;entityZ=p.z;}}
+      }
+      break;
+    }
+    case'run':{
+      // Rush toward player — more visible
+      entityTargetOpacity=0.16;
+      if(dist>0.5){
+        const spd=4.8;
+        const nx=entityX+(dx/dist)*spd*dt;
+        const nz=entityZ+(dz/dist)*spd*dt;
+        if(isOpen(nx,nz)){entityX=nx;entityZ=nz;}
+        entityRot=Math.atan2(dx,dz);
+      }
+      if(dist<2.0){
+        // Jumpscare
+        strobeOnce();sfxScare();
+        sanity=Math.max(0,sanity-14);
+        entityTargetOpacity=0;
+        entityState='lurk';
+        entityStateTimer=22+Math.random()*16;
+        entitySwitchClip(0,0.1);
+        const p=placeNear(22,38,true);if(p){entityX=p.x;entityZ=p.z;}
+      } else if(entityStateTimer<=0){
+        entityState='stalk';
+        entityStateTimer=5+Math.random()*7;
+        entitySwitchClip(1);
+      }
+      break;
+    }
   }
 
-  // Sanity drain near visible monster
-  if(monster.group.visible&&dist<18){
-    sanity=Math.max(0,sanity-0.07*dt*(18-dist));
+  // Apply world position + facing
+  if(entityModel){
+    entityModel.position.set(entityX,entityYOffset,entityZ);
+    entityModel.rotation.y=entityRot;
+
+    // Smooth opacity
+    entityOpacity+=( entityTargetOpacity-entityOpacity)*Math.min(1,dt*1.8);
+    const clamped=Math.max(0,Math.min(0.22,entityOpacity));
+    entityModel.traverse(child=>{
+      if(child.isMesh&&child.material&&child.material.transparent){
+        child.material.opacity=clamped;
+      }
+    });
   }
 }
 
@@ -697,74 +647,36 @@ const BRUTAL_STICKERS=[
   ['TURKEYS ARE BRED SO LARGE','THEY CANNOT REPRODUCE','WITHOUT ARTIFICIAL INSEMINATION.'],
   ['ANTIBIOTICS ARE FED DAILY','NOT TO TREAT ILLNESS','BUT TO ACCELERATE GROWTH.'],
   ['PIGS IN GESTATION CRATES','CANNOT TURN AROUND','FOR THEIR ENTIRE PREGNANCY.'],
-  ['46% OF ALL OCEAN PLASTIC','COMES FROM FISHING GEAR.','NOT STRAWS. NETS.'],
-  ['BYCATCH: FOR EVERY 1KG OF FISH,','UP TO 5KG IS DISCARDED DEAD.','THEY CALL IT INDUSTRY STANDARD.'],
-  ['BOTTOM TRAWLING DESTROYS','ENTIRE OCEAN ECOSYSTEMS','IN A SINGLE PASS.'],
-  ['SHRIMP TRAWLING','HAS A 90% BYCATCH RATE.','9 LIVES WASTED FOR EVERY 1.'],
-  ['THE OCEANS COULD BE','FISHLESS BY 2048','AT CURRENT EXTRACTION RATES.'],
-  ['FARMED SALMON IS FED','WILD-CAUGHT FISH.','IT TAKES 5KG TO MAKE 1KG.'],
-  ['DOLPHINS, SEA TURTLES,','SHARKS AND RAYS','DIE IN TUNA NETS DAILY.'],
-  ['LONGLINES STRETCH','100 KILOMETRES.','THEY CATCH EVERYTHING.'],
-  ['FISH FEEL PAIN.','THIS IS SETTLED SCIENCE.','YOU JUST DON\'T WANT TO KNOW.'],
-  ['THE CORAL REEF IS DYING.','FISHING RUNOFF IS A CAUSE.','YOUR PRAWN COCKTAIL DID THIS.'],
-  ['AUSTRALIA EXPORTS','MILLIONS OF LIVE ANIMALS','ANNUALLY. TRAUMATISED. TERRIFIED.'],
-  ['ANIMALS ON LIVE EXPORT SHIPS','DIE FROM HEAT STRESS,','DISEASE AND SUFFOCATION.'],
-  ['LIVE EXPORT IS BANNED','IN MOST OF EUROPE.','AUSTRALIA STILL CALLS IT TRADE.'],
-  ['SHEEP EXPORTED LIVE','ARE SLAUGHTERED','WITHOUT STUNNING.'],
-  ['"FEEDLOT QUALITY" MEANS','100 DAYS STANDING IN MUD','BEFORE SLAUGHTER.'],
-  ['CATTLE MUSTERING BY HELICOPTER','CAUSES CARDIAC ARREST','IN SOME ANIMALS FROM STRESS.'],
-  ['LIVE EXPORT SHIPS HAVE','NO VETERINARY REQUIREMENT.','SUFFERING IS UNMONITORED.'],
-  ['THEY ARRIVE AT PORT CONFUSED.','THEY LEAVE ON TRUCKS.','THEY DO NOT COME BACK.'],
-  ['ANIMAL AGRICULTURE','PRODUCES MORE GREENHOUSE GAS','THAN ALL TRANSPORT COMBINED.'],
-  ['METHANE FROM LIVESTOCK','IS 86X MORE POTENT','THAN CO2 OVER 20 YEARS.'],
-  ['BEEF REQUIRES','160X MORE LAND','THAN EQUIVALENT PLANT PROTEIN.'],
-  ['AMAZON DEFORESTATION:','80% IS DRIVEN','BY CATTLE RANCHING.'],
-  ['A VEGAN DIET REDUCES','YOUR FOOD CARBON FOOTPRINT','BY UP TO 73%.'],
-  ['MEAT AND DAIRY COMPANIES','RECEIVE MORE GOVERNMENT SUBSIDIES','THAN RENEWABLE ENERGY.'],
-  ['IF CATTLE WERE A COUNTRY','THEY WOULD BE THE','THIRD LARGEST EMITTER ON EARTH.'],
-  ['ANIMAL AGRICULTURE USES','70% OF ALL AGRICULTURAL LAND','TO FEED 18% OF CALORIES.'],
-  ['1/3 OF ALL FRESH WATER','GOES TO LIVESTOCK PRODUCTION.','GLOBALLY. EVERY DAY.'],
-  ['NITROUS OXIDE FROM MANURE','IS 298X MORE POTENT','THAN CO2. PER MOLECULE.'],
-  ['AG-GAG LAWS MAKE IT ILLEGAL','TO FILM ANIMAL CRUELTY','INSIDE FACTORY FARMS.'],
-  ['THE INDUSTRY LOBBIED','TO CLASSIFY ANIMAL ACTIVISTS','AS DOMESTIC TERRORISTS.'],
-  ['UNDERCOVER INVESTIGATIONS','ARE THE ONLY REASON','YOU KNOW WHAT HAPPENS IN THERE.'],
-  ['EVERY TIME A CAMERA','WENT INSIDE A FACTORY FARM','THE INDUSTRY TRIED TO BAN CAMERAS.'],
-  ['THE STANDARD INDUSTRY RESPONSE','TO DOCUMENTED CRUELTY:','"AN ISOLATED INCIDENT."'],
-  ['THEY CALLED THE WHISTLEBLOWER','A TERRORIST.','THEY CALLED THE ABUSE "STANDARD."'],
-  ['THE INDUSTRY FUNDS RESEARCH','THAT CONCLUDES','THEIR INDUSTRY IS FINE.'],
-  ['FOOD LIBEL LAWS','CAN SUE YOU FOR','CRITICISING THEIR PRODUCTS.'],
-  ['YOU GRIEVE FOR THE DOG.','YOU EAT THE PIG.','BOTH ARE EQUALLY SENTIENT.'],
-  ['PIGS OUTSCORE DOGS','ON EVERY COGNITIVE TEST.','DOGS ARE PETS. PIGS ARE PRODUCTS.'],
-  ['WE NAME THE DOG.','WE NUMBER THE COW.','THE NAME IS THE WHOLE DIFFERENCE.'],
-  ['"HUMANE MEAT" IS DESIGNED','TO MAKE YOU FEEL BETTER.','NOT TO MAKE THEM SUFFER LESS.'],
-  ['THE WORD "LIVESTOCK"','WAS DESIGNED SO YOU','WOULD NEVER SAY "LIVING BEING."'],
-  ['CARNISM: THE INVISIBLE BELIEF SYSTEM','THAT MAKES EATING ANIMALS','SEEM NORMAL. IT ISN\'T.'],
-  ['NORMAL IS CONSTRUCTED.','NATURAL IS NOT ETHICAL.','NECESSARY IS A LIE.'],
-  ['"I COULD NEVER GO VEGAN"','IS NOT A BIOLOGICAL FACT.','IT IS A CHOICE DRESSED AS FATE.'],
-  ['COGNITIVE DISSONANCE:','YOU LOVE ANIMALS','AND PAY FOR THEIR SUFFERING.'],
-  ['THE ABATTOIR IS DESIGNED','SO YOU NEVER SEE INSIDE.','THAT DESIGN IS INTENTIONAL.'],
-  ['FOIE GRAS: A PIPE FORCED','INTO THE THROAT DAILY UNTIL','THE LIVER IS DISEASED.'],
-  ['DOWN IS TORN FROM LIVE BIRDS.','THEY SCREAM.','YOUR JACKET REMEMBERS THIS.'],
-  ['MULESING: FLESH CUT FROM','MERINO LAMBS WITHOUT ANAESTHETIC','SO WOOL STAYS CLEAN.'],
-  ['WOOL IS NOT CRUELTY-FREE.','THE SHEARING SHED','IS NOT A GENTLER PLACE.'],
-  ['LEATHER IS NOT A BYPRODUCT.','IT IS A PRODUCT.','IT FUNDS THE KILL.'],
-  ['SILK IS BOILED ALIVE.','THOUSANDS OF SILKWORMS PER KG.','ALIVE. IN BOILING WATER.'],
-  ['CASHMERE GOATS ARE OFTEN','LEFT TO FREEZE','AFTER SHEARING IN WINTER.'],
-  ['HUNTING IS NOT CONSERVATION.','THE TROPHY HUNTER','FUNDS EXTINCTION.'],
-  ['FORCE-FEEDING DUCKS AND GEESE','IS BANNED IN MOST COUNTRIES.','AUSTRALIA STILL IMPORTS IT.'],
-  ['VEAL IS WHAT HAPPENS','WHEN A DAIRY CALF','HAS VALUE TO THE INDUSTRY.'],
-  ['ANTIBIOTIC RESISTANCE','KILLS 700,000 PEOPLE A YEAR.','FACTORY FARMING IS THE PRIMARY CAUSE.'],
-  ['75% OF ALL ANTIBIOTICS','USED GLOBALLY','GO INTO FARM ANIMALS.'],
-  ['THE NEXT PANDEMIC','IS MORE LIKELY TO COME','FROM A FACTORY FARM THAN A LAB.'],
-  ['H5N1. H1N1. SARS.','ALL ORIGINATED IN','ANIMAL AGRICULTURE OR LIVE MARKETS.'],
-  ['PROCESSED MEAT IS','GROUP 1 CARCINOGEN.','SAME CATEGORY AS TOBACCO.'],
-  ['RED MEAT IS','GROUP 2A CARCINOGEN.','THE WHO SAID IT. NOT VEGANS.'],
-  ['THE DAIRY INDUSTRY SPENT DECADES','FUNDING RESEARCH THAT SAID','MILK WAS NECESSARY. IT ISN\'T.'],
-  ['PLANTS CONTAIN ALL','ESSENTIAL AMINO ACIDS.','THE PROTEIN MYTH IS INDUSTRY PR.'],
-  ['YOU DO NOT NEED THEM TO DIE.','THEY NEED YOU TO CHOOSE','TO LET THEM LIVE.'],
-  ['EVERY VEGAN SAVES','APPROXIMATELY 200 ANIMALS','PER YEAR. THAT IS NOT NOTHING.'],
-  ['THE BEST TIME TO GO VEGAN','WAS YESTERDAY.','THE SECOND BEST TIME IS NOW.'],
-  ['THEY CANNOT VOTE.','THEY CANNOT PROTEST.','ONLY YOU CAN SPEAK FOR THEM.'],
+  ['TRAWLING DESTROYS','THE OCEAN FLOOR.','EVERY NET.'],
+  ['BYCATCH: 40% OF ALL CATCH','IS THROWN BACK DEAD.','WASTED. ALWAYS.'],
+  ['SHARK FINS ARE CUT OFF','THE ANIMAL IS THROWN BACK','ALIVE. TO DROWN.'],
+  ['FISH FARMS PRODUCE','MORE WASTE PER KG','THAN ANY LAND ANIMAL.'],
+  ['SALMON FARMING USES MORE','WILD FISH FOR FEED','THAN IT PRODUCES.'],
+  ['AQUACULTURE RUNOFF','KILLS ENTIRE','COASTAL ECOSYSTEMS.'],
+  ['DEEP SEA TRAWLING','DESTROYS CORAL OLDER','THAN HUMAN CIVILISATION.'],
+  ['THE GREAT BARRIER REEF','IS DYING.','YOUR PLATE IS A REASON.'],
+  ['EVERY TUNA CAUGHT','TAKES 30 YEARS TO REPLACE.','YOUR CAN: 30 YEARS.'],
+  ['DOLPHINS. WHALES. TURTLES.','ENTANGLED. DROWNED.','FOR YOUR FISH DISH.'],
+  ['LAND IS CLEARED','FOR ANIMAL FEED','NOT HUMAN FOOD.'],
+  ['ANIMAL AG USES 80% OF LAND','AND PRODUCES 20% OF CALORIES.','THE MATHS IS NOT COMPLICATED.'],
+  ['METHANE FROM LIVESTOCK','IS 80X MORE POTENT','THAN CO2 OVER 20 YEARS.'],
+  ['NITROUS OXIDE FROM MANURE','IS 300X MORE POTENT','THAN CO2.'],
+  ['DEFORESTATION FOR BEEF','KILLS THE AMAZON.','YOUR BURGER DID THIS.'],
+  ['ANTIBIOTIC RESISTANCE KILLS','700,000 PEOPLE PER YEAR NOW.','BY 2050: 10 MILLION.'],
+  ['80% OF ALL ANTIBIOTICS USED','GO TO LIVESTOCK.','NOT HUMANS.'],
+  ['WATER USED IN BEEF PRODUCTION','COULD SUSTAIN BILLIONS.','IT IS USED FOR COWS.'],
+  ['ONE HAMBURGER PATTY','USES 660 GALLONS OF WATER.','ONE HAMBURGER.'],
+  ['GOING VEGAN REDUCES','YOUR FOOD CARBON FOOTPRINT','BY UP TO 73%.'],
+  ['A PLANT-BASED DIET','USES 18X LESS LAND','THAN A MEAT-BASED DIET.'],
+  ['THEY ARE SENTIENT.','THEY FEEL FEAR AND PAIN.','THEY WANT TO LIVE.'],
+  ['IT IS NOT TRADITION.','IT IS HABIT.','HABITS CAN BE BROKEN.'],
+  ['YOU SAID YOU LOVED ANIMALS.','YOU MEANT SOME ANIMALS.','BE HONEST ABOUT THAT.'],
+  ['THE DIFFERENCE BETWEEN','A PET AND A PLATE','IS A STORY YOU WERE TOLD.'],
+  ['COGNITIVE DISSONANCE:','LOVING DOGS.','EATING PIGS.'],
+  ['THEY HAVE NAMES IN THEIR LANGUAGE.','CALLS ONLY THEIR MOTHERS KNOW.','YOU WILL NEVER HEAR THEM.'],
+  ['IT WANTED TO LIVE.','IT WANTED ITS MOTHER.','IT WANTED MORE TIME.'],
+  ['WHAT IF YOU WERE BORN','IN THE WRONG BODY','TO THE WRONG SPECIES?'],
+  ['IF YOU SAW IT HAPPEN','YOU WOULD NOT EAT IT.','SO WHY PAY FOR IT?'],
   ['THIS IS NOT ABOUT PERFECTION.','IT IS ABOUT DOING LESS HARM','WHEN YOU HAVE THE CHOICE.'],
   ['THE ANIMALS DO NOT NEED','YOUR SYMPATHY.','THEY NEED YOUR ACTION.'],
   ['GOING VEGAN IS THE SINGLE','BIGGEST THING AN INDIVIDUAL','CAN DO FOR THE PLANET.'],
@@ -939,6 +851,7 @@ function prebuildCorridorForDoor(door){
 
   mkBox(CL,  (HW+RW)/2, RW-HW, H, TW);
   mkBox(CL, -(HW+RW)/2, RW-HW, H, TW);
+
   mkBox(CL+RL/2,  RW, TW, H, RL);
   mkBox(CL+RL/2, -RW, TW, H, RL);
   mkBox(TL+TW/2,  0,  RW*2+TW*2, H, TW);
@@ -1341,17 +1254,15 @@ function init(){
   buildShadowFig();
   buildBlackFig();
   buildDoorVideoPlane();
+  buildEntity(); // load entity1_merged.glb
   buildMusic();
   setupControls();
   setupTouch();
   setupPost();
   setupSkipBtn();
 
-  // If GLB arrived before scene was ready, attach now
-  if(_monsterGLTFPending){ _attachMonster(_monsterGLTFPending); _monsterGLTFPending=null; }
-
-  // Pre-compile shaders
   renderer.compile(scene,camera);
+
   renderer.setRenderTarget(renderTarget);
   renderer.render(scene,camera);
   renderer.setRenderTarget(null);
@@ -1856,6 +1767,7 @@ function buildEnd(ox,oz){
 
 function buildEndTV(pos,col){
   const grp=new THREE.Group();
+
   const panelCol=new THREE.Color(col.hex).multiplyScalar(0.18);
   const backPanel=new THREE.Mesh(
     new THREE.BoxGeometry(3.6,2.8,0.06),
@@ -1913,7 +1825,6 @@ function buildSlide(points,closed){
   return m;
 }
 
-// ── SEQUENCE PUZZLE LOGIC ──
 function pressEndTV(tv){
   if(endSolved||tv.activated)return;
   const expectedVidIdx=END_SEQUENCE[endSequencePos];
@@ -2501,6 +2412,7 @@ function interact(){
   }
 
   if(nearTV&&nearTV.isEndTV){pressEndTV(nearTV.tv);return;}
+
   if(nearTV==='SLIDE'){startExitVideo();return;}
   if(nearDoor){enterCorridor(nearDoor);return;}
   if(nearTV)playTV(nearTV);
@@ -2607,6 +2519,9 @@ function animate(){
   const dt=Math.min(clock.getDelta(),0.05),t=clock.getElapsedTime();
   postMaterial.uniforms.uTime.value=t;
 
+  // Always tick the entity mixer so bones animate from the moment GLB is loaded
+  if(entityMixer)entityMixer.update(dt);
+
   if(!started){renderer.setRenderTarget(null);renderer.render(scene,camera);return;}
 
   if(td.r.a){
@@ -2638,7 +2553,7 @@ function animate(){
   updateShadowFig(dt);
   updateBlackFig();
   updateCrowd(dt,t);
-  updateMonster(dt,t);   // ← GLB monster update
+  updateEntity(dt); // entity1_merged.glb AI
   updateInteract();
   updateVideoVisibility();
   updateSanityHUD();
@@ -2665,37 +2580,36 @@ function updateFuzz(){
   fuzzCtx.putImageData(id,0,0);fuzzTex.needsUpdate=true;
 }
 
-// ════ WARNING SCREEN SETUP ════
-function initWarning(){
-  const warnEl=$('warning');
+// ════════════════════════════════════════════════════════════════
+// WARNING OVERLAY — shown first, before loading begins
+// ════════════════════════════════════════════════════════════════
+(function setupWarning(){
+  const overlay=$('warning-overlay');
   const enterBtn=$('warning-enter');
   const exitBtn=$('warning-exit');
 
   enterBtn.addEventListener('click',()=>{
-    enterBtn.disabled=true;
-    warnEl.style.transition='opacity 0.9s ease';
-    warnEl.style.opacity='0';
+    overlay.style.opacity='0';
+    overlay.style.pointerEvents='none';
     setTimeout(()=>{
-      warnEl.style.display='none';
-      // Now start the Three.js engine
-      init();
-      // Begin loading the GLB in background (started alongside init)
-    },950);
+      overlay.style.display='none';
+      init(); // begin loading only after ENTER
+    },900);
   });
 
   exitBtn.addEventListener('click',()=>{
-    // Redirect away — safe landing page
-    window.location.href='https://www.google.com';
+    // EXIT does nothing — user stays on the warning screen
   });
 
-  // Also start the GLB preload now, as soon as warning is shown
-  // GLTFLoader fetches the binary asynchronously — it'll buffer
-  // while the user reads the warning, so it arrives sooner
-  preloadMonsterGLB();
-}
-
-// Kick off with warning screen — init() is deferred until ENTER is clicked
-initWarning();
+  // Keyboard: Enter key on warning screen enters game
+  document.addEventListener('keydown',function onWarnKey(e){
+    if(overlay.style.display==='none')return;
+    if(e.code==='Enter'||e.code==='Space'){
+      enterBtn.click();
+      document.removeEventListener('keydown',onWarnKey);
+    }
+  });
+})();
 </script>
 </body>
 </html>
