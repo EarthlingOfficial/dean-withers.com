@@ -188,6 +188,8 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 <video id="doorvideo" playsinline webkit-playsinline crossorigin="anonymous" style="opacity:0;pointer-events:none;position:fixed;left:-9999px;top:-9999px;width:1px;height:1px"></video>
 <!-- CSS3D door video — no CORS needed for GitHub-hosted vids -->
 <video id="doorvideo-css3d" playsinline webkit-playsinline style="width:290px;height:660px;object-fit:cover;background:#000;display:block;pointer-events:none"></video>
+<!-- Final TV MP4 — dedicated element, NO crossorigin, fullscreen overlay -->
+<video id="tvvideo-mp4" playsinline webkit-playsinline style="display:none;position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:90;background:#000"></video>
 
 <!-- TOKEN FLASH -->
 <div id="tokenmask">
@@ -1644,17 +1646,15 @@ function playTV(tv){
   }
   tv.seen=true;tintSeen(tv);
   if(v.isMP4){
-    if(videoMP4Obj&&tvVideoEl){
-      activeTV=tv;
-      videoMP4Obj.position.set(tv.wp.x+tv.nx*0.09,tv.wp.y,tv.wp.z+tv.nz*0.09);
-      videoMP4Obj.rotation.set(0,tv.angle,0);
-      videoMP4Obj.visible=true;
-      tvVideoEl.src=v.url;tvVideoEl.load();tvVideoEl.play().catch(()=>{});
+    const tvVid=document.getElementById('tvvideo-mp4');
+    if(tvVid){
+      tvVid.style.display='block';
+      tvVid.src=v.url;tvVid.load();tvVid.play().catch(()=>{});
       setObjective(isMobile?'Tap anywhere to continue':'[ E ] to continue');
-      tvVideoEl.onended=()=>{
-        videoMP4Obj.visible=false;
-        tvVideoEl.removeAttribute('src');tvVideoEl.load();
-        activeTV=null;setObjective('');
+      tvVid.onended=()=>{
+        tvVid.style.display='none';
+        tvVid.removeAttribute('src');tvVid.load();
+        setObjective('');
       };
     }
   } else if(videoObj){
@@ -2552,11 +2552,11 @@ function interact(){
     return;
   }
 
-  if(videoMP4Obj&&videoMP4Obj.visible){
-    videoMP4Obj.visible=false;
-    if(tvVideoEl){tvVideoEl.pause();tvVideoEl.removeAttribute('src');tvVideoEl.load();}
-    activeTV=null;setObjective('');
-    return;
+  const tvVid2=document.getElementById('tvvideo-mp4');
+  if(tvVid2&&tvVid2.style.display!=='none'){
+    tvVid2.pause();tvVid2.style.display='none';
+    tvVid2.removeAttribute('src');tvVid2.load();
+    setObjective('');return;
   }
 
   if(corridorActive){
