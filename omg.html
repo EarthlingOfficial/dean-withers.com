@@ -103,6 +103,15 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 #lj{left:18px}#rj{right:18px}
 .kn{position:absolute;top:50%;left:50%;width:34px;height:34px;margin:-17px 0 0 -17px;background:rgba(200,184,106,.3);border-radius:50%;pointer-events:none}
 @media(hover:hover) and (pointer:fine){.jz,#ibtn{display:none!important}}
+
+/* WELFARE VIDEO EXIT BUTTON */
+#welfare-exit-btn{position:fixed;bottom:44px;left:50%;transform:translateX(-50%);
+  background:rgba(6,4,2,.88);border:1px solid rgba(200,184,106,.28);
+  color:#c8b86a;font-family:'Courier New',monospace;font-size:10px;
+  letter-spacing:3px;padding:13px 28px;z-index:95;cursor:pointer;
+  text-align:center;opacity:0;transition:opacity 1.2s;pointer-events:none;line-height:1.9;
+  text-decoration:none;display:block}
+#welfare-exit-btn:hover{background:rgba(12,8,4,.95);border-color:rgba(200,184,106,.5)}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://unpkg.com/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>
@@ -177,6 +186,10 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 
 <!-- Door video element (hidden — feeds a Three.js VideoTexture) -->
 <video id="doorvideo" playsinline webkit-playsinline crossorigin="anonymous" style="opacity:0;pointer-events:none;position:fixed;left:-9999px;top:-9999px;width:1px;height:1px"></video>
+<!-- CSS3D door video — no CORS needed for GitHub-hosted vids -->
+<video id="doorvideo-css3d" playsinline webkit-playsinline style="width:290px;height:660px;object-fit:cover;background:#000;display:block;pointer-events:none"></video>
+<!-- Final TV MP4 — dedicated element, NO crossorigin, fullscreen overlay -->
+<video id="tvvideo-mp4" playsinline webkit-playsinline style="display:none;position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:90;background:#000"></video>
 
 <!-- TOKEN FLASH -->
 <div id="tokenmask">
@@ -347,14 +360,26 @@ let factTimer=26,factIdx=0,whisperTimer=420;
 
 // CSS3D video
 let videoObj=null, videoIframe=null, activeTV=null;
+let videoMP4Obj=null, tvVideoEl=null;
 
 // ── DOOR VIDEO PLANE ──
 let doorVideoState='closed';
 let activeDoor=null;
 const doorVideo=$('doorvideo');
 let doorVideoPlane=null;
+let doorVideoCSS3DObj=null;
+let doorVideoCSS3DEl=null;
 
 let doorVideoTex=null;
+function buildDoorVideoCSS3D(){
+  if(!css3d||typeof THREE.CSS3DObject!=='function')return;
+  doorVideoCSS3DEl=document.getElementById('doorvideo-css3d');
+  doorVideoCSS3DObj=new THREE.CSS3DObject(doorVideoCSS3DEl);
+  const s=1.45/290;
+  doorVideoCSS3DObj.scale.set(s,s,s);
+  doorVideoCSS3DObj.visible=false;
+  scene.add(doorVideoCSS3DObj);
+}
 function buildDoorVideoPlane(){
   doorVideoTex=new THREE.VideoTexture(doorVideo);
   doorVideoTex.minFilter=THREE.LinearFilter;
@@ -382,6 +407,11 @@ let entityState='lurk'; // lurk | walk | stalk | run
 let entityStateTimer=0;
 let entityOpacity=0;
 let entityTargetOpacity=0;
+let entityGlowLight=null;
+let entityGlowTimer=0;
+let entityGlowActive=false;
+let entityGlowDuration=0;
+let entityJitterTimer=0;
 
 function buildEntity(){
   if(typeof THREE.GLTFLoader!=='function'){return;}
@@ -407,6 +437,7 @@ function buildEntity(){
       if(child.isMesh){
         child.material=new THREE.MeshLambertMaterial({
           color:0x000008,
+          emissive:new THREE.Color(0,0,0),
           transparent:true,
           opacity:0,
           depthWrite:false,
@@ -420,6 +451,11 @@ function buildEntity(){
 
     entityModel.position.set(entityX,entityYOffset,entityZ);
     scene.add(entityModel);
+
+    // Glow point light — attached to model, cycles watery colors
+    entityGlowLight=new THREE.PointLight(0x4433ff,0,6);
+    entityGlowLight.position.set(0,0.9,0);
+    entityModel.add(entityGlowLight);
 
     // Animation mixer
     entityMixer=new THREE.AnimationMixer(entityModel);
@@ -505,7 +541,7 @@ function updateEntity(dt){
           entitySwitchClip(0);
         } else {
           const roll=Math.random();
-          if(roll<0.4){entityState='run';entityStateTimer=2.5+Math.random()*3.5;entitySwitchClip(2);}
+          if(roll<0.5){entityState='run';entityStateTimer=2.5+Math.random()*3.5;entitySwitchClip(2);entityGlowActive=true;entityGlowDuration=entityStateTimer+1.0;}
           else{entityState='lurk';entityStateTimer=14+Math.random()*10;entitySwitchClip(0);const p=placeNear(18,32,false);if(p){entityX=p.x;entityZ=p.z;}}
         }
       }
@@ -522,25 +558,34 @@ function updateEntity(dt){
       entityRot=Math.atan2(camera.position.x-entityX,camera.position.z-entityZ);
       if(entityStateTimer<=0){
         const roll=Math.random();
-        if(roll<0.3){entityState='run';entityStateTimer=2+Math.random()*3;entitySwitchClip(2);}
-        else if(roll<0.6){entityState='walk';entityStateTimer=7+Math.random()*9;entitySwitchClip(1);}
+        if(roll<0.45){entityState='run';entityStateTimer=2+Math.random()*3;entitySwitchClip(2);entityGlowActive=true;entityGlowDuration=entityStateTimer+1.2;}
+        else if(roll<0.7){entityState='walk';entityStateTimer=7+Math.random()*9;entitySwitchClip(1);}
         else{entityState='lurk';entityStateTimer=14+Math.random()*10;entitySwitchClip(0);const p=placeNear(18,32,false);if(p){entityX=p.x;entityZ=p.z;}}
       }
       break;
     }
     case'run':{
-      // Rush toward player — more visible
-      entityTargetOpacity=0.16;
+      // Rush toward player — snap-lunge on first frame, then full dash
+      entityTargetOpacity=0.22;
+      // Opening snap: teleport to within 5 units the very first frame in run
+      if(entityStateTimer>1.9&&dist>5){
+        const snapFrac=1-(5/dist);
+        const sx=entityX+(dx/dist)*dist*snapFrac*0.85;
+        const sz=entityZ+(dz/dist)*dist*snapFrac*0.85;
+        if(isOpen(sx,sz)){entityX=sx;entityZ=sz;}
+      }
       if(dist>0.5){
-        const spd=4.8;
+        const spd=5.5;
         const nx=entityX+(dx/dist)*spd*dt;
         const nz=entityZ+(dz/dist)*spd*dt;
         if(isOpen(nx,nz)){entityX=nx;entityZ=nz;}
         entityRot=Math.atan2(dx,dz);
       }
       if(dist<2.0){
-        // Jumpscare
-        strobeOnce();sfxScare();
+        // Jumpscare — electrical crack + brief red glow flash
+        if(entityGlowLight){entityGlowLight.color.setHex(0xff2200);entityGlowLight.intensity=3.5;}
+        entityGlowActive=true;entityGlowDuration=0.5;
+        strobeOnce();sfxScare();sfxEntityCrack();
         sanity=Math.max(0,sanity-14);
         entityTargetOpacity=0;
         entityState='lurk';
@@ -555,6 +600,56 @@ function updateEntity(dt){
       break;
     }
   }
+
+  // ── Jitter: mask broken leg rig with micro position-snaps ──
+  entityJitterTimer+=dt;
+  if((entityState==='stalk'||entityState==='walk')&&entityJitterTimer>0.75+Math.random()*1.1){
+    entityJitterTimer=0;
+    if(dist>3&&Math.random()<0.55){
+      const sd=0.3+Math.random()*0.65;
+      const nx2=entityX+(dx/Math.max(0.1,dist))*sd;
+      const nz2=entityZ+(dz/Math.max(0.1,dist))*sd;
+      if(isOpen(nx2,nz2)){entityX=nx2;entityZ=nz2;}
+    }
+    entityRot+=(Math.random()-0.5)*0.65;
+  }
+
+  // ── Watery glow cycling (blues/purples/greens) ──
+  entityGlowTimer+=dt;
+  if(entityGlowActive){
+    entityGlowDuration-=dt;
+    if(entityGlowDuration<=0)entityGlowActive=false;
+    const hue=0.56+Math.abs(Math.sin(entityGlowTimer*0.17))*0.28;
+    const gi=Math.abs(Math.sin(entityGlowTimer*0.85))*1.3+0.25;
+    if(entityGlowLight){entityGlowLight.color.setHSL(hue,0.75,0.45);entityGlowLight.intensity=gi;}
+    entityModel&&entityModel.traverse(child=>{
+      if(child.isMesh&&child.material&&child.material.emissive){
+        child.material.emissive.setHSL(hue,0.55,0.04+Math.abs(Math.sin(entityGlowTimer*0.85))*0.055);
+      }
+    });
+  } else {
+    if(entityGlowLight)entityGlowLight.intensity=Math.max(0,entityGlowLight.intensity-dt*1.1);
+    // Random activation ~every 22–45s in lurk/stalk
+    if((entityState==='lurk'||entityState==='stalk')&&Math.random()<dt*(1/32)){
+      entityGlowActive=true;entityGlowDuration=4+Math.random()*7;
+    }
+    entityModel&&entityModel.traverse(child=>{
+      if(child.isMesh&&child.material&&child.material.emissive){
+        const v=child.material.emissive.r;
+        if(v>0)child.material.emissive.setScalar(Math.max(0,v-dt*0.07));
+      }
+    });
+  }
+
+  // ── Lights out near entity when lurking/stalking ──
+  roomLightRefs.forEach(ref=>{
+    const ldist=Math.hypot(ref.light.position.x-entityX,ref.light.position.z-entityZ);
+    if(entityOpacity>0.04&&(entityState==='lurk'||entityState==='stalk')&&ldist<11){
+      ref.light.intensity=Math.max(0,ref.light.intensity-dt*0.55);
+    } else {
+      ref.light.intensity=Math.min(ref.orig,ref.light.intensity+dt*0.35);
+    }
+  });
 
   // Apply world position + facing
   if(entityModel){
@@ -969,7 +1064,14 @@ function enterCorridor(door){
   sfxOpen();
 
   const url=DOOR_VIDS[door.vidIdx];
-  if(url){ doorVideo.crossOrigin="anonymous"; doorVideo.src=url; doorVideo.load(); }
+  const useCSS3D=!!(url&&url.includes('github.com'));
+  if(url){
+    if(useCSS3D){
+      if(doorVideoCSS3DEl){doorVideoCSS3DEl.src=url;doorVideoCSS3DEl.load();}
+    } else {
+      doorVideo.crossOrigin="anonymous"; doorVideo.src=url; doorVideo.load();
+    }
+  }
 
   const fadeEl=$("fade");
   fadeEl.style.transition="none";
@@ -987,11 +1089,19 @@ function enterCorridor(door){
         });
         corridorState="door_video";
         doorVideoState="playing";
-        doorVideo.play().catch(()=>{});
-        doorVideoPlane.position.set(door.grp.position.x,1.65,door.grp.position.z);
-        doorVideoPlane.rotation.y=door.grp.rotation.y;
-        doorVideoPlane.visible=true;
-        doorVideo.onended=()=>_revealCorridor();
+        if(useCSS3D&&doorVideoCSS3DObj&&doorVideoCSS3DEl){
+          doorVideoCSS3DObj.position.set(door.grp.position.x,1.65,door.grp.position.z);
+          doorVideoCSS3DObj.rotation.y=door.grp.rotation.y;
+          doorVideoCSS3DObj.visible=true;
+          doorVideoCSS3DEl.play().catch(()=>{});
+          doorVideoCSS3DEl.onended=()=>_revealCorridor();
+        } else {
+          doorVideo.play().catch(()=>{});
+          doorVideoPlane.position.set(door.grp.position.x,1.65,door.grp.position.z);
+          doorVideoPlane.rotation.y=door.grp.rotation.y;
+          doorVideoPlane.visible=true;
+          doorVideo.onended=()=>_revealCorridor();
+        }
         setObjective("Watch the archive.  [ E ] to skip.");
       } else {
         corridorState="door_video";
@@ -1004,8 +1114,10 @@ function enterCorridor(door){
 function _revealCorridor(){
   if(corridorState!=='door_video')return;
   doorVideoState='closed';
-  doorVideo.pause(); doorVideo.src='';
+  doorVideo.pause(); doorVideo.removeAttribute('src'); doorVideo.load();
   doorVideoPlane.visible=false;
+  if(doorVideoCSS3DObj)doorVideoCSS3DObj.visible=false;
+  if(doorVideoCSS3DEl){doorVideoCSS3DEl.pause();doorVideoCSS3DEl.removeAttribute('src');doorVideoCSS3DEl.load();}
 
   const door=corridorDoor; if(!door)return;
 
@@ -1251,6 +1363,7 @@ function init(){
   buildShadowFig();
   buildBlackFig();
   buildDoorVideoPlane();
+  buildDoorVideoCSS3D();
   buildEntity(); // load entity1_merged.glb
   buildMusic();
   setupControls();
@@ -1494,6 +1607,17 @@ function buildVideoObject(){
   videoObj.scale.set(s,s,s);
   videoObj.visible=false;
   scene.add(videoObj);
+
+  // CSS3D <video> for GitHub-hosted MP4 TVs (no crossOrigin needed)
+  tvVideoEl=document.createElement('video');
+  tvVideoEl.width=640;tvVideoEl.height=360;
+  tvVideoEl.style.cssText='width:640px;height:360px;background:#000;display:block;object-fit:cover;';
+  tvVideoEl.setAttribute('playsinline','');
+  tvVideoEl.setAttribute('webkit-playsinline','');
+  videoMP4Obj=new THREE.CSS3DObject(tvVideoEl);
+  videoMP4Obj.scale.set(s,s,s);
+  videoMP4Obj.visible=false;
+  scene.add(videoMP4Obj);
 }
 function addTV(x,z,vidIdx,angle,opts){
   opts=opts||{};
@@ -1521,13 +1645,17 @@ function playTV(tv){
     flashFact('COLLECT ALL 5 TOKENS FIRST.');sfxStatic();return;
   }
   tv.seen=true;tintSeen(tv);
-  if(v.isMP4){
-    doorVideo.src=v.url;
-    doorVideo.style.cssText='position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:90;background:#000';
-    doorVideo.style.display='block';
-    doorVideo.play().catch(()=>{});
-    setObjective(isMobile?'Tap anywhere to continue':'[ E ] to continue');
-    doorVideo.onended=()=>{ doorVideo.style.cssText='opacity:0;pointer-events:none;position:fixed;left:-9999px;top:-9999px;width:1px;height:1px'; doorVideo.src=''; setObjective(''); };
+  if(v.isMP4&&videoMP4Obj){
+    activeTV=tv;
+    tvVideoEl.src=v.url;tvVideoEl.load();tvVideoEl.play().catch(()=>{});
+    videoMP4Obj.position.set(tv.wp.x+tv.nx*0.09,tv.wp.y,tv.wp.z+tv.nz*0.09);
+    videoMP4Obj.rotation.set(0,tv.angle,0);
+    videoMP4Obj.visible=true;
+    tvVideoEl.onended=()=>{
+      videoMP4Obj.visible=false;
+      tvVideoEl.removeAttribute('src');tvVideoEl.load();
+      activeTV=null;
+    };
   } else if(videoObj){
     activeTV=tv;
     videoObj.position.set(tv.wp.x+tv.nx*0.09,tv.wp.y,tv.wp.z+tv.nz*0.09);
@@ -1560,7 +1688,7 @@ function updateArch(){$('arch').textContent='ARCHIVED '+Math.min(archived.size,G
 
 function updateVideoVisibility(){
   if(!videoObj){return;}
-  if(!activeTV){videoObj.visible=false;return;}
+  if(!activeTV){videoObj.visible=false;if(videoMP4Obj)videoMP4Obj.visible=false;return;}
   const tv=activeTV;
   const dx=tv.wp.x-camera.position.x,dz=tv.wp.z-camera.position.z;
   const dist=Math.hypot(dx,dz);
@@ -1574,7 +1702,10 @@ function updateVideoVisibility(){
       if(solidAt(px,pz,0.05)){occluded=true;break;}
     }
   }
-  videoObj.visible=dist<16&&facing&&!occluded;
+  const canSee=dist<16&&facing&&!occluded;
+  const isMP4TV=VIDS[activeTV.vidIdx]&&VIDS[activeTV.vidIdx].isMP4;
+  videoObj.visible=canSee&&!isMP4TV;
+  if(videoMP4Obj)videoMP4Obj.visible=canSee&&!!isMP4TV;
 }
 
 // ════ WORLD ════
@@ -1914,6 +2045,15 @@ function startExitVideo(){
   exitVideoEl.play().catch(()=>{});
   document.body.appendChild(exitVideoEl);
 
+  const eb=document.createElement('a');
+  eb.id='welfare-exit-btn';
+  eb.href='https://earthlingofficial.com';
+  eb.target='_blank';
+  eb.rel='noopener';
+  eb.innerHTML="CAN’T HANDLE IT? — WE UNDERSTAND.<br><span style='font-size:9px;letter-spacing:2px;opacity:0.6'>They couldn’t look away.</span>";
+  document.body.appendChild(eb);
+  setTimeout(()=>{eb.style.opacity='1';eb.style.pointerEvents='auto';},4200);
+
   setObjective('');
   setTimeout(()=>{
     exitVideoCanSkip=true;
@@ -1923,6 +2063,7 @@ function startExitVideo(){
 
 function finishExitVideo(){
   if(exitVideoEl){exitVideoEl.pause();exitVideoEl.remove();exitVideoEl=null;}
+  const eb2=document.getElementById('welfare-exit-btn');if(eb2)eb2.remove();
   exitVideoActive=false;
   ending=true;
   $('fade').classList.add('on');
@@ -2191,6 +2332,24 @@ function blip(freq,dur,type,vol){const a=ac();if(!a)return;const o=a.createOscil
   o.start();g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+(dur||0.3));o.stop(a.currentTime+(dur||0.3));}
 function strobeOnce(){const s=$('strobe');s.style.opacity='0.7';setTimeout(()=>s.style.opacity='0',120);}
 function sfxScare(){blip(70,0.5,'sawtooth',0.18);blip(120,0.4,'square',0.10);}
+function sfxEntityCrack(){
+  const a=ac();if(!a)return;
+  const buf=getNoiseBuf();if(!buf)return;
+  [0,32+Math.random()*38].forEach((delay,i)=>{
+    setTimeout(()=>{
+      const a2=ac();if(!a2)return;
+      const s2=a2.createBufferSource();s2.buffer=buf;
+      s2.playbackRate.value=2.4+Math.random()*2+i*0.7;
+      const hp=a2.createBiquadFilter();hp.type='highpass';hp.frequency.value=2600+i*500;
+      const g2=a2.createGain();const t=a2.currentTime;
+      g2.gain.setValueAtTime(0,t);
+      g2.gain.linearRampToValueAtTime(0.30-i*0.08,t+0.004);
+      g2.gain.exponentialRampToValueAtTime(0.0001,t+0.065-i*0.01);
+      s2.connect(hp);hp.connect(g2);g2.connect(a2.destination);
+      s2.start(t);s2.stop(t+0.08);
+    },delay);
+  });
+}
 function sfxStatic(){blip(200,0.15,'square',0.05);}
 function sfxOpen(){blip(330,0.6,'sine',0.10);blip(495,0.6,'sine',0.07);}
 function sfxUI(){blip(440,0.12,'sine',0.05);}
@@ -2393,6 +2552,13 @@ function interact(){
   if(exitVideoActive){
     if(exitVideoCanSkip)finishExitVideo();
     return;
+  }
+
+  const tvVid2=document.getElementById('tvvideo-mp4');
+  if(tvVid2&&tvVid2.style.display!=='none'){
+    tvVid2.pause();tvVid2.style.display='none';
+    tvVid2.removeAttribute('src');tvVid2.load();
+    setObjective('');return;
   }
 
   if(corridorActive){
