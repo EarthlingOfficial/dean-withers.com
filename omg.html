@@ -1427,10 +1427,17 @@ let vrReticle=null;
 function setupVR(){
   if(!navigator.xr)return;
 
-  // Show the button immediately — don't wait for isSessionSupported().
-  // requestSession() will reject cleanly if the headset isn't ready.
   const btn=$('vr-btn');
-  if(btn){btn.style.display='block';btn.onclick=toggleVR;}
+  if(btn){
+    btn.onclick=async()=>{
+      if(xrSession){xrSession.end();return;}
+      if(!started){startGame();}
+      await enterVR();
+    };
+    navigator.xr.isSessionSupported('immersive-vr').then(supported=>{
+      if(btn)btn.style.display=supported?'block':'none';
+    }).catch(()=>{});
+  }
 
   // XR controllers — trigger = interact()
   const ctrl0=renderer.xr.getController(0);
@@ -1453,36 +1460,23 @@ function setupVR(){
   renderer.xr.addEventListener('sessionend',onXREnd);
 }
 
-function toggleVR(){
-  if(renderer.xr.isPresenting){
-    const s=renderer.xr.getSession();
-    if(s)s.end();
-  }else{
-    enterVR();
-  }
-}
-
-function enterVR(){
-  // Request immersive-vr with DOM Overlay so that the #css3d div
-  // (which contains YouTube iframes) appears as a flat 2D overlay
-  // composited over the VR scene — the best available YouTube-in-VR workaround.
-  const sessionInit={
-    requiredFeatures:['local'],
-    optionalFeatures:['bounded-floor','hand-tracking','dom-overlay'],
-    domOverlay:{root:document.getElementById('css3d')}
-  };
-  navigator.xr.requestSession('immersive-vr',sessionInit).then(session=>{
-    xrSession=session;
-    renderer.xr.setSession(session);
-    const b=$('vr-btn');if(b){b.textContent='EXIT VR';b.style.pointerEvents='auto';}
-    session.addEventListener('end',()=>{
-      xrSession=null;
-      const b2=$('vr-btn');if(b2){b2.textContent='ENTER VR';b2.style.pointerEvents='auto';}
+async function enterVR(){
+  const b=$('vr-btn');
+  try{
+    xrSession=await navigator.xr.requestSession('immersive-vr',{
+      optionalFeatures:['local-floor','bounded-floor','hand-tracking']
     });
-  }).catch(err=>{
+    renderer.xr.setReferenceSpaceType('local-floor');
+    await renderer.xr.setSession(xrSession);
+    if(b){b.textContent='EXIT VR';b.style.pointerEvents='auto';}
+    xrSession.addEventListener('end',()=>{
+      xrSession=null;
+      if(b){b.textContent='ENTER VR';b.style.pointerEvents='auto';}
+    });
+  }catch(err){
     console.warn('WebXR session failed:',err);
-    const b=$('vr-btn');if(b){b.textContent='ENTER VR';b.style.pointerEvents='auto';}
-  });
+    if(b){b.textContent='ENTER VR';b.style.pointerEvents='auto';}
+  }
 }
 
 function onXRStart(){
@@ -2891,20 +2885,20 @@ function updateFuzz(){
   if(!navigator.xr)return;
   const b=$('vr-btn');
   if(!b)return;
-  b.style.display='block';
-  b.onclick=function(){
-    if(renderer&&renderer.xr&&renderer.xr.isPresenting){
-      const s=renderer.xr.getSession();if(s)s.end();
-      return;
-    }
-    b.textContent='LOADING…';
-    b.style.pointerEvents='none';
-    const warn=$('warning-overlay');
-    if(warn){warn.style.opacity='0';warn.style.pointerEvents='none';setTimeout(()=>warn.style.display='none',400);}
-    if(!renderer){init();}
-    if(!started){startGame();}
-    enterVR();
-  };
+  navigator.xr.isSessionSupported('immersive-vr').then(supported=>{
+    if(!supported)return;
+    b.style.display='block';
+    b.onclick=async()=>{
+      if(xrSession){xrSession.end();return;}
+      b.textContent='LOADING…';
+      b.style.pointerEvents='none';
+      const warn=$('warning-overlay');
+      if(warn){warn.style.opacity='0';warn.style.pointerEvents='none';setTimeout(()=>warn.style.display='none',400);}
+      if(!renderer){init();}
+      if(!started){startGame();}
+      await enterVR();
+    };
+  }).catch(()=>{});
 })();
 </script>
 </body>
