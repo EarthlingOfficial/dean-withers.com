@@ -112,6 +112,14 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
   text-align:center;opacity:0;transition:opacity 1.2s;pointer-events:none;line-height:1.9;
   text-decoration:none;display:block}
 #welfare-exit-btn:hover{background:rgba(12,8,4,.95);border-color:rgba(200,184,106,.5)}
+
+/* VR BUTTON */
+#vr-btn{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:rgba(0,8,24,.85);border:1px solid rgba(80,140,255,.42);
+  color:#88aaff;font-family:'Courier New',monospace;font-size:10px;
+  letter-spacing:4px;padding:11px 28px;z-index:25;cursor:pointer;
+  display:none;pointer-events:auto;transition:background .2s,border-color .2s}
+#vr-btn:hover{background:rgba(8,18,50,.92);border-color:rgba(100,160,255,.7)}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://unpkg.com/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>
@@ -183,6 +191,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 <div id="fade"></div>
 <div id="ibtn">WATCH</div>
 <button id="skipbtn">SKIP VIDEO</button>
+<button id="vr-btn">ENTER VR</button>
 
 <!-- Door video element (hidden — feeds a Three.js VideoTexture) -->
 <video id="doorvideo" playsinline webkit-playsinline crossorigin="anonymous" style="opacity:0;pointer-events:none;position:fixed;left:-9999px;top:-9999px;width:1px;height:1px"></video>
@@ -1338,6 +1347,7 @@ function init(){
   renderer.setSize(innerWidth,innerHeight);
   renderer.shadowMap.enabled=true;
   renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.xr.enabled=true;
   if(typeof THREE.CSS3DRenderer==='function'){
     css3d=new THREE.CSS3DRenderer();
     css3d.setSize(innerWidth,innerHeight);
@@ -1370,6 +1380,7 @@ function init(){
   setupTouch();
   setupPost();
   setupSkipBtn();
+  setupVR();
 
   renderer.compile(scene,camera);
 
@@ -1395,13 +1406,100 @@ function init(){
   $('ibtn').addEventListener('touchstart',e=>{e.preventDefault();interact();},{passive:false});
   addEventListener('resize',onResize);
   setObjective(isMobile?'Tap WATCH at each screen. Archive all five.':'Press [E] at each screen. Archive all five.');
-  animate();
+  renderer.setAnimationLoop(animate);
 }
 
 function setupSkipBtn(){
   $('skipbtn').addEventListener('click',()=>{
     if(corridorState==='door_video') _revealCorridor();
   });
+}
+
+// ════ VR / WEBXR ════
+let xrSession=null;
+let vrReticle=null;
+
+function setupVR(){
+  if(!navigator.xr)return;
+
+  // Show the button immediately — don't wait for isSessionSupported().
+  // requestSession() will reject cleanly if the headset isn't ready.
+  // Click handler is set by the early-boot block below; nothing to add here.
+
+  // XR controllers — trigger = interact()
+  const ctrl0=renderer.xr.getController(0);
+  ctrl0.addEventListener('selectstart',interact);
+  scene.add(ctrl0);
+  const ctrl1=renderer.xr.getController(1);
+  ctrl1.addEventListener('selectstart',interact);
+  scene.add(ctrl1);
+
+  // VR gaze reticle — small dot anchored to camera space
+  const rg=new THREE.SphereGeometry(0.007,8,8);
+  const rm=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.55,depthTest:false});
+  vrReticle=new THREE.Mesh(rg,rm);
+  vrReticle.position.set(0,0,-1.2);
+  vrReticle.renderOrder=999;
+  vrReticle.visible=false;
+  camera.add(vrReticle);
+  scene.add(camera);
+
+  renderer.xr.addEventListener('sessionstart',onXRStart);
+  renderer.xr.addEventListener('sessionend',onXREnd);
+}
+
+function toggleVR(){
+  if(renderer.xr.isPresenting){
+    const s=renderer.xr.getSession();
+    if(s)s.end();
+  }else{
+    enterVR();
+  }
+}
+
+function enterVR(){
+  // Request immersive-vr with DOM Overlay so that the #css3d div
+  // (which contains YouTube iframes) appears as a flat 2D overlay
+  // composited over the VR scene — the best available YouTube-in-VR workaround.
+  const sessionInit={
+    requiredFeatures:['local'],
+    optionalFeatures:['bounded-floor','hand-tracking','dom-overlay'],
+    domOverlay:{root:document.getElementById('css3d')}
+  };
+  navigator.xr.requestSession('immersive-vr',sessionInit).then(session=>{
+    xrSession=session;
+    renderer.xr.setSession(session);
+    const b=$('vr-btn');if(b)b.textContent='EXIT VR';
+    session.addEventListener('end',()=>{
+      xrSession=null;
+      const b2=$('vr-btn');if(b2)b2.textContent='ENTER VR';
+    });
+  }).catch(err=>console.warn('WebXR session failed:',err));
+}
+
+function onXRStart(){
+  if(vrReticle)vrReticle.visible=true;
+  // HUD elements appear via DOM overlay (css3d div is the overlay root)
+  if(!started)startGame();
+}
+
+function onXREnd(){
+  if(vrReticle)vrReticle.visible=false;
+}
+
+// Read thumbstick axes from whichever controller has input
+function getXRMoveAxes(){
+  const s=renderer.xr.getSession();
+  if(!s)return{x:0,y:0};
+  for(const src of s.inputSources){
+    if(!src.gamepad)continue;
+    const ax=src.gamepad.axes;
+    // Quest: axes[2]/axes[3] are thumbstick; fallback to axes[0]/axes[1]
+    const ix=(Math.abs(ax[2]||0)>0.08)?ax[2]:((Math.abs(ax[0]||0)>0.08)?ax[0]:0);
+    const iy=(Math.abs(ax[3]||0)>0.08)?ax[3]:((Math.abs(ax[1]||0)>0.08)?ax[1]:0);
+    if(Math.abs(ix)>0.08||Math.abs(iy)>0.08)return{x:ix,y:iy};
+  }
+  return{x:0,y:0};
 }
 
 function onResize(){
@@ -2624,7 +2722,7 @@ function setupControls(){
   if(desktop){
     $('c').addEventListener('click',()=>{if(started)document.body.requestPointerLock&&document.body.requestPointerLock();});
     document.addEventListener('mousemove',e=>{
-      if(document.pointerLockElement===document.body&&started){
+      if(document.pointerLockElement===document.body&&started&&!renderer.xr.isPresenting){
         camera.rotation.y-=e.movementX*0.0024;
         camera.rotation.x=Math.max(-Math.PI/2.4,Math.min(Math.PI/2.4,camera.rotation.x-e.movementY*0.0024));
       }
@@ -2674,7 +2772,6 @@ function startGame(){
 
 // ════ ANIMATE ════
 function animate(){
-  requestAnimationFrame(animate);
   const dt=Math.min(clock.getDelta(),0.05),t=clock.getElapsedTime();
   postMaterial.uniforms.uTime.value=t;
 
@@ -2683,7 +2780,7 @@ function animate(){
 
   if(!started){renderer.setRenderTarget(null);renderer.render(scene,camera);return;}
 
-  if(td.r.a){
+  if(td.r.a&&!renderer.xr.isPresenting){
     camera.rotation.y-=td.r.mx*0.03;
     camera.rotation.x=Math.max(-Math.PI/2.4,Math.min(Math.PI/2.4,camera.rotation.x-td.r.my*0.03));
   }
@@ -2693,6 +2790,7 @@ function animate(){
   if(kW||kS)vel.z+=dz*48*dt;
   if(kA||kD)vel.x-=dxk*48*dt;
   if(td.l.a){vel.z-=td.l.my*32*dt;vel.x-=td.l.mx*32*dt;}
+  if(renderer.xr.isPresenting){const ax=getXRMoveAxes();if(Math.abs(ax.x)>0.12)vel.x+=ax.x*28*dt;if(Math.abs(ax.y)>0.12)vel.z+=ax.y*28*dt;}
   const before=camera.position.clone();
   camera.translateX(-vel.x*dt);camera.translateZ(-vel.z*dt);
   const wantX=camera.position.x,wantZ=camera.position.z;
@@ -2724,9 +2822,14 @@ function animate(){
   if(whisperTimer<=0){whisper(WHISPERS[Math.floor(Math.random()*WHISPERS.length)]);whisperTimer=600+Math.floor(Math.random()*600);}
 
   if(doorVideoTex&&doorVideoState==='playing'&&doorVideo.readyState>=2)doorVideoTex.needsUpdate=true;
-  renderer.setRenderTarget(renderTarget);renderer.render(scene,camera);
-  renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
-  if(css3d)css3d.render(scene,camera);
+  if(renderer.xr.isPresenting){
+    renderer.render(scene,camera);
+    if(css3d)css3d.render(scene,camera);
+  }else{
+    renderer.setRenderTarget(renderTarget);renderer.render(scene,camera);
+    renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
+    if(css3d)css3d.render(scene,camera);
+  }
 }
 
 function updateFuzz(){
@@ -2767,6 +2870,41 @@ function updateFuzz(){
       document.removeEventListener('keydown',onWarnKey);
     }
   });
+})();
+
+// ════ VR EARLY BOOT ════
+// When ?vr=1 is in the URL, replace everything with a single fullscreen
+// tap target. The Quest laser hits it no matter where it aims.
+// One tap → init + startGame + enterVR. No small buttons to aim at.
+(function(){
+  const vrMode=new URLSearchParams(location.search).get('vr')==='1';
+  if(!vrMode||!navigator.xr)return;
+
+  // Hide the warning overlay immediately — user came here to play in VR
+  const warn=$('warning-overlay');
+  if(warn){warn.style.display='none';}
+
+  // Build the fullscreen tap overlay
+  const tap=document.createElement('div');
+  tap.id='vr-tap';
+  tap.innerHTML='<div class="vr-tap-inner"><div class="vr-tap-icon">◉</div><div class="vr-tap-label">TAP ANYWHERE<br>TO ENTER VR</div></div>';
+  tap.style.cssText='position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#000;cursor:pointer;';
+  tap.querySelector('.vr-tap-inner').style.cssText='text-align:center;user-select:none;pointer-events:none;';
+  tap.querySelector('.vr-tap-icon').style.cssText='font-size:72px;color:#4488ff;margin-bottom:24px;line-height:1;';
+  tap.querySelector('.vr-tap-label').style.cssText='font-family:"Courier New",monospace;font-size:18px;letter-spacing:6px;color:#88aaff;line-height:1.7;';
+  document.body.appendChild(tap);
+
+  tap.addEventListener('click',function onTap(){
+    tap.removeEventListener('click',onTap);
+    tap.querySelector('.vr-tap-label').textContent='LOADING…';
+    // Kill warning overlay, boot game, enter VR
+    if(!renderer){init();}
+    if(!started){startGame();}
+    setTimeout(()=>{
+      enterVR();
+      setTimeout(()=>tap.style.display='none',800);
+    },400);
+  },{once:true});
 })();
 </script>
 </body>
