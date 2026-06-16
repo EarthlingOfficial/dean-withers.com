@@ -1474,12 +1474,15 @@ function enterVR(){
   navigator.xr.requestSession('immersive-vr',sessionInit).then(session=>{
     xrSession=session;
     renderer.xr.setSession(session);
-    const b=$('vr-btn');if(b)b.textContent='EXIT VR';
+    const b=$('vr-btn');if(b){b.textContent='EXIT VR';b.style.pointerEvents='auto';}
     session.addEventListener('end',()=>{
       xrSession=null;
-      const b2=$('vr-btn');if(b2)b2.textContent='ENTER VR';
+      const b2=$('vr-btn');if(b2){b2.textContent='ENTER VR';b2.style.pointerEvents='auto';}
     });
-  }).catch(err=>console.warn('WebXR session failed:',err));
+  }).catch(err=>{
+    console.warn('WebXR session failed:',err);
+    const b=$('vr-btn');if(b){b.textContent='ENTER VR';b.style.pointerEvents='auto';}
+  });
 }
 
 function onXRStart(){
@@ -2766,10 +2769,12 @@ function startGame(){
   setObjective(isMobile?'Find every screen. Tap WATCH. Archive all five.':'Find every screen. Press [E] to watch. Archive all five.');
   let warmFrames=0;
   const warmup=()=>{
-    renderer.setRenderTarget(renderTarget);
-    renderer.render(scene,camera);
-    renderer.setRenderTarget(null);
-    renderer.render(postScene,postCamera);
+    if(!renderer.xr.isPresenting){
+      renderer.setRenderTarget(renderTarget);
+      renderer.render(scene,camera);
+      renderer.setRenderTarget(null);
+      renderer.render(postScene,postCamera);
+    }
     if(++warmFrames<8)requestAnimationFrame(warmup);
   };
   requestAnimationFrame(warmup);
@@ -2783,7 +2788,7 @@ function animate(){
   // Always tick the entity mixer so bones animate from the moment GLB is loaded
   if(entityMixer)entityMixer.update(dt);
 
-  if(!started){renderer.setRenderTarget(null);renderer.render(scene,camera);return;}
+  if(!started){if(!renderer.xr.isPresenting)renderer.setRenderTarget(null);renderer.render(scene,camera);return;}
 
   if(td.r.a&&!renderer.xr.isPresenting){
     camera.rotation.y-=td.r.mx*0.03;
@@ -2898,11 +2903,7 @@ function updateFuzz(){
     if(warn){warn.style.opacity='0';warn.style.pointerEvents='none';setTimeout(()=>warn.style.display='none',400);}
     if(!renderer){init();}
     if(!started){startGame();}
-    setTimeout(()=>{
-      enterVR();
-      b.textContent='EXIT VR';
-      b.style.pointerEvents='auto';
-    },500);
+    enterVR();
   };
 })();
 </script>
