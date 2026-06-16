@@ -322,6 +322,7 @@ const T_WALL=1.0;
 const GAP=8;
 
 let scene,camera,renderer,clock,css3d;
+let playerRig;
 let postScene,postCamera,renderTarget,postMaterial;
 let matWall,matFloor,matCeil,matPanel,matDark;
 let fuzzCanvas,fuzzCtx,fuzzTex,fuzzFrame=0;
@@ -508,8 +509,8 @@ function entitySwitchClip(idx,fadeDur){
 function updateEntity(dt){
   if(!entityLoaded||!entityModel)return;
 
-  const dx=camera.position.x-entityX;
-  const dz=camera.position.z-entityZ;
+  const dx=playerRig.position.x-entityX;
+  const dz=playerRig.position.z-entityZ;
   const dist=Math.hypot(dx,dz);
   const elapsed=clock.getElapsedTime();
 
@@ -561,10 +562,10 @@ function updateEntity(dt){
       entityTargetOpacity=0.09+Math.abs(Math.sin(elapsed*0.65))*0.07;
       const orbitAngle=Math.atan2(dz,dx)+0.35*dt;
       const targetDist=7+Math.sin(elapsed*0.42)*3;
-      const ox2=camera.position.x-Math.cos(orbitAngle)*targetDist;
-      const oz2=camera.position.z-Math.sin(orbitAngle)*targetDist;
+      const ox2=playerRig.position.x-Math.cos(orbitAngle)*targetDist;
+      const oz2=playerRig.position.z-Math.sin(orbitAngle)*targetDist;
       if(isOpen(ox2,oz2)){entityX=ox2;entityZ=oz2;}
-      entityRot=Math.atan2(camera.position.x-entityX,camera.position.z-entityZ);
+      entityRot=Math.atan2(playerRig.position.x-entityX,playerRig.position.z-entityZ);
       if(entityStateTimer<=0){
         const roll=Math.random();
         if(roll<0.45){entityState='run';entityStateTimer=2+Math.random()*3;entitySwitchClip(2);entityGlowActive=true;entityGlowDuration=entityStateTimer+1.2;}
@@ -1067,7 +1068,7 @@ function enterCorridor(door){
   corridorActive=true;
   corridorDoor=door;
   corridorCloseWallAdded=false;
-  corridorEntryPos.copy(camera.position);
+  corridorEntryPos.set(playerRig.position.x,2,playerRig.position.z);
   corridorEntryRot=camera.rotation.y;
 
   sfxOpen();
@@ -1141,9 +1142,9 @@ function _revealCorridor(){
 
       corridorState='locked';
 
-      camera.position.set(
+      playerRig.position.set(
         door.cOx+door.cFdx*5,
-        2,
+        0,
         door.cOz+door.cFdz*5
       );
       camera.rotation.y=door.cRy;
@@ -1231,7 +1232,7 @@ function exitCorridor(){
     doorVideoState='closed';
     door.corridorBuilt=false;
 
-    camera.position.copy(corridorEntryPos);
+    playerRig.position.set(corridorEntryPos.x,0,corridorEntryPos.z);
     camera.rotation.y=corridorEntryRot+Math.PI;
     camera.rotation.x=0;
 
@@ -1339,8 +1340,12 @@ function init(){
   scene.fog=new THREE.FogExp2(0x1a1a10,0.05);
   camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,1000);
   camera.rotation.order='YXZ';
-  camera.position.set(24,2,38);
   camera.rotation.y=Math.PI;
+  camera.position.set(0,2,0);
+  playerRig=new THREE.Group();
+  playerRig.position.set(24,0,38);
+  playerRig.add(camera);
+  scene.add(playerRig);
   clock=new THREE.Clock();
   renderer=new THREE.WebGLRenderer({canvas:$('c'),antialias:false});
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
@@ -1443,7 +1448,6 @@ function setupVR(){
   vrReticle.renderOrder=999;
   vrReticle.visible=false;
   camera.add(vrReticle);
-  scene.add(camera);
 
   renderer.xr.addEventListener('sessionstart',onXRStart);
   renderer.xr.addEventListener('sessionend',onXREnd);
@@ -1789,7 +1793,7 @@ function updateVideoVisibility(){
   if(!videoObj){return;}
   if(!activeTV){videoObj.visible=false;if(videoMP4Obj)videoMP4Obj.visible=false;return;}
   const tv=activeTV;
-  const dx=tv.wp.x-camera.position.x,dz=tv.wp.z-camera.position.z;
+  const dx=tv.wp.x-playerRig.position.x,dz=tv.wp.z-playerRig.position.z;
   const dist=Math.hypot(dx,dz);
   const fwd=new THREE.Vector3();camera.getWorldDirection(fwd);
   const facing=(fwd.x*dx+fwd.z*dz)/Math.max(0.1,dist)>-0.15;
@@ -1797,7 +1801,7 @@ function updateVideoVisibility(){
   if(dist>1){
     const steps=Math.min(40,Math.ceil(dist));
     for(let i=1;i<steps;i++){
-      const t=i/steps,px=camera.position.x+dx*t,pz=camera.position.z+dz*t;
+      const t=i/steps,px=playerRig.position.x+dx*t,pz=playerRig.position.z+dz*t;
       if(solidAt(px,pz,0.05)){occluded=true;break;}
     }
   }
@@ -2256,8 +2260,8 @@ function placeNear(minD,maxD,behind){
     if(behind){a=camera.rotation.y+Math.PI+(Math.random()*1.2-0.6);}
     else{a=Math.random()*Math.PI*2;}
     const d=minD+Math.random()*(maxD-minD);
-    const x=camera.position.x+Math.sin(a)*d;
-    const z=camera.position.z+Math.cos(a)*d;
+    const x=playerRig.position.x+Math.sin(a)*d;
+    const z=playerRig.position.z+Math.cos(a)*d;
     if(isOpen(x,z))return{x,z};
   }
   return null;
@@ -2267,7 +2271,7 @@ function updateShadowFig(dt){
   s.peekCooldown=Math.max(0,s.peekCooldown-1);
   s.sprite.position.set(s.x,1.3,s.z);
   if(s.light)s.light.position.set(s.x,1.4,s.z);
-  const dx=s.x-camera.position.x,dz=s.z-camera.position.z;
+  const dx=s.x-playerRig.position.x,dz=s.z-playerRig.position.z;
   const dist=Math.hypot(dx,dz);
   const fwdX=Math.sin(camera.rotation.y),fwdZ=Math.cos(camera.rotation.y);
   const dot=(dx*fwdX+dz*fwdZ)/Math.max(0.1,dist);
@@ -2301,7 +2305,7 @@ function updateShadowFig(dt){
     if(s.light){s.light.color.setHex(0x200010);s.light.intensity=0.5;}
     s.peekCooldown=70+Math.random()*130;
   } else if(dist>18&&Math.random()<0.002&&s.peekCooldown<=0){
-    const p=placeNear(8,18,false);if(p&&Math.hypot(p.x-camera.position.x,p.z-camera.position.z)>6){s.x=p.x;s.z=p.z;}
+    const p=placeNear(8,18,false);if(p&&Math.hypot(p.x-playerRig.position.x,p.z-playerRig.position.z)>6){s.x=p.x;s.z=p.z;}
   }
 }
 
@@ -2346,7 +2350,7 @@ function blackStrike(){
 function updateBlackFig(){
   const b=blackFig;if(!b.sprite)return;
   if(blackCooldown>0)blackCooldown--;
-  const dx=b.x-camera.position.x,dz=b.z-camera.position.z;
+  const dx=b.x-playerRig.position.x,dz=b.z-playerRig.position.z;
   const dist=Math.hypot(dx,dz);
   const fwdX=Math.sin(camera.rotation.y),fwdZ=Math.cos(camera.rotation.y);
   const dot=(dx*fwdX+dz*fwdZ)/Math.max(0.1,dist);
@@ -2354,7 +2358,7 @@ function updateBlackFig(){
   if(b.state==='hidden'){
     stareFrames=0;
     if(blackCooldown<=0){
-      const here=darknessAt(camera.position.x,camera.position.z);
+      const here=darknessAt(playerRig.position.x,playerRig.position.z);
       if(Math.random()<0.0016+here*0.002)blackManifest();
     }
     return;
@@ -2365,7 +2369,7 @@ function updateBlackFig(){
     stareFrames++;
     sanity=Math.max(0,sanity-0.5*0.016);
     if(stareFrames>=STARE_FRAMES){
-      b.moveTo(camera.position.x+fwdX*0.9,camera.position.z+fwdZ*0.9);
+      b.moveTo(playerRig.position.x+fwdX*0.9,playerRig.position.z+fwdZ*0.9);
       b.setVis(BLACK_MAX_OPACITY);blackStrike();return;
     }
   } else {
@@ -2388,11 +2392,11 @@ function isOpen(x,z){
   if(x<-46||x>190||z<-30||z>130)return false;
   return !solidAt(x,z,0.5);
 }
-function tryMove(nx,nz){
-  let x=camera.position.x,z=camera.position.z;
+function tryMoveRig(nx,nz){
+  let x=playerRig.position.x,z=playerRig.position.z;
   if(!solidAt(nx,z))x=nx;
   if(!solidAt(x,nz))z=nz;
-  camera.position.x=x;camera.position.z=z;
+  playerRig.position.x=x;playerRig.position.z=z;
 }
 
 // ════ POST PROCESSING ════
@@ -2583,7 +2587,7 @@ function updateInteract(){
 
     if(corridorState==='locked'&&corridorDoor){
       const ctv=corridorDoor.corridorTV;
-      if(ctv&&camera.position.distanceTo(ctv.wp)<4.5){
+      if(ctv&&playerRig.position.distanceTo(ctv.wp)<4.5){
         $('skipbtn').style.display='none';
         if(isMobile){ib.textContent=ctv.seen?'REPLAY':'PLAY';ib.style.display='flex';hint.style.display='none';}
         else{hint.style.display='block';hint.textContent='[ E ] '+(ctv.seen?'REPLAY':'PLAY');ib.style.display='none';}
@@ -2609,7 +2613,7 @@ function updateInteract(){
 
   if(endSolved===false&&archived.size>=GATE_TOTAL){
     for(const et of endTVs){
-      if(!et.activated&&camera.position.distanceTo(et.wp)<3.8){
+      if(!et.activated&&playerRig.position.distanceTo(et.wp)<3.8){
         nearTV={isEndTV:true,tv:et};
         label=et.col.label;
         $('xh').classList.add('lock');
@@ -2618,14 +2622,14 @@ function updateInteract(){
     }
   }
 
-  if(slideOpen&&endVideoActive&&camera.position.distanceTo(slideMouth)<3.2){
+  if(slideOpen&&endVideoActive&&playerRig.position.distanceTo(slideMouth)<3.2){
     nearTV='SLIDE';label='WATCH';$('xh').classList.add('lock');
   }
   if(!nearTV){
     $('xh').classList.remove('lock');
     for(const d of doorList){
       if(!d.shown||d.used)continue;
-      if(camera.position.distanceTo(d.wp)<3.5){nearDoor=d;label='ENTER';$('xh').classList.add('lock');break;}
+      if(playerRig.position.distanceTo(d.wp)<3.5){nearDoor=d;label='ENTER';$('xh').classList.add('lock');break;}
     }
     if(!nearDoor){
       ray.setFromCamera(sc2,camera);
@@ -2665,7 +2669,7 @@ function interact(){
     if(corridorState==='corridor_tv'){exitCorridor();return;}
     if(corridorState==='locked'&&corridorDoor){
       const ctv=corridorDoor.corridorTV;
-      if(ctv&&camera.position.distanceTo(ctv.wp)<4.5){playCorridorTV(ctv);return;}
+      if(ctv&&playerRig.position.distanceTo(ctv.wp)<4.5){playCorridorTV(ctv);return;}
     }
     return;
   }
@@ -2792,16 +2796,17 @@ function animate(){
   if(kA||kD)vel.x-=dxk*48*dt;
   if(td.l.a){vel.z-=td.l.my*32*dt;vel.x-=td.l.mx*32*dt;}
   if(renderer.xr.isPresenting){const ax=getXRMoveAxes();if(Math.abs(ax.x)>0.12)vel.x+=ax.x*28*dt;if(Math.abs(ax.y)>0.12)vel.z+=ax.y*28*dt;}
-  const before=camera.position.clone();
-  camera.translateX(-vel.x*dt);camera.translateZ(-vel.z*dt);
-  const wantX=camera.position.x,wantZ=camera.position.z;
-  camera.position.copy(before);
-  tryMove(wantX,wantZ);
-  const movedDist=Math.hypot(camera.position.x-before.x,camera.position.z-before.z);
-  camera.position.y=2;
+  const before=playerRig.position.clone();
+  const moveVec=new THREE.Vector3(-vel.x*dt,0,-vel.z*dt);
+  moveVec.applyQuaternion(camera.quaternion);moveVec.y=0;
+  playerRig.position.addVectors(before,moveVec);
+  const wantX=playerRig.position.x,wantZ=playerRig.position.z;
+  playerRig.position.copy(before);
+  tryMoveRig(wantX,wantZ);
+  const movedDist=Math.hypot(playerRig.position.x-before.x,playerRig.position.z-before.z);
 
   const watching=(videoObj&&videoObj.visible)||doorVideoState==='playing';
-  updateFootsteps(t,movedDist,darknessAt(camera.position.x,camera.position.z));
+  updateFootsteps(t,movedDist,darknessAt(playerRig.position.x,playerRig.position.z));
   updateMusic(dt);
 
   if(++fuzzFrame%3===0)updateFuzz();
