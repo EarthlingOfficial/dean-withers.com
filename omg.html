@@ -2793,8 +2793,10 @@ function animate(){
   if(renderer.xr.isPresenting)updateXRInput();
 
   if(td.r.a){
-    camera.rotation.y-=td.r.mx*0.03;
-    if(!renderer.xr.isPresenting){
+    if(renderer.xr.isPresenting){
+      playerRig.rotation.y-=td.r.mx*0.03;
+    } else {
+      camera.rotation.y-=td.r.mx*0.03;
       camera.rotation.x=Math.max(-Math.PI/2.4,Math.min(Math.PI/2.4,camera.rotation.x-td.r.my*0.03));
     }
   }
@@ -2816,10 +2818,6 @@ function animate(){
     }
   }
 
-  if(renderer.xr.isPresenting){
-    const s=renderer.xr.getSession();
-    if(s){for(const src of s.inputSources){if(!src.gamepad)continue;const ax=src.gamepad.axes;const ix=(Math.abs(ax[2]||0)>0.1)?ax[2]:(Math.abs(ax[0]||0)>0.1?ax[0]:0);const iy=(Math.abs(ax[3]||0)>0.1)?ax[3]:(Math.abs(ax[1]||0)>0.1?ax[1]:0);if(Math.abs(ix)>0.1)vel.x+=ix*32*dt;if(Math.abs(iy)>0.1)vel.z+=iy*32*dt;}}
-  }
   const before=playerRig.position.clone();
   const mv=new THREE.Vector3(-vel.x*dt,0,-vel.z*dt);
   mv.applyQuaternion(camera.quaternion);mv.y=0;
