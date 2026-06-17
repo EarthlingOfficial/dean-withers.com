@@ -1158,7 +1158,14 @@ function _revealCorridor(){
     door.corridorHiddenMeshes.forEach(m=>{ m.visible=true; });
     door.corridorHiddenColliders.forEach(col=>colliders.push(col));
     corridorState='locked';
-    teleportPlayer(door.cOx+door.cFdx*12, door.cOz+door.cFdz*12);
+    // Compensate for room-scale head offset so rig lands inside corridor
+    const offX=camera.position.x||0;
+    const offZ=camera.position.z||0;
+    const spawnX=door.cOx+door.cFdx*8-offX;
+    const spawnZ=door.cOz+door.cFdz*8-offZ;
+    playerRig.position.set(spawnX,0,spawnZ);
+    playerRig.updateMatrixWorld(true);
+    collisionBypassTimer=0.4;
     whisper('corridor open.\nwalk forward.');
     setObjective('Walk to the end of the corridor.');
     sfxOpen();
@@ -1174,11 +1181,9 @@ function _revealCorridor(){
       door.corridorHiddenMeshes.forEach(m=>{ m.visible=true; });
       door.corridorHiddenColliders.forEach(col=>colliders.push(col));
       corridorState='locked';
-      // ── FIX: Larger spawn offset + immediate wall collision to prevent clipping ──
-      playerRig.position.set(door.cOx+door.cFdx*12,0,door.cOz+door.cFdz*12);
+      playerRig.position.set(door.cOx+door.cFdx*8,0,door.cOz+door.cFdz*8);
       playerRig.updateMatrixWorld(true);
       camera.position.set(0,2,0);
-      // Short bypass just for arrival — NOT for the closing wall
       collisionBypassTimer=0.4;
       if(!vrMode){
         camera.rotation.y=door.cRy;
@@ -1528,16 +1533,7 @@ function enterVR(){
     await renderer.xr.setSession(session);
     vrMode=true;
 
-    // ── FIX: Resume AudioContext on every XR select event (controller trigger) ──
-    // This is the reliable gesture unlock for Quest 3 video audio.
-    session.addEventListener('select',()=>{
-      if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();
-      if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});
-      // Also try to play any paused video elements
-      [vrDoorVideoEl,vrFinalVideoEl].forEach(el=>{
-        if(el.src&&el.paused&&el.readyState>=2){el.play().catch(()=>{});}
-      });
-    });
+    // AC resume handled quietly in updateVRInput when suspended
 
     renderer.setPixelRatio(1.0);
     renderer.shadowMap.enabled=false;
@@ -1659,8 +1655,6 @@ function updateVRInput(dt){
       const aBtnP=btns[4]&&btns[4].pressed;
       if((trigP||aBtnP)&&!vrInteractCooldown){
         vrInteractCooldown=true;
-        // Resume AC on trigger press — key fix for Quest 3 audio
-        if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});
         interact();
       } else if(!trigP&&!aBtnP){
         vrInteractCooldown=false;
