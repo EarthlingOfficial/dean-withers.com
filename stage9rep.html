@@ -155,7 +155,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
     <div id="c-stage">STAGE 9 — THE HYPOGEUM</div>
     <div id="c-loadbar"><div id="c-loadfill"></div></div>
     <div id="c-loadtxt">INITIALISING</div>
-    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v6 — VR CORRIDOR FIX / AUDIO UNLOCK / TOKEN FEEDBACK / NO STICKER GLOW VR</div>
+    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v7 — HEAD-CENTRED SPAWN / PRIME AUDIO / MP4 VR VIDEOTEX / ZERO VEL</div>
   </div>
   <div id="c-phase2">
     <div class="c-p2-series">A VEGAN BROS. SERIES</div>
@@ -1083,10 +1083,9 @@ function _revealCorridor(){
     door.corridorHiddenMeshes.forEach(m=>{ m.visible=true; });
     door.corridorHiddenColliders.forEach(col=>colliders.push(col));
     corridorState='locked';
-    playerRig.position.set(door.cOx+door.cFdx*12,0,door.cOz+door.cFdz*12);
-    playerRig.updateMatrixWorld(true);
-    camera.position.set(0,2,0);
-    collisionBypassTimer=3.0;
+    // Head-centred teleport: compensates for room-scale tracking offset so the
+    // physical head lands at corridor position, not playerRig origin.
+    teleportPlayer(door.cOx+door.cFdx*12, door.cOz+door.cFdz*12);
     whisper('corridor open.\nwalk forward.');
     setObjective('Walk to the end of the corridor.');
     sfxOpen();
@@ -1189,10 +1188,8 @@ function exitCorridor(){
     corridorCloseWallAdded=false;
     doorVideoState='closed';
     door.corridorBuilt=false;
-    playerRig.position.set(corridorEntryPos.x,0,corridorEntryPos.z);
-    playerRig.updateMatrixWorld(true);
-    camera.position.set(0,2,0);
-    collisionBypassTimer=2.0;
+    // Head-centred teleport back to entry point
+    teleportPlayer(corridorEntryPos.x, corridorEntryPos.z);
     setObjective(archived.size>=GATE_TOTAL?
       'All archived. Find the end room. Order the timestamps — shortest first.':
       'Find every screen. Press right trigger to watch. Archive all five.');
@@ -1483,9 +1480,7 @@ function enterVR(){
     stickerLights.forEach(l=>{ l._origIntensity=l.intensity; l.intensity=0; });
 
     // Unlock AudioContext and warm up music elements in this gesture context
-    const vrAC=ac();
-    if(vrAC&&vrAC.state==='suspended')vrAC.resume().catch(()=>{});
-    musicEls.forEach(el=>{ el.play().then(()=>{ setTimeout(()=>el.pause(),80); }).catch(()=>{}); });
+    primeAudio();
 
     // Auto-start game if not already started
     if(!started)startGame();
@@ -1857,14 +1852,33 @@ function playTV(tv){
   if(v.isMP4&&videoMP4Obj){
     activeTV=tv;
     tvVideoEl.src=v.url;tvVideoEl.load();tvVideoEl.play().catch(()=>{});
-    videoMP4Obj.position.set(tv.wp.x+tv.nx*0.09,tv.wp.y,tv.wp.z+tv.nz*0.09);
-    videoMP4Obj.rotation.set(0,tv.angle,0);
-    videoMP4Obj.visible=true;
-    tvVideoEl.onended=()=>{
-      videoMP4Obj.visible=false;
-      tvVideoEl.removeAttribute('src');tvVideoEl.load();
-      activeTV=null;
-    };
+    if(vrMode){
+      // VR: CSS3D objects don't render in WebXR — pipe video frames directly into the
+      // TV's screen mesh via THREE.VideoTexture so it plays as a physical 3D surface.
+      const vrVTex=new THREE.VideoTexture(tvVideoEl);
+      vrVTex.minFilter=THREE.LinearFilter;vrVTex.magFilter=THREE.LinearFilter;
+      const origMap=tv.scr.material.map;
+      tv.scr.material.map=vrVTex;
+      tv.scr.material.color.setHex(0xffffff);
+      tv.scr.material.needsUpdate=true;
+      tvVideoEl.onended=()=>{
+        tv.scr.material.map=origMap;
+        tv.scr.material.color.setHex(0x224433);
+        tv.scr.material.needsUpdate=true;
+        vrVTex.dispose();
+        tvVideoEl.removeAttribute('src');tvVideoEl.load();
+        activeTV=null;
+      };
+    } else {
+      videoMP4Obj.position.set(tv.wp.x+tv.nx*0.09,tv.wp.y,tv.wp.z+tv.nz*0.09);
+      videoMP4Obj.rotation.set(0,tv.angle,0);
+      videoMP4Obj.visible=true;
+      tvVideoEl.onended=()=>{
+        videoMP4Obj.visible=false;
+        tvVideoEl.removeAttribute('src');tvVideoEl.load();
+        activeTV=null;
+      };
+    }
   } else if(videoObj){
     activeTV=tv;
     videoObj.position.set(tv.wp.x+tv.nx*0.09,tv.wp.y,tv.wp.z+tv.nz*0.09);
@@ -2480,6 +2494,21 @@ function updateBlackFig(){
   }
 }
 
+// ════ TELEPORT HELPER ════
+// In room-scale VR the camera (headset) is offset from playerRig by the physical
+// room-tracking delta.  Compensate so the head lands exactly on the target XZ.
+function teleportPlayer(tx,tz){
+  const offX=vrMode?camera.position.x:0;
+  const offZ=vrMode?camera.position.z:0;
+  playerRig.position.set(tx-offX,0,tz-offZ);
+  playerRig.updateMatrixWorld(true);
+  if(!vrMode)camera.position.y=2;
+  // Kill all momentum so the player doesn't drift through walls
+  vel.x=0;vel.z=0;
+  vrMoveX=0;vrMoveZ=0;
+  collisionBypassTimer=4.0;
+}
+
 // ════ COLLISION ════
 function solidAt(x,z,extra){
   // Brief post-teleport bypass so VR player can land without being ejected
@@ -2559,6 +2588,12 @@ function sfxEntityCrack(){
 function sfxStatic(){blip(200,0.15,'square',0.05);}
 function sfxOpen(){blip(330,0.6,'sine',0.10);blip(495,0.6,'sine',0.07);}
 function sfxUI(){blip(440,0.12,'sine',0.05);}
+// Called on VR entry AND on the first interact() press — guarantees AudioContext is running
+function primeAudio(){
+  const a=ac();
+  if(a&&a.state==='suspended')a.resume().catch(()=>{});
+  musicEls.forEach(el=>{ el.play().then(()=>setTimeout(()=>el.pause(),80)).catch(()=>{}); });
+}
 
 // ════ FOOTSTEPS + DARK FOLLOWER ════
 let noiseBuf=null;
@@ -2823,6 +2858,7 @@ function updateVRHint(label,tv,door){
 
 function interact(){
   if(!started||ending)return;
+  primeAudio();
   sfxUI();
 
   if(exitVideoActive){
