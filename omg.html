@@ -427,12 +427,9 @@ function buildDoorVideoPlane(){
   scene.add(doorVideoPlane);
 }
 
-// VR door video plane — uses separate video element (no crossorigin)
+// VR door video plane — plane built once, texture recreated fresh each play
 function buildVRDoorVideoPlane(){
-  vrDoorVideoTex=new THREE.VideoTexture(vrDoorVideoEl);
-  vrDoorVideoTex.minFilter=THREE.LinearFilter;
-  vrDoorVideoTex.magFilter=THREE.LinearFilter;
-  const mat=new THREE.MeshBasicMaterial({map:vrDoorVideoTex,side:THREE.DoubleSide});
+  const mat=new THREE.MeshBasicMaterial({color:0x000000,side:THREE.DoubleSide});
   vrDoorVideoPlane=new THREE.Mesh(new THREE.PlaneGeometry(1.45,3.3),mat);
   vrDoorVideoPlane.visible=false;
   scene.add(vrDoorVideoPlane);
@@ -1115,6 +1112,16 @@ function _playVRDoorVideo(door){
   vrDoorVideoEl.src=url;
   vrDoorVideoEl.load();
 
+  // Recreate VideoTexture fresh so it reads the new video element state
+  if(vrDoorVideoTex)vrDoorVideoTex.dispose();
+  vrDoorVideoTex=new THREE.VideoTexture(vrDoorVideoEl);
+  vrDoorVideoTex.minFilter=THREE.LinearFilter;
+  vrDoorVideoTex.magFilter=THREE.LinearFilter;
+  if(vrDoorVideoPlane){
+    vrDoorVideoPlane.material.map=vrDoorVideoTex;
+    vrDoorVideoPlane.material.needsUpdate=true;
+  }
+
   // Position VR door video plane in front of door
   if(vrDoorVideoPlane){
     vrDoorVideoPlane.position.set(door.grp.position.x,1.65,door.grp.position.z);
@@ -1532,6 +1539,12 @@ function enterVR(){
     xrSession=session;
     await renderer.xr.setSession(session);
     vrMode=true;
+
+    // AC unlock on first trigger press — Quest 3 requires this gesture
+    session.addEventListener('select',()=>{
+      if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();
+      if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});
+    });
 
     // AC resume handled quietly in updateVRInput when suspended
 
