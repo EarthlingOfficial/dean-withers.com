@@ -112,6 +112,14 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
   text-align:center;opacity:0;transition:opacity 1.2s;pointer-events:none;line-height:1.9;
   text-decoration:none;display:block}
 #welfare-exit-btn:hover{background:rgba(12,8,4,.95);border-color:rgba(200,184,106,.5)}
+
+/* VR BUTTON */
+#vr-btn{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  padding:11px 40px;background:rgba(200,184,106,.07);
+  border:1px solid rgba(200,184,106,.38);color:#c8b86a;
+  font-family:'Courier New',monospace;font-size:11px;letter-spacing:5px;
+  cursor:pointer;z-index:200;transition:background .2s;display:none}
+#vr-btn:hover{background:rgba(200,184,106,.16)}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://unpkg.com/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>
@@ -122,7 +130,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 <!-- WARNING OVERLAY (shown first, before loading) -->
 <div id="warning-overlay">
   <div style="max-width:540px">
-    <div class="w-icon">⚠ WARNING</div>
+    <div class="w-icon">&#9888; WARNING</div>
     <div class="w-title">GRAPHIC FOOTAGE</div>
     <div class="w-sub">NOT FOR MINORS — 18+ ONLY</div>
     <div class="w-body">
@@ -147,7 +155,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
     <div id="c-stage">STAGE 9 — THE HYPOGEUM</div>
     <div id="c-loadbar"><div id="c-loadfill"></div></div>
     <div id="c-loadtxt">INITIALISING</div>
-    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v3 — CORRIDOR TVS / STICKERS / ZERO-LAG DOORS</div>
+    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v4 — VR FIXES / LASER POINTERS / CORRIDOR UNLOCK</div>
   </div>
   <div id="c-phase2">
     <div class="c-p2-series">A VEGAN BROS. SERIES</div>
@@ -195,7 +203,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 <div id="tokenmask">
   <canvas id="tokencanvas" width="180" height="180"></canvas>
   <div id="tokenlabel"></div>
-  <div id="tokensub">TOKEN COLLECTED · REMEMBER THIS</div>
+  <div id="tokensub">TOKEN COLLECTED &middot; REMEMBER THIS</div>
 </div>
 
 <div id="lj" class="jz"><div class="kn"></div></div>
@@ -207,6 +215,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 // ════════════════════════════════════════════════════════════════
 // GO DEAN! — STAGE 9: THE HYPOGEUM  (A Vegan Bros. Series)
 // BUILD v3 — Corridor TVs / No corridor slides / Zero-lag doors
+// VR PATCH  — WebXR / Meta Quest 3 support
 // ════════════════════════════════════════════════════════════════
 const $=id=>document.getElementById(id);
 const isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
@@ -227,22 +236,22 @@ const VIDS=[
 ];
 const GATE_TOTAL=VIDS.filter(v=>v.gate).length;
 
-// ── DOOR AI VIDEOS (MP4s — door appears after watching matching TV) ──
+// ── DOOR AI VIDEOS (MP4s) ──
 const DOOR_VIDS=[
-  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4', // door 0
-  'https://github.com/EarthlingOfficial/dean-withers.com/releases/download/v2/playroom.mp4', // door 1 — blue triangle (v2)
-  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4', // door 2
-  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4', // door 3
-  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4', // door 4
+  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
+  'https://github.com/EarthlingOfficial/dean-withers.com/releases/download/v2/playroom.mp4',
+  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
+  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
+  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
 ];
 
 // ── TOKENS ──
 const TOKENS=[
-  {shape:'circle',  time:'2:37', color:'#cc0066'}, // vidIdx 0 — red
-  {shape:'triangle',time:'0:28', color:'#1155cc'}, // vidIdx 1 — blue
-  {shape:'diamond', time:'0:09', color:'#6600cc'}, // vidIdx 2 — purple
-  {shape:'hex',     time:'2:09', color:'#007733'}, // vidIdx 3 — green
-  {shape:'pill',    time:'20:31',color:'#bb4400'}, // vidIdx 4 — orange
+  {shape:'circle',  time:'2:37', color:'#cc0066'},
+  {shape:'triangle',time:'0:28', color:'#1155cc'},
+  {shape:'diamond', time:'0:09', color:'#6600cc'},
+  {shape:'hex',     time:'2:09', color:'#007733'},
+  {shape:'pill',    time:'20:31',color:'#bb4400'},
 ];
 
 // ── DARK FACTS ──
@@ -316,6 +325,23 @@ let scene,camera,renderer,clock,css3d;
 let postScene,postCamera,renderTarget,postMaterial;
 let matWall,matFloor,matCeil,matPanel,matDark;
 let fuzzCanvas,fuzzCtx,fuzzTex,fuzzFrame=0;
+
+// ── VR / WEBXR ──
+let vrMode=false;
+let playerRig=null;
+let xrSession=null;
+let vrSnapCooldown=false;
+let vrInteractCooldown=false;
+let vrMoveX=0,vrMoveZ=0;
+// VR controllers + lasers
+let vrControllerRight=null,vrControllerLeft=null;
+let vrLaserRight=null,vrLaserLeft=null;
+let vrHintPlane=null;       // world-space interact hint visible in VR
+let vrHintMesh=null;
+let vrHintText='';
+const _moveDummy=new THREE.Object3D();
+const _camDir=new THREE.Vector3();
+const _playerWP=new THREE.Vector3();
 
 const colliders=[];
 const lights=[];
@@ -391,7 +417,7 @@ function buildDoorVideoPlane(){
 }
 
 // ════════════════════════════════════════════════════════════════
-// ENTITY — entity1_merged.glb (see-through shadow, creepy AI)
+// ENTITY — entity1_merged.glb
 // ════════════════════════════════════════════════════════════════
 const ENTITY_GLB_URL='https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/entity1_merged.glb';
 let entityModel=null;
@@ -402,8 +428,8 @@ let entityActions={};
 let entityLoaded=false;
 let entityX=60,entityZ=60;
 let entityRot=0;
-let entityYOffset=0; // lifts model so feet sit on the floor
-let entityState='lurk'; // lurk | walk | stalk | run
+let entityYOffset=0;
+let entityState='lurk';
 let entityStateTimer=0;
 let entityOpacity=0;
 let entityTargetOpacity=0;
@@ -418,89 +444,58 @@ function buildEntity(){
   const loader=new THREE.GLTFLoader();
   loader.load(ENTITY_GLB_URL,gltf=>{
     entityModel=gltf.scene;
-
-    // Auto-scale: target ~1.85 world units tall
     const box=new THREE.Box3().setFromObject(entityModel);
     const size=new THREE.Vector3();
     box.getSize(size);
     const maxDim=Math.max(size.x,size.y,size.z)||1;
     const autoScale=1.85/maxDim;
     entityModel.scale.setScalar(autoScale);
-
-    // Recompute bounding box after scale to find the floor offset
-    // so the model's lowest point sits exactly at world y=0
     const scaledBox=new THREE.Box3().setFromObject(entityModel);
-    entityYOffset=-scaledBox.min.y; // positive if origin is above feet
-
-    // Apply see-through near-black shadow material to every mesh
+    entityYOffset=-scaledBox.min.y;
     entityModel.traverse(child=>{
       if(child.isMesh){
-        child.material=new THREE.MeshLambertMaterial({
-          color:0x000008,
-          emissive:new THREE.Color(0,0,0),
-          transparent:true,
-          opacity:0,
-          depthWrite:false,
-          side:THREE.FrontSide,
+        child.material=new THREE.MeshStandardMaterial({
+          color:0x060608,transparent:true,opacity:0,
+          roughness:0.78,metalness:0.18,
+          emissive:0x050310,emissiveIntensity:0.12,
+          depthWrite:false,side:THREE.FrontSide
         });
-        child.castShadow=true;
-        child.receiveShadow=false;
-        child.skeleton&&child.skeleton.bones&&child.skeleton.bones.forEach(b=>{b.matrixAutoUpdate=true;});
+        child.castShadow=false;
+        child.renderOrder=1;
       }
     });
-
-    entityModel.position.set(entityX,entityYOffset,entityZ);
-    scene.add(entityModel);
-
-    // Glow point light — attached to model, cycles watery colors
-    entityGlowLight=new THREE.PointLight(0x4433ff,0,6);
-    entityGlowLight.position.set(0,0.9,0);
-    entityModel.add(entityGlowLight);
-
-    // Animation mixer
+    entityGlowLight=new THREE.PointLight(0x3355ff,0,12);
+    entityGlowLight.position.set(entityX,1.2,entityZ);
+    scene.add(entityGlowLight);
     entityMixer=new THREE.AnimationMixer(entityModel);
     entityClips=gltf.animations||[];
-
-    // Pre-build actions — clip 0: idle/lurk, clip 1: walk, clip 2: run (if available)
     entityClips.forEach((clip,i)=>{
       const action=entityMixer.clipAction(clip);
-      action.setLoop(THREE.LoopRepeat,Infinity);
+      action.setLoop(THREE.LoopRepeat,-1);
       entityActions[i]=action;
     });
-
-    // Start with first clip
-    if(entityActions[0]){
-      entityActions[0].play();
-      entityCurrentAction=entityActions[0];
-    }
-
     entityLoaded=true;
-
-    // Start in lurk state with random position
-    const p=placeNear(18,30,false);
-    if(p){entityX=p.x;entityZ=p.z;}
-    entityStateTimer=10+Math.random()*14;
-  },undefined,err=>{
-    // Silent fail — entity just won't appear
-  });
+    entityModel.position.set(entityX,entityYOffset,entityZ);
+    scene.add(entityModel);
+    if(entityClips.length>0){entityCurrentAction=entityActions[0];entityCurrentAction.play();}
+  },undefined,()=>{});
 }
 
-function entitySwitchClip(idx,fadeDur){
-  if(!entityMixer||!entityClips.length)return;
-  fadeDur=fadeDur===undefined?0.35:fadeDur;
-  const clipIdx=Math.min(idx,entityClips.length-1);
-  const action=entityActions[clipIdx];
-  if(!action||action===entityCurrentAction)return;
-  if(entityCurrentAction)entityCurrentAction.fadeOut(fadeDur);
-  action.reset().fadeIn(fadeDur).play();
-  entityCurrentAction=action;
+function entitySwitchClip(idx,crossfade){
+  if(!entityLoaded||!entityClips[idx])return;
+  const next=entityActions[idx];
+  if(!next||next===entityCurrentAction)return;
+  crossfade=crossfade===undefined?0.5:crossfade;
+  if(entityCurrentAction){entityCurrentAction.crossFadeTo(next,crossfade,true);}
+  next.play();
+  entityCurrentAction=next;
 }
 
 function updateEntity(dt){
   if(!entityLoaded||!entityModel)return;
-
-  const dx=camera.position.x-entityX;
-  const dz=camera.position.z-entityZ;
+  // Use playerRig position for AI logic
+  const dx=playerRig.position.x-entityX;
+  const dz=playerRig.position.z-entityZ;
   const dist=Math.hypot(dx,dz);
   const elapsed=clock.getElapsedTime();
 
@@ -508,15 +503,11 @@ function updateEntity(dt){
 
   switch(entityState){
     case'lurk':{
-      // Barely visible, breathing / swaying in shadows
       entityTargetOpacity=0.06+Math.abs(Math.sin(elapsed*0.28))*0.06;
       if(entityStateTimer<=0){
         if(dist<22&&Math.random()<0.6){
-          entityState='stalk';
-          entityStateTimer=7+Math.random()*9;
-          entitySwitchClip(1);
+          entityState='stalk';entityStateTimer=7+Math.random()*9;entitySwitchClip(1);
         } else {
-          // Relocate silently
           const p=placeNear(16,32,false);
           if(p){entityX=p.x;entityZ=p.z;}
           entityStateTimer=10+Math.random()*14;
@@ -525,7 +516,6 @@ function updateEntity(dt){
       break;
     }
     case'walk':{
-      // Slow deliberate walk toward player
       entityTargetOpacity=0.11+Math.random()*0.015;
       if(dist>0.8){
         const spd=1.1;
@@ -536,9 +526,7 @@ function updateEntity(dt){
       }
       if(dist<5||entityStateTimer<=0){
         if(dist<5){
-          entityState='stalk';
-          entityStateTimer=5+Math.random()*6;
-          entitySwitchClip(0);
+          entityState='stalk';entityStateTimer=5+Math.random()*6;entitySwitchClip(0);
         } else {
           const roll=Math.random();
           if(roll<0.5){entityState='run';entityStateTimer=2.5+Math.random()*3.5;entitySwitchClip(2);entityGlowActive=true;entityGlowDuration=entityStateTimer+1.0;}
@@ -548,14 +536,13 @@ function updateEntity(dt){
       break;
     }
     case'stalk':{
-      // Orbit player from a distance, fading in and out
       entityTargetOpacity=0.09+Math.abs(Math.sin(elapsed*0.65))*0.07;
       const orbitAngle=Math.atan2(dz,dx)+0.35*dt;
       const targetDist=7+Math.sin(elapsed*0.42)*3;
-      const ox2=camera.position.x-Math.cos(orbitAngle)*targetDist;
-      const oz2=camera.position.z-Math.sin(orbitAngle)*targetDist;
+      const ox2=playerRig.position.x-Math.cos(orbitAngle)*targetDist;
+      const oz2=playerRig.position.z-Math.sin(orbitAngle)*targetDist;
       if(isOpen(ox2,oz2)){entityX=ox2;entityZ=oz2;}
-      entityRot=Math.atan2(camera.position.x-entityX,camera.position.z-entityZ);
+      entityRot=Math.atan2(playerRig.position.x-entityX,playerRig.position.z-entityZ);
       if(entityStateTimer<=0){
         const roll=Math.random();
         if(roll<0.45){entityState='run';entityStateTimer=2+Math.random()*3;entitySwitchClip(2);entityGlowActive=true;entityGlowDuration=entityStateTimer+1.2;}
@@ -565,9 +552,7 @@ function updateEntity(dt){
       break;
     }
     case'run':{
-      // Rush toward player — snap-lunge on first frame, then full dash
       entityTargetOpacity=0.22;
-      // Opening snap: teleport to within 5 units the very first frame in run
       if(entityStateTimer>1.9&&dist>5){
         const snapFrac=1-(5/dist);
         const sx=entityX+(dx/dist)*dist*snapFrac*0.85;
@@ -582,26 +567,21 @@ function updateEntity(dt){
         entityRot=Math.atan2(dx,dz);
       }
       if(dist<2.0){
-        // Jumpscare — electrical crack + brief red glow flash
         if(entityGlowLight){entityGlowLight.color.setHex(0xff2200);entityGlowLight.intensity=3.5;}
         entityGlowActive=true;entityGlowDuration=0.5;
         strobeOnce();sfxScare();sfxEntityCrack();
         sanity=Math.max(0,sanity-14);
         entityTargetOpacity=0;
-        entityState='lurk';
-        entityStateTimer=22+Math.random()*16;
+        entityState='lurk';entityStateTimer=22+Math.random()*16;
         entitySwitchClip(0,0.1);
         const p=placeNear(22,38,true);if(p){entityX=p.x;entityZ=p.z;}
       } else if(entityStateTimer<=0){
-        entityState='stalk';
-        entityStateTimer=5+Math.random()*7;
-        entitySwitchClip(1);
+        entityState='stalk';entityStateTimer=5+Math.random()*7;entitySwitchClip(1);
       }
       break;
     }
   }
 
-  // ── Jitter: mask broken leg rig with micro position-snaps ──
   entityJitterTimer+=dt;
   if((entityState==='stalk'||entityState==='walk')&&entityJitterTimer>0.75+Math.random()*1.1){
     entityJitterTimer=0;
@@ -614,7 +594,6 @@ function updateEntity(dt){
     entityRot+=(Math.random()-0.5)*0.65;
   }
 
-  // ── Watery glow cycling (blues/purples/greens) ──
   entityGlowTimer+=dt;
   if(entityGlowActive){
     entityGlowDuration-=dt;
@@ -629,7 +608,6 @@ function updateEntity(dt){
     });
   } else {
     if(entityGlowLight)entityGlowLight.intensity=Math.max(0,entityGlowLight.intensity-dt*1.1);
-    // Random activation ~every 22–45s in lurk/stalk
     if((entityState==='lurk'||entityState==='stalk')&&Math.random()<dt*(1/32)){
       entityGlowActive=true;entityGlowDuration=4+Math.random()*7;
     }
@@ -641,7 +619,6 @@ function updateEntity(dt){
     });
   }
 
-  // ── Lights out near entity when lurking/stalking ──
   roomLightRefs.forEach(ref=>{
     const ldist=Math.hypot(ref.light.position.x-entityX,ref.light.position.z-entityZ);
     if(entityOpacity>0.04&&(entityState==='lurk'||entityState==='stalk')&&ldist<11){
@@ -651,13 +628,10 @@ function updateEntity(dt){
     }
   });
 
-  // Apply world position + facing
   if(entityModel){
     entityModel.position.set(entityX,entityYOffset,entityZ);
     entityModel.rotation.y=entityRot;
-
-    // Smooth opacity
-    entityOpacity+=( entityTargetOpacity-entityOpacity)*Math.min(1,dt*1.8);
+    entityOpacity+=(entityTargetOpacity-entityOpacity)*Math.min(1,dt*1.8);
     const clamped=Math.max(0,Math.min(0.22,entityOpacity));
     entityModel.traverse(child=>{
       if(child.isMesh&&child.material&&child.material.transparent){
@@ -801,34 +775,27 @@ function buildCorridorEndTV(door, addH){
   const tvX = door.cOx + fdx*(TL-1.1);
   const tvZ = door.cOz + fdz*(TL-1.1);
   const angle = door.cRy;
-
   const grp = new THREE.Group();
   grp.position.set(tvX, 0, tvZ);
   grp.rotation.y = angle;
-
   const frame = new THREE.Mesh(new THREE.BoxGeometry(2.5,1.7,0.14), matDark.clone());
   frame.position.set(0, 2, 0);
   frame.castShadow = true;
   grp.add(frame);
-
   const scr = new THREE.Mesh(
     new THREE.PlaneGeometry(2.2,1.4),
     new THREE.MeshBasicMaterial({map:fuzzTex, side:THREE.DoubleSide})
   );
   scr.position.set(0, 0, 0.08);
   frame.add(scr);
-
   const gl = new THREE.PointLight(0x557799, 0.3, 5);
   gl.position.set(0, 2, 0.5);
   grp.add(gl);
-
   const v = VIDS[door.vidIdx % VIDS.length];
   const lbl = txt([v ? v.lbl : 'SIGNAL LOST'], 3, 0.26, '#6a6450', null, 9);
   lbl.position.set(0, 1.45, 0.05);
   grp.add(lbl);
-
   addH(grp);
-
   const nx = Math.sin(angle), nz = Math.cos(angle);
   const tv = {
     frame, scr, glow:gl,
@@ -878,18 +845,15 @@ function prebuildCorridorForDoor(door){
   const ry=door.grp.rotation.y;
   const{fdx,fdz,pdx,pdz}=corridorDir(ry);
   const ox=door.grp.position.x, oz=door.grp.position.z;
-
   const H=WH, TW=T_WALL;
   const HW=1.6;
   const CL=26;
   const RW=6.5;
   const RL=18;
   const TL=CL+RL;
-
   door.cRy=ry; door.cOx=ox; door.cOz=oz;
   door.cFdx=fdx; door.cFdz=fdz;
   door.cEndPos=new THREE.Vector3(ox+fdx*(TL-3),1.65,oz+fdz*(TL-3));
-
   const vi=door.vidIdx;
   const WALL_TINTS =[0xc2b280,0xb4aec4,0xc4b870,0xa8bfb4,0xbcb478];
   const COR_LIGHTS =[0xd0b870,0xc0b0e8,0xd8c860,0xa8e4d0,0xe8d888];
@@ -897,12 +861,10 @@ function prebuildCorridorForDoor(door){
   const wTint =WALL_TINTS [vi%5];
   const cLCol =COR_LIGHTS [vi%5];
   const rLCol =ROOM_LIGHTS[vi%5];
-
   const wMat=new THREE.MeshStandardMaterial({
     color:wTint,roughness:0.42,metalness:0.12,
     emissive:0x080600,emissiveIntensity:0.18
   });
-
   function addH(m){m.visible=false;scene.add(m);door.corridorHiddenMeshes.push(m);return m;}
   function addCol(cx,cz,wd,dp){
     const s=Math.abs(Math.sin(ry)),c2=Math.abs(Math.cos(ry));
@@ -919,10 +881,8 @@ function prebuildCorridorForDoor(door){
     const m=new THREE.Mesh(new THREE.BoxGeometry(wd,0.06,dp),mat);
     m.position.set(cx,y,cz);m.rotation.y=ry;addH(m);
   }
-
   mkBox(CL/2,  HW, TW, H, CL);
   mkBox(CL/2, -HW, TW, H, CL);
-
   const colMat=new THREE.MeshStandardMaterial({
     color:new THREE.Color(wTint).multiplyScalar(0.72).getHex(),
     roughness:0.5,metalness:0.22,emissive:0x040300,emissiveIntensity:0.28
@@ -936,7 +896,6 @@ function prebuildCorridorForDoor(door){
     const cap=new THREE.Mesh(new THREE.BoxGeometry(0.36,0.16,0.52),colMat.clone());
     cap.position.set(px,H-0.08,pz);cap.rotation.y=ry;addH(cap);
   }
-
   const ribMat=new THREE.MeshStandardMaterial({
     color:new THREE.Color(wTint).multiplyScalar(0.88).getHex(),roughness:0.44,metalness:0.18
   });
@@ -944,45 +903,34 @@ function prebuildCorridorForDoor(door){
     const rib=new THREE.Mesh(new THREE.BoxGeometry(HW*2+TW,0.1,0.2),ribMat.clone());
     rib.position.set(ox+fdx*ri,H-0.05,oz+fdz*ri);rib.rotation.y=ry;addH(rib);
   }
-
   mkBox(CL,  (HW+RW)/2, RW-HW, H, TW);
   mkBox(CL, -(HW+RW)/2, RW-HW, H, TW);
-
   mkBox(CL+RL/2,  RW, TW, H, RL);
   mkBox(CL+RL/2, -RW, TW, H, RL);
   mkBox(TL+TW/2,  0,  RW*2+TW*2, H, TW);
-
   mkFlat(CL/2,    0, 0.03,   matFloor, HW*2, CL);
   mkFlat(CL/2,    0, H-0.03, matCeil,  HW*2, CL);
   mkFlat(CL+RL/2, 0, 0.03,   matFloor, RW*2, RL);
   mkFlat(CL+RL/2, 0, H-0.03, matCeil,  RW*2, RL);
-
   mkBox(2.5, 0, HW*2+TW*2, H, TW);
-
   const cL=new THREE.PointLight(cLCol,1.7,CL+10);
   cL.position.set(ox+fdx*(CL*0.5),3.0,oz+fdz*(CL*0.5));
   addH(cL);
-
   const strip=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.05,CL*0.88),
     new THREE.MeshBasicMaterial({color:0xffe8b0}));
   strip.position.set(ox+fdx*(CL/2),H-0.02,oz+fdz*(CL/2));
   strip.rotation.y=ry;addH(strip);
-
   const rL=new THREE.PointLight(rLCol,1.3,RW*3+6);
   rL.position.set(ox+fdx*(CL+RL*0.5),3.0,oz+fdz*(CL+RL*0.5));
   addH(rL);
-
   const rStrip=new THREE.Mesh(new THREE.BoxGeometry(RW*1.3,0.06,RL*0.72),
     new THREE.MeshBasicMaterial({color:new THREE.Color(rLCol).lerp(new THREE.Color(0xffeebb),0.55)}));
   rStrip.position.set(ox+fdx*(CL+RL*0.5),H-0.02,oz+fdz*(CL+RL*0.5));
   rStrip.rotation.y=ry;addH(rStrip);
-
   buildCorridorEndTV(door, addH);
-
   const endSign=txt(['[ E ]  COLLECT TOKEN  &  RETURN'],2.6,0.52,'#44ee88',null,13);
   endSign.position.set(ox+fdx*(TL-1.0),2.6,oz+fdz*(TL-1.0));
   endSign.rotation.y=ry+Math.PI;addH(endSign);
-
   const SCOLOR_SETS=[
     ['#cc2211','#c8a040','#aa3311','#887755','#cc3322'],
     ['#8822cc','#6633aa','#4422aa','#993388','#772299'],
@@ -1011,7 +959,6 @@ function prebuildCorridorForDoor(door){
     sm.rotation.y=ry-side*(Math.PI/2);
     addH(sm);
   }
-
   let siR=si+BRUTAL_STICKERS.length/2|0;
   const numRoomStickers=5;
   for(let i=0;i<numRoomStickers;i++){
@@ -1030,7 +977,6 @@ function prebuildCorridorForDoor(door){
     sm.rotation.y=ry-side*(Math.PI/2);
     addH(sm);
   }
-
   const FLOOR_LINES=[
     ['"it did not want to die"','"the drain never stops"'],
     ['"forcibly inseminated"','"calf taken within 24 hours"'],
@@ -1054,17 +1000,16 @@ function enterCorridor(door){
   if(corridorActive||door.used)return;
   door.used=true;
   door.grp.visible=false;
-
   corridorActive=true;
   corridorDoor=door;
   corridorCloseWallAdded=false;
-  corridorEntryPos.copy(camera.position);
+  // Store playerRig floor position (not camera position)
+  corridorEntryPos.set(playerRig.position.x,0,playerRig.position.z);
   corridorEntryRot=camera.rotation.y;
-
   sfxOpen();
-
   const url=DOOR_VIDS[door.vidIdx];
-  const useCSS3D=!!(url&&url.includes('github.com'));
+  // In VR, CSS3D objects are not rendered — force VideoTexture plane for all door videos
+  const useCSS3D=!vrMode&&!!(url&&url.includes('github.com'));
   if(url){
     if(useCSS3D){
       if(doorVideoCSS3DEl){doorVideoCSS3DEl.src=url;doorVideoCSS3DEl.load();}
@@ -1072,15 +1017,12 @@ function enterCorridor(door){
       doorVideo.crossOrigin="anonymous"; doorVideo.src=url; doorVideo.load();
     }
   }
-
   const fadeEl=$("fade");
   fadeEl.style.transition="none";
   fadeEl.style.opacity="1";
-
   requestAnimationFrame(()=>{
     requestAnimationFrame(()=>{
       prebuildCorridorForDoor(door);
-
       if(url){
         requestAnimationFrame(()=>{
           fadeEl.style.transition="opacity 0.4s ease";
@@ -1111,6 +1053,7 @@ function enterCorridor(door){
     });
   });
 }
+
 function _revealCorridor(){
   if(corridorState!=='door_video')return;
   doorVideoState='closed';
@@ -1118,28 +1061,24 @@ function _revealCorridor(){
   doorVideoPlane.visible=false;
   if(doorVideoCSS3DObj)doorVideoCSS3DObj.visible=false;
   if(doorVideoCSS3DEl){doorVideoCSS3DEl.pause();doorVideoCSS3DEl.removeAttribute('src');doorVideoCSS3DEl.load();}
-
   const door=corridorDoor; if(!door)return;
-
   const fadeEl=$('fade');
   fadeEl.style.transition='none';
   fadeEl.style.opacity='1';
-
   requestAnimationFrame(()=>{
     requestAnimationFrame(()=>{
       door.corridorHiddenMeshes.forEach(m=>{ m.visible=true; });
       door.corridorHiddenColliders.forEach(col=>colliders.push(col));
-
       corridorState='locked';
-
-      camera.position.set(
-        door.cOx+door.cFdx*5,
-        2,
-        door.cOz+door.cFdz*5
-      );
-      camera.rotation.y=door.cRy;
-      camera.rotation.x=0;
-
+      // Teleport playerRig well past the closing-wall zone (wall at 4.8, so spawn at 9)
+      // This fixes "stuck in place" in both VR and non-VR after corridor transition.
+      playerRig.position.set(door.cOx+door.cFdx*9,0,door.cOz+door.cFdz*9);
+      camera.position.set(0,2,0);
+      // In non-VR, force camera yaw; in VR the headset overrides rotation (that's fine)
+      if(!vrMode){
+        camera.rotation.y=door.cRy;
+        camera.rotation.x=0;
+      }
       requestAnimationFrame(()=>{
         fadeEl.style.transition='opacity 0.6s ease';
         fadeEl.style.opacity='0';
@@ -1148,7 +1087,6 @@ function _revealCorridor(){
           fadeEl.style.opacity='';
         },650);
       });
-
       whisper('the wall seals behind you.\nno way back.');
       setObjective('Walk to the end of the corridor.');
       sfxOpen();
@@ -1160,13 +1098,11 @@ function _revealCorridor(){
 function addClosingWall(){
   if(corridorCloseWallAdded||!corridorDoor)return;
   corridorCloseWallAdded=true;
-
   const door=corridorDoor;
   const{fdx,fdz,pdx,pdz}=corridorDir(door.cRy);
   const ox=door.cOx, oz=door.cOz;
   const HW=1.5, H=WH, TW=T_WALL;
   const cx=ox+fdx*4.8, cz=oz+fdz*4.8;
-
   const wMat=new THREE.MeshStandardMaterial({
     color:WALL_COLOR,roughness:0.35,metalness:0.12,
     emissive:0x110800,emissiveIntensity:0.6
@@ -1175,14 +1111,12 @@ function addClosingWall(){
   m.position.set(cx,H/2,cz); m.rotation.y=door.cRy; m.receiveShadow=true;
   m.visible=true; scene.add(m);
   door.corridorHiddenMeshes.push(m);
-
   const s=Math.abs(Math.sin(door.cRy)),c=Math.abs(Math.cos(door.cRy));
   const bw=HW*2+TW*2, bd=TW;
   const bx=(bw*c+bd*s)/2, bz=(bw*s+bd*c)/2;
   const col={x0:cx-bx,x1:cx+bx,z0:cz-bz,z1:cz+bz};
   colliders.push(col);
   door.corridorHiddenColliders.push(col);
-
   corridorState='locked';
   whisper('sealed.\nno exit.');
   sfxUI();
@@ -1195,7 +1129,6 @@ function exitCorridor(){
   if(videoObj)videoObj.visible=false;
   activeTV=null;
   collectToken(door.vidIdx);
-
   const fadeEl=$('fade');
   fadeEl.classList.add('on');
   setTimeout(()=>{
@@ -1221,11 +1154,11 @@ function exitCorridor(){
     corridorCloseWallAdded=false;
     doorVideoState='closed';
     door.corridorBuilt=false;
-
-    camera.position.copy(corridorEntryPos);
+    // Return playerRig to entry position
+    playerRig.position.set(corridorEntryPos.x,0,corridorEntryPos.z);
+    camera.position.set(0,2,0);
     camera.rotation.y=corridorEntryRot+Math.PI;
     camera.rotation.x=0;
-
     setObjective(archived.size>=GATE_TOTAL?
       'All archived. Find the end room. Order the timestamps — shortest first.':
       (isMobile?'Find every screen. Tap WATCH. Archive all five.':'Find every screen. Press [E] to watch. Archive all five.'));
@@ -1293,7 +1226,7 @@ function spawnCrowdFig(){
 function updateCrowd(dt,t){
   if(!crowdEnabled)return;
   const spd=Math.hypot(vel.x,vel.z);
-  const moving=spd>0.8||kW||kS||kA||kD||td.l.a;
+  const moving=spd>0.8||kW||kS||kA||kD||td.l.a||(vrMode&&(Math.abs(vrMoveX)>0.12||Math.abs(vrMoveZ)>0.12));
   if(moving){
     stillnessTimer=0;
     for(let i=crowd.length-1;i>=0;i--){
@@ -1328,16 +1261,27 @@ function updateCrowd(dt,t){
 function init(){
   scene=new THREE.Scene();
   scene.fog=new THREE.FogExp2(0x1a1a10,0.05);
+
+  // ── Camera + PlayerRig (locomotion root for VR) ──
   camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,1000);
   camera.rotation.order='YXZ';
-  camera.position.set(24,2,38);
   camera.rotation.y=Math.PI;
+
+  playerRig=new THREE.Group();
+  playerRig.position.set(24,0,38);
+  scene.add(playerRig);
+  playerRig.add(camera);
+  camera.position.set(0,2,0);  // eye height, local to rig
+
   clock=new THREE.Clock();
   renderer=new THREE.WebGLRenderer({canvas:$('c'),antialias:false});
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
   renderer.setSize(innerWidth,innerHeight);
   renderer.shadowMap.enabled=true;
   renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  // Enable WebXR — required before any XR session
+  renderer.xr.enabled=true;
+
   if(typeof THREE.CSS3DRenderer==='function'){
     css3d=new THREE.CSS3DRenderer();
     css3d.setSize(innerWidth,innerHeight);
@@ -1346,6 +1290,7 @@ function init(){
     css3d.domElement.style.top='0';
     css3d.domElement.style.left='0';
   } else { css3d=null; }
+
   matWall =new THREE.MeshStandardMaterial({color:WALL_COLOR,roughness:0.4,metalness:0.15});
   matFloor=new THREE.MeshStandardMaterial({color:0x222222,roughness:0.9});
   matCeil =new THREE.MeshStandardMaterial({color:0xaaaa99,roughness:0.7});
@@ -1364,7 +1309,7 @@ function init(){
   buildBlackFig();
   buildDoorVideoPlane();
   buildDoorVideoCSS3D();
-  buildEntity(); // load entity1_merged.glb
+  buildEntity();
   buildMusic();
   setupControls();
   setupTouch();
@@ -1395,7 +1340,10 @@ function init(){
   $('ibtn').addEventListener('touchstart',e=>{e.preventDefault();interact();},{passive:false});
   addEventListener('resize',onResize);
   setObjective(isMobile?'Tap WATCH at each screen. Archive all five.':'Press [E] at each screen. Archive all five.');
-  animate();
+
+  // Use setAnimationLoop — required for WebXR (also works as rAF in non-VR)
+  renderer.setAnimationLoop(animate);
+  setupVR();
 }
 
 function setupSkipBtn(){
@@ -1409,6 +1357,164 @@ function onResize(){
   renderer.setSize(innerWidth,innerHeight);
   renderTarget.setSize(innerWidth,innerHeight);
   if(css3d)css3d.setSize(innerWidth,innerHeight);
+}
+
+// ════════════════════════════════════════════════════════════════
+// WEBXR / VR SETUP
+// ════════════════════════════════════════════════════════════════
+function setupVR(){
+  if(!navigator.xr)return;
+  navigator.xr.isSessionSupported('immersive-vr').then(supported=>{
+    if(!supported)return;
+    const btn=document.getElementById('vr-btn');
+    if(btn){btn.style.display='block';return;}
+    const vrBtn=document.createElement('button');
+    vrBtn.id='vr-btn';
+    vrBtn.textContent='ENTER VR';
+    vrBtn.addEventListener('click',enterVR);
+    vrBtn.style.display='block';
+    document.body.appendChild(vrBtn);
+  }).catch(()=>{});
+}
+
+function enterVR(){
+  if(!navigator.xr||vrMode)return;
+  // local-floor is optional so the session succeeds even if room setup hasn't been done
+  navigator.xr.requestSession('immersive-vr',{
+    optionalFeatures:['local-floor','bounded-floor']
+  }).then(async session=>{
+    xrSession=session;
+    // setSession is async in Three.js r128 — wait for reference space to be ready
+    // before switching render path so the first XR frames are correct
+    await renderer.xr.setSession(session);
+
+    vrMode=true;
+
+    // Lower graphics for Quest 3 performance
+    renderer.setPixelRatio(1.0);
+    renderer.shadowMap.enabled=false;
+    scene.fog=new THREE.FogExp2(0x1a1a10,0.045);
+    // Reduce all point light ranges
+    roomLightRefs.forEach(r=>{ if(r.light)r.light.distance=Math.min(r.light.distance,22); });
+
+    // Setup VR laser pointer controllers
+    setupVRControllers();
+
+    // Auto-start game if not already started
+    if(!started)startGame();
+
+    // Hide VR button and mobile joysticks
+    const btn=document.getElementById('vr-btn');
+    if(btn)btn.style.display='none';
+    const lj=$('lj');const rj=$('rj');
+    if(lj)lj.style.display='none';
+    if(rj)rj.style.display='none';
+
+    session.addEventListener('end',onVREnd);
+  }).catch(err=>{
+    console.warn('WebXR session error:',err);
+  });
+}
+
+function setupVRControllers(){
+  // Attach laser beams to both controllers (rendered in 3D scene, visible in VR)
+  vrControllerRight=renderer.xr.getController(0);
+  vrControllerLeft=renderer.xr.getController(1);
+  if(!vrControllerRight||!vrControllerLeft)return;
+
+  scene.add(vrControllerRight);
+  scene.add(vrControllerLeft);
+
+  function makeLaser(color){
+    const mat=new THREE.LineBasicMaterial({color,linewidth:2});
+    const pts=[new THREE.Vector3(0,0,0),new THREE.Vector3(0,0,-6)];
+    const geo=new THREE.BufferGeometry().setFromPoints(pts);
+    const line=new THREE.Line(geo,mat);
+    line.frustumCulled=false;
+    return line;
+  }
+  vrLaserRight=makeLaser(0xff3322);
+  vrLaserLeft=makeLaser(0xff3322);
+  vrControllerRight.add(vrLaserRight);
+  vrControllerLeft.add(vrLaserLeft);
+
+  // World-space hint sphere that floats in front of TVs when targeted in VR
+  const hintGeo=new THREE.PlaneGeometry(1.2,0.35);
+  const hintMat=new THREE.MeshBasicMaterial({
+    color:0xffdd88,transparent:true,opacity:0.0,side:THREE.DoubleSide,depthTest:false
+  });
+  vrHintMesh=new THREE.Mesh(hintGeo,hintMat);
+  vrHintMesh.visible=false;
+  scene.add(vrHintMesh);
+}
+
+function onVREnd(){
+  vrMode=false;
+  xrSession=null;
+  vrMoveX=0;vrMoveZ=0;
+  // Remove controller objects from scene
+  if(vrControllerRight){scene.remove(vrControllerRight);vrControllerRight=null;}
+  if(vrControllerLeft){scene.remove(vrControllerLeft);vrControllerLeft=null;}
+  vrLaserRight=null;vrLaserLeft=null;
+  if(vrHintMesh){vrHintMesh.visible=false;}
+  // Restore graphics
+  renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+  renderer.shadowMap.enabled=true;
+  scene.fog=new THREE.FogExp2(0x1a1a10,0.05);
+  // Show VR button and joysticks again
+  const btn=document.getElementById('vr-btn');
+  if(btn)btn.style.display='block';
+  const lj=$('lj');const rj=$('rj');
+  if(lj)lj.style.display='';
+  if(rj)rj.style.display='';
+  // Reset camera local position after XR
+  camera.position.set(0,2,0);
+}
+
+// Called every frame in VR — reads Quest 3 controller inputs
+function updateVRInput(dt){
+  if(!vrMode||!xrSession)return;
+  vrMoveX=0;vrMoveZ=0;
+
+  for(const source of xrSession.inputSources){
+    if(!source.gamepad)continue;
+
+    if(source.handedness==='left'){
+      const ax=source.gamepad.axes;
+      if(ax.length>=4){
+        // Raw axis: positive Y = stick pushed DOWN / backward; negative Y = forward
+        // Store raw values — movement applied directly in animate()
+        if(Math.abs(ax[2])>0.12)vrMoveX=ax[2];
+        if(Math.abs(ax[3])>0.12)vrMoveZ=ax[3];
+      }
+    }
+
+    if(source.handedness==='right'){
+      const ax=source.gamepad.axes;
+      if(ax.length>=4){
+        const tx=ax[2];
+        if(Math.abs(tx)>0.6&&!vrSnapCooldown){
+          // Snap turn — left snap (tx>0 = stick right = turn right)
+          playerRig.rotation.y+=(tx>0?-1:1)*(Math.PI/6);
+          vrSnapCooldown=true;
+        } else if(Math.abs(tx)<0.3){
+          vrSnapCooldown=false;
+        }
+      }
+
+      // A button (index 4) or trigger (index 0) = interact
+      const btns=source.gamepad.buttons;
+      const trigP=btns[0]&&btns[0].pressed;
+      const aBtnP=btns[4]&&btns[4].pressed;
+      if((trigP||aBtnP)&&!vrInteractCooldown){
+        vrInteractCooldown=true;
+        interact();
+      } else if(!trigP&&!aBtnP){
+        vrInteractCooldown=false;
+      }
+    }
+  }
+  // NOTE: vrMoveX/vrMoveZ are applied in animate() using direct movement — not vel system.
 }
 
 // ════ GEOMETRY HELPERS ════
@@ -1447,6 +1553,7 @@ const _SP=[
   {s:'pill',    bg:'#558800',gl:0x558800},
 ];
 let _spI=0;
+
 function shapePanelMesh(lines,w,h){
   if(typeof lines==='string')lines=[lines];
   const p=_SP[(_spI++)%_SP.length];
@@ -1607,8 +1714,6 @@ function buildVideoObject(){
   videoObj.scale.set(s,s,s);
   videoObj.visible=false;
   scene.add(videoObj);
-
-  // CSS3D <video> for GitHub-hosted MP4 TVs (no crossOrigin needed)
   tvVideoEl=document.createElement('video');
   tvVideoEl.width=640;tvVideoEl.height=360;
   tvVideoEl.style.cssText='width:640px;height:360px;background:#000;display:block;object-fit:cover;';
@@ -1619,6 +1724,7 @@ function buildVideoObject(){
   videoMP4Obj.visible=false;
   scene.add(videoMP4Obj);
 }
+
 function addTV(x,z,vidIdx,angle,opts){
   opts=opts||{};
   const grp=new THREE.Group();
@@ -1645,18 +1751,17 @@ function playTV(tv){
     flashFact('COLLECT ALL 5 TOKENS FIRST.');sfxStatic();return;
   }
   tv.seen=true;tintSeen(tv);
-  if(v.isMP4){
-    const tvVid=document.getElementById('tvvideo-mp4');
-    if(tvVid){
-      tvVid.style.display='block';
-      tvVid.src=v.url;tvVid.load();tvVid.play().catch(()=>{});
-      setObjective(isMobile?'Tap anywhere to continue':'[ E ] to continue');
-      tvVid.onended=()=>{
-        tvVid.style.display='none';
-        tvVid.removeAttribute('src');tvVid.load();
-        setObjective('');
-      };
-    }
+  if(v.isMP4&&videoMP4Obj){
+    activeTV=tv;
+    tvVideoEl.src=v.url;tvVideoEl.load();tvVideoEl.play().catch(()=>{});
+    videoMP4Obj.position.set(tv.wp.x+tv.nx*0.09,tv.wp.y,tv.wp.z+tv.nz*0.09);
+    videoMP4Obj.rotation.set(0,tv.angle,0);
+    videoMP4Obj.visible=true;
+    tvVideoEl.onended=()=>{
+      videoMP4Obj.visible=false;
+      tvVideoEl.removeAttribute('src');tvVideoEl.load();
+      activeTV=null;
+    };
   } else if(videoObj){
     activeTV=tv;
     videoObj.position.set(tv.wp.x+tv.nx*0.09,tv.wp.y,tv.wp.z+tv.nz*0.09);
@@ -1691,7 +1796,8 @@ function updateVideoVisibility(){
   if(!videoObj){return;}
   if(!activeTV){videoObj.visible=false;if(videoMP4Obj)videoMP4Obj.visible=false;return;}
   const tv=activeTV;
-  const dx=tv.wp.x-camera.position.x,dz=tv.wp.z-camera.position.z;
+  // Use playerRig world XZ for visibility check
+  const dx=tv.wp.x-playerRig.position.x,dz=tv.wp.z-playerRig.position.z;
   const dist=Math.hypot(dx,dz);
   const fwd=new THREE.Vector3();camera.getWorldDirection(fwd);
   const facing=(fwd.x*dx+fwd.z*dz)/Math.max(0.1,dist)>-0.15;
@@ -1699,11 +1805,14 @@ function updateVideoVisibility(){
   if(dist>1){
     const steps=Math.min(40,Math.ceil(dist));
     for(let i=1;i<steps;i++){
-      const t=i/steps,px=camera.position.x+dx*t,pz=camera.position.z+dz*t;
+      const t=i/steps,px=playerRig.position.x+dx*t,pz=playerRig.position.z+dz*t;
       if(solidAt(px,pz,0.05)){occluded=true;break;}
     }
   }
-  videoObj.visible=dist<16&&facing&&!occluded;
+  const canSee=dist<16&&facing&&!occluded;
+  const isMP4TV=VIDS[activeTV.vidIdx]&&VIDS[activeTV.vidIdx].isMP4;
+  videoObj.visible=canSee&&!isMP4TV;
+  if(videoMP4Obj)videoMP4Obj.visible=canSee&&!!isMP4TV;
 }
 
 // ════ WORLD ════
@@ -1848,7 +1957,6 @@ function buildEnd(ox,oz){
   floorSign(['ORDER THEM'],cx,oz+20,2.4);
   floorSign(['SHORTEST → LONGEST'],cx+8,oz+36,3);
   ceilSign(['THE SEQUENCE'],cx-8,oz+14,2.2);
-
   const ewMat=new THREE.MeshStandardMaterial({
     color:0x1a1410,roughness:0.55,metalness:0.1,
     emissive:0x1a0000,emissiveIntensity:0.9,
@@ -1863,7 +1971,6 @@ function buildEnd(ox,oz){
   ewLbl.position.set(ox+T_WALL/2+0.12,2.5,oz+24);
   ewLbl.rotation.y=-Math.PI/2;
   scene.add(ewLbl);
-
   slideMouth.set(cx,2,cz+2);
   slideMat=new THREE.MeshStandardMaterial({color:SLIDE_COLOR,roughness:0.1,metalness:0.1,
     side:THREE.DoubleSide,emissive:0x002a10,emissiveIntensity:0.4});
@@ -1874,7 +1981,6 @@ function buildEnd(ox,oz){
   const geo=new THREE.TubeGeometry(curve,80,1.25,18,false);
   const slide=new THREE.Mesh(geo,slideMat);slide.castShadow=true;slide.receiveShadow=true;scene.add(slide);
   slideLight=new THREE.PointLight(0x33ff88,0.0,10);slideLight.position.set(cx,1.4,cz-3);scene.add(slideLight);
-
   const tvPositions=[
     {x:cx,    z:oz+2,    ry:0,           isCeiling:false},
     {x:cx,    z:oz+46,   ry:Math.PI,     isCeiling:false},
@@ -1892,7 +1998,6 @@ function buildEnd(ox,oz){
 
 function buildEndTV(pos,col){
   const grp=new THREE.Group();
-
   const panelCol=new THREE.Color(col.hex).multiplyScalar(0.18);
   const backPanel=new THREE.Mesh(
     new THREE.BoxGeometry(3.6,2.8,0.06),
@@ -1904,25 +2009,20 @@ function buildEndTV(pos,col){
   );
   backPanel.position.set(0,pos.isCeiling?0:2,-0.1);
   grp.add(backPanel);
-
   const frame=new THREE.Mesh(new THREE.BoxGeometry(2.5,1.7,0.12),
     new THREE.MeshStandardMaterial({color:0x080808,roughness:0.9,metalness:0.3,emissive:0x020202}));
   frame.position.set(0,pos.isCeiling?0:2,0);
   grp.add(frame);
-
   const screenMat=new THREE.MeshBasicMaterial({map:fuzzTex,side:THREE.DoubleSide,color:0x111111});
   const scr=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.4),screenMat);
   scr.position.set(0,0,0.07);
   frame.add(scr);
-
   const lbl=txt([col.label],2.2,0.26,col.css,null,10);
   lbl.position.set(0,pos.isCeiling?0.98:-1.02,0.05);
   frame.add(lbl);
-
   const glow=new THREE.PointLight(col.hex,0,8);
   glow.position.set(0,pos.isCeiling?0:2, pos.isCeiling?-0.8:0.8);
   grp.add(glow);
-
   grp.position.set(pos.x, pos.isCeiling?WH-0.01:0, pos.z);
   if(pos.isCeiling){
     grp.rotation.x=Math.PI/2;
@@ -1930,7 +2030,6 @@ function buildEndTV(pos,col){
     grp.rotation.y=pos.ry;
   }
   scene.add(grp);
-
   endTVs.push({
     grp, frame, scr, screenMat, glow,
     vidIdx:col.vidIdx,
@@ -2012,7 +2111,6 @@ function solveSequence(){
   sfxOpen();
   blip(220,1.2,'sine',0.14);
   blip(330,1.0,'sine',0.10);
-
   endTVs.forEach(t=>{
     t.screenMat.color.setHex(0xffffff);
     t.screenMat.map=null;
@@ -2020,7 +2118,6 @@ function solveSequence(){
     t.glow.intensity=3.5;
     t.glow.color.setHex(t.col.hex);
   });
-
   openSlide();
   whisper('the sequence is broken open.');
   setObjective('Approach the slide. Press [E] to enter.');
@@ -2030,10 +2127,8 @@ function startExitVideo(){
   if(exitVideoActive)return;
   exitVideoActive=true;
   exitVideoCanSkip=false;
-
   if(videoIframe)videoIframe.src='';
   if(videoObj)videoObj.visible=false;
-
   exitVideoEl=document.createElement('video');
   exitVideoEl.src=EXIT_VIDEO;
   exitVideoEl.style.cssText='position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:90;background:#000';
@@ -2042,16 +2137,14 @@ function startExitVideo(){
   exitVideoEl.onended=()=>finishExitVideo();
   exitVideoEl.play().catch(()=>{});
   document.body.appendChild(exitVideoEl);
-
   const eb=document.createElement('a');
   eb.id='welfare-exit-btn';
   eb.href='https://earthlingofficial.com';
   eb.target='_blank';
   eb.rel='noopener';
-  eb.innerHTML="CAN’T HANDLE IT? — WE UNDERSTAND.<br><span style='font-size:9px;letter-spacing:2px;opacity:0.6'>They couldn’t look away.</span>";
+  eb.innerHTML="CAN'T HANDLE IT? — WE UNDERSTAND.<br><span style='font-size:9px;letter-spacing:2px;opacity:0.6'>They couldn't look away.</span>";
   document.body.appendChild(eb);
   setTimeout(()=>{eb.style.opacity='1';eb.style.pointerEvents='auto';},4200);
-
   setObjective('');
   setTimeout(()=>{
     exitVideoCanSkip=true;
@@ -2149,26 +2242,33 @@ function buildShadowFig(){
   shadowFig.light=new THREE.PointLight(0x200010,0,4,2);
   shadowFig.light.position.set(shadowFig.x,1.4,shadowFig.z);scene.add(shadowFig.light);
 }
+
+// placeNear — uses playerRig world XZ + camera world direction
 function placeNear(minD,maxD,behind){
   for(let i=0;i<24;i++){
     let a;
-    if(behind){a=camera.rotation.y+Math.PI+(Math.random()*1.2-0.6);}
-    else{a=Math.random()*Math.PI*2;}
+    if(behind){
+      camera.getWorldDirection(_camDir);
+      a=Math.atan2(_camDir.x,_camDir.z)+Math.PI+(Math.random()*1.2-0.6);
+    }else{a=Math.random()*Math.PI*2;}
     const d=minD+Math.random()*(maxD-minD);
-    const x=camera.position.x+Math.sin(a)*d;
-    const z=camera.position.z+Math.cos(a)*d;
+    const x=playerRig.position.x+Math.sin(a)*d;
+    const z=playerRig.position.z+Math.cos(a)*d;
     if(isOpen(x,z))return{x,z};
   }
   return null;
 }
+
 function updateShadowFig(dt){
   const s=shadowFig;if(!s.sprite||!s.frames)return;
   s.peekCooldown=Math.max(0,s.peekCooldown-1);
   s.sprite.position.set(s.x,1.3,s.z);
   if(s.light)s.light.position.set(s.x,1.4,s.z);
-  const dx=s.x-camera.position.x,dz=s.z-camera.position.z;
+  // Use playerRig XZ for proximity; camera.getWorldDirection for facing
+  const dx=s.x-playerRig.position.x,dz=s.z-playerRig.position.z;
   const dist=Math.hypot(dx,dz);
-  const fwdX=Math.sin(camera.rotation.y),fwdZ=Math.cos(camera.rotation.y);
+  camera.getWorldDirection(_camDir);
+  const fwdX=_camDir.x,fwdZ=_camDir.z;
   const dot=(dx*fwdX+dz*fwdZ)/Math.max(0.1,dist);
   const looking=dot>0.7&&dist<22;
   shadowGlitchT+=dt;
@@ -2200,7 +2300,7 @@ function updateShadowFig(dt){
     if(s.light){s.light.color.setHex(0x200010);s.light.intensity=0.5;}
     s.peekCooldown=70+Math.random()*130;
   } else if(dist>18&&Math.random()<0.002&&s.peekCooldown<=0){
-    const p=placeNear(8,18,false);if(p&&Math.hypot(p.x-camera.position.x,p.z-camera.position.z)>6){s.x=p.x;s.z=p.z;}
+    const p=placeNear(8,18,false);if(p&&Math.hypot(p.x-playerRig.position.x,p.z-playerRig.position.z)>6){s.x=p.x;s.z=p.z;}
   }
 }
 
@@ -2245,15 +2345,17 @@ function blackStrike(){
 function updateBlackFig(){
   const b=blackFig;if(!b.sprite)return;
   if(blackCooldown>0)blackCooldown--;
-  const dx=b.x-camera.position.x,dz=b.z-camera.position.z;
+  // Use playerRig XZ for proximity; camera.getWorldDirection for facing
+  const dx=b.x-playerRig.position.x,dz=b.z-playerRig.position.z;
   const dist=Math.hypot(dx,dz);
-  const fwdX=Math.sin(camera.rotation.y),fwdZ=Math.cos(camera.rotation.y);
+  camera.getWorldDirection(_camDir);
+  const fwdX=_camDir.x,fwdZ=_camDir.z;
   const dot=(dx*fwdX+dz*fwdZ)/Math.max(0.1,dist);
   const lookingAt=dot>0.86&&dist<16;
   if(b.state==='hidden'){
     stareFrames=0;
     if(blackCooldown<=0){
-      const here=darknessAt(camera.position.x,camera.position.z);
+      const here=darknessAt(playerRig.position.x,playerRig.position.z);
       if(Math.random()<0.0016+here*0.002)blackManifest();
     }
     return;
@@ -2264,7 +2366,7 @@ function updateBlackFig(){
     stareFrames++;
     sanity=Math.max(0,sanity-0.5*0.016);
     if(stareFrames>=STARE_FRAMES){
-      b.moveTo(camera.position.x+fwdX*0.9,camera.position.z+fwdZ*0.9);
+      b.moveTo(playerRig.position.x+fwdX*0.9,playerRig.position.z+fwdZ*0.9);
       b.setVis(BLACK_MAX_OPACITY);blackStrike();return;
     }
   } else {
@@ -2287,11 +2389,12 @@ function isOpen(x,z){
   if(x<-46||x>190||z<-30||z>130)return false;
   return !solidAt(x,z,0.5);
 }
+// tryMove moves playerRig (both VR and non-VR)
 function tryMove(nx,nz){
-  let x=camera.position.x,z=camera.position.z;
+  let x=playerRig.position.x,z=playerRig.position.z;
   if(!solidAt(nx,z))x=nx;
   if(!solidAt(x,nz))z=nz;
-  camera.position.x=x;camera.position.z=z;
+  playerRig.position.x=x;playerRig.position.z=z;
 }
 
 // ════ POST PROCESSING ════
@@ -2351,7 +2454,6 @@ function sfxEntityCrack(){
 function sfxStatic(){blip(200,0.15,'square',0.05);}
 function sfxOpen(){blip(330,0.6,'sine',0.10);blip(495,0.6,'sine',0.07);}
 function sfxUI(){blip(440,0.12,'sine',0.05);}
-
 
 // ════ FOOTSTEPS + DARK FOLLOWER ════
 let noiseBuf=null;
@@ -2458,6 +2560,12 @@ function updateSanityHUD(){
 }
 
 // ════ INTERACT ════
+// Helper: get player world position (eye height) for distanceTo checks
+function _getPlayerWP(){
+  _playerWP.set(playerRig.position.x, 2, playerRig.position.z);
+  return _playerWP;
+}
+
 function updateInteract(){
   const hint=$('hint'),ib=$('ibtn');
   let label=null; nearTV=null; nearDoor=null;
@@ -2482,7 +2590,7 @@ function updateInteract(){
 
     if(corridorState==='locked'&&corridorDoor){
       const ctv=corridorDoor.corridorTV;
-      if(ctv&&camera.position.distanceTo(ctv.wp)<4.5){
+      if(ctv&&_getPlayerWP().distanceTo(ctv.wp)<4.5){
         $('skipbtn').style.display='none';
         if(isMobile){ib.textContent=ctv.seen?'REPLAY':'PLAY';ib.style.display='flex';hint.style.display='none';}
         else{hint.style.display='block';hint.textContent='[ E ] '+(ctv.seen?'REPLAY':'PLAY');ib.style.display='none';}
@@ -2508,7 +2616,7 @@ function updateInteract(){
 
   if(endSolved===false&&archived.size>=GATE_TOTAL){
     for(const et of endTVs){
-      if(!et.activated&&camera.position.distanceTo(et.wp)<3.8){
+      if(!et.activated&&_getPlayerWP().distanceTo(et.wp)<3.8){
         nearTV={isEndTV:true,tv:et};
         label=et.col.label;
         $('xh').classList.add('lock');
@@ -2517,16 +2625,17 @@ function updateInteract(){
     }
   }
 
-  if(slideOpen&&endVideoActive&&camera.position.distanceTo(slideMouth)<3.2){
+  if(slideOpen&&endVideoActive&&_getPlayerWP().distanceTo(slideMouth)<3.2){
     nearTV='SLIDE';label='WATCH';$('xh').classList.add('lock');
   }
   if(!nearTV){
     $('xh').classList.remove('lock');
     for(const d of doorList){
       if(!d.shown||d.used)continue;
-      if(camera.position.distanceTo(d.wp)<3.5){nearDoor=d;label='ENTER';$('xh').classList.add('lock');break;}
+      if(_getPlayerWP().distanceTo(d.wp)<3.5){nearDoor=d;label='ENTER';$('xh').classList.add('lock');break;}
     }
     if(!nearDoor){
+      // Gaze raycast (center screen) — works for both desktop and VR headset gaze
       ray.setFromCamera(sc2,camera);
       const meshes=[];tvList.forEach(t=>meshes.push(t.frame));
       const hits=ray.intersectObjects(meshes,true);
@@ -2535,12 +2644,53 @@ function updateInteract(){
         const tv=tvList.find(t=>t.frame===hm||(t.frame.children&&t.frame.children.includes(hm)));
         if(tv){nearTV=tv;label=tv.seen?'REPLAY':'PLAY';}
       }
+      // VR right controller raycast — shows laser pointer interaction
+      if(vrMode&&vrControllerRight&&!nearTV){
+        const ctrlRay=new THREE.Raycaster();
+        const ctrlDir=new THREE.Vector3(0,0,-1);
+        ctrlDir.applyQuaternion(vrControllerRight.quaternion);
+        ctrlRay.set(vrControllerRight.position,ctrlDir);
+        const chits=ctrlRay.intersectObjects(meshes,true);
+        if(chits.length&&chits[0].distance<7){
+          const hm=chits[0].object;
+          const tv=tvList.find(t=>t.frame===hm||(t.frame.children&&t.frame.children.includes(hm)));
+          if(tv){nearTV=tv;label=tv.seen?'REPLAY':'PLAY';}
+        }
+      }
     }
   }
 
-  if(label&&isMobile){hint.style.display='none';ib.textContent=label;ib.style.display='flex';}
-  else if(label){hint.style.display='block';hint.textContent='[ E ] '+label;ib.style.display='none';}
-  else{hint.style.display='none';ib.style.display='none';}
+  // VR world-space hint — float text in 3D near the interactable
+  updateVRHint(label,nearTV,nearDoor);
+
+  if(label&&isMobile&&!vrMode){hint.style.display='none';ib.textContent=label;ib.style.display='flex';}
+  else if(label&&!vrMode){hint.style.display='block';hint.textContent='[ E ] '+label;ib.style.display='none';}
+  else if(!vrMode){hint.style.display='none';ib.style.display='none';}
+}
+
+// Floating world-space hint visible inside VR headset
+function updateVRHint(label,tv,door){
+  if(!vrHintMesh)return;
+  if(!vrMode||!label){
+    vrHintMesh.visible=false;
+    if(vrLaserRight)vrLaserRight.material.color.setHex(0xff3322);
+    if(vrLaserLeft)vrLaserLeft.material.color.setHex(0xff3322);
+    return;
+  }
+  // Change laser colour to green when targeting something interactive
+  if(vrLaserRight)vrLaserRight.material.color.setHex(0x44ff66);
+  if(vrLaserLeft)vrLaserLeft.material.color.setHex(0x44ff66);
+  // Position hint plane near the target (TV or door)
+  let targetPos=null;
+  if(tv&&tv.wp){targetPos=tv.wp;}
+  else if(door&&door.wp){targetPos=door.wp;}
+  if(targetPos){
+    // Float the hint 0.5m above the target, facing the player
+    vrHintMesh.position.set(targetPos.x,targetPos.y+0.5,targetPos.z);
+    vrHintMesh.lookAt(camera.getWorldPosition(new THREE.Vector3()));
+    vrHintMesh.visible=true;
+    vrHintMesh.material.opacity=0.88;
+  }
 }
 
 function interact(){
@@ -2564,7 +2714,7 @@ function interact(){
     if(corridorState==='corridor_tv'){exitCorridor();return;}
     if(corridorState==='locked'&&corridorDoor){
       const ctv=corridorDoor.corridorTV;
-      if(ctv&&camera.position.distanceTo(ctv.wp)<4.5){playCorridorTV(ctv);return;}
+      if(ctv&&_getPlayerWP().distanceTo(ctv.wp)<4.5){playCorridorTV(ctv);return;}
     }
     return;
   }
@@ -2620,9 +2770,9 @@ function rideSlide(){
 function setupControls(){
   const desktop=matchMedia('(hover:hover) and (pointer:fine)').matches;
   if(desktop){
-    $('c').addEventListener('click',()=>{if(started)document.body.requestPointerLock&&document.body.requestPointerLock();});
+    $('c').addEventListener('click',()=>{if(started&&!vrMode)document.body.requestPointerLock&&document.body.requestPointerLock();});
     document.addEventListener('mousemove',e=>{
-      if(document.pointerLockElement===document.body&&started){
+      if(document.pointerLockElement===document.body&&started&&!vrMode){
         camera.rotation.y-=e.movementX*0.0024;
         camera.rotation.x=Math.max(-Math.PI/2.4,Math.min(Math.PI/2.4,camera.rotation.x-e.movementY*0.0024));
       }
@@ -2657,50 +2807,111 @@ function startGame(){
   if(AC&&AC.state==='suspended')AC.resume();
   startMusicCycle();
   const ov=$('connect');ov.classList.add('fade');setTimeout(()=>ov.style.display='none',1700);
-  if(matchMedia('(hover:hover) and (pointer:fine)').matches)document.body.requestPointerLock&&document.body.requestPointerLock();
-  setObjective(isMobile?'Find every screen. Tap WATCH. Archive all five.':'Find every screen. Press [E] to watch. Archive all five.');
-  let warmFrames=0;
-  const warmup=()=>{
-    renderer.setRenderTarget(renderTarget);
-    renderer.render(scene,camera);
-    renderer.setRenderTarget(null);
-    renderer.render(postScene,postCamera);
-    if(++warmFrames<8)requestAnimationFrame(warmup);
-  };
-  requestAnimationFrame(warmup);
+  if(!vrMode&&matchMedia('(hover:hover) and (pointer:fine)').matches)document.body.requestPointerLock&&document.body.requestPointerLock();
+  setObjective(vrMode?'Find every screen. Press right trigger to watch. Archive all five.':
+    (isMobile?'Find every screen. Tap WATCH. Archive all five.':'Find every screen. Press [E] to watch. Archive all five.'));
+  // Warmup renders only in non-VR (post-processing is bypassed in VR)
+  if(!vrMode){
+    let warmFrames=0;
+    const warmup=()=>{
+      renderer.setRenderTarget(renderTarget);
+      renderer.render(scene,camera);
+      renderer.setRenderTarget(null);
+      renderer.render(postScene,postCamera);
+      if(++warmFrames<8)requestAnimationFrame(warmup);
+    };
+    requestAnimationFrame(warmup);
+  }
 }
 
 // ════ ANIMATE ════
 function animate(){
-  requestAnimationFrame(animate);
+  // NOTE: No requestAnimationFrame call — renderer.setAnimationLoop handles the loop.
+  // This also makes WebXR work correctly (XR requires setAnimationLoop, not rAF).
+
   const dt=Math.min(clock.getDelta(),0.05),t=clock.getElapsedTime();
   postMaterial.uniforms.uTime.value=t;
 
-  // Always tick the entity mixer so bones animate from the moment GLB is loaded
   if(entityMixer)entityMixer.update(dt);
 
-  if(!started){renderer.setRenderTarget(null);renderer.render(scene,camera);return;}
+  if(!started){
+    if(vrMode){
+      renderer.render(scene,camera);
+    } else {
+      renderer.setRenderTarget(null);
+      renderer.render(scene,camera);
+    }
+    return;
+  }
 
-  if(td.r.a){
+  // Touch look (non-VR only; VR head tracking is handled by XR)
+  if(!vrMode&&td.r.a){
     camera.rotation.y-=td.r.mx*0.03;
     camera.rotation.x=Math.max(-Math.PI/2.4,Math.min(Math.PI/2.4,camera.rotation.x-td.r.my*0.03));
   }
 
+  // VR controller input (handles snap-turn, interact button, stores stick axes)
+  if(vrMode)updateVRInput(dt);
+
+  // Velocity — friction (used for keyboard / touch joystick)
   vel.x-=vel.x*10*dt;vel.z-=vel.z*10*dt;
-  const dz=Number(kW)-Number(kS),dxk=Number(kD)-Number(kA);
-  if(kW||kS)vel.z+=dz*48*dt;
-  if(kA||kD)vel.x-=dxk*48*dt;
-  if(td.l.a){vel.z-=td.l.my*32*dt;vel.x-=td.l.mx*32*dt;}
-  const before=camera.position.clone();
-  camera.translateX(-vel.x*dt);camera.translateZ(-vel.z*dt);
-  const wantX=camera.position.x,wantZ=camera.position.z;
-  camera.position.copy(before);
-  tryMove(wantX,wantZ);
-  const movedDist=Math.hypot(camera.position.x-before.x,camera.position.z-before.z);
-  camera.position.y=2;
+  // Keyboard input
+  const dzK=Number(kW)-Number(kS),dxK=Number(kD)-Number(kA);
+  if(kW||kS)vel.z+=dzK*48*dt;
+  if(kA||kD)vel.x-=dxK*48*dt;
+  // Mobile touch joystick (non-VR only)
+  if(!vrMode&&td.l.a){vel.z-=td.l.my*32*dt;vel.x-=td.l.mx*32*dt;}
+
+  // Apply locomotion to playerRig
+  const beforeX=playerRig.position.x,beforeZ=playerRig.position.z;
+  if(vrMode){
+    // VR: direct per-frame movement from stick axes — no accumulated velocity.
+    // This avoids friction/momentum chop when head is moving in room-scale.
+    // Fix: standard Quest axis[3] is negative when pushed forward, so negate to move forward.
+    const mz=Math.abs(vrMoveZ)>0.12?-vrMoveZ:0; // negate: forward stick (negative axis) → positive forward
+    const mx=Math.abs(vrMoveX)>0.12?vrMoveX:0;  // left/right unchanged — reported correct
+    if(mz!==0||mx!==0){
+      camera.getWorldDirection(_camDir);
+      _camDir.y=0;
+      if(_camDir.length()>0.001)_camDir.normalize();
+      const rightX=-_camDir.z, rightZ=_camDir.x;
+      const spd=4.2; // m/s
+      const wantX=beforeX+(mz*_camDir.x+mx*rightX)*spd*dt;
+      const wantZ=beforeZ+(mz*_camDir.z+mx*rightZ)*spd*dt;
+      tryMove(wantX,wantZ);
+    }
+    // Also apply WASD/keyboard vel in VR (desktop debug usage)
+    if(vel.x!==0||vel.z!==0){
+      _moveDummy.position.set(playerRig.position.x,0,playerRig.position.z);
+      _moveDummy.rotation.y=camera.rotation.y+playerRig.rotation.y;
+      _moveDummy.translateX(-vel.x*dt);
+      _moveDummy.translateZ(-vel.z*dt);
+      tryMove(_moveDummy.position.x,_moveDummy.position.z);
+    }
+  } else {
+    // Non-VR: standard velocity-based movement
+    if(vel.x!==0||vel.z!==0){
+      _moveDummy.position.set(playerRig.position.x,0,playerRig.position.z);
+      _moveDummy.rotation.y=camera.rotation.y+playerRig.rotation.y;
+      _moveDummy.translateX(-vel.x*dt);
+      _moveDummy.translateZ(-vel.z*dt);
+      tryMove(_moveDummy.position.x,_moveDummy.position.z);
+    }
+  }
+  const movedDist=Math.hypot(playerRig.position.x-beforeX,playerRig.position.z-beforeZ);
+
+  // Lock eye height in non-VR (XR tracks this in VR)
+  if(!vrMode)camera.position.y=2;
+
+  // Check if we've walked deep enough into corridor to add closing wall
+  if(corridorActive&&!corridorCloseWallAdded&&corridorDoor&&corridorState==='locked'){
+    const door=corridorDoor;
+    const fx=door.cOx+door.cFdx*6, fz=door.cOz+door.cFdz*6;
+    if(Math.hypot(playerRig.position.x-fx,playerRig.position.z-fz)<3.5) addClosingWall();
+  }
 
   const watching=(videoObj&&videoObj.visible)||doorVideoState==='playing';
-  updateFootsteps(t,movedDist,darknessAt(camera.position.x,camera.position.z));
+  updateFootsteps(t,movedDist,darknessAt(playerRig.position.x,playerRig.position.z));
   updateMusic(dt);
 
   if(++fuzzFrame%3===0)updateFuzz();
@@ -2708,7 +2919,7 @@ function animate(){
   updateShadowFig(dt);
   updateBlackFig();
   updateCrowd(dt,t);
-  updateEntity(dt); // entity1_merged.glb AI
+  updateEntity(dt);
   updateInteract();
   updateVideoVisibility();
   updateSanityHUD();
@@ -2722,9 +2933,16 @@ function animate(){
   if(whisperTimer<=0){whisper(WHISPERS[Math.floor(Math.random()*WHISPERS.length)]);whisperTimer=600+Math.floor(Math.random()*600);}
 
   if(doorVideoTex&&doorVideoState==='playing'&&doorVideo.readyState>=2)doorVideoTex.needsUpdate=true;
-  renderer.setRenderTarget(renderTarget);renderer.render(scene,camera);
-  renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
-  if(css3d)css3d.render(scene,camera);
+
+  // Render — skip post-processing in VR (XR renders directly to headset display)
+  if(vrMode){
+    renderer.render(scene,camera);
+    // CSS3D iframes do NOT work in WebXR — skip css3d.render in VR
+  } else {
+    renderer.setRenderTarget(renderTarget);renderer.render(scene,camera);
+    renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
+    if(css3d)css3d.render(scene,camera);
+  }
 }
 
 function updateFuzz(){
@@ -2749,7 +2967,7 @@ function updateFuzz(){
     overlay.style.pointerEvents='none';
     setTimeout(()=>{
       overlay.style.display='none';
-      init(); // begin loading only after ENTER
+      init();
     },900);
   });
 
@@ -2757,7 +2975,6 @@ function updateFuzz(){
     // EXIT does nothing — user stays on the warning screen
   });
 
-  // Keyboard: Enter key on warning screen enters game
   document.addEventListener('keydown',function onWarnKey(e){
     if(overlay.style.display==='none')return;
     if(e.code==='Enter'||e.code==='Space'){
