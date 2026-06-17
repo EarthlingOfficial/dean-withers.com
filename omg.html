@@ -1922,7 +1922,6 @@ function playTV(tv){
   tv.seen=true;tintSeen(tv);
 
   if(v.isMP4){
-    // ── FIX: In VR use dedicated vrFinalVideoEl (no crossorigin) with VideoTexture on screen mesh ──
     if(vrMode){
       _playVRFinalTV(tv,v);
     } else if(videoMP4Obj){
@@ -1937,34 +1936,14 @@ function playTV(tv){
         activeTV=null;
       };
     }
-  } else if(videoObj&&!vrMode){
-    // YouTube — only plays on non-VR
+  } else if(videoObj){
     activeTV=tv;
     videoObj.position.set(tv.wp.x+tv.nx*0.09,tv.wp.y,tv.wp.z+tv.nz*0.09);
     videoObj.rotation.set(0,tv.angle,0);
     videoObj.visible=true;
-    // Defer iframe src to prevent main-thread hang
     setTimeout(()=>{
       videoIframe.src=v.url+'?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1';
     },0);
-  } else if(vrMode&&!v.isMP4){
-    // YouTube in VR — just show a whisper, nothing to play
-    whisper('youtube archive.\nnot available in vr.');
-    flashFact('YOUTUBE ARCHIVE\nNOT AVAILABLE IN VR\nFIND THE DOOR TO COLLECT TOKEN');
-    sfxStatic();
-    // Still mark archived so player can progress
-    if(v.gate&&!tv.archived){
-      tv.archived=true;archived.add(tv.vidIdx);
-      updateArch();
-      const door=doorList.find(d=>d.vidIdx===tv.vidIdx);
-      if(door&&!door.shown){
-        door.shown=true;door.grp.visible=true;
-        whisper('a door appeared.');
-      }
-      crowdEnabled=true;
-      if(archived.size>=GATE_TOTAL) setObjective('All archived. Find the end room.');
-    }
-    return;
   }
 
   if(tv.vidIdx===6&&!endVideoActive&&collectedTokens.size>=5&&archived.size>=GATE_TOTAL){
