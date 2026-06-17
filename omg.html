@@ -1109,6 +1109,9 @@ function _playVRDoorVideo(door){
   // Ensure AudioContext is running before playing video
   if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});
 
+  // Route audio through WebAudio so it plays through XR audio graph
+  _connectVideoToAC(vrDoorVideoEl);
+
   vrDoorVideoEl.src=url;
   vrDoorVideoEl.load();
 
@@ -1494,6 +1497,13 @@ function init(){
   $('ibtn').addEventListener('click',interact);
   $('ibtn').addEventListener('touchstart',e=>{e.preventDefault();interact();},{passive:false});
   addEventListener('resize',onResize);
+  // When page becomes visible again (e.g. returning from Quest home), resume AC
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible'){
+      if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();
+      if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});
+    }
+  });
   setObjective(isMobile?'Tap WATCH at each screen. Archive all five.':'Press [E] at each screen. Archive all five.');
 
   renderer.setAnimationLoop(animate);
@@ -1976,13 +1986,26 @@ function playTV(tv){
 }
 
 // ── VR FINAL TV (GitHub releases MP4) ──
+let _vrFinalMediaSource=null;
+function _connectVideoToAC(el){
+  const a=ac();if(!a)return;
+  try{
+    if(!el._mediaSource){
+      el._mediaSource=a.createMediaElementSource(el);
+      el._mediaSource.connect(a.destination);
+    }
+  }catch(e){}
+}
+
 function _playVRFinalTV(tv,v){
   activeTV=tv;
-  // Ensure AC running
   if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});
 
   vrFinalVideoEl.src=v.url;
   vrFinalVideoEl.load();
+
+  // Route audio through WebAudio so it plays through XR audio graph
+  _connectVideoToAC(vrFinalVideoEl);
 
   // Create VideoTexture and apply to TV screen mesh
   if(vrFinalVideoTex){vrFinalVideoTex.dispose();}
