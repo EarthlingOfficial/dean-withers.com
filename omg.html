@@ -3030,21 +3030,12 @@ function playCorridorTV(tv){
   const v=VIDS[tv.vidIdx];
   tv.seen=true;
   tintSeen(tv);
-  if(vrMode){
-    // In VR, YouTube won't play — just collect token
-    whisper('youtube archive.\ncollect the token and return.');
-    flashFact('YOUTUBE ARCHIVE\nNOT AVAILABLE IN VR\nCOLLECT TOKEN BELOW');
-    corridorState='corridor_tv';
-    setObjective('Trigger to collect token & return.');
-    return;
-  }
   if(videoObj){
     activeTV=tv;
     videoObj.position.set(tv.wp.x+tv.nx*0.09,tv.wp.y,tv.wp.z+tv.nz*0.09);
     videoObj.rotation.set(0,tv.angle,0);
     videoObj.visible=true;
     if(v&&v.url){
-      // Defer to prevent main-thread hang
       setTimeout(()=>{
         videoIframe.src=v.url+'?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1';
       },0);
