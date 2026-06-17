@@ -155,7 +155,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
     <div id="c-stage">STAGE 9 — THE HYPOGEUM</div>
     <div id="c-loadbar"><div id="c-loadfill"></div></div>
     <div id="c-loadtxt">INITIALISING</div>
-    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v4 — VR FIXES / LASER POINTERS / CORRIDOR UNLOCK</div>
+    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v5 — LASER ATTACHED / NO FUZZ VR / CORRIDOR SYNC / BYPASS TIMER</div>
   </div>
   <div id="c-phase2">
     <div class="c-p2-series">A VEGAN BROS. SERIES</div>
@@ -339,6 +339,7 @@ let vrLaserRight=null,vrLaserLeft=null;
 let vrHintPlane=null;       // world-space interact hint visible in VR
 let vrHintMesh=null;
 let vrHintText='';
+let collisionBypassTimer=0; // seconds — disables collision briefly after corridor teleport
 const _moveDummy=new THREE.Object3D();
 const _camDir=new THREE.Vector3();
 const _playerWP=new THREE.Vector3();
@@ -1043,6 +1044,12 @@ function enterCorridor(door){
           doorVideoPlane.rotation.y=door.grp.rotation.y;
           doorVideoPlane.visible=true;
           doorVideo.onended=()=>_revealCorridor();
+          // VR: video ended event is unreliable in WebXR — trigger corridor after a short delay
+          if(vrMode){
+            const dur=doorVideo.duration;
+            const wait=isFinite(dur)&&dur>1?(dur+0.3)*1000:3200;
+            setTimeout(()=>{ if(corridorState==='door_video')_revealCorridor(); }, wait);
+          }
         }
         setObjective("Watch the archive.  [ E ] to skip.");
       } else {
@@ -1070,10 +1077,13 @@ function _revealCorridor(){
       door.corridorHiddenMeshes.forEach(m=>{ m.visible=true; });
       door.corridorHiddenColliders.forEach(col=>colliders.push(col));
       corridorState='locked';
-      // Teleport playerRig well past the closing-wall zone (wall at 4.8, so spawn at 9)
-      // This fixes "stuck in place" in both VR and non-VR after corridor transition.
-      playerRig.position.set(door.cOx+door.cFdx*9,0,door.cOz+door.cFdz*9);
+      // Teleport playerRig past the closing-wall zone (wall at 4.8 → spawn at 12)
+      playerRig.position.set(door.cOx+door.cFdx*12,0,door.cOz+door.cFdz*12);
+      // Force VR headset to acknowledge the new body position immediately
+      playerRig.updateMatrixWorld(true);
       camera.position.set(0,2,0);
+      // 2-second collision bypass so player can land without being ejected by walls
+      collisionBypassTimer=2.0;
       // In non-VR, force camera yaw; in VR the headset overrides rotation (that's fine)
       if(!vrMode){
         camera.rotation.y=door.cRy;
@@ -1417,33 +1427,47 @@ function enterVR(){
 }
 
 function setupVRControllers(){
-  // Attach laser beams to both controllers (rendered in 3D scene, visible in VR)
+  // Controllers MUST be children of playerRig so they move with the virtual body
   vrControllerRight=renderer.xr.getController(0);
   vrControllerLeft=renderer.xr.getController(1);
   if(!vrControllerRight||!vrControllerLeft)return;
 
-  scene.add(vrControllerRight);
-  scene.add(vrControllerLeft);
+  playerRig.add(vrControllerRight);
+  playerRig.add(vrControllerLeft);
 
-  function makeLaser(color){
-    const mat=new THREE.LineBasicMaterial({color,linewidth:2});
-    const pts=[new THREE.Vector3(0,0,0),new THREE.Vector3(0,0,-6)];
-    const geo=new THREE.BufferGeometry().setFromPoints(pts);
-    const line=new THREE.Line(geo,mat);
-    line.frustumCulled=false;
-    return line;
+  function makeLaser(){
+    // Thin cylinder pointing forward (-Z), always drawn on top (depthTest:false)
+    const geo=new THREE.CylinderGeometry(0.005,0.005,6,6);
+    geo.rotateX(Math.PI/2); // align along -Z
+    geo.translate(0,0,-3);  // centre of cylinder at 3m ahead
+    const mat=new THREE.MeshBasicMaterial({
+      color:0xff3322,
+      depthTest:false,
+      transparent:true,opacity:0.82
+    });
+    const mesh=new THREE.Mesh(geo,mat);
+    mesh.renderOrder=999;
+    mesh.frustumCulled=false;
+    return mesh;
   }
-  vrLaserRight=makeLaser(0xff3322);
-  vrLaserLeft=makeLaser(0xff3322);
+  vrLaserRight=makeLaser();
+  vrLaserLeft=makeLaser();
   vrControllerRight.add(vrLaserRight);
   vrControllerLeft.add(vrLaserLeft);
 
-  // World-space hint sphere that floats in front of TVs when targeted in VR
-  const hintGeo=new THREE.PlaneGeometry(1.2,0.35);
+  // World-space hint plane with canvas texture — floats above TVs/doors in VR
+  const hintCanvas=document.createElement('canvas');
+  hintCanvas.width=256;hintCanvas.height=64;
+  const hctx=hintCanvas.getContext('2d');
+  hctx.fillStyle='rgba(255,220,80,0.0)';hctx.fillRect(0,0,256,64);
+  const hintTex=new THREE.CanvasTexture(hintCanvas);
+  hintTex.userData={canvas:hintCanvas,ctx:hctx};
+  const hintGeo=new THREE.PlaneGeometry(1.4,0.35);
   const hintMat=new THREE.MeshBasicMaterial({
-    color:0xffdd88,transparent:true,opacity:0.0,side:THREE.DoubleSide,depthTest:false
+    map:hintTex,transparent:true,side:THREE.DoubleSide,depthTest:false
   });
   vrHintMesh=new THREE.Mesh(hintGeo,hintMat);
+  vrHintMesh.renderOrder=998;
   vrHintMesh.visible=false;
   scene.add(vrHintMesh);
 }
@@ -1452,9 +1476,9 @@ function onVREnd(){
   vrMode=false;
   xrSession=null;
   vrMoveX=0;vrMoveZ=0;
-  // Remove controller objects from scene
-  if(vrControllerRight){scene.remove(vrControllerRight);vrControllerRight=null;}
-  if(vrControllerLeft){scene.remove(vrControllerLeft);vrControllerLeft=null;}
+  // Remove controllers from playerRig (that's where they were added)
+  if(vrControllerRight){playerRig.remove(vrControllerRight);vrControllerRight=null;}
+  if(vrControllerLeft){playerRig.remove(vrControllerLeft);vrControllerLeft=null;}
   vrLaserRight=null;vrLaserLeft=null;
   if(vrHintMesh){vrHintMesh.visible=false;}
   // Restore graphics
@@ -2379,6 +2403,8 @@ function updateBlackFig(){
 
 // ════ COLLISION ════
 function solidAt(x,z,extra){
+  // Brief post-teleport bypass so VR player can land without being ejected
+  if(collisionBypassTimer>0)return false;
   const r=(extra===undefined?PLAYER_R:extra);
   for(const c of colliders){
     if(x>c.x0-r&&x<c.x1+r&&z>c.z0-r&&z<c.z1+r)return true;
@@ -2677,19 +2703,33 @@ function updateVRHint(label,tv,door){
     if(vrLaserLeft)vrLaserLeft.material.color.setHex(0xff3322);
     return;
   }
-  // Change laser colour to green when targeting something interactive
+  // Green laser when targeting something interactive
   if(vrLaserRight)vrLaserRight.material.color.setHex(0x44ff66);
   if(vrLaserLeft)vrLaserLeft.material.color.setHex(0x44ff66);
-  // Position hint plane near the target (TV or door)
+  // Draw text onto canvas texture
+  const texData=vrHintMesh.material.map&&vrHintMesh.material.map.userData;
+  if(texData&&texData.ctx&&label!==vrHintText){
+    vrHintText=label;
+    const ctx=texData.ctx,can=texData.canvas;
+    ctx.clearRect(0,0,can.width,can.height);
+    ctx.fillStyle='rgba(20,16,8,0.82)';
+    ctx.beginPath();ctx.roundRect?ctx.roundRect(4,4,can.width-8,can.height-8,8):ctx.rect(4,4,can.width-8,can.height-8);
+    ctx.fill();
+    ctx.fillStyle='#ffdd55';
+    ctx.font='bold 22px monospace';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    const dispLabel=label==='PLAY'?'▶  TRIGGER TO WATCH':label==='REPLAY'?'▶  TRIGGER TO REPLAY':label==='ENTER'?'▶  TRIGGER TO ENTER':'▶  TRIGGER: '+label;
+    ctx.fillText(dispLabel,can.width/2,can.height/2);
+    vrHintMesh.material.map.needsUpdate=true;
+  }
+  // Position hint above the target, always facing the player camera
   let targetPos=null;
-  if(tv&&tv.wp){targetPos=tv.wp;}
+  if(tv&&tv!=='SLIDE'&&tv.wp){targetPos=tv.wp;}
   else if(door&&door.wp){targetPos=door.wp;}
   if(targetPos){
-    // Float the hint 0.5m above the target, facing the player
-    vrHintMesh.position.set(targetPos.x,targetPos.y+0.5,targetPos.z);
+    vrHintMesh.position.set(targetPos.x,targetPos.y+0.65,targetPos.z);
     vrHintMesh.lookAt(camera.getWorldPosition(new THREE.Vector3()));
     vrHintMesh.visible=true;
-    vrHintMesh.material.opacity=0.88;
   }
 }
 
@@ -2914,7 +2954,11 @@ function animate(){
   updateFootsteps(t,movedDist,darknessAt(playerRig.position.x,playerRig.position.z));
   updateMusic(dt);
 
-  if(++fuzzFrame%3===0)updateFuzz();
+  // Fuzz / VHS noise — skip entirely in VR (saves GPU, no post-processing in VR anyway)
+  if(!vrMode&&(++fuzzFrame%3===0))updateFuzz();
+
+  // Decrement collision bypass timer
+  if(collisionBypassTimer>0)collisionBypassTimer=Math.max(0,collisionBypassTimer-dt);
 
   updateShadowFig(dt);
   updateBlackFig();
