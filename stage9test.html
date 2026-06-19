@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -214,7 +215,7 @@ const VIDS=[
   {url:'https://www.youtube.com/embed/jDQ9zZ0IGFw',lbl:'THE ECHO CHAMBER',gate:true},
   {url:'https://www.youtube.com/embed/RNWmEeJLGnI',lbl:'THE CALORIC CON',gate:true},
   {url:null,lbl:'DEBATE 06 — SIGNAL LOST'},
-  {url:'https://github.com/EarthlingOfficial/dean-withers.com/releases/download/v1/0607.1.mp4',lbl:'THE FINAL RECORD',gate:false,isMP4:true},
+  {url:'https://earthlingofficial.com/slaughter.mp4',lbl:'THE FINAL RECORD',gate:false,isMP4:true},
   {url:null,lbl:'DEBATE 09 — SIGNAL LOST'},
   {url:null,lbl:'DEBATE 10 — SIGNAL LOST'},
   {url:null,lbl:'DEBATE 11 — SIGNAL LOST'},
@@ -225,7 +226,7 @@ const GATE_TOTAL=VIDS.filter(v=>v.gate).length;
 // ── DOOR AI VIDEOS (MP4s from GitHub repo/releases) ──
 const DOOR_VIDS=[
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
-  'https://github.com/EarthlingOfficial/dean-withers.com/releases/download/v2/playroom.mp4',
+  'https://earthlingofficial.com/playroom1.mp4',
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
@@ -357,7 +358,7 @@ const END_TV_COLORS=[
   {vidIdx:3, hex:0x007733, css:'#007733', label:'2:09'},
   {vidIdx:4, hex:0xbb4400, css:'#bb4400', label:'20:31'},
 ];
-const END_REWARD_VIDEO='https://github.com/EarthlingOfficial/dean-withers.com/releases/download/v1/0607.1.mp4';
+const END_REWARD_VIDEO='https://earthlingofficial.com/slaughter.mp4';
 const EXIT_VIDEO='https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/MindVideo_20260607173600_104.mp4';
 let endTVs=[];
 let endSequencePos=0;
@@ -367,6 +368,7 @@ let endWall=null;
 let exitVideoActive=false;
 let exitVideoCanSkip=false;
 let exitVideoEl=null;
+let slideDoorGrp=null,slideDoorUsed=false;
 
 // Input
 let kW=0,kA=0,kS=0,kD=0;
@@ -1723,56 +1725,24 @@ let vrSanityOverlay=null,vrGrainMesh=null,vrGrainCanvas=null,vrGrainCtx=null,vrG
 let _vrGrainFrame=0;
 
 function buildVRSanityEffect(){
-  // Dark purple vignette overlay — full-screen quad parented to camera
-  const ovMat=new THREE.MeshBasicMaterial({color:0x110022,transparent:true,opacity:0,depthTest:false,side:THREE.DoubleSide});
-  vrSanityOverlay=new THREE.Mesh(new THREE.PlaneGeometry(2,2),ovMat);
-  vrSanityOverlay.renderOrder=998;vrSanityOverlay.position.set(0,0,-0.45);
-  vrSanityOverlay.visible=false;camera.add(vrSanityOverlay);
-
-  // Low-res grain — updated at ~10fps max to save GPU budget
-  vrGrainCanvas=document.createElement('canvas');vrGrainCanvas.width=64;vrGrainCanvas.height=64;
-  vrGrainCtx=vrGrainCanvas.getContext('2d');
-  vrGrainTex=new THREE.CanvasTexture(vrGrainCanvas);
-  const gMat=new THREE.MeshBasicMaterial({map:vrGrainTex,transparent:true,opacity:0,depthTest:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});
-  vrGrainMesh=new THREE.Mesh(new THREE.PlaneGeometry(2,2),gMat);
-  vrGrainMesh.renderOrder=999;vrGrainMesh.position.set(0,0,-0.44);
-  vrGrainMesh.visible=false;camera.add(vrGrainMesh);
+  // Grain and vignette overlay removed — wavy-walls feel handled via
+  // camera roll in updateVRSanityEffect (post-processing not available in WebXR).
 }
 
 function updateVRSanityEffect(dt,t){
   if(!vrMode)return;
   const ins=Math.max(0,(100-sanity)/100);
 
-  // Colour overlay
-  if(vrSanityOverlay){
-    const tgt=ins*0.15;
-    vrSanityOverlay.material.opacity+=(tgt-vrSanityOverlay.material.opacity)*6*dt;
-    vrSanityOverlay.visible=vrSanityOverlay.material.opacity>0.01;
-  }
-
-  // Camera roll wobble (wavy feel — zero GPU cost)
+  // Wavy walls — oscillate the whole scene on X, identical perception to the
+  // PC/mobile post shader UV X-warp. XR tracking sets camera relative to
+  // playerRig so this shift is visible but doesn't fight head tracking.
   if(ins>0.05){
-    const w=Math.sin(t*2.8+Math.cos(t*1.4))*ins*0.035
-            +Math.sin(t*7.1)*(ins>0.5?(ins-0.5)*0.05:0);
-    camera.rotation.z=w;
+    scene.position.x=Math.sin(t*3.8+Math.cos(t*1.4)*1.2)*ins*0.07
+                     +Math.sin(t*6.3+1.7)*ins*0.03
+                     +Math.sin(t*11.2)*(ins>0.4?(ins-0.4)*0.035:0);
   } else {
-    camera.rotation.z*=0.9;
-    if(Math.abs(camera.rotation.z)<0.001)camera.rotation.z=0;
-  }
-
-  // Grain — only update every 6 frames (~10fps at 60fps render)
-  if(vrGrainMesh){
-    const tgtG=ins*0.06;
-    vrGrainMesh.material.opacity+=(tgtG-vrGrainMesh.material.opacity)*4*dt;
-    vrGrainMesh.visible=vrGrainMesh.material.opacity>0.005;
-    if(vrGrainMesh.visible&&++_vrGrainFrame%6===0){
-      const id=vrGrainCtx.createImageData(64,64);
-      for(let i=0;i<id.data.length;i+=4){
-        const v=Math.random()>0.5?120+Math.random()*80:Math.random()*20;
-        id.data[i]=v*0.7;id.data[i+1]=v*0.8;id.data[i+2]=v;id.data[i+3]=255;
-      }
-      vrGrainCtx.putImageData(id,0,0);vrGrainTex.needsUpdate=true;
-    }
+    scene.position.x*=0.88;
+    if(Math.abs(scene.position.x)<0.001)scene.position.x=0;
   }
 }
 
@@ -1788,6 +1758,7 @@ function onVREnd(){
   if(vrSanityOverlay){vrSanityOverlay.visible=false;}
   if(vrGrainMesh){vrGrainMesh.visible=false;}
   camera.rotation.z=0;
+  scene.position.x=0;
   stickerLights.forEach(l=>{ if(l._origIntensity!==undefined){l.intensity=l._origIntensity;delete l._origIntensity;} });
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
   renderer.shadowMap.enabled=true;
@@ -2219,6 +2190,7 @@ function buildWorld(){
   buildR3(0,48);
   buildR5a(48,48);
   buildR5b(96,48);
+  buildSlideDoor();
   buildEnd(144,48);
 }
 
@@ -2519,38 +2491,73 @@ function solveSequence(){
   setObjective('Approach the slide. Press [E] to enter.');
 }
 
+function buildSlideDoor(){
+  if(slideDoorGrp)return;
+  const x=slideMouth.x+12, z=slideMouth.z+10;
+  const grp=new THREE.Group();
+  const dMat=new THREE.MeshStandardMaterial({color:0x1a0a0a,roughness:0.7,metalness:0.3,emissive:0x0a0505,emissiveIntensity:0.4});
+  const door=new THREE.Mesh(new THREE.BoxGeometry(1.5,3.2,0.12),dMat);door.position.set(0,1.6,0);grp.add(door);
+  const fMat=new THREE.MeshStandardMaterial({color:0x2a1a0a,roughness:0.5,metalness:0.5,emissive:0x0f0808,emissiveIntensity:0.3});
+  const fTop=new THREE.Mesh(new THREE.BoxGeometry(1.75,0.12,0.13),fMat);fTop.position.set(0,3.36,0);grp.add(fTop);
+  const fL=new THREE.Mesh(new THREE.BoxGeometry(0.13,3.4,0.13),fMat);fL.position.set(-0.82,1.65,0);grp.add(fL);
+  const fR=new THREE.Mesh(new THREE.BoxGeometry(0.13,3.4,0.13),fMat);fR.position.set(0.82,1.65,0);grp.add(fR);
+  grp.position.set(x,0,z);
+  grp.rotation.y=Math.PI;
+  grp.visible=false;
+  scene.add(grp);
+  slideDoorGrp=grp;
+}
+
 function startExitVideo(){
   if(exitVideoActive)return;
   exitVideoActive=true;
   exitVideoCanSkip=false;
+  if(slideDoorGrp)slideDoorGrp.visible=false;
+  slideDoorUsed=true;
   if(videoIframe)videoIframe.src='';
   if(videoObj)videoObj.visible=false;
-  exitVideoEl=document.createElement('video');
-  exitVideoEl.src=EXIT_VIDEO;
-  exitVideoEl.style.cssText='position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:90;background:#000';
-  exitVideoEl.playsInline=true;
-  exitVideoEl.autoplay=true;
-  exitVideoEl.onended=()=>finishExitVideo();
-  exitVideoEl.play().catch(()=>{});
-  document.body.appendChild(exitVideoEl);
-  const eb=document.createElement('a');
-  eb.id='welfare-exit-btn';
-  eb.href='https://earthlingofficial.com';
-  eb.target='_blank';
-  eb.rel='noopener';
-  eb.innerHTML="CAN'T HANDLE IT? — WE UNDERSTAND.<br><span style='font-size:9px;letter-spacing:2px;opacity:0.6'>They couldn't look away.</span>";
-  document.body.appendChild(eb);
-  setTimeout(()=>{eb.style.opacity='1';eb.style.pointerEvents='auto';},4200);
+  if(vrMode){
+    if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});
+    if(vrDoorVideoTex)vrDoorVideoTex.dispose();
+    vrDoorVideoTex=new THREE.VideoTexture(vrDoorVideoEl);
+    vrDoorVideoTex.minFilter=THREE.LinearFilter;
+    vrDoorVideoTex.magFilter=THREE.LinearFilter;
+    if(vrDoorVideoPlane){
+      if(vrDoorVideoPlane.material)vrDoorVideoPlane.material.dispose();
+      vrDoorVideoPlane.material=new THREE.MeshBasicMaterial({map:vrDoorVideoTex,side:THREE.DoubleSide});
+      vrDoorVideoPlane.position.set(slideMouth.x+12,1.65,slideMouth.z+10);
+      vrDoorVideoPlane.rotation.y=Math.PI;
+      vrDoorVideoPlane.visible=true;
+    }
+    vrDoorVideoEl.muted=false;
+    vrDoorVideoEl.src=EXIT_VIDEO+'?_vr='+Date.now();
+    vrDoorVideoEl.load();
+    vrDoorVideoEl.play().catch(()=>{});
+    vrDoorVideoEl.onended=()=>{if(vrDoorVideoPlane)vrDoorVideoPlane.visible=false;doorVideoState='closed';finishExitVideo();};
+    doorVideoState='playing';
+  } else {
+    if(tvVideoEl&&videoMP4Obj){
+      tvVideoEl.src=EXIT_VIDEO;
+      tvVideoEl.load();
+      tvVideoEl.play().catch(()=>{});
+      tvVideoEl.onended=()=>finishExitVideo();
+      videoMP4Obj.position.set(slideMouth.x+12,1.6,slideMouth.z+10);
+      videoMP4Obj.rotation.set(0,Math.PI,0);
+      videoMP4Obj.visible=true;
+    }
+  }
   setObjective('');
-  setTimeout(()=>{
-    exitVideoCanSkip=true;
-    setObjective(isMobile?'Tap to continue →':'[ E ] Continue →');
-  },2000);
 }
 
 function finishExitVideo(){
-  if(exitVideoEl){exitVideoEl.pause();exitVideoEl.remove();exitVideoEl=null;}
-  const eb2=document.getElementById('welfare-exit-btn');if(eb2)eb2.remove();
+  if(vrMode){
+    vrDoorVideoEl.pause();vrDoorVideoEl.removeAttribute('src');vrDoorVideoEl.load();
+    if(vrDoorVideoPlane)vrDoorVideoPlane.visible=false;
+    doorVideoState='closed';
+  } else {
+    if(tvVideoEl){tvVideoEl.pause();tvVideoEl.removeAttribute('src');tvVideoEl.load();}
+    if(videoMP4Obj)videoMP4Obj.visible=false;
+  }
   exitVideoActive=false;
   ending=true;
   $('fade').classList.add('on');
@@ -3051,10 +3058,7 @@ function updateInteract(){
   $('skipbtn').style.display='none';
 
   if(exitVideoActive){
-    if(exitVideoCanSkip){
-      if(isMobile){$('ibtn').textContent='CONTINUE →';$('ibtn').style.display='flex';}
-      else{hint.style.display='block';hint.textContent='[ E ] CONTINUE →';}
-    }
+    hint.style.display='none';ib.style.display='none';
     return;
   }
 
@@ -3069,8 +3073,11 @@ function updateInteract(){
     }
   }
 
-  if(slideOpen&&endVideoActive&&_getPlayerWP().distanceTo(slideMouth)<3.2){
-    nearTV='SLIDE';label='WATCH';$('xh').classList.add('lock');
+  if(slideOpen&&endVideoActive&&slideDoorGrp&&!slideDoorUsed){
+    slideDoorGrp.visible=true;
+    if(_getPlayerWP().distanceTo(slideDoorGrp.position)<3.5){
+      nearTV='SLIDE';label='WATCH';$('xh').classList.add('lock');
+    }
   }
   if(!nearTV){
     $('xh').classList.remove('lock');
