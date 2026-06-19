@@ -209,11 +209,11 @@ const isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
 
 // ── VIDEO ARCHIVE (5 gated clips) ──
 const VIDS=[
-  {url:'https://www.youtube.com/embed/zprJXFASoNs',lbl:'ARCHIVE RECORD — 30 DEC 2025',gate:true},
-  {url:'https://www.youtube.com/embed/H724ZGObr4g',lbl:'THE MIRROR',gate:true},
-  {url:'https://www.youtube.com/embed/fkoWAO_CdWA',lbl:'THE OBSERVATORY',gate:true},
-  {url:'https://www.youtube.com/embed/jDQ9zZ0IGFw',lbl:'THE ECHO CHAMBER',gate:true},
-  {url:'https://www.youtube.com/embed/RNWmEeJLGnI',lbl:'THE CALORIC CON',gate:true},
+  {url:'https://www.youtube.com/embed/zprJXFASoNs',lbl:'ARCHIVE RECORD — 30 DEC 2025',gate:true,vrUrl:'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/Factual%20Verification.mp4'},
+  {url:'https://www.youtube.com/embed/H724ZGObr4g',lbl:'THE MIRROR',gate:true,vrUrl:'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/Deanwitherssees.mp4'},
+  {url:'https://www.youtube.com/embed/fkoWAO_CdWA',lbl:'THE OBSERVATORY',gate:true,vrUrl:'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/deanwithersreacts.mp4'},
+  {url:'https://www.youtube.com/embed/jDQ9zZ0IGFw',lbl:'THE ECHO CHAMBER',gate:true,vrUrl:'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/deanwithersvshimself.mp4'},
+  {url:'https://www.youtube.com/embed/RNWmEeJLGnI',lbl:'THE CALORIC CON',gate:true,vrUrl:'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/deanxsantana.mp4'},
   {url:null,lbl:'DEBATE 06 — SIGNAL LOST'},
   {url:'https://earthlingofficial.com/slaughter.mp4',lbl:'THE FINAL RECORD',gate:false,isMP4:true},
   {url:null,lbl:'DEBATE 09 — SIGNAL LOST'},
@@ -352,11 +352,11 @@ let slideOpen=false, slideMouth=new THREE.Vector3(168,2,68), slideLight=null, sl
 // ── ENDING SEQUENCE ──
 const END_SEQUENCE=[2,1,3,0,4];
 const END_TV_COLORS=[
-  {vidIdx:0, hex:0xcc0066, css:'#cc0066', label:'2:37'},
-  {vidIdx:1, hex:0x1155cc, css:'#1155cc', label:'0:28'},
-  {vidIdx:2, hex:0x6600cc, css:'#6600cc', label:'0:09'},
-  {vidIdx:3, hex:0x007733, css:'#007733', label:'2:09'},
-  {vidIdx:4, hex:0xbb4400, css:'#bb4400', label:'20:31'},
+  {vidIdx:0,hex:0xcc0066,css:'#cc0066',label:'2:37',  shape:'circle',  title:'Factual Verification of Interaction with Dean Withers'},
+  {vidIdx:1,hex:0x1155cc,css:'#1155cc',label:'0:28',  shape:'triangle',title:'Dean Withers Sees Own Reflection For First Time | Recursive Loop'},
+  {vidIdx:2,hex:0x6600cc,css:'#6600cc',label:'0:09',  shape:'diamond', title:'Dean Withers reacts to my documentary starring himself; Deanus Politicus Carnivorus Paradoxus'},
+  {vidIdx:3,hex:0x007733,css:'#007733',label:'2:09',  shape:'hex',     title:'Dean Withers vs himself! The only debate he can\'t win | Unsurrounded'},
+  {vidIdx:4,hex:0xbb4400,css:'#bb4400',label:'20:31', shape:'pill',    title:'Dean Withers x Santana x The Vegan King x Earthling | One Big Happy Family!'},
 ];
 const END_REWARD_VIDEO='https://earthlingofficial.com/slaughter.mp4';
 const EXIT_VIDEO='https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/MindVideo_20260607173600_104.mp4';
@@ -1328,6 +1328,7 @@ const collectedTokens=new Set();
 function collectToken(vidIdx){
   if(collectedTokens.has(vidIdx))return;
   collectedTokens.add(vidIdx);
+  saveCheckpoint();
   const tok=TOKENS[vidIdx];
   if(!tok)return;
   if(vrMode){
@@ -1335,7 +1336,7 @@ function collectToken(vidIdx){
     setTimeout(()=>blip(660,0.25,'sine',0.09),160);
     setTimeout(()=>blip(880,0.2,'sine',0.06),320);
     const shapes={circle:'●',triangle:'▲',diamond:'◆',hex:'⬡',pill:'▬'};
-    whisper('TOKEN COLLECTED\n'+(shapes[tok.shape]||'?')+'  '+(tok.time||''));
+    whisper('TOKEN COLLECTED\n'+(shapes[tok.shape]||'?'));
     return;
   }
   const tc=$('tokencanvas'), tx=tc.getContext('2d');
@@ -1352,12 +1353,8 @@ function collectToken(vidIdx){
   else{ tx.moveTo(mx-rr,my-rr*0.4);tx.arcTo(mx+rr,my-rr*0.4,mx+rr,my+rr*0.4,rr*0.4);tx.arcTo(mx+rr,my+rr*0.4,mx-rr,my+rr*0.4,rr*0.4);tx.arcTo(mx-rr,my+rr*0.4,mx-rr,my-rr*0.4,rr*0.4);tx.arcTo(mx-rr,my-rr*0.4,mx+rr,my-rr*0.4,rr*0.4);tx.closePath(); }
   tx.fill();
   tx.shadowBlur=0;
-  if(tok.time){
-    tx.fillStyle='#fff';tx.font='bold 26px "Courier New",monospace';tx.textAlign='center';tx.textBaseline='middle';
-    tx.fillText(tok.time,mx,my);
-  }
   const shapes={circle:'●',triangle:'▲',diamond:'◆',hex:'⬡',pill:'▬'};
-  $('tokenlabel').textContent=(shapes[tok.shape]||'?')+'  '+(tok.time||'— ');
+  $('tokenlabel').textContent=(shapes[tok.shape]||'?');
   const tm=$('tokenmask'); tm.style.display='flex';
   setTimeout(()=>{ tm.style.display='none'; },4200);
 }
@@ -1467,6 +1464,7 @@ function init(){
 
   scene.add(new THREE.AmbientLight(0x33312a,0.65));
   buildVideoObject();
+  loadCheckpoint();
   buildWorld();
   buildShadowFig();
   buildBlackFig();
@@ -2050,7 +2048,9 @@ function playTV(tv){
   }
   tv.seen=true;tintSeen(tv);
 
-  if(v.isMP4){
+  if(vrMode&&v.vrUrl){
+    _playVRFinalTV(tv,{url:v.vrUrl,isMP4:true});
+  } else if(v.isMP4){
     if(vrMode){
       _playVRFinalTV(tv,v);
     } else if(videoMP4Obj){
@@ -2082,6 +2082,7 @@ function playTV(tv){
   if(v.gate&&!tv.archived){
     tv.archived=true;archived.add(tv.vidIdx);
     updateArch();
+    saveCheckpoint();
     whisper(WHISPERS[Math.floor(Math.random()*WHISPERS.length)]);
     const door=doorList.find(d=>d.vidIdx===tv.vidIdx);
     if(door&&!door.shown){
@@ -2192,6 +2193,7 @@ function buildWorld(){
   buildR5b(96,48);
   buildSlideDoor();
   buildEnd(144,48);
+  applyCheckpoint();
 }
 
 function buildR1(ox,oz){
@@ -2321,7 +2323,7 @@ function buildEnd(ox,oz){
   const eL=new THREE.PointLight(0x6fae7a,0.6,30);eL.position.set(cx,WH-0.5,cz);scene.add(eL);lights.push({x:cx,z:cz,i:0.6});
   const sL=new THREE.PointLight(0xbfeccb,0.5,20);sL.position.set(cx-2,3.2,cz+4);scene.add(sL);
   T(["DEAN'S CHOICE"],5,0.62,'#c8b86a','#060300',20,cx,2.6,oz+1.2,0);
-  T(['order the timestamps.','shortest to longest.','activate each screen.'],4,0.8,'#4a6a4a','#040600',11,cx,2,oz+46.6,Math.PI);
+  T(['find each shape.','go to youtube.','match colour to shape.','order: shortest to longest.'],4,0.9,'#4a6a4a','#040600',10,cx,2,oz+46.6,Math.PI);
   floorSign(['ORDER THEM'],cx,oz+20,2.4);
   floorSign(['SHORTEST → LONGEST'],cx+8,oz+36,3);
   ceilSign(['THE SEQUENCE'],cx-8,oz+14,2.2);
@@ -2356,55 +2358,48 @@ function buildEnd(ox,oz){
     {x:ox+46, z:cz,      ry:-Math.PI/2,  isCeiling:false},
     {x:cx,    z:cz,      ry:0,           isCeiling:true},
   ];
-  const posOrder=[2,1,3,0,4];
-  tvPositions.forEach((pos,i)=>{
-    const ci=END_TV_COLORS.findIndex(c=>c.vidIdx===posOrder[i]);
-    const col=END_TV_COLORS[ci>=0?ci:i];
-    buildEndTV(pos,col);
-  });
+  const shuffledColors=[...END_TV_COLORS].sort(()=>Math.random()-0.5);
+  tvPositions.forEach((pos,i)=>buildEndTV(pos,shuffledColors[i]));
 }
 
 function buildEndTV(pos,col){
   const grp=new THREE.Group();
-  const panelCol=new THREE.Color(col.hex).multiplyScalar(0.18);
-  const backPanel=new THREE.Mesh(
-    new THREE.BoxGeometry(3.6,2.8,0.06),
-    new THREE.MeshStandardMaterial({
-      color:panelCol,roughness:0.4,metalness:0.1,
-      emissive:new THREE.Color(col.hex),emissiveIntensity:0.55,
-      side:THREE.FrontSide
-    })
-  );
+  const backMat=new THREE.MeshStandardMaterial({
+    color:0x0e0c0a,roughness:0.5,metalness:0.1,
+    emissive:new THREE.Color(col.hex),emissiveIntensity:0.05,
+    side:THREE.FrontSide
+  });
+  const backPanel=new THREE.Mesh(new THREE.BoxGeometry(3.6,2.8,0.06),backMat);
   backPanel.position.set(0,pos.isCeiling?0:2,-0.1);
   grp.add(backPanel);
   const frame=new THREE.Mesh(new THREE.BoxGeometry(2.5,1.7,0.12),
     new THREE.MeshStandardMaterial({color:0x080808,roughness:0.9,metalness:0.3,emissive:0x020202}));
   frame.position.set(0,pos.isCeiling?0:2,0);
   grp.add(frame);
-  const screenMat=new THREE.MeshBasicMaterial({map:fuzzTex,side:THREE.DoubleSide,color:0x111111});
+  const shapeTex=makeShapeTex(col.shape);
+  const screenMat=new THREE.MeshBasicMaterial({map:shapeTex,side:THREE.DoubleSide});
   const scr=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.4),screenMat);
   scr.position.set(0,0,0.07);
   frame.add(scr);
-  const lbl=txt([col.label],2.2,0.26,col.css,null,10);
-  lbl.position.set(0,pos.isCeiling?0.98:-1.02,0.05);
-  frame.add(lbl);
-  const glow=new THREE.PointLight(col.hex,0,8);
-  glow.position.set(0,pos.isCeiling?0:2, pos.isCeiling?-0.8:0.8);
-  grp.add(glow);
-  grp.position.set(pos.x, pos.isCeiling?WH-0.01:0, pos.z);
-  if(pos.isCeiling){
-    grp.rotation.x=Math.PI/2;
-  } else {
-    grp.rotation.y=pos.ry;
+  if(!pos.isCeiling){
+    const titleLines=wrapTitle(col.title,28);
+    const th=Math.max(0.18,titleLines.length*0.15);
+    const titleSign=txt(titleLines,3.2,th,'#706858',null,7);
+    titleSign.position.set(0,-1.32,0.06);
+    frame.add(titleSign);
   }
+  const glow=new THREE.PointLight(col.hex,0,8);
+  glow.position.set(0,pos.isCeiling?0:2,pos.isCeiling?-0.8:0.8);
+  grp.add(glow);
+  grp.position.set(pos.x,pos.isCeiling?WH-0.01:0,pos.z);
+  if(pos.isCeiling){grp.rotation.x=Math.PI/2;}
+  else{grp.rotation.y=pos.ry;}
   scene.add(grp);
   endTVs.push({
-    grp, frame, scr, screenMat, glow,
-    vidIdx:col.vidIdx,
-    col,
-    wp:new THREE.Vector3(pos.x, pos.isCeiling?WH-0.5:2, pos.z),
-    activated:false,
-    isCeiling:pos.isCeiling
+    grp,frame,scr,screenMat,shapeTex,backMat,glow,
+    vidIdx:col.vidIdx,col,
+    wp:new THREE.Vector3(pos.x,pos.isCeiling?WH-0.5:2,pos.z),
+    activated:false,isCeiling:pos.isCeiling
   });
 }
 
@@ -2417,41 +2412,117 @@ function buildSlide(points,closed){
   return m;
 }
 
+function makeShapeTex(shape){
+  const c=document.createElement('canvas');c.width=256;c.height=256;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#06060a';ctx.fillRect(0,0,256,256);
+  ctx.strokeStyle='rgba(210,200,178,0.72)';ctx.lineWidth=10;ctx.lineJoin='round';ctx.lineCap='round';
+  const cx=128,cy=128,r=86;
+  ctx.beginPath();
+  switch(shape){
+    case'circle':ctx.arc(cx,cy,r,0,Math.PI*2);break;
+    case'triangle':{for(let i=0;i<3;i++){const a=Math.PI/2+i*(Math.PI*2/3);i===0?ctx.moveTo(cx+r*Math.cos(a),cy-r*Math.sin(a)):ctx.lineTo(cx+r*Math.cos(a),cy-r*Math.sin(a));}ctx.closePath();break;}
+    case'diamond':ctx.moveTo(cx,cy-r);ctx.lineTo(cx+r*0.68,cy);ctx.lineTo(cx,cy+r);ctx.lineTo(cx-r*0.68,cy);ctx.closePath();break;
+    case'hex':{for(let i=0;i<6;i++){const a=i*Math.PI/3;i===0?ctx.moveTo(cx+r*Math.cos(a),cy+r*Math.sin(a)):ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));}ctx.closePath();break;}
+    case'pill':{const pw=r*0.46,ph=r*0.78;ctx.moveTo(cx-pw,cy-ph+pw);ctx.arc(cx,cy-ph+pw,pw,Math.PI,0);ctx.lineTo(cx+pw,cy+ph-pw);ctx.arc(cx,cy+ph-pw,pw,0,Math.PI);ctx.closePath();break;}
+  }
+  ctx.stroke();
+  return new THREE.CanvasTexture(c);
+}
+
+function wrapTitle(title,maxChars){
+  const words=title.split(' ');const lines=[];let line='';
+  for(const w of words){
+    if(line&&(line+' '+w).length>maxChars){lines.push(line);line=w;}
+    else{line=line?(line+' '+w):w;}
+  }
+  if(line)lines.push(line);
+  return lines;
+}
+
+let _cpActivated=[];
+function saveCheckpoint(){
+  try{
+    localStorage.setItem('godean9cp',JSON.stringify({
+      ar:[...archived],tk:[...collectedTokens],
+      seq:endSequencePos,sol:endSolved,sl:slideOpen,ev:endVideoActive,
+      ac:endTVs.filter(t=>t.activated).map(t=>t.vidIdx)
+    }));
+  }catch(e){}
+}
+function loadCheckpoint(){
+  try{
+    const d=localStorage.getItem('godean9cp');if(!d)return;
+    const s=JSON.parse(d);
+    if(s.ar)s.ar.forEach(v=>archived.add(v));
+    if(s.tk)s.tk.forEach(v=>collectedTokens.add(v));
+    if(typeof s.seq==='number')endSequencePos=s.seq;
+    if(s.sol)endSolved=true;
+    if(s.sl)slideOpen=true;
+    if(s.ev)endVideoActive=true;
+    _cpActivated=s.ac||[];
+  }catch(e){}
+}
+function applyCheckpoint(){
+  if(_cpActivated.length){
+    _cpActivated.forEach(vidIdx=>{
+      const tv=endTVs.find(t=>t.vidIdx===vidIdx);
+      if(!tv)return;
+      tv.activated=true;
+      tv.screenMat.color.setHex(tv.col.hex);tv.screenMat.map=null;tv.screenMat.needsUpdate=true;
+      tv.backMat.emissiveIntensity=0.55;tv.backMat.needsUpdate=true;
+      tv.glow.intensity=2.2;
+    });
+    _cpActivated=[];
+  }
+  if(endSolved){
+    endTVs.forEach(t=>{
+      t.activated=true;
+      t.screenMat.color.setHex(0xffffff);t.screenMat.map=null;t.screenMat.needsUpdate=true;
+      t.backMat.emissiveIntensity=0.55;t.backMat.needsUpdate=true;
+      t.glow.intensity=3.5;t.glow.color.setHex(t.col.hex);
+    });
+  }
+  if(endVideoActive&&endWall)dropEndWall();
+  if(slideOpen&&slideMat){slideMat.emissive.setHex(0x0f7a3a);slideMat.emissiveIntensity=1.0;if(slideLight)slideLight.intensity=1.8;}
+  updateArch();
+}
+function showOneAndDone(){
+  ending=true;$('fade').classList.add('on');
+  setTimeout(()=>{
+    const ov=document.createElement('div');
+    ov.style.cssText='position:fixed;inset:0;background:#060402;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;padding:32px;text-align:center';
+    ov.innerHTML='<div style="color:#c8b86a;font-family:\'Courier New\',monospace;font-size:clamp(16px,3.5vw,26px);letter-spacing:8px;margin-bottom:10px">SEQUENCE BROKEN</div><div style="color:#3a2a18;font-family:\'Courier New\',monospace;font-size:clamp(8px,1.3vw,11px);letter-spacing:4px;margin-bottom:38px">DEAN SLIPS THROUGH YOUR GRASP</div><button id="cp-btn" style="padding:12px 40px;background:rgba(200,184,106,.07);border:1px solid rgba(200,184,106,.34);color:#c8b86a;font-family:\'Courier New\',monospace;font-size:11px;letter-spacing:5px;cursor:pointer">CONTINUE FROM CHECKPOINT</button><div style="margin-top:14px;color:#1e1a12;font-family:\'Courier New\',monospace;font-size:9px;letter-spacing:3px">YOUR PROGRESS IS SAVED</div>';
+    document.body.appendChild(ov);
+    document.getElementById('cp-btn').addEventListener('click',()=>location.reload());
+  },1300);
+}
+
 function pressEndTV(tv){
   if(endSolved||tv.activated)return;
   const expectedVidIdx=END_SEQUENCE[endSequencePos];
   if(tv.vidIdx===expectedVidIdx){
     tv.activated=true;
     endSequencePos++;
-    tv.screenMat.color.setHex(tv.col.hex);
-    tv.screenMat.map=null;
-    tv.screenMat.needsUpdate=true;
+    tv.screenMat.color.setHex(tv.col.hex);tv.screenMat.map=null;tv.screenMat.needsUpdate=true;
+    tv.backMat.emissiveIntensity=0.55;tv.backMat.needsUpdate=true;
     tv.glow.intensity=2.2;
     blip(330+endSequencePos*80,0.5,'sine',0.12);
     whisper('correct.');
-    if(endSequencePos>=5) solveSequence();
+    saveCheckpoint();
+    if(endSequencePos>=5) setTimeout(solveSequence,800);
     else setObjective('Correct. '+(5-endSequencePos)+' remaining.');
   } else {
-    endSequencePos=0;
-    endTVs.forEach(t=>{
-      if(t.activated){
-        t.activated=false;
-        t.screenMat.color.setHex(0x111111);
-        t.screenMat.map=fuzzTex;
-        t.screenMat.needsUpdate=true;
-        t.glow.intensity=0;
-      }
-    });
     strobeOnce();
     blip(80,0.4,'sawtooth',0.15);
     sanity=Math.max(0,sanity-8);
-    flashFact('WRONG ORDER.\nRESET.');
-    setObjective('Wrong. Start again. Shortest timestamp first.');
+    showOneAndDone();
   }
 }
 
 function dropEndWall(){
   if(!endWall)return;
+  saveCheckpoint();
   for(let i=colliders.length-1;i>=0;i--){
     const c=colliders[i];
     if(c.x0>=144&&c.x1<=(144+T_WALL+1)&&c.z0<=48&&c.z1>=96){
@@ -2495,12 +2566,15 @@ function buildSlideDoor(){
   if(slideDoorGrp)return;
   const x=slideMouth.x+12, z=slideMouth.z+10;
   const grp=new THREE.Group();
-  const dMat=new THREE.MeshStandardMaterial({color:0x1a0a0a,roughness:0.7,metalness:0.3,emissive:0x0a0505,emissiveIntensity:0.4});
-  const door=new THREE.Mesh(new THREE.BoxGeometry(1.5,3.2,0.12),dMat);door.position.set(0,1.6,0);grp.add(door);
-  const fMat=new THREE.MeshStandardMaterial({color:0x2a1a0a,roughness:0.5,metalness:0.5,emissive:0x0f0808,emissiveIntensity:0.3});
+  const wMat=new THREE.MeshStandardMaterial({color:0xf2ede4,roughness:0.22,metalness:0.04,emissive:0x3a3320,emissiveIntensity:0.6});
+  const door=new THREE.Mesh(new THREE.BoxGeometry(1.45,3.3,0.09),wMat);door.position.set(0,1.65,0);door.castShadow=true;grp.add(door);
+  const fMat=new THREE.MeshStandardMaterial({color:0xe2ddd4,roughness:0.3,metalness:0.03,emissive:0x1a160c,emissiveIntensity:0.4});
   const fTop=new THREE.Mesh(new THREE.BoxGeometry(1.75,0.12,0.13),fMat);fTop.position.set(0,3.36,0);grp.add(fTop);
   const fL=new THREE.Mesh(new THREE.BoxGeometry(0.13,3.4,0.13),fMat);fL.position.set(-0.82,1.65,0);grp.add(fL);
   const fR=new THREE.Mesh(new THREE.BoxGeometry(0.13,3.4,0.13),fMat);fR.position.set(0.82,1.65,0);grp.add(fR);
+  const hMat=new THREE.MeshStandardMaterial({color:0xc8a830,roughness:0.12,metalness:0.9,emissive:0x2a2008,emissiveIntensity:0.5});
+  const handle=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.24,0.13),hMat);handle.position.set(0.56,1.46,0.11);grp.add(handle);
+  const hBase=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.06),hMat);hBase.position.set(0.56,1.46,0.07);grp.add(hBase);
   grp.position.set(x,0,z);
   grp.rotation.y=Math.PI;
   grp.visible=false;
@@ -2541,7 +2615,7 @@ function startExitVideo(){
       tvVideoEl.load();
       tvVideoEl.play().catch(()=>{});
       tvVideoEl.onended=()=>finishExitVideo();
-      videoMP4Obj.position.set(slideMouth.x+12,1.6,slideMouth.z+10);
+      videoMP4Obj.position.set(slideMouth.x+12,1.65,slideMouth.z+10);
       videoMP4Obj.rotation.set(0,Math.PI,0);
       videoMP4Obj.visible=true;
     }
@@ -3066,7 +3140,7 @@ function updateInteract(){
     for(const et of endTVs){
       if(!et.activated&&_getPlayerWP().distanceTo(et.wp)<3.8){
         nearTV={isEndTV:true,tv:et};
-        label=et.col.label;
+        label=et.col.shape;
         $('xh').classList.add('lock');
         break;
       }
