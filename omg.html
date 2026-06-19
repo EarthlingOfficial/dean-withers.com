@@ -138,7 +138,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
     <div id="c-stage">STAGE 9 — THE HYPOGEUM</div>
     <div id="c-loadbar"><div id="c-loadfill"></div></div>
     <div id="c-loadtxt">INITIALISING</div>
-    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v12 — BODY RIG / HUD FADE+LASER / VIDEO TEXTURE / VR AUDIO FIX</div>
+    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v13 — BODY FIX (height/facing/bones) / VIDEO MAT FIX / HUD FADE+LASER</div>
   </div>
   <div id="c-phase2">
     <div class="c-p2-series">A VEGAN BROS. SERIES</div>
@@ -429,6 +429,7 @@ function buildDoorVideoPlane(){
 
 // VR door video plane — plane built once, texture recreated fresh each play
 function buildVRDoorVideoPlane(){
+  // Material created without map — gets fully replaced with VideoTexture material at play time
   const mat=new THREE.MeshBasicMaterial({color:0x000000,side:THREE.DoubleSide});
   vrDoorVideoPlane=new THREE.Mesh(new THREE.PlaneGeometry(1.45,3.3),mat);
   vrDoorVideoPlane.visible=false;
@@ -1115,14 +1116,14 @@ function _playVRDoorVideo(door){
   // Unmute — was preloaded muted, now we want audio
   vrDoorVideoEl.muted=false;
 
-  // Recreate VideoTexture fresh so it reads the new video element state
+  // Recreate VideoTexture AND material — swapping map onto existing material is unreliable
   if(vrDoorVideoTex)vrDoorVideoTex.dispose();
   vrDoorVideoTex=new THREE.VideoTexture(vrDoorVideoEl);
   vrDoorVideoTex.minFilter=THREE.LinearFilter;
   vrDoorVideoTex.magFilter=THREE.LinearFilter;
   if(vrDoorVideoPlane){
-    vrDoorVideoPlane.material.map=vrDoorVideoTex;
-    vrDoorVideoPlane.material.needsUpdate=true;
+    if(vrDoorVideoPlane.material)vrDoorVideoPlane.material.dispose();
+    vrDoorVideoPlane.material=new THREE.MeshBasicMaterial({map:vrDoorVideoTex,side:THREE.DoubleSide});
   }
 
   // Position VR door video plane in front of door
@@ -1718,18 +1719,31 @@ function updateVRHUD(dt){
 // VR-only: PC/mobile path is completely unaffected
 // ════════════════════════════════════════════════════════════════
 let vrBodyModel=null,vrBodyMixer=null,vrBodyActions={},vrBodyCurrentAction=null,vrBodyLoaded=false;
+let vrBodyYOffset=0;
 const vrBodyBones={};
+const vrBodyMeshes=[];  // cached — avoids per-frame traverse
 const _bEuler=new THREE.Euler();
 const _bV1=new THREE.Vector3(),_bV2=new THREE.Vector3(),_bV3=new THREE.Vector3();
+
+// Bone names to look for (fallback if isBone flag not set by loader)
+const _BODY_BONE_NAMES=['Hips','Spine','Spine1','Chest','Neck','Head','HeadTop',
+  'LeftShoulder','LeftArm','LeftForeArm','LeftHand',
+  'RightShoulder','RightArm','RightForeArm','RightHand',
+  'LeftUpLeg','LeftLeg','LeftFoot','LeftToeBase',
+  'RightUpLeg','RightLeg','RightFoot','RightToeBase'];
 
 function buildVRBody(){
   if(typeof THREE.GLTFLoader!=='function')return;
   new THREE.GLTFLoader().load(ENTITY_GLB_URL,gltf=>{
     vrBodyModel=gltf.scene;
+
+    // Scale to 1.7m then compute Y lift so feet sit on floor
     const box=new THREE.Box3().setFromObject(vrBodyModel);
     const sz=new THREE.Vector3();box.getSize(sz);
     vrBodyModel.scale.setScalar(1.7/Math.max(sz.x,sz.y,sz.z));
     vrBodyModel.updateMatrixWorld(true);
+    const scaledBox=new THREE.Box3().setFromObject(vrBodyModel);
+    vrBodyYOffset=-scaledBox.min.y;  // lift feet to Y=0
 
     vrBodyModel.traverse(child=>{
       if(child.isMesh){
@@ -1740,10 +1754,15 @@ function buildVRBody(){
           depthWrite:false,side:THREE.FrontSide
         });
         child.castShadow=false;child.renderOrder=2;
+        vrBodyMeshes.push(child);  // cache for fast opacity updates
       }
-      if(child.isBone||child.type==='Bone')vrBodyBones[child.name]=child;
+      // Find bones by isBone flag OR by name (GLTF loaders vary)
+      if(child.isBone||child.type==='Bone'||_BODY_BONE_NAMES.includes(child.name)){
+        vrBodyBones[child.name]=child;
+      }
     });
 
+    // Hide head — you'd clip through it in first-person
     if(vrBodyBones.Head)vrBodyBones.Head.scale.setScalar(0.001);
     if(vrBodyBones.HeadTop)vrBodyBones.HeadTop.scale.setScalar(0.001);
 
@@ -1765,16 +1784,18 @@ function updateVRBody(dt){
   if(!vrMode){vrBodyModel.visible=false;return;}
   vrBodyModel.visible=true;
 
-  vrBodyModel.traverse(c=>{
-    if(c.isMesh&&c.material.opacity<0.72)c.material.opacity=Math.min(0.72,c.material.opacity+dt*1.5);
-  });
+  // Fade in using cached mesh list — no traverse needed
+  for(let i=0;i<vrBodyMeshes.length;i++){
+    const m=vrBodyMeshes[i].material;
+    if(m.opacity<0.72)m.opacity=Math.min(0.72,m.opacity+dt*1.5);
+  }
 
-  // Follow camera XZ, stand on floor, face camera Y rotation
-  vrBodyModel.position.set(camera.position.x,0,camera.position.z);
+  // Stand on floor (Y offset), follow camera XZ, face same direction + PI (model faces +Z, camera faces -Z)
+  vrBodyModel.position.set(camera.position.x, vrBodyYOffset, camera.position.z);
   _bEuler.setFromQuaternion(camera.quaternion,'YXZ');
-  vrBodyModel.rotation.y=_bEuler.y;
+  vrBodyModel.rotation.y=_bEuler.y+Math.PI;
 
-  // Pick animation from speed
+  // Animation based on movement speed
   const spd=Math.sqrt(vel.x*vel.x+vel.z*vel.z);
   const clipName=spd>8?'Run':spd>1.5?'Walk':'Idle';
   const next=vrBodyActions[clipName];
@@ -1783,11 +1804,14 @@ function updateVRBody(dt){
     next.play();vrBodyCurrentAction=next;
   }
   if(vrBodyMixer)vrBodyMixer.update(dt);
-  vrBodyModel.updateMatrixWorld(true);
 
-  // IK arms to controllers
-  if(vrControllerLeft)_driveArm(false);
-  if(vrControllerRight)_driveArm(true);
+  // IK arms — only update world matrices when controllers are present
+  const hasCtrl=vrControllerLeft||vrControllerRight;
+  if(hasCtrl){
+    vrBodyModel.updateMatrixWorld(true);
+    if(vrControllerLeft)_driveArm(false);
+    if(vrControllerRight)_driveArm(true);
+  }
 }
 
 function _driveArm(isRight){
