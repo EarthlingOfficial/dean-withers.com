@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -138,7 +139,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
     <div id="c-stage">STAGE 9 — THE HYPOGEUM</div>
     <div id="c-loadbar"><div id="c-loadfill"></div></div>
     <div id="c-loadtxt">INITIALISING</div>
-    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v13 — BODY FIX (height/facing/bones) / VIDEO MAT FIX / HUD FADE+LASER</div>
+    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v14 — NO BODY / HUD LOWER / VIDEO CORS FIX / VR SANITY / SMOOTH MOVE</div>
   </div>
   <div id="c-phase2">
     <div class="c-p2-series">A VEGAN BROS. SERIES</div>
@@ -208,13 +209,13 @@ const isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
 
 // ── VIDEO ARCHIVE (5 gated clips) ──
 const VIDS=[
-  {url:'https://www.youtube.com/embed/zprJXFASoNs',lbl:'ARCHIVE RECORD — 30 DEC 2025',gate:true},
+  {url:'https://www.youtube.com/embed/zprJXFASoNs',lbl:'ARCHIVE RECORD — 30 DEC 2025',gate:true,vrUrl:'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/Factual%20Verification.mp4'},
   {url:'https://www.youtube.com/embed/H724ZGObr4g',lbl:'THE MIRROR',gate:true},
   {url:'https://www.youtube.com/embed/fkoWAO_CdWA',lbl:'THE OBSERVATORY',gate:true},
   {url:'https://www.youtube.com/embed/jDQ9zZ0IGFw',lbl:'THE ECHO CHAMBER',gate:true},
   {url:'https://www.youtube.com/embed/RNWmEeJLGnI',lbl:'THE CALORIC CON',gate:true},
   {url:null,lbl:'DEBATE 06 — SIGNAL LOST'},
-  {url:'https://github.com/EarthlingOfficial/dean-withers.com/releases/download/v1/0607.1.mp4',lbl:'THE FINAL RECORD',gate:false,isMP4:true},
+  {url:'https://earthlingofficial.com/slaughter.mp4',lbl:'THE FINAL RECORD',gate:false,isMP4:true},
   {url:null,lbl:'DEBATE 09 — SIGNAL LOST'},
   {url:null,lbl:'DEBATE 10 — SIGNAL LOST'},
   {url:null,lbl:'DEBATE 11 — SIGNAL LOST'},
@@ -225,7 +226,7 @@ const GATE_TOTAL=VIDS.filter(v=>v.gate).length;
 // ── DOOR AI VIDEOS (MP4s from GitHub repo/releases) ──
 const DOOR_VIDS=[
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
-  'https://github.com/EarthlingOfficial/dean-withers.com/releases/download/v2/playroom.mp4',
+  'https://earthlingofficial.com/playroom1.mp4',
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
@@ -318,7 +319,7 @@ let playerRig=null;
 let xrSession=null;
 let vrSnapCooldown=false;
 let vrInteractCooldown=false;
-let vrMoveX=0,vrMoveZ=0;
+let vrMoveX=0,vrMoveZ=0,vrMoveXSmooth=0,vrMoveZSmooth=0;
 let vrControllerRight=null,vrControllerLeft=null;
 let vrLaserRight=null,vrLaserLeft=null;
 let vrHintPlane=null;
@@ -351,13 +352,13 @@ let slideOpen=false, slideMouth=new THREE.Vector3(168,2,68), slideLight=null, sl
 // ── ENDING SEQUENCE ──
 const END_SEQUENCE=[2,1,3,0,4];
 const END_TV_COLORS=[
-  {vidIdx:0, hex:0xcc0066, css:'#cc0066', label:'2:37'},
-  {vidIdx:1, hex:0x1155cc, css:'#1155cc', label:'0:28'},
-  {vidIdx:2, hex:0x6600cc, css:'#6600cc', label:'0:09'},
-  {vidIdx:3, hex:0x007733, css:'#007733', label:'2:09'},
-  {vidIdx:4, hex:0xbb4400, css:'#bb4400', label:'20:31'},
+  {vidIdx:0,hex:0xcc0066,css:'#cc0066',label:'2:37',  shape:'circle',  title:'Factual Verification of Interaction with Dean Withers'},
+  {vidIdx:1,hex:0x1155cc,css:'#1155cc',label:'0:28',  shape:'triangle',title:'Dean Withers Sees Own Reflection For First Time | Recursive Loop'},
+  {vidIdx:2,hex:0x6600cc,css:'#6600cc',label:'0:09',  shape:'diamond', title:'Dean Withers reacts to my documentary starring himself; Deanus Politicus Carnivorus Paradoxus'},
+  {vidIdx:3,hex:0x007733,css:'#007733',label:'2:09',  shape:'hex',     title:'Dean Withers vs himself! The only debate he can\'t win | Unsurrounded'},
+  {vidIdx:4,hex:0xbb4400,css:'#bb4400',label:'20:31', shape:'pill',    title:'Dean Withers x Santana x The Vegan King x Earthling | One Big Happy Family!'},
 ];
-const END_REWARD_VIDEO='https://github.com/EarthlingOfficial/dean-withers.com/releases/download/v1/0607.1.mp4';
+const END_REWARD_VIDEO='https://earthlingofficial.com/slaughter.mp4';
 const EXIT_VIDEO='https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/MindVideo_20260607173600_104.mp4';
 let endTVs=[];
 let endSequencePos=0;
@@ -367,6 +368,7 @@ let endWall=null;
 let exitVideoActive=false;
 let exitVideoCanSkip=false;
 let exitVideoEl=null;
+let slideDoorGrp=null,slideDoorUsed=false;
 
 // Input
 let kW=0,kA=0,kS=0,kD=0;
@@ -1110,7 +1112,8 @@ function _playVRDoorVideo(door){
   // Ensure AudioContext is running before playing video
   if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});
 
-  vrDoorVideoEl.src=url;
+  // Add unique cache-buster so browser fetches fresh with CORS headers even if URL was cached non-CORS
+  vrDoorVideoEl.src=url+(url.includes('?')?'&':'?')+'_vr='+Date.now();
   vrDoorVideoEl.load();
 
   // Unmute — was preloaded muted, now we want audio
@@ -1325,6 +1328,7 @@ const collectedTokens=new Set();
 function collectToken(vidIdx){
   if(collectedTokens.has(vidIdx))return;
   collectedTokens.add(vidIdx);
+  saveCheckpoint();
   const tok=TOKENS[vidIdx];
   if(!tok)return;
   if(vrMode){
@@ -1464,6 +1468,7 @@ function init(){
 
   scene.add(new THREE.AmbientLight(0x33312a,0.65));
   buildVideoObject();
+  loadCheckpoint();
   buildWorld();
   buildShadowFig();
   buildBlackFig();
@@ -1477,7 +1482,7 @@ function init(){
   setupPost();
   setupSkipBtn();
   buildVRHUD();
-  buildVRBody();
+  buildVRSanityEffect();
 
   renderer.compile(scene,camera);
   renderer.setRenderTarget(renderTarget);
@@ -1646,7 +1651,7 @@ function buildVRHUD(){
   const mat=new THREE.MeshBasicMaterial({map:vrHUDTex,transparent:true,opacity:0.12,depthTest:false,side:THREE.DoubleSide});
   vrHUDMesh=new THREE.Mesh(geo,mat);
   vrHUDMesh.renderOrder=997;
-  vrHUDMesh.position.set(-0.24,-0.31,-0.80);
+  vrHUDMesh.position.set(-0.24,-0.383,-0.80);
   vrHUDMesh.visible=false;
   camera.add(vrHUDMesh);
   _drawVRHUD();
@@ -1715,157 +1720,32 @@ function updateVRHUD(dt){
 }
 
 // ════════════════════════════════════════════════════════════════
-// VR BODY RIG — second entity instance, arm IK, walk animation
-// VR-only: PC/mobile path is completely unaffected
 // ════════════════════════════════════════════════════════════════
-let vrBodyModel=null,vrBodyMixer=null,vrBodyActions={},vrBodyCurrentAction=null,vrBodyLoaded=false;
-let vrBodyYOffset=0;
-const vrBodyBones={};
-const vrBodyMeshes=[];  // cached — avoids per-frame traverse
-const _bEuler=new THREE.Euler();
-const _bV1=new THREE.Vector3(),_bV2=new THREE.Vector3(),_bV3=new THREE.Vector3();
+// VR SANITY EFFECT — wavy camera wobble + colour overlay + grain
+// ════════════════════════════════════════════════════════════════
+let vrSanityOverlay=null,vrGrainMesh=null,vrGrainCanvas=null,vrGrainCtx=null,vrGrainTex=null;
+let _vrGrainFrame=0;
 
-// Bone names to look for (fallback if isBone flag not set by loader)
-const _BODY_BONE_NAMES=['Hips','Spine','Spine1','Chest','Neck','Head','HeadTop',
-  'LeftShoulder','LeftArm','LeftForeArm','LeftHand',
-  'RightShoulder','RightArm','RightForeArm','RightHand',
-  'LeftUpLeg','LeftLeg','LeftFoot','LeftToeBase',
-  'RightUpLeg','RightLeg','RightFoot','RightToeBase'];
-
-function buildVRBody(){
-  if(typeof THREE.GLTFLoader!=='function')return;
-  new THREE.GLTFLoader().load(ENTITY_GLB_URL,gltf=>{
-    vrBodyModel=gltf.scene;
-
-    // Scale to 1.7m then compute Y lift so feet sit on floor
-    const box=new THREE.Box3().setFromObject(vrBodyModel);
-    const sz=new THREE.Vector3();box.getSize(sz);
-    vrBodyModel.scale.setScalar(1.7/Math.max(sz.x,sz.y,sz.z));
-    vrBodyModel.updateMatrixWorld(true);
-    const scaledBox=new THREE.Box3().setFromObject(vrBodyModel);
-    vrBodyYOffset=-scaledBox.min.y;  // lift feet to Y=0
-
-    vrBodyModel.traverse(child=>{
-      if(child.isMesh){
-        child.material=new THREE.MeshStandardMaterial({
-          color:0x060608,transparent:true,opacity:0,
-          roughness:0.85,metalness:0.12,
-          emissive:0x050310,emissiveIntensity:0.15,
-          depthWrite:false,side:THREE.FrontSide
-        });
-        child.castShadow=false;child.renderOrder=2;
-        vrBodyMeshes.push(child);  // cache for fast opacity updates
-      }
-      // Find bones by isBone flag OR by name (GLTF loaders vary)
-      if(child.isBone||child.type==='Bone'||_BODY_BONE_NAMES.includes(child.name)){
-        vrBodyBones[child.name]=child;
-      }
-    });
-
-    // Hide head — you'd clip through it in first-person
-    if(vrBodyBones.Head)vrBodyBones.Head.scale.setScalar(0.001);
-    if(vrBodyBones.HeadTop)vrBodyBones.HeadTop.scale.setScalar(0.001);
-
-    vrBodyMixer=new THREE.AnimationMixer(vrBodyModel);
-    gltf.animations.forEach(clip=>{
-      const a=vrBodyMixer.clipAction(clip);
-      a.setLoop(THREE.LoopRepeat,-1);
-      vrBodyActions[clip.name]=a;
-    });
-    vrBodyLoaded=true;
-    vrBodyModel.visible=false;
-    playerRig.add(vrBodyModel);
-    if(vrBodyActions.Idle){vrBodyCurrentAction=vrBodyActions.Idle;vrBodyCurrentAction.play();}
-  },undefined,()=>{});
+function buildVRSanityEffect(){
+  // Grain and vignette overlay removed — wavy-walls feel handled via
+  // camera roll in updateVRSanityEffect (post-processing not available in WebXR).
 }
 
-function updateVRBody(dt){
-  if(!vrBodyLoaded||!vrBodyModel)return;
-  if(!vrMode){vrBodyModel.visible=false;return;}
-  vrBodyModel.visible=true;
+function updateVRSanityEffect(dt,t){
+  if(!vrMode)return;
+  const ins=Math.max(0,(100-sanity)/100);
 
-  // Fade in using cached mesh list — no traverse needed
-  for(let i=0;i<vrBodyMeshes.length;i++){
-    const m=vrBodyMeshes[i].material;
-    if(m.opacity<0.72)m.opacity=Math.min(0.72,m.opacity+dt*1.5);
+  // Wavy walls — oscillate the whole scene on X, identical perception to the
+  // PC/mobile post shader UV X-warp. XR tracking sets camera relative to
+  // playerRig so this shift is visible but doesn't fight head tracking.
+  if(ins>0.05){
+    scene.position.x=Math.sin(t*3.8+Math.cos(t*1.4)*1.2)*ins*0.07
+                     +Math.sin(t*6.3+1.7)*ins*0.03
+                     +Math.sin(t*11.2)*(ins>0.4?(ins-0.4)*0.035:0);
+  } else {
+    scene.position.x*=0.88;
+    if(Math.abs(scene.position.x)<0.001)scene.position.x=0;
   }
-
-  // Stand on floor (Y offset), follow camera XZ, face same direction + PI (model faces +Z, camera faces -Z)
-  vrBodyModel.position.set(camera.position.x, vrBodyYOffset, camera.position.z);
-  _bEuler.setFromQuaternion(camera.quaternion,'YXZ');
-  vrBodyModel.rotation.y=_bEuler.y+Math.PI;
-
-  // Animation based on movement speed
-  const spd=Math.sqrt(vel.x*vel.x+vel.z*vel.z);
-  const clipName=spd>8?'Run':spd>1.5?'Walk':'Idle';
-  const next=vrBodyActions[clipName];
-  if(next&&next!==vrBodyCurrentAction){
-    if(vrBodyCurrentAction)vrBodyCurrentAction.crossFadeTo(next,0.25,true);
-    next.play();vrBodyCurrentAction=next;
-  }
-  if(vrBodyMixer)vrBodyMixer.update(dt);
-
-  // IK arms — only update world matrices when controllers are present
-  const hasCtrl=vrControllerLeft||vrControllerRight;
-  if(hasCtrl){
-    vrBodyModel.updateMatrixWorld(true);
-    if(vrControllerLeft)_driveArm(false);
-    if(vrControllerRight)_driveArm(true);
-  }
-}
-
-function _driveArm(isRight){
-  const ctrl=isRight?vrControllerRight:vrControllerLeft;
-  const uBone=vrBodyBones[isRight?'RightArm':'LeftArm'];
-  const lBone=vrBodyBones[isRight?'RightForeArm':'LeftForeArm'];
-  const hBone=vrBodyBones[isRight?'RightHand':'LeftHand'];
-  if(!ctrl||!uBone||!lBone||!hBone)return;
-
-  ctrl.getWorldPosition(_bV1);           // hand target (world)
-  uBone.getWorldPosition(_bV2);          // shoulder (world)
-  lBone.getWorldPosition(_bV3);          // elbow rest (world)
-  const handRest=new THREE.Vector3();hBone.getWorldPosition(handRest);
-
-  const upperLen=Math.max(0.05,_bV2.distanceTo(_bV3));
-  const lowerLen=Math.max(0.05,_bV3.distanceTo(handRest));
-  const toHand=new THREE.Vector3().subVectors(_bV1,_bV2);
-  const dist=Math.min(toHand.length(),(upperLen+lowerLen)*0.98);
-  const cosA=(upperLen*upperLen+dist*dist-lowerLen*lowerLen)/(2*upperLen*Math.max(dist,0.001));
-  const angA=Math.acos(Math.max(-1,Math.min(1,cosA)));
-
-  const fwd=toHand.clone().normalize();
-  const pole=new THREE.Vector3(isRight?1:-1,-0.4,-0.1).normalize();
-  const side=new THREE.Vector3().crossVectors(fwd,pole).normalize();
-  const bend=new THREE.Vector3().crossVectors(side,fwd).normalize();
-
-  const elbowTarget=new THREE.Vector3()
-    .copy(_bV2)
-    .addScaledVector(fwd,Math.cos(angA)*upperLen)
-    .addScaledVector(bend,Math.sin(angA)*upperLen);
-
-  _pointBoneAt(uBone,_bV2,elbowTarget);
-  uBone.updateWorldMatrix(false,true);
-
-  const freshElbow=new THREE.Vector3();lBone.getWorldPosition(freshElbow);
-  _pointBoneAt(lBone,freshElbow,_bV1);
-  lBone.updateWorldMatrix(false,true);
-
-  const ctrlQ=new THREE.Quaternion();ctrl.getWorldQuaternion(ctrlQ);
-  if(hBone.parent){
-    const pQ=new THREE.Quaternion();hBone.parent.getWorldQuaternion(pQ);pQ.invert();
-    hBone.quaternion.multiplyQuaternions(pQ,ctrlQ);
-  }
-}
-
-function _pointBoneAt(bone,fromW,toW){
-  if(!bone||!bone.parent)return;
-  bone.parent.updateWorldMatrix(true,false);
-  const pInv=bone.parent.matrixWorld.clone().invert();
-  const dir=new THREE.Vector3().subVectors(toW,fromW).normalize().applyMatrix4(
-    new THREE.Matrix4().extractRotation(pInv)
-  );
-  if(dir.lengthSq()<0.001)return;
-  bone.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
 }
 
 function onVREnd(){
@@ -1877,7 +1757,10 @@ function onVREnd(){
   vrLaserRight=null;vrLaserLeft=null;
   if(vrHintMesh){vrHintMesh.visible=false;}
   if(vrHUDMesh){vrHUDMesh.visible=false;}
-  if(vrBodyModel){vrBodyModel.visible=false;}
+  if(vrSanityOverlay){vrSanityOverlay.visible=false;}
+  if(vrGrainMesh){vrGrainMesh.visible=false;}
+  camera.rotation.z=0;
+  scene.position.x=0;
   stickerLights.forEach(l=>{ if(l._origIntensity!==undefined){l.intensity=l._origIntensity;delete l._origIntensity;} });
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
   renderer.shadowMap.enabled=true;
@@ -2169,7 +2052,9 @@ function playTV(tv){
   }
   tv.seen=true;tintSeen(tv);
 
-  if(v.isMP4){
+  if(vrMode&&v.vrUrl){
+    _playVRFinalTV(tv,{url:v.vrUrl,isMP4:true});
+  } else if(v.isMP4){
     if(vrMode){
       _playVRFinalTV(tv,v);
     } else if(videoMP4Obj){
@@ -2201,6 +2086,7 @@ function playTV(tv){
   if(v.gate&&!tv.archived){
     tv.archived=true;archived.add(tv.vidIdx);
     updateArch();
+    saveCheckpoint();
     whisper(WHISPERS[Math.floor(Math.random()*WHISPERS.length)]);
     const door=doorList.find(d=>d.vidIdx===tv.vidIdx);
     if(door&&!door.shown){
@@ -2228,20 +2114,20 @@ function _playVRFinalTV(tv,v){
   activeTV=tv;
   if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});
 
-  vrFinalVideoEl.src=v.url;
+  // Cache-buster forces fresh CORS fetch even if URL was previously cached without CORS headers
+  vrFinalVideoEl.src=v.url+(v.url.includes('?')?'&':'?')+'_vr='+Date.now();
   vrFinalVideoEl.load();
 
-  // Create VideoTexture and apply to TV screen mesh
+  // Recreate VideoTexture AND material — swapping map on existing material is unreliable in r128
   if(vrFinalVideoTex){vrFinalVideoTex.dispose();}
   vrFinalVideoTex=new THREE.VideoTexture(vrFinalVideoEl);
   vrFinalVideoTex.minFilter=THREE.LinearFilter;
   vrFinalVideoTex.magFilter=THREE.LinearFilter;
 
   const origMap=tv.scr.material.map;
-  const origColor=tv.scr.material.color.getHex();
-  tv.scr.material.map=vrFinalVideoTex;
-  tv.scr.material.color.setHex(0xffffff);
-  tv.scr.material.needsUpdate=true;
+  const origColor=tv.scr.material.color?tv.scr.material.color.getHex():0x00ff00;
+  if(tv.scr.material)tv.scr.material.dispose();
+  tv.scr.material=new THREE.MeshBasicMaterial({map:vrFinalVideoTex,side:THREE.DoubleSide});
   tv._vrVideoActive=true;
 
   vrFinalVideoEl.play().then(()=>{
@@ -2252,12 +2138,12 @@ function _playVRFinalTV(tv,v){
   });
 
   vrFinalVideoEl.onended=()=>{
-    tv.scr.material.map=origMap;
-    tv.scr.material.color.setHex(origColor);
-    tv.scr.material.needsUpdate=true;
+    // Restore original material (was disposed — recreate a basic one with original map/color)
+    if(tv.scr.material)tv.scr.material.dispose();
+    tv.scr.material=new THREE.MeshBasicMaterial({map:origMap,side:THREE.DoubleSide});
+    if(origMap===null||origMap===undefined)tv.scr.material.color.setHex(origColor||0x000000);
     tv._vrVideoActive=false;
-    vrFinalVideoTex.dispose();
-    vrFinalVideoTex=null;
+    if(vrFinalVideoTex){vrFinalVideoTex.dispose();vrFinalVideoTex=null;}
     vrFinalVideoEl.removeAttribute('src');vrFinalVideoEl.load();
     activeTV=null;
     // Trigger end wall drop
@@ -2309,7 +2195,9 @@ function buildWorld(){
   buildR3(0,48);
   buildR5a(48,48);
   buildR5b(96,48);
+  buildSlideDoor();
   buildEnd(144,48);
+  applyCheckpoint();
 }
 
 function buildR1(ox,oz){
@@ -2439,7 +2327,7 @@ function buildEnd(ox,oz){
   const eL=new THREE.PointLight(0x6fae7a,0.6,30);eL.position.set(cx,WH-0.5,cz);scene.add(eL);lights.push({x:cx,z:cz,i:0.6});
   const sL=new THREE.PointLight(0xbfeccb,0.5,20);sL.position.set(cx-2,3.2,cz+4);scene.add(sL);
   T(["DEAN'S CHOICE"],5,0.62,'#c8b86a','#060300',20,cx,2.6,oz+1.2,0);
-  T(['order the timestamps.','shortest to longest.','activate each screen.'],4,0.8,'#4a6a4a','#040600',11,cx,2,oz+46.6,Math.PI);
+  T(['find each shape.','go to youtube.','match colour to shape.','order: shortest to longest.'],4,0.9,'#4a6a4a','#040600',10,cx,2,oz+46.6,Math.PI);
   floorSign(['ORDER THEM'],cx,oz+20,2.4);
   floorSign(['SHORTEST → LONGEST'],cx+8,oz+36,3);
   ceilSign(['THE SEQUENCE'],cx-8,oz+14,2.2);
@@ -2474,55 +2362,48 @@ function buildEnd(ox,oz){
     {x:ox+46, z:cz,      ry:-Math.PI/2,  isCeiling:false},
     {x:cx,    z:cz,      ry:0,           isCeiling:true},
   ];
-  const posOrder=[2,1,3,0,4];
-  tvPositions.forEach((pos,i)=>{
-    const ci=END_TV_COLORS.findIndex(c=>c.vidIdx===posOrder[i]);
-    const col=END_TV_COLORS[ci>=0?ci:i];
-    buildEndTV(pos,col);
-  });
+  const shuffledColors=[...END_TV_COLORS].sort(()=>Math.random()-0.5);
+  tvPositions.forEach((pos,i)=>buildEndTV(pos,shuffledColors[i]));
 }
 
 function buildEndTV(pos,col){
   const grp=new THREE.Group();
-  const panelCol=new THREE.Color(col.hex).multiplyScalar(0.18);
-  const backPanel=new THREE.Mesh(
-    new THREE.BoxGeometry(3.6,2.8,0.06),
-    new THREE.MeshStandardMaterial({
-      color:panelCol,roughness:0.4,metalness:0.1,
-      emissive:new THREE.Color(col.hex),emissiveIntensity:0.55,
-      side:THREE.FrontSide
-    })
-  );
+  const backMat=new THREE.MeshStandardMaterial({
+    color:0x0e0c0a,roughness:0.5,metalness:0.1,
+    emissive:new THREE.Color(col.hex),emissiveIntensity:0.05,
+    side:THREE.FrontSide
+  });
+  const backPanel=new THREE.Mesh(new THREE.BoxGeometry(3.6,2.8,0.06),backMat);
   backPanel.position.set(0,pos.isCeiling?0:2,-0.1);
   grp.add(backPanel);
   const frame=new THREE.Mesh(new THREE.BoxGeometry(2.5,1.7,0.12),
     new THREE.MeshStandardMaterial({color:0x080808,roughness:0.9,metalness:0.3,emissive:0x020202}));
   frame.position.set(0,pos.isCeiling?0:2,0);
   grp.add(frame);
-  const screenMat=new THREE.MeshBasicMaterial({map:fuzzTex,side:THREE.DoubleSide,color:0x111111});
+  const shapeTex=makeShapeTex(col.shape);
+  const screenMat=new THREE.MeshBasicMaterial({map:shapeTex,side:THREE.DoubleSide});
   const scr=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.4),screenMat);
   scr.position.set(0,0,0.07);
   frame.add(scr);
-  const lbl=txt([col.label],2.2,0.26,col.css,null,10);
-  lbl.position.set(0,pos.isCeiling?0.98:-1.02,0.05);
-  frame.add(lbl);
-  const glow=new THREE.PointLight(col.hex,0,8);
-  glow.position.set(0,pos.isCeiling?0:2, pos.isCeiling?-0.8:0.8);
-  grp.add(glow);
-  grp.position.set(pos.x, pos.isCeiling?WH-0.01:0, pos.z);
-  if(pos.isCeiling){
-    grp.rotation.x=Math.PI/2;
-  } else {
-    grp.rotation.y=pos.ry;
+  if(!pos.isCeiling){
+    const titleLines=wrapTitle(col.title,28);
+    const th=Math.max(0.18,titleLines.length*0.15);
+    const titleSign=txt(titleLines,3.2,th,'#706858',null,7);
+    titleSign.position.set(0,-1.32,0.06);
+    frame.add(titleSign);
   }
+  const glow=new THREE.PointLight(col.hex,0,8);
+  glow.position.set(0,pos.isCeiling?0:2,pos.isCeiling?-0.8:0.8);
+  grp.add(glow);
+  grp.position.set(pos.x,pos.isCeiling?WH-0.01:0,pos.z);
+  if(pos.isCeiling){grp.rotation.x=Math.PI/2;}
+  else{grp.rotation.y=pos.ry;}
   scene.add(grp);
   endTVs.push({
-    grp, frame, scr, screenMat, glow,
-    vidIdx:col.vidIdx,
-    col,
-    wp:new THREE.Vector3(pos.x, pos.isCeiling?WH-0.5:2, pos.z),
-    activated:false,
-    isCeiling:pos.isCeiling
+    grp,frame,scr,screenMat,shapeTex,backMat,glow,
+    vidIdx:col.vidIdx,col,
+    wp:new THREE.Vector3(pos.x,pos.isCeiling?WH-0.5:2,pos.z),
+    activated:false,isCeiling:pos.isCeiling
   });
 }
 
@@ -2535,41 +2416,117 @@ function buildSlide(points,closed){
   return m;
 }
 
+function makeShapeTex(shape){
+  const c=document.createElement('canvas');c.width=256;c.height=256;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#06060a';ctx.fillRect(0,0,256,256);
+  ctx.strokeStyle='rgba(210,200,178,0.72)';ctx.lineWidth=10;ctx.lineJoin='round';ctx.lineCap='round';
+  const cx=128,cy=128,r=86;
+  ctx.beginPath();
+  switch(shape){
+    case'circle':ctx.arc(cx,cy,r,0,Math.PI*2);break;
+    case'triangle':{for(let i=0;i<3;i++){const a=Math.PI/2+i*(Math.PI*2/3);i===0?ctx.moveTo(cx+r*Math.cos(a),cy-r*Math.sin(a)):ctx.lineTo(cx+r*Math.cos(a),cy-r*Math.sin(a));}ctx.closePath();break;}
+    case'diamond':ctx.moveTo(cx,cy-r);ctx.lineTo(cx+r*0.68,cy);ctx.lineTo(cx,cy+r);ctx.lineTo(cx-r*0.68,cy);ctx.closePath();break;
+    case'hex':{for(let i=0;i<6;i++){const a=i*Math.PI/3;i===0?ctx.moveTo(cx+r*Math.cos(a),cy+r*Math.sin(a)):ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));}ctx.closePath();break;}
+    case'pill':{const pw=r*0.46,ph=r*0.78;ctx.moveTo(cx-pw,cy-ph+pw);ctx.arc(cx,cy-ph+pw,pw,Math.PI,0);ctx.lineTo(cx+pw,cy+ph-pw);ctx.arc(cx,cy+ph-pw,pw,0,Math.PI);ctx.closePath();break;}
+  }
+  ctx.stroke();
+  return new THREE.CanvasTexture(c);
+}
+
+function wrapTitle(title,maxChars){
+  const words=title.split(' ');const lines=[];let line='';
+  for(const w of words){
+    if(line&&(line+' '+w).length>maxChars){lines.push(line);line=w;}
+    else{line=line?(line+' '+w):w;}
+  }
+  if(line)lines.push(line);
+  return lines;
+}
+
+let _cpActivated=[];
+function saveCheckpoint(){
+  try{
+    localStorage.setItem('godean9cp',JSON.stringify({
+      ar:[...archived],tk:[...collectedTokens],
+      seq:endSequencePos,sol:endSolved,sl:slideOpen,ev:endVideoActive,
+      ac:endTVs.filter(t=>t.activated).map(t=>t.vidIdx)
+    }));
+  }catch(e){}
+}
+function loadCheckpoint(){
+  try{
+    const d=localStorage.getItem('godean9cp');if(!d)return;
+    const s=JSON.parse(d);
+    if(s.ar)s.ar.forEach(v=>archived.add(v));
+    if(s.tk)s.tk.forEach(v=>collectedTokens.add(v));
+    if(typeof s.seq==='number')endSequencePos=s.seq;
+    if(s.sol)endSolved=true;
+    if(s.sl)slideOpen=true;
+    if(s.ev)endVideoActive=true;
+    _cpActivated=s.ac||[];
+  }catch(e){}
+}
+function applyCheckpoint(){
+  if(_cpActivated.length){
+    _cpActivated.forEach(vidIdx=>{
+      const tv=endTVs.find(t=>t.vidIdx===vidIdx);
+      if(!tv)return;
+      tv.activated=true;
+      tv.screenMat.color.setHex(tv.col.hex);tv.screenMat.map=null;tv.screenMat.needsUpdate=true;
+      tv.backMat.emissiveIntensity=0.55;tv.backMat.needsUpdate=true;
+      tv.glow.intensity=2.2;
+    });
+    _cpActivated=[];
+  }
+  if(endSolved){
+    endTVs.forEach(t=>{
+      t.activated=true;
+      t.screenMat.color.setHex(0xffffff);t.screenMat.map=null;t.screenMat.needsUpdate=true;
+      t.backMat.emissiveIntensity=0.55;t.backMat.needsUpdate=true;
+      t.glow.intensity=3.5;t.glow.color.setHex(t.col.hex);
+    });
+  }
+  if(endVideoActive&&endWall)dropEndWall();
+  if(slideOpen&&slideMat){slideMat.emissive.setHex(0x0f7a3a);slideMat.emissiveIntensity=1.0;if(slideLight)slideLight.intensity=1.8;}
+  updateArch();
+}
+function showOneAndDone(){
+  ending=true;$('fade').classList.add('on');
+  setTimeout(()=>{
+    const ov=document.createElement('div');
+    ov.style.cssText='position:fixed;inset:0;background:#060402;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;padding:32px;text-align:center';
+    ov.innerHTML='<div style="color:#c8b86a;font-family:\'Courier New\',monospace;font-size:clamp(16px,3.5vw,26px);letter-spacing:8px;margin-bottom:10px">SEQUENCE BROKEN</div><div style="color:#3a2a18;font-family:\'Courier New\',monospace;font-size:clamp(8px,1.3vw,11px);letter-spacing:4px;margin-bottom:38px">DEAN SLIPS THROUGH YOUR GRASP</div><button id="cp-btn" style="padding:12px 40px;background:rgba(200,184,106,.07);border:1px solid rgba(200,184,106,.34);color:#c8b86a;font-family:\'Courier New\',monospace;font-size:11px;letter-spacing:5px;cursor:pointer">CONTINUE FROM CHECKPOINT</button><div style="margin-top:14px;color:#1e1a12;font-family:\'Courier New\',monospace;font-size:9px;letter-spacing:3px">YOUR PROGRESS IS SAVED</div>';
+    document.body.appendChild(ov);
+    document.getElementById('cp-btn').addEventListener('click',()=>location.reload());
+  },1300);
+}
+
 function pressEndTV(tv){
   if(endSolved||tv.activated)return;
   const expectedVidIdx=END_SEQUENCE[endSequencePos];
   if(tv.vidIdx===expectedVidIdx){
     tv.activated=true;
     endSequencePos++;
-    tv.screenMat.color.setHex(tv.col.hex);
-    tv.screenMat.map=null;
-    tv.screenMat.needsUpdate=true;
+    tv.screenMat.color.setHex(tv.col.hex);tv.screenMat.map=null;tv.screenMat.needsUpdate=true;
+    tv.backMat.emissiveIntensity=0.55;tv.backMat.needsUpdate=true;
     tv.glow.intensity=2.2;
     blip(330+endSequencePos*80,0.5,'sine',0.12);
     whisper('correct.');
-    if(endSequencePos>=5) solveSequence();
+    saveCheckpoint();
+    if(endSequencePos>=5) setTimeout(solveSequence,800);
     else setObjective('Correct. '+(5-endSequencePos)+' remaining.');
   } else {
-    endSequencePos=0;
-    endTVs.forEach(t=>{
-      if(t.activated){
-        t.activated=false;
-        t.screenMat.color.setHex(0x111111);
-        t.screenMat.map=fuzzTex;
-        t.screenMat.needsUpdate=true;
-        t.glow.intensity=0;
-      }
-    });
     strobeOnce();
     blip(80,0.4,'sawtooth',0.15);
     sanity=Math.max(0,sanity-8);
-    flashFact('WRONG ORDER.\nRESET.');
-    setObjective('Wrong. Start again. Shortest timestamp first.');
+    showOneAndDone();
   }
 }
 
 function dropEndWall(){
   if(!endWall)return;
+  saveCheckpoint();
   for(let i=colliders.length-1;i>=0;i--){
     const c=colliders[i];
     if(c.x0>=144&&c.x1<=(144+T_WALL+1)&&c.z0<=48&&c.z1>=96){
@@ -2609,38 +2566,76 @@ function solveSequence(){
   setObjective('Approach the slide. Press [E] to enter.');
 }
 
+function buildSlideDoor(){
+  if(slideDoorGrp)return;
+  const x=slideMouth.x+12, z=slideMouth.z+10;
+  const grp=new THREE.Group();
+  const wMat=new THREE.MeshStandardMaterial({color:0xf2ede4,roughness:0.22,metalness:0.04,emissive:0x3a3320,emissiveIntensity:0.6});
+  const door=new THREE.Mesh(new THREE.BoxGeometry(1.45,3.3,0.09),wMat);door.position.set(0,1.65,0);door.castShadow=true;grp.add(door);
+  const fMat=new THREE.MeshStandardMaterial({color:0xe2ddd4,roughness:0.3,metalness:0.03,emissive:0x1a160c,emissiveIntensity:0.4});
+  const fTop=new THREE.Mesh(new THREE.BoxGeometry(1.75,0.12,0.13),fMat);fTop.position.set(0,3.36,0);grp.add(fTop);
+  const fL=new THREE.Mesh(new THREE.BoxGeometry(0.13,3.4,0.13),fMat);fL.position.set(-0.82,1.65,0);grp.add(fL);
+  const fR=new THREE.Mesh(new THREE.BoxGeometry(0.13,3.4,0.13),fMat);fR.position.set(0.82,1.65,0);grp.add(fR);
+  const hMat=new THREE.MeshStandardMaterial({color:0xc8a830,roughness:0.12,metalness:0.9,emissive:0x2a2008,emissiveIntensity:0.5});
+  const handle=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.24,0.13),hMat);handle.position.set(0.56,1.46,0.11);grp.add(handle);
+  const hBase=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.06),hMat);hBase.position.set(0.56,1.46,0.07);grp.add(hBase);
+  grp.position.set(x,0,z);
+  grp.rotation.y=Math.PI;
+  grp.visible=false;
+  scene.add(grp);
+  slideDoorGrp=grp;
+}
+
 function startExitVideo(){
   if(exitVideoActive)return;
   exitVideoActive=true;
   exitVideoCanSkip=false;
+  if(slideDoorGrp)slideDoorGrp.visible=false;
+  slideDoorUsed=true;
   if(videoIframe)videoIframe.src='';
   if(videoObj)videoObj.visible=false;
-  exitVideoEl=document.createElement('video');
-  exitVideoEl.src=EXIT_VIDEO;
-  exitVideoEl.style.cssText='position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:90;background:#000';
-  exitVideoEl.playsInline=true;
-  exitVideoEl.autoplay=true;
-  exitVideoEl.onended=()=>finishExitVideo();
-  exitVideoEl.play().catch(()=>{});
-  document.body.appendChild(exitVideoEl);
-  const eb=document.createElement('a');
-  eb.id='welfare-exit-btn';
-  eb.href='https://earthlingofficial.com';
-  eb.target='_blank';
-  eb.rel='noopener';
-  eb.innerHTML="CAN'T HANDLE IT? — WE UNDERSTAND.<br><span style='font-size:9px;letter-spacing:2px;opacity:0.6'>They couldn't look away.</span>";
-  document.body.appendChild(eb);
-  setTimeout(()=>{eb.style.opacity='1';eb.style.pointerEvents='auto';},4200);
+  if(vrMode){
+    if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});
+    if(vrDoorVideoTex)vrDoorVideoTex.dispose();
+    vrDoorVideoTex=new THREE.VideoTexture(vrDoorVideoEl);
+    vrDoorVideoTex.minFilter=THREE.LinearFilter;
+    vrDoorVideoTex.magFilter=THREE.LinearFilter;
+    if(vrDoorVideoPlane){
+      if(vrDoorVideoPlane.material)vrDoorVideoPlane.material.dispose();
+      vrDoorVideoPlane.material=new THREE.MeshBasicMaterial({map:vrDoorVideoTex,side:THREE.DoubleSide});
+      vrDoorVideoPlane.position.set(slideMouth.x+12,1.65,slideMouth.z+10);
+      vrDoorVideoPlane.rotation.y=Math.PI;
+      vrDoorVideoPlane.visible=true;
+    }
+    vrDoorVideoEl.muted=false;
+    vrDoorVideoEl.src=EXIT_VIDEO+'?_vr='+Date.now();
+    vrDoorVideoEl.load();
+    vrDoorVideoEl.play().catch(()=>{});
+    vrDoorVideoEl.onended=()=>{if(vrDoorVideoPlane)vrDoorVideoPlane.visible=false;doorVideoState='closed';finishExitVideo();};
+    doorVideoState='playing';
+  } else {
+    if(tvVideoEl&&videoMP4Obj){
+      tvVideoEl.src=EXIT_VIDEO;
+      tvVideoEl.load();
+      tvVideoEl.play().catch(()=>{});
+      tvVideoEl.onended=()=>finishExitVideo();
+      videoMP4Obj.position.set(slideMouth.x+12,1.65,slideMouth.z+10);
+      videoMP4Obj.rotation.set(0,Math.PI,0);
+      videoMP4Obj.visible=true;
+    }
+  }
   setObjective('');
-  setTimeout(()=>{
-    exitVideoCanSkip=true;
-    setObjective(isMobile?'Tap to continue →':'[ E ] Continue →');
-  },2000);
 }
 
 function finishExitVideo(){
-  if(exitVideoEl){exitVideoEl.pause();exitVideoEl.remove();exitVideoEl=null;}
-  const eb2=document.getElementById('welfare-exit-btn');if(eb2)eb2.remove();
+  if(vrMode){
+    vrDoorVideoEl.pause();vrDoorVideoEl.removeAttribute('src');vrDoorVideoEl.load();
+    if(vrDoorVideoPlane)vrDoorVideoPlane.visible=false;
+    doorVideoState='closed';
+  } else {
+    if(tvVideoEl){tvVideoEl.pause();tvVideoEl.removeAttribute('src');tvVideoEl.load();}
+    if(videoMP4Obj)videoMP4Obj.visible=false;
+  }
   exitVideoActive=false;
   ending=true;
   $('fade').classList.add('on');
@@ -3141,10 +3136,7 @@ function updateInteract(){
   $('skipbtn').style.display='none';
 
   if(exitVideoActive){
-    if(exitVideoCanSkip){
-      if(isMobile){$('ibtn').textContent='CONTINUE →';$('ibtn').style.display='flex';}
-      else{hint.style.display='block';hint.textContent='[ E ] CONTINUE →';}
-    }
+    hint.style.display='none';ib.style.display='none';
     return;
   }
 
@@ -3152,15 +3144,18 @@ function updateInteract(){
     for(const et of endTVs){
       if(!et.activated&&_getPlayerWP().distanceTo(et.wp)<3.8){
         nearTV={isEndTV:true,tv:et};
-        label=et.col.label;
+        label=et.col.shape;
         $('xh').classList.add('lock');
         break;
       }
     }
   }
 
-  if(slideOpen&&endVideoActive&&_getPlayerWP().distanceTo(slideMouth)<3.2){
-    nearTV='SLIDE';label='WATCH';$('xh').classList.add('lock');
+  if(slideOpen&&endVideoActive&&slideDoorGrp&&!slideDoorUsed){
+    slideDoorGrp.visible=true;
+    if(_getPlayerWP().distanceTo(slideDoorGrp.position)<3.5){
+      nearTV='SLIDE';label='WATCH';$('xh').classList.add('lock');
+    }
   }
   if(!nearTV){
     $('xh').classList.remove('lock');
@@ -3419,16 +3414,19 @@ function animate(){
 
   const beforeX=playerRig.position.x,beforeZ=playerRig.position.z;
   if(vrMode){
-    const mz=Math.abs(vrMoveZ)>0.12?-vrMoveZ:0;
-    const mx=Math.abs(vrMoveX)>0.12?vrMoveX:0;
-    if(mz!==0||mx!==0){
+    const vdt=Math.min(dt,0.05);  // cap dt — prevents large jumps on dropped frames
+    const targetMZ=Math.abs(vrMoveZ)>0.12?-vrMoveZ:0;
+    const targetMX=Math.abs(vrMoveX)>0.12?vrMoveX:0;
+    vrMoveXSmooth+=(targetMX-vrMoveXSmooth)*Math.min(1,14*vdt);
+    vrMoveZSmooth+=(targetMZ-vrMoveZSmooth)*Math.min(1,14*vdt);
+    if(Math.abs(vrMoveXSmooth)>0.01||Math.abs(vrMoveZSmooth)>0.01){
       camera.getWorldDirection(_camDir);
       _camDir.y=0;
       if(_camDir.length()>0.001)_camDir.normalize();
       const rightX=-_camDir.z, rightZ=_camDir.x;
       const spd=4.2;
-      const wantX=beforeX+(mz*_camDir.x+mx*rightX)*spd*dt;
-      const wantZ=beforeZ+(mz*_camDir.z+mx*rightZ)*spd*dt;
+      const wantX=beforeX+(vrMoveZSmooth*_camDir.x+vrMoveXSmooth*rightX)*spd*vdt;
+      const wantZ=beforeZ+(vrMoveZSmooth*_camDir.z+vrMoveXSmooth*rightZ)*spd*vdt;
       tryMove(wantX,wantZ);
     }
     if(vel.x!==0||vel.z!==0){
@@ -3483,7 +3481,7 @@ function animate(){
   updateInteract();
   updateVideoVisibility();
   updateSanityHUD();
-  if(vrMode){updateVRHUD(dt);updateVRBody(dt);}
+  if(vrMode){updateVRHUD(dt);updateVRSanityEffect(dt,t);}
 
   if(shadowFig.sprite.material.opacity<0.1&&blackFig.sprite.material.opacity<0.1&&crowd.length===0)
     sanity=Math.min(100,sanity+3*dt);
