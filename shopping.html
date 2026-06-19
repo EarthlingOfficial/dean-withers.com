@@ -1,0 +1,311 @@
+!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Store Explorer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0a0f; overflow: hidden; font-family: 'Courier New', monospace; }
+    canvas { display: block; }
+
+    #loader {
+      position: fixed; inset: 0; background: #0a0a0f;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: #fff; z-index: 100; gap: 16px;
+    }
+    #loader h2 { font-size: 18px; letter-spacing: 3px; color: #aaa; }
+    #bar-track {
+      width: 260px; height: 4px; background: #222; border-radius: 2px; overflow: hidden;
+    }
+    #bar-fill {
+      height: 100%; width: 0%; background: #5ef; border-radius: 2px;
+      transition: width 0.2s ease;
+    }
+    #pct { font-size: 12px; color: #555; letter-spacing: 1px; }
+
+    #hud {
+      position: fixed; top: 20px; left: 20px;
+      background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px; padding: 12px 16px; color: #ccc;
+      font-size: 12px; line-height: 1.9; display: none;
+      backdrop-filter: blur(6px);
+    }
+    #hud span { color: #5ef; }
+
+    #mode-badge {
+      position: fixed; top: 20px; right: 20px;
+      background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px; padding: 8px 14px; color: #5ef;
+      font-size: 11px; letter-spacing: 2px; display: none;
+      backdrop-filter: blur(6px);
+    }
+
+    #crosshair {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 18px; height: 18px; display: none; pointer-events: none;
+    }
+    #crosshair::before, #crosshair::after {
+      content: ''; position: absolute; background: rgba(255,255,255,0.7);
+      border-radius: 1px;
+    }
+    #crosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
+    #crosshair::after  { height: 2px; width: 100%; top:  50%; transform: translateY(-50%); }
+
+    #prompt {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      color: #fff; font-size: 15px; letter-spacing: 2px;
+      background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px; padding: 22px 36px; text-align: center;
+      cursor: pointer; display: none;
+      backdrop-filter: blur(8px);
+    }
+    #prompt small { display: block; margin-top: 8px; color: #666; font-size: 11px; letter-spacing: 1px; }
+  </style>
+</head>
+<body>
+
+<div id="loader">
+  <h2>LOADING ENVIRONMENT</h2>
+  <div id="bar-track"><div id="bar-fill"></div></div>
+  <div id="pct">0%</div>
+</div>
+
+<div id="hud">
+  <span>FPS MODE</span><br>
+  <span>W A S D</span> — move<br>
+  <span>MOUSE</span> — look<br>
+  <span>SHIFT</span> — run<br>
+  <span>ESC</span> — unlock<br>
+  <span>O</span> — orbit mode<br>
+  <span>F</span> — fly up/down off<br>
+  <span>R</span> — reset position
+</div>
+
+<div id="mode-badge">FPS</div>
+<div id="crosshair"></div>
+<div id="prompt">CLICK TO EXPLORE<small>ESC to release mouse · O for orbit</small></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader }         from 'three/addons/loaders/GLTFLoader.js';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+import { OrbitControls }       from 'three/addons/controls/OrbitControls.js';
+
+// ── Renderer ────────────────────────────────────────────────────────────────
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+document.body.appendChild(renderer.domElement);
+
+// ── Scene ───────────────────────────────────────────────────────────────────
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1a2a);
+scene.fog = new THREE.FogExp2(0x1a1a2a, 0.018);
+
+// ── Camera ──────────────────────────────────────────────────────────────────
+const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.05, 400);
+camera.position.set(0, 1.7, 3);
+
+// ── Lights ──────────────────────────────────────────────────────────────────
+const ambient = new THREE.AmbientLight(0xffffff, 1.2);
+scene.add(ambient);
+
+const sun = new THREE.DirectionalLight(0xfff8e7, 1.5);
+sun.position.set(8, 20, 8);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.near = 0.5;
+sun.shadow.camera.far = 100;
+sun.shadow.camera.left = sun.shadow.camera.bottom = -30;
+sun.shadow.camera.right = sun.shadow.camera.top  =  30;
+sun.shadow.bias = -0.001;
+scene.add(sun);
+
+// Soft fill from below
+const fill = new THREE.HemisphereLight(0xbbd4f8, 0x443322, 0.6);
+scene.add(fill);
+
+// ── Controls ─────────────────────────────────────────────────────────────────
+const plc    = new PointerLockControls(camera, renderer.domElement);
+const orbit  = new OrbitControls(camera, renderer.domElement);
+orbit.enableDamping = true;
+orbit.dampingFactor = 0.08;
+orbit.enabled = false;   // start in FPS mode
+
+let mode = 'fps'; // 'fps' | 'orbit'
+
+const hud       = document.getElementById('hud');
+const badge     = document.getElementById('mode-badge');
+const crosshair = document.getElementById('crosshair');
+const prompt    = document.getElementById('prompt');
+
+function setMode(m) {
+  mode = m;
+  if (m === 'fps') {
+    orbit.enabled  = false;
+    badge.textContent = 'FPS';
+    hud.style.display = 'block';
+    badge.style.display = 'block';
+    prompt.style.display = 'block';
+    crosshair.style.display = 'none';
+  } else {
+    plc.unlock();
+    orbit.target.copy(modelCenter);
+    orbit.enabled = true;
+    badge.textContent = 'ORBIT';
+    crosshair.style.display = 'none';
+    prompt.style.display = 'none';
+  }
+}
+
+plc.addEventListener('lock', () => {
+  prompt.style.display   = 'none';
+  crosshair.style.display = 'block';
+});
+plc.addEventListener('unlock', () => {
+  if (mode === 'fps') {
+    prompt.style.display    = 'block';
+    crosshair.style.display = 'none';
+  }
+});
+
+prompt.addEventListener('click', () => { if (mode === 'fps') plc.lock(); });
+
+// ── Load GLB ─────────────────────────────────────────────────────────────────
+const loader   = new GLTFLoader();
+const barFill  = document.getElementById('bar-fill');
+const pctEl    = document.getElementById('pct');
+const loaderEl = document.getElementById('loader');
+
+let modelCenter = new THREE.Vector3();
+let spawnPos    = new THREE.Vector3();
+
+loader.load(
+  './empty-store_1_.glb',
+  (gltf) => {
+    const model = gltf.scene;
+
+    // Enable shadows on all meshes
+    model.traverse(n => {
+      if (n.isMesh) {
+        n.castShadow    = true;
+        n.receiveShadow = true;
+        if (n.material) {
+          n.material.envMapIntensity = 0.4;
+          // Ensure double-sided for thin geo
+          if (n.material.side === THREE.FrontSide) n.material.side = THREE.DoubleSide;
+        }
+      }
+    });
+
+    scene.add(model);
+
+    // Fit camera to scene
+    const box  = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    modelCenter.copy(center);
+
+    // Place spawn slightly inside, at floor level + eye height
+    const floorY = box.min.y;
+    spawnPos.set(center.x, floorY + 1.7, center.z + size.z * 0.3);
+    camera.position.copy(spawnPos);
+
+    // Scale sun shadow to model
+    const maxDim = Math.max(size.x, size.z);
+    sun.shadow.camera.left = sun.shadow.camera.bottom = -maxDim;
+    sun.shadow.camera.right = sun.shadow.camera.top  =  maxDim;
+    sun.shadow.camera.updateProjectionMatrix();
+    sun.position.set(center.x + maxDim * 0.4, center.y + maxDim, center.z + maxDim * 0.3);
+
+    orbit.target.copy(center);
+    orbit.update();
+
+    // Hide loader, show UI
+    loaderEl.style.transition = 'opacity 0.4s';
+    loaderEl.style.opacity = '0';
+    setTimeout(() => { loaderEl.style.display = 'none'; }, 420);
+    setMode('fps');
+
+    console.log(`Model loaded — size: ${size.x.toFixed(2)} × ${size.y.toFixed(2)} × ${size.z.toFixed(2)}`);
+  },
+  (xhr) => {
+    if (xhr.total) {
+      const pct = Math.round((xhr.loaded / xhr.total) * 100);
+      barFill.style.width = pct + '%';
+      pctEl.textContent   = pct + '%';
+    }
+  },
+  (err) => {
+    pctEl.textContent = 'ERROR — check console';
+    console.error('GLB load error:', err);
+  }
+);
+
+// ── WASD movement ─────────────────────────────────────────────────────────────
+const keys = {};
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+
+  if (e.code === 'KeyO') {
+    setMode(mode === 'fps' ? 'orbit' : 'fps');
+  }
+  if (e.code === 'KeyR') {
+    camera.position.copy(spawnPos);
+    camera.rotation.set(0, 0, 0);
+  }
+});
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// ── Animate ───────────────────────────────────────────────────────────────────
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+
+  if (mode === 'fps' && plc.isLocked) {
+    const speed  = keys['ShiftLeft'] || keys['ShiftRight'] ? 6 : 3; // units/sec
+    const move   = speed * dt;
+
+    if (keys['KeyW'] || keys['ArrowUp'])    plc.moveForward(move);
+    if (keys['KeyS'] || keys['ArrowDown'])  plc.moveForward(-move);
+    if (keys['KeyA'] || keys['ArrowLeft'])  plc.moveRight(-move);
+    if (keys['KeyD'] || keys['ArrowRight']) plc.moveRight(move);
+
+    // Optional vertical (F / C or Q / E)
+    if (keys['KeyF'] || keys['KeyQ']) camera.position.y -= move * 0.5;
+    if (keys['KeyC'] || keys['KeyE']) camera.position.y += move * 0.5;
+  }
+
+  if (mode === 'orbit') orbit.update();
+
+  renderer.render(scene, camera);
+}
+animate();
+
+// ── Resize ────────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
