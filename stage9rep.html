@@ -187,6 +187,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 <video id="doorvideo-vr" playsinline webkit-playsinline crossorigin="anonymous" style="opacity:0;pointer-events:none;position:fixed;left:-9999px;top:-9999px;width:1px;height:1px"></video>
 <!-- VR final TV video element -->
 <video id="finalvideo-vr" playsinline webkit-playsinline crossorigin="anonymous" style="opacity:0;pointer-events:none;position:fixed;left:-9999px;top:-9999px;width:1px;height:1px"></video>
+<video id="exitvideo-floor" playsinline webkit-playsinline crossorigin="anonymous" style="opacity:0;pointer-events:none;position:fixed;left:-9999px;top:-9999px;width:1px;height:1px"></video>
 
 <div id="tokenmask">
   <canvas id="tokencanvas" width="180" height="180"></canvas>
@@ -226,7 +227,7 @@ const GATE_TOTAL=VIDS.filter(v=>v.gate).length;
 // ── DOOR AI VIDEOS (MP4s from GitHub repo/releases) ──
 const DOOR_VIDS=[
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
-  'https://github.com/EarthlingOfficial/dean-withers.com/releases/download/v2/playroom.mp4',
+  'https://earthlingofficial.com/playroom1.mp4',
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
@@ -368,6 +369,7 @@ let endWall=null;
 let exitVideoActive=false;
 let exitVideoCanSkip=false;
 let exitVideoEl=null;
+let exitFloorMesh=null,exitFloorFrame=null,exitFloorTex=null,exitFloorVideoEl=null;
 
 // Input
 let kW=0,kA=0,kS=0,kD=0;
@@ -1732,18 +1734,16 @@ function updateVRSanityEffect(dt,t){
   if(!vrMode)return;
   const ins=Math.max(0,(100-sanity)/100);
 
-  // Wavy-walls camera roll — mirrors the UV-warp sin wave used in the PC/mobile
-  // post shader (uv.x += sin(uv.y*38+t*4)*ins).  A roll at two overlapping
-  // frequencies produces the same perceptual "geometry breathing" effect at zero
-  // GPU cost and without fighting the XR tracking system.
+  // Wavy walls — oscillate the whole scene on X, identical perception to the
+  // PC/mobile post shader UV X-warp. XR tracking sets camera relative to
+  // playerRig so this shift is visible but doesn't fight head tracking.
   if(ins>0.05){
-    const w=Math.sin(t*3.8+Math.cos(t*1.4)*1.2)*ins*0.044   // primary sway
-            +Math.sin(t*6.3+1.7)*ins*0.019                   // harmonic
-            +Math.sin(t*11.2)*(ins>0.4?(ins-0.4)*0.024:0);   // high-freq tremor at low sanity
-    camera.rotation.z=w;
+    scene.position.x=Math.sin(t*3.8+Math.cos(t*1.4)*1.2)*ins*0.07
+                     +Math.sin(t*6.3+1.7)*ins*0.03
+                     +Math.sin(t*11.2)*(ins>0.4?(ins-0.4)*0.035:0);
   } else {
-    camera.rotation.z*=0.88;
-    if(Math.abs(camera.rotation.z)<0.001)camera.rotation.z=0;
+    scene.position.x*=0.88;
+    if(Math.abs(scene.position.x)<0.001)scene.position.x=0;
   }
 }
 
@@ -1759,6 +1759,7 @@ function onVREnd(){
   if(vrSanityOverlay){vrSanityOverlay.visible=false;}
   if(vrGrainMesh){vrGrainMesh.visible=false;}
   camera.rotation.z=0;
+  scene.position.x=0;
   stickerLights.forEach(l=>{ if(l._origIntensity!==undefined){l.intensity=l._origIntensity;delete l._origIntensity;} });
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
   renderer.shadowMap.enabled=true;
@@ -2190,6 +2191,7 @@ function buildWorld(){
   buildR3(0,48);
   buildR5a(48,48);
   buildR5b(96,48);
+  buildExitFloorScreen();
   buildEnd(144,48);
 }
 
@@ -2490,25 +2492,48 @@ function solveSequence(){
   setObjective('Approach the slide. Press [E] to enter.');
 }
 
+function buildExitFloorScreen(){
+  exitFloorVideoEl=document.getElementById('exitvideo-floor');
+  exitFloorTex=new THREE.VideoTexture(exitFloorVideoEl);
+  exitFloorTex.minFilter=THREE.LinearFilter;
+  exitFloorTex.magFilter=THREE.LinearFilter;
+  // Dark border frame (slightly larger than screen)
+  const frameMat=new THREE.MeshStandardMaterial({color:0x080606,roughness:0.7,metalness:0.6,emissive:0x080202,emissiveIntensity:0.5});
+  exitFloorFrame=new THREE.Mesh(new THREE.PlaneGeometry(2.5,4.2),frameMat);
+  exitFloorFrame.rotation.x=-Math.PI/2;
+  exitFloorFrame.position.set(slideMouth.x,0.01,slideMouth.z+3);
+  exitFloorFrame.visible=false;
+  scene.add(exitFloorFrame);
+  // Portrait video screen 2×3.5 lying flat on floor
+  const screenMat=new THREE.MeshBasicMaterial({map:exitFloorTex,side:THREE.DoubleSide});
+  exitFloorMesh=new THREE.Mesh(new THREE.PlaneGeometry(2.0,3.5),screenMat);
+  exitFloorMesh.rotation.x=-Math.PI/2;
+  exitFloorMesh.position.set(slideMouth.x,0.02,slideMouth.z+3);
+  exitFloorMesh.visible=false;
+  scene.add(exitFloorMesh);
+}
+
 function startExitVideo(){
   if(exitVideoActive)return;
   exitVideoActive=true;
   exitVideoCanSkip=false;
   if(videoIframe)videoIframe.src='';
   if(videoObj)videoObj.visible=false;
-  exitVideoEl=document.createElement('video');
-  exitVideoEl.src=EXIT_VIDEO;
-  exitVideoEl.style.cssText='position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:90;background:#000';
-  exitVideoEl.playsInline=true;
-  exitVideoEl.autoplay=true;
-  exitVideoEl.onended=()=>finishExitVideo();
-  exitVideoEl.play().catch(()=>{});
-  document.body.appendChild(exitVideoEl);
+  if(exitFloorVideoEl){
+    exitFloorVideoEl.src=EXIT_VIDEO;
+    exitFloorVideoEl.load();
+    exitFloorVideoEl.onended=()=>finishExitVideo();
+    exitFloorVideoEl.play().catch(()=>{});
+  }
+  if(exitFloorMesh)exitFloorMesh.visible=true;
+  if(exitFloorFrame)exitFloorFrame.visible=true;
   setObjective('');
 }
 
 function finishExitVideo(){
-  if(exitVideoEl){exitVideoEl.pause();exitVideoEl.remove();exitVideoEl=null;}
+  if(exitFloorVideoEl){exitFloorVideoEl.pause();exitFloorVideoEl.src='';}
+  if(exitFloorMesh)exitFloorMesh.visible=false;
+  if(exitFloorFrame)exitFloorFrame.visible=false;
   exitVideoActive=false;
   ending=true;
   $('fade').classList.add('on');
@@ -3362,6 +3387,7 @@ function animate(){
   if(whisperTimer<=0){whisper(WHISPERS[Math.floor(Math.random()*WHISPERS.length)]);whisperTimer=600+Math.floor(Math.random()*600);}
 
   if(doorVideoTex&&doorVideoState==='playing'&&doorVideo.readyState>=2)doorVideoTex.needsUpdate=true;
+  if(exitFloorTex&&exitFloorVideoEl&&exitFloorVideoEl.readyState>=2&&exitVideoActive)exitFloorTex.needsUpdate=true;
 
   if(vrMode){
     renderer.render(scene,camera);
