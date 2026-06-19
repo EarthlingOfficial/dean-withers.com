@@ -138,7 +138,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
     <div id="c-stage">STAGE 9 — THE HYPOGEUM</div>
     <div id="c-loadbar"><div id="c-loadfill"></div></div>
     <div id="c-loadtxt">INITIALISING</div>
-    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v10 — VR HUD (sanity/archived/tokens) / VR AUDIO FIX / ENTITY GLOW / WALL CLIP</div>
+    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v12 — BODY RIG / HUD FADE+LASER / VIDEO TEXTURE / VR AUDIO FIX</div>
   </div>
   <div id="c-phase2">
     <div class="c-p2-series">A VEGAN BROS. SERIES</div>
@@ -182,10 +182,10 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 <!-- Final TV MP4 — dedicated element, NO crossorigin -->
 <video id="tvvideo-mp4" playsinline webkit-playsinline style="display:none;position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:90;background:#000"></video>
 
-<!-- VR door video element — no crossorigin so Quest can play it -->
-<video id="doorvideo-vr" playsinline webkit-playsinline style="opacity:0;pointer-events:none;position:fixed;left:-9999px;top:-9999px;width:1px;height:1px"></video>
+<!-- VR door video element — crossorigin required for WebGL VideoTexture to read frames -->
+<video id="doorvideo-vr" playsinline webkit-playsinline crossorigin="anonymous" style="opacity:0;pointer-events:none;position:fixed;left:-9999px;top:-9999px;width:1px;height:1px"></video>
 <!-- VR final TV video element -->
-<video id="finalvideo-vr" playsinline webkit-playsinline style="opacity:0;pointer-events:none;position:fixed;left:-9999px;top:-9999px;width:1px;height:1px"></video>
+<video id="finalvideo-vr" playsinline webkit-playsinline crossorigin="anonymous" style="opacity:0;pointer-events:none;position:fixed;left:-9999px;top:-9999px;width:1px;height:1px"></video>
 
 <div id="tokenmask">
   <canvas id="tokencanvas" width="180" height="180"></canvas>
@@ -1476,6 +1476,7 @@ function init(){
   setupPost();
   setupSkipBtn();
   buildVRHUD();
+  buildVRBody();
 
   renderer.compile(scene,camera);
   renderer.setRenderTarget(renderTarget);
@@ -1626,20 +1627,25 @@ function setupVRControllers(){
 
 // ════════════════════════════════════════════════════════════════
 // VR HUD — floating canvas panel (sanity / archived / tokens)
+// Quarter-size, fades out, left laser brings it back
 // ════════════════════════════════════════════════════════════════
 let vrHUDMesh=null,vrHUDCanvas=null,vrHUDCtx=null,vrHUDTex=null;
+let vrHUDOpacity=0.12;
+const _vrHUDRay=new THREE.Raycaster();
+const _vrHUDRayOrigin=new THREE.Vector3();
+const _vrHUDRayDir=new THREE.Vector3();
+const _vrHUDRayQ=new THREE.Quaternion();
 
 function buildVRHUD(){
   vrHUDCanvas=document.createElement('canvas');
   vrHUDCanvas.width=512;vrHUDCanvas.height=160;
   vrHUDCtx=vrHUDCanvas.getContext('2d');
   vrHUDTex=new THREE.CanvasTexture(vrHUDCanvas);
-  const geo=new THREE.PlaneGeometry(0.46,0.145);
-  const mat=new THREE.MeshBasicMaterial({map:vrHUDTex,transparent:true,depthTest:false,side:THREE.DoubleSide});
+  const geo=new THREE.PlaneGeometry(0.23,0.073);
+  const mat=new THREE.MeshBasicMaterial({map:vrHUDTex,transparent:true,opacity:0.12,depthTest:false,side:THREE.DoubleSide});
   vrHUDMesh=new THREE.Mesh(geo,mat);
   vrHUDMesh.renderOrder=997;
-  // Bottom-left of field of view, 0.85m in front
-  vrHUDMesh.position.set(-0.30,-0.24,-0.85);
+  vrHUDMesh.position.set(-0.24,-0.31,-0.80);
   vrHUDMesh.visible=false;
   camera.add(vrHUDMesh);
   _drawVRHUD();
@@ -1649,68 +1655,193 @@ function _drawVRHUD(){
   if(!vrHUDCtx)return;
   const ctx=vrHUDCtx,W=512,H=160;
   ctx.clearRect(0,0,W,H);
-
-  // Dark pill background
   const rr=18;
-  ctx.fillStyle='rgba(6,4,2,0.82)';
+  ctx.fillStyle='rgba(6,4,2,0.92)';
   ctx.beginPath();
   ctx.moveTo(rr,0);ctx.lineTo(W-rr,0);ctx.quadraticCurveTo(W,0,W,rr);
   ctx.lineTo(W,H-rr);ctx.quadraticCurveTo(W,H,W-rr,H);
   ctx.lineTo(rr,H);ctx.quadraticCurveTo(0,H,0,H-rr);
   ctx.lineTo(0,rr);ctx.quadraticCurveTo(0,0,rr,0);
   ctx.closePath();ctx.fill();
+  ctx.strokeStyle='rgba(200,184,106,0.30)';ctx.lineWidth=2;ctx.stroke();
 
-  // Border
-  ctx.strokeStyle='rgba(200,184,106,0.22)';ctx.lineWidth=2;ctx.stroke();
-
-  // ── SANITY ──
-  ctx.fillStyle='#7a6a40';
-  ctx.font='bold 20px monospace';
-  ctx.textAlign='left';
+  ctx.fillStyle='#7a6a40';ctx.font='bold 20px monospace';ctx.textAlign='left';
   ctx.fillText('SANITY',14,32);
-
   const barX=120,barY=14,barW=W-barX-14,barH=22;
-  ctx.fillStyle='rgba(255,255,255,0.07)';
-  ctx.fillRect(barX,barY,barW,barH);
+  ctx.fillStyle='rgba(255,255,255,0.07)';ctx.fillRect(barX,barY,barW,barH);
   const s=Math.max(0,Math.min(100,sanity));
   ctx.fillStyle=s>60?'#c8b86a':s>30?'#cc7733':'#cc2222';
   ctx.fillRect(barX,barY,barW*s/100,barH);
-  ctx.strokeStyle='rgba(200,184,106,0.18)';ctx.lineWidth=1;
-  ctx.strokeRect(barX,barY,barW,barH);
+  ctx.strokeStyle='rgba(200,184,106,0.18)';ctx.lineWidth=1;ctx.strokeRect(barX,barY,barW,barH);
 
-  // ── ARCHIVED ──
   const arc=Math.min(archived.size,GATE_TOTAL);
-  ctx.fillStyle='#8fd49a';
-  ctx.font='bold 22px monospace';
-  ctx.fillText('ARCHIVED',14,78);
-  // pips
+  ctx.fillStyle='#8fd49a';ctx.font='bold 22px monospace';ctx.fillText('ARCHIVED',14,78);
   for(let i=0;i<GATE_TOTAL;i++){
-    ctx.beginPath();
-    ctx.arc(barX+26+i*36,68,10,0,Math.PI*2);
-    ctx.fillStyle=i<arc?'#8fd49a':'rgba(143,212,154,0.18)';
-    ctx.fill();
+    ctx.beginPath();ctx.arc(barX+26+i*36,68,10,0,Math.PI*2);
+    ctx.fillStyle=i<arc?'#8fd49a':'rgba(143,212,154,0.18)';ctx.fill();
   }
 
-  // ── TOKENS ──
   const tok=collectedTokens.size;
-  ctx.fillStyle='#c8b86a';
-  ctx.font='bold 22px monospace';
-  ctx.fillText('TOKENS',14,126);
+  ctx.fillStyle='#c8b86a';ctx.font='bold 22px monospace';ctx.fillText('TOKENS',14,126);
   for(let i=0;i<GATE_TOTAL;i++){
-    ctx.beginPath();
-    ctx.arc(barX+26+i*36,116,10,0,Math.PI*2);
-    ctx.fillStyle=i<tok?'#c8b86a':'rgba(200,184,106,0.18)';
-    ctx.fill();
+    ctx.beginPath();ctx.arc(barX+26+i*36,116,10,0,Math.PI*2);
+    ctx.fillStyle=i<tok?'#c8b86a':'rgba(200,184,106,0.18)';ctx.fill();
   }
-
   if(vrHUDTex)vrHUDTex.needsUpdate=true;
 }
 
-function updateVRHUD(){
+function updateVRHUD(dt){
   if(!vrHUDMesh)return;
   if(!vrMode){vrHUDMesh.visible=false;return;}
   vrHUDMesh.visible=true;
+
+  // Left laser hits HUD → fade up to full, else fade down to ghost
+  let laserHit=false;
+  if(vrControllerLeft){
+    vrControllerLeft.getWorldPosition(_vrHUDRayOrigin);
+    vrControllerLeft.getWorldQuaternion(_vrHUDRayQ);
+    _vrHUDRayDir.set(0,0,-1).applyQuaternion(_vrHUDRayQ);
+    _vrHUDRay.set(_vrHUDRayOrigin,_vrHUDRayDir);
+    vrHUDMesh.updateWorldMatrix(true,false);
+    laserHit=_vrHUDRay.intersectObject(vrHUDMesh,false).length>0;
+  }
+  const targetOpacity=laserHit?1.0:0.12;
+  const speed=laserHit?10:2;
+  vrHUDOpacity+=(targetOpacity-vrHUDOpacity)*speed*dt;
+  vrHUDOpacity=Math.max(0.08,Math.min(1.0,vrHUDOpacity));
+  vrHUDMesh.material.opacity=vrHUDOpacity;
   _drawVRHUD();
+}
+
+// ════════════════════════════════════════════════════════════════
+// VR BODY RIG — second entity instance, arm IK, walk animation
+// VR-only: PC/mobile path is completely unaffected
+// ════════════════════════════════════════════════════════════════
+let vrBodyModel=null,vrBodyMixer=null,vrBodyActions={},vrBodyCurrentAction=null,vrBodyLoaded=false;
+const vrBodyBones={};
+const _bEuler=new THREE.Euler();
+const _bV1=new THREE.Vector3(),_bV2=new THREE.Vector3(),_bV3=new THREE.Vector3();
+
+function buildVRBody(){
+  if(typeof THREE.GLTFLoader!=='function')return;
+  new THREE.GLTFLoader().load(ENTITY_GLB_URL,gltf=>{
+    vrBodyModel=gltf.scene;
+    const box=new THREE.Box3().setFromObject(vrBodyModel);
+    const sz=new THREE.Vector3();box.getSize(sz);
+    vrBodyModel.scale.setScalar(1.7/Math.max(sz.x,sz.y,sz.z));
+    vrBodyModel.updateMatrixWorld(true);
+
+    vrBodyModel.traverse(child=>{
+      if(child.isMesh){
+        child.material=new THREE.MeshStandardMaterial({
+          color:0x060608,transparent:true,opacity:0,
+          roughness:0.85,metalness:0.12,
+          emissive:0x050310,emissiveIntensity:0.15,
+          depthWrite:false,side:THREE.FrontSide
+        });
+        child.castShadow=false;child.renderOrder=2;
+      }
+      if(child.isBone||child.type==='Bone')vrBodyBones[child.name]=child;
+    });
+
+    if(vrBodyBones.Head)vrBodyBones.Head.scale.setScalar(0.001);
+    if(vrBodyBones.HeadTop)vrBodyBones.HeadTop.scale.setScalar(0.001);
+
+    vrBodyMixer=new THREE.AnimationMixer(vrBodyModel);
+    gltf.animations.forEach(clip=>{
+      const a=vrBodyMixer.clipAction(clip);
+      a.setLoop(THREE.LoopRepeat,-1);
+      vrBodyActions[clip.name]=a;
+    });
+    vrBodyLoaded=true;
+    vrBodyModel.visible=false;
+    playerRig.add(vrBodyModel);
+    if(vrBodyActions.Idle){vrBodyCurrentAction=vrBodyActions.Idle;vrBodyCurrentAction.play();}
+  },undefined,()=>{});
+}
+
+function updateVRBody(dt){
+  if(!vrBodyLoaded||!vrBodyModel)return;
+  if(!vrMode){vrBodyModel.visible=false;return;}
+  vrBodyModel.visible=true;
+
+  vrBodyModel.traverse(c=>{
+    if(c.isMesh&&c.material.opacity<0.72)c.material.opacity=Math.min(0.72,c.material.opacity+dt*1.5);
+  });
+
+  // Follow camera XZ, stand on floor, face camera Y rotation
+  vrBodyModel.position.set(camera.position.x,0,camera.position.z);
+  _bEuler.setFromQuaternion(camera.quaternion,'YXZ');
+  vrBodyModel.rotation.y=_bEuler.y;
+
+  // Pick animation from speed
+  const spd=Math.sqrt(vel.x*vel.x+vel.z*vel.z);
+  const clipName=spd>8?'Run':spd>1.5?'Walk':'Idle';
+  const next=vrBodyActions[clipName];
+  if(next&&next!==vrBodyCurrentAction){
+    if(vrBodyCurrentAction)vrBodyCurrentAction.crossFadeTo(next,0.25,true);
+    next.play();vrBodyCurrentAction=next;
+  }
+  if(vrBodyMixer)vrBodyMixer.update(dt);
+  vrBodyModel.updateMatrixWorld(true);
+
+  // IK arms to controllers
+  if(vrControllerLeft)_driveArm(false);
+  if(vrControllerRight)_driveArm(true);
+}
+
+function _driveArm(isRight){
+  const ctrl=isRight?vrControllerRight:vrControllerLeft;
+  const uBone=vrBodyBones[isRight?'RightArm':'LeftArm'];
+  const lBone=vrBodyBones[isRight?'RightForeArm':'LeftForeArm'];
+  const hBone=vrBodyBones[isRight?'RightHand':'LeftHand'];
+  if(!ctrl||!uBone||!lBone||!hBone)return;
+
+  ctrl.getWorldPosition(_bV1);           // hand target (world)
+  uBone.getWorldPosition(_bV2);          // shoulder (world)
+  lBone.getWorldPosition(_bV3);          // elbow rest (world)
+  const handRest=new THREE.Vector3();hBone.getWorldPosition(handRest);
+
+  const upperLen=Math.max(0.05,_bV2.distanceTo(_bV3));
+  const lowerLen=Math.max(0.05,_bV3.distanceTo(handRest));
+  const toHand=new THREE.Vector3().subVectors(_bV1,_bV2);
+  const dist=Math.min(toHand.length(),(upperLen+lowerLen)*0.98);
+  const cosA=(upperLen*upperLen+dist*dist-lowerLen*lowerLen)/(2*upperLen*Math.max(dist,0.001));
+  const angA=Math.acos(Math.max(-1,Math.min(1,cosA)));
+
+  const fwd=toHand.clone().normalize();
+  const pole=new THREE.Vector3(isRight?1:-1,-0.4,-0.1).normalize();
+  const side=new THREE.Vector3().crossVectors(fwd,pole).normalize();
+  const bend=new THREE.Vector3().crossVectors(side,fwd).normalize();
+
+  const elbowTarget=new THREE.Vector3()
+    .copy(_bV2)
+    .addScaledVector(fwd,Math.cos(angA)*upperLen)
+    .addScaledVector(bend,Math.sin(angA)*upperLen);
+
+  _pointBoneAt(uBone,_bV2,elbowTarget);
+  uBone.updateWorldMatrix(false,true);
+
+  const freshElbow=new THREE.Vector3();lBone.getWorldPosition(freshElbow);
+  _pointBoneAt(lBone,freshElbow,_bV1);
+  lBone.updateWorldMatrix(false,true);
+
+  const ctrlQ=new THREE.Quaternion();ctrl.getWorldQuaternion(ctrlQ);
+  if(hBone.parent){
+    const pQ=new THREE.Quaternion();hBone.parent.getWorldQuaternion(pQ);pQ.invert();
+    hBone.quaternion.multiplyQuaternions(pQ,ctrlQ);
+  }
+}
+
+function _pointBoneAt(bone,fromW,toW){
+  if(!bone||!bone.parent)return;
+  bone.parent.updateWorldMatrix(true,false);
+  const pInv=bone.parent.matrixWorld.clone().invert();
+  const dir=new THREE.Vector3().subVectors(toW,fromW).normalize().applyMatrix4(
+    new THREE.Matrix4().extractRotation(pInv)
+  );
+  if(dir.lengthSq()<0.001)return;
+  bone.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
 }
 
 function onVREnd(){
@@ -1722,6 +1853,7 @@ function onVREnd(){
   vrLaserRight=null;vrLaserLeft=null;
   if(vrHintMesh){vrHintMesh.visible=false;}
   if(vrHUDMesh){vrHUDMesh.visible=false;}
+  if(vrBodyModel){vrBodyModel.visible=false;}
   stickerLights.forEach(l=>{ if(l._origIntensity!==undefined){l.intensity=l._origIntensity;delete l._origIntensity;} });
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
   renderer.shadowMap.enabled=true;
@@ -3327,7 +3459,7 @@ function animate(){
   updateInteract();
   updateVideoVisibility();
   updateSanityHUD();
-  if(vrMode)updateVRHUD();
+  if(vrMode){updateVRHUD(dt);updateVRBody(dt);}
 
   if(shadowFig.sprite.material.opacity<0.1&&blackFig.sprite.material.opacity<0.1&&crowd.length===0)
     sanity=Math.min(100,sanity+3*dt);
