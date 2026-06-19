@@ -138,7 +138,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
     <div id="c-stage">STAGE 9 — THE HYPOGEUM</div>
     <div id="c-loadbar"><div id="c-loadfill"></div></div>
     <div id="c-loadtxt">INITIALISING</div>
-    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v8 — VR AUDIO / ENTITY GLOW / WALL CLIP / DOOR VIDEO VR</div>
+    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v10 — VR HUD (sanity/archived/tokens) / VR AUDIO FIX / ENTITY GLOW / WALL CLIP</div>
   </div>
   <div id="c-phase2">
     <div class="c-p2-series">A VEGAN BROS. SERIES</div>
@@ -1109,11 +1109,11 @@ function _playVRDoorVideo(door){
   // Ensure AudioContext is running before playing video
   if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});
 
-  // Route audio through WebAudio so it plays through XR audio graph
-  _connectVideoToAC(vrDoorVideoEl);
-
   vrDoorVideoEl.src=url;
   vrDoorVideoEl.load();
+
+  // Unmute — was preloaded muted, now we want audio
+  vrDoorVideoEl.muted=false;
 
   // Recreate VideoTexture fresh so it reads the new video element state
   if(vrDoorVideoTex)vrDoorVideoTex.dispose();
@@ -1375,9 +1375,8 @@ function spawnCrowdFig(){
   const wPhase=Math.random()*Math.PI*2;
   const wAmp=0.025+Math.random()*0.07;
   const frameIdx=Math.floor(Math.random()*shadowFig.frames.length);
-  const mat=new THREE.SpriteMaterial({map:shadowFig.frames[frameIdx],transparent:true,opacity:0,depthWrite:false});
-  const spr=new THREE.Sprite(mat);
-  spr.scale.set(wS,hS,1);
+  const mat=new THREE.MeshBasicMaterial({map:shadowFig.frames[frameIdx],transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide});
+  const spr=new THREE.Mesh(new THREE.PlaneGeometry(wS,hS),mat);
   spr.position.set(p.x,hS/2,p.z);
   scene.add(spr);
   crowd.push({spr,x:p.x,z:p.z,hS,wS,wPhase,wAmp,op:0});
@@ -1409,6 +1408,8 @@ function updateCrowd(dt,t){
     f.spr.material.opacity=f.op;
     f.spr.position.x=f.x+Math.sin(t*1.1+f.wPhase)*f.wAmp*5;
     f.spr.position.y=f.hS/2+Math.sin(t*0.7+f.wPhase+1)*0.05;
+    const camWP=camera.getWorldPosition(new THREE.Vector3());
+    f.spr.rotation.y=Math.atan2(camWP.x-f.spr.position.x, camWP.z-f.spr.position.z);
   });
   if(crowd.length>0){
     const n=crowd.length;
@@ -1474,6 +1475,7 @@ function init(){
   setupTouch();
   setupPost();
   setupSkipBtn();
+  buildVRHUD();
 
   renderer.compile(scene,camera);
   renderer.setRenderTarget(renderTarget);
@@ -1527,7 +1529,7 @@ function onResize(){
 // WEBXR / VR SETUP
 // ════════════════════════════════════════════════════════════════
 function setupVR(){
-  if(!navigator.xr)return;
+  if(!navigator.xr||isMobile)return;
   navigator.xr.isSessionSupported('immersive-vr').then(supported=>{
     if(!supported)return;
     const btn=document.getElementById('vr-btn');
@@ -1622,6 +1624,95 @@ function setupVRControllers(){
   scene.add(vrHintMesh);
 }
 
+// ════════════════════════════════════════════════════════════════
+// VR HUD — floating canvas panel (sanity / archived / tokens)
+// ════════════════════════════════════════════════════════════════
+let vrHUDMesh=null,vrHUDCanvas=null,vrHUDCtx=null,vrHUDTex=null;
+
+function buildVRHUD(){
+  vrHUDCanvas=document.createElement('canvas');
+  vrHUDCanvas.width=512;vrHUDCanvas.height=160;
+  vrHUDCtx=vrHUDCanvas.getContext('2d');
+  vrHUDTex=new THREE.CanvasTexture(vrHUDCanvas);
+  const geo=new THREE.PlaneGeometry(0.46,0.145);
+  const mat=new THREE.MeshBasicMaterial({map:vrHUDTex,transparent:true,depthTest:false,side:THREE.DoubleSide});
+  vrHUDMesh=new THREE.Mesh(geo,mat);
+  vrHUDMesh.renderOrder=997;
+  // Bottom-left of field of view, 0.85m in front
+  vrHUDMesh.position.set(-0.30,-0.24,-0.85);
+  vrHUDMesh.visible=false;
+  camera.add(vrHUDMesh);
+  _drawVRHUD();
+}
+
+function _drawVRHUD(){
+  if(!vrHUDCtx)return;
+  const ctx=vrHUDCtx,W=512,H=160;
+  ctx.clearRect(0,0,W,H);
+
+  // Dark pill background
+  const rr=18;
+  ctx.fillStyle='rgba(6,4,2,0.82)';
+  ctx.beginPath();
+  ctx.moveTo(rr,0);ctx.lineTo(W-rr,0);ctx.quadraticCurveTo(W,0,W,rr);
+  ctx.lineTo(W,H-rr);ctx.quadraticCurveTo(W,H,W-rr,H);
+  ctx.lineTo(rr,H);ctx.quadraticCurveTo(0,H,0,H-rr);
+  ctx.lineTo(0,rr);ctx.quadraticCurveTo(0,0,rr,0);
+  ctx.closePath();ctx.fill();
+
+  // Border
+  ctx.strokeStyle='rgba(200,184,106,0.22)';ctx.lineWidth=2;ctx.stroke();
+
+  // ── SANITY ──
+  ctx.fillStyle='#7a6a40';
+  ctx.font='bold 20px monospace';
+  ctx.textAlign='left';
+  ctx.fillText('SANITY',14,32);
+
+  const barX=120,barY=14,barW=W-barX-14,barH=22;
+  ctx.fillStyle='rgba(255,255,255,0.07)';
+  ctx.fillRect(barX,barY,barW,barH);
+  const s=Math.max(0,Math.min(100,sanity));
+  ctx.fillStyle=s>60?'#c8b86a':s>30?'#cc7733':'#cc2222';
+  ctx.fillRect(barX,barY,barW*s/100,barH);
+  ctx.strokeStyle='rgba(200,184,106,0.18)';ctx.lineWidth=1;
+  ctx.strokeRect(barX,barY,barW,barH);
+
+  // ── ARCHIVED ──
+  const arc=Math.min(archived.size,GATE_TOTAL);
+  ctx.fillStyle='#8fd49a';
+  ctx.font='bold 22px monospace';
+  ctx.fillText('ARCHIVED',14,78);
+  // pips
+  for(let i=0;i<GATE_TOTAL;i++){
+    ctx.beginPath();
+    ctx.arc(barX+26+i*36,68,10,0,Math.PI*2);
+    ctx.fillStyle=i<arc?'#8fd49a':'rgba(143,212,154,0.18)';
+    ctx.fill();
+  }
+
+  // ── TOKENS ──
+  const tok=collectedTokens.size;
+  ctx.fillStyle='#c8b86a';
+  ctx.font='bold 22px monospace';
+  ctx.fillText('TOKENS',14,126);
+  for(let i=0;i<GATE_TOTAL;i++){
+    ctx.beginPath();
+    ctx.arc(barX+26+i*36,116,10,0,Math.PI*2);
+    ctx.fillStyle=i<tok?'#c8b86a':'rgba(200,184,106,0.18)';
+    ctx.fill();
+  }
+
+  if(vrHUDTex)vrHUDTex.needsUpdate=true;
+}
+
+function updateVRHUD(){
+  if(!vrHUDMesh)return;
+  if(!vrMode){vrHUDMesh.visible=false;return;}
+  vrHUDMesh.visible=true;
+  _drawVRHUD();
+}
+
 function onVREnd(){
   vrMode=false;
   xrSession=null;
@@ -1630,6 +1721,7 @@ function onVREnd(){
   if(vrControllerLeft){playerRig.remove(vrControllerLeft);vrControllerLeft=null;}
   vrLaserRight=null;vrLaserLeft=null;
   if(vrHintMesh){vrHintMesh.visible=false;}
+  if(vrHUDMesh){vrHUDMesh.visible=false;}
   stickerLights.forEach(l=>{ if(l._origIntensity!==undefined){l.intensity=l._origIntensity;delete l._origIntensity;} });
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
   renderer.shadowMap.enabled=true;
@@ -1982,9 +2074,6 @@ function _playVRFinalTV(tv,v){
 
   vrFinalVideoEl.src=v.url;
   vrFinalVideoEl.load();
-
-  // Route audio through WebAudio so it plays through XR audio graph
-  _connectVideoToAC(vrFinalVideoEl);
 
   // Create VideoTexture and apply to TV screen mesh
   if(vrFinalVideoTex){vrFinalVideoTex.dispose();}
@@ -2477,8 +2566,8 @@ const shadowFig={sprite:null,light:null,frames:null,x:20,z:20,peekCooldown:0};
 let shadowGlitchT=0,jumpscareReady=true;
 function buildShadowFig(){
   shadowFig.frames=makeShadowFrames();
-  const mat=new THREE.SpriteMaterial({map:shadowFig.frames[0],transparent:true,opacity:0,depthWrite:false});
-  shadowFig.sprite=new THREE.Sprite(mat);shadowFig.sprite.scale.set(0.95,2.95,1);
+  const mat=new THREE.MeshBasicMaterial({map:shadowFig.frames[0],transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide});
+  shadowFig.sprite=new THREE.Mesh(new THREE.PlaneGeometry(0.95,2.95),mat);
   shadowFig.sprite.position.set(shadowFig.x,1.3,shadowFig.z);scene.add(shadowFig.sprite);
   shadowFig.light=new THREE.PointLight(0x200010,0,4,2);
   shadowFig.light.position.set(shadowFig.x,1.4,shadowFig.z);scene.add(shadowFig.light);
@@ -2504,6 +2593,9 @@ function updateShadowFig(dt){
   s.peekCooldown=Math.max(0,s.peekCooldown-1);
   s.sprite.position.set(s.x,1.3,s.z);
   if(s.light)s.light.position.set(s.x,1.4,s.z);
+  // Y-only billboard — face camera horizontally, stay upright
+  const camWP=camera.getWorldPosition(new THREE.Vector3());
+  s.sprite.rotation.y=Math.atan2(camWP.x-s.x, camWP.z-s.z);
   const dx=s.x-playerRig.position.x,dz=s.z-playerRig.position.z;
   const dist=Math.hypot(dx,dz);
   camera.getWorldDirection(_camDir);
@@ -2553,8 +2645,8 @@ const blackFig={
 const BLACK_MAX_OPACITY=0.36,STRIKE_RANGE=1.1,STARE_FRAMES=Math.round(3.8*60),BLACK_LULL_FRAMES=45*60;
 let blackStrikeReady=true,blackCooldown=0,stareFrames=0;
 function buildBlackFig(){
-  const mat=new THREE.SpriteMaterial({map:blackFigureTex(),transparent:true,opacity:0,depthWrite:false,depthTest:true});
-  blackFig.sprite=new THREE.Sprite(mat);blackFig.sprite.scale.set(0.95,1.95,1);
+  const mat=new THREE.MeshBasicMaterial({map:blackFigureTex(),transparent:true,opacity:0,depthWrite:false,depthTest:true,side:THREE.DoubleSide});
+  blackFig.sprite=new THREE.Mesh(new THREE.PlaneGeometry(0.95,1.95),mat);
   blackFig.sprite.position.set(blackFig.x,1.15,blackFig.z);scene.add(blackFig.sprite);
 }
 function darknessAt(x,z){
@@ -2583,6 +2675,9 @@ function blackStrike(){
 }
 function updateBlackFig(){
   const b=blackFig;if(!b.sprite)return;
+  // Y-only billboard
+  const camWP=camera.getWorldPosition(new THREE.Vector3());
+  b.sprite.rotation.y=Math.atan2(camWP.x-b.x, camWP.z-b.z);
   if(blackCooldown>0)blackCooldown--;
   const dx=b.x-playerRig.position.x,dz=b.z-playerRig.position.z;
   const dist=Math.hypot(dx,dz);
@@ -2915,7 +3010,19 @@ function updateInteract(){
     $('xh').classList.remove('lock');
     for(const d of doorList){
       if(!d.shown||d.used)continue;
-      if(_getPlayerWP().distanceTo(d.wp)<3.5){nearDoor=d;label='ENTER';$('xh').classList.add('lock');break;}
+      const distToDoor=_getPlayerWP().distanceTo(d.wp);
+      // VR preload: start video muted when nearby so frames are decoded before press
+      if(vrMode&&distToDoor<8&&!d._vrPreloaded){
+        d._vrPreloaded=true;
+        const url=DOOR_VIDS[d.vidIdx];
+        if(url){
+          vrDoorVideoEl.muted=true;
+          vrDoorVideoEl.src=url;
+          vrDoorVideoEl.load();
+          vrDoorVideoEl.play().catch(()=>{});
+        }
+      }
+      if(distToDoor<3.5){nearDoor=d;label='ENTER';$('xh').classList.add('lock');break;}
     }
     if(!nearDoor){
       ray.setFromCamera(sc2,camera);
@@ -3220,6 +3327,7 @@ function animate(){
   updateInteract();
   updateVideoVisibility();
   updateSanityHUD();
+  if(vrMode)updateVRHUD();
 
   if(shadowFig.sprite.material.opacity<0.1&&blackFig.sprite.material.opacity<0.1&&crowd.length===0)
     sanity=Math.min(100,sanity+3*dt);
