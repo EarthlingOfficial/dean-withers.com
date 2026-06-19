@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -183,9 +184,9 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 <video id="tvvideo-mp4" playsinline webkit-playsinline style="display:none;position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:90;background:#000"></video>
 
 <!-- VR door video element — crossorigin required for WebGL VideoTexture to read frames -->
-<video id="doorvideo-vr" playsinline webkit-playsinline style="opacity:0;pointer-events:none;position:fixed;left:-9999px;top:-9999px;width:1px;height:1px"></video>
+<video id="doorvideo-vr" playsinline webkit-playsinline crossorigin="anonymous" style="opacity:0;pointer-events:none;position:fixed;left:-9999px;top:-9999px;width:1px;height:1px"></video>
 <!-- VR final TV video element -->
-<video id="finalvideo-vr" playsinline webkit-playsinline style="opacity:0;pointer-events:none;position:fixed;left:-9999px;top:-9999px;width:1px;height:1px"></video>
+<video id="finalvideo-vr" playsinline webkit-playsinline crossorigin="anonymous" style="opacity:0;pointer-events:none;position:fixed;left:-9999px;top:-9999px;width:1px;height:1px"></video>
 
 <div id="tokenmask">
   <canvas id="tokencanvas" width="180" height="180"></canvas>
@@ -1723,56 +1724,26 @@ let vrSanityOverlay=null,vrGrainMesh=null,vrGrainCanvas=null,vrGrainCtx=null,vrG
 let _vrGrainFrame=0;
 
 function buildVRSanityEffect(){
-  // Dark purple vignette overlay — full-screen quad parented to camera
-  const ovMat=new THREE.MeshBasicMaterial({color:0x110022,transparent:true,opacity:0,depthTest:false,side:THREE.DoubleSide});
-  vrSanityOverlay=new THREE.Mesh(new THREE.PlaneGeometry(2,2),ovMat);
-  vrSanityOverlay.renderOrder=998;vrSanityOverlay.position.set(0,0,-0.45);
-  vrSanityOverlay.visible=false;camera.add(vrSanityOverlay);
-
-  // Low-res grain — updated at ~10fps max to save GPU budget
-  vrGrainCanvas=document.createElement('canvas');vrGrainCanvas.width=64;vrGrainCanvas.height=64;
-  vrGrainCtx=vrGrainCanvas.getContext('2d');
-  vrGrainTex=new THREE.CanvasTexture(vrGrainCanvas);
-  const gMat=new THREE.MeshBasicMaterial({map:vrGrainTex,transparent:true,opacity:0,depthTest:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});
-  vrGrainMesh=new THREE.Mesh(new THREE.PlaneGeometry(2,2),gMat);
-  vrGrainMesh.renderOrder=999;vrGrainMesh.position.set(0,0,-0.44);
-  vrGrainMesh.visible=false;camera.add(vrGrainMesh);
+  // Grain and vignette overlay removed — wavy-walls feel handled via
+  // camera roll in updateVRSanityEffect (post-processing not available in WebXR).
 }
 
 function updateVRSanityEffect(dt,t){
   if(!vrMode)return;
   const ins=Math.max(0,(100-sanity)/100);
 
-  // Colour overlay
-  if(vrSanityOverlay){
-    const tgt=ins*0.15;
-    vrSanityOverlay.material.opacity+=(tgt-vrSanityOverlay.material.opacity)*6*dt;
-    vrSanityOverlay.visible=vrSanityOverlay.material.opacity>0.01;
-  }
-
-  // Camera roll wobble (wavy feel — zero GPU cost)
+  // Wavy-walls camera roll — mirrors the UV-warp sin wave used in the PC/mobile
+  // post shader (uv.x += sin(uv.y*38+t*4)*ins).  A roll at two overlapping
+  // frequencies produces the same perceptual "geometry breathing" effect at zero
+  // GPU cost and without fighting the XR tracking system.
   if(ins>0.05){
-    const w=Math.sin(t*2.8+Math.cos(t*1.4))*ins*0.035
-            +Math.sin(t*7.1)*(ins>0.5?(ins-0.5)*0.05:0);
+    const w=Math.sin(t*3.8+Math.cos(t*1.4)*1.2)*ins*0.044   // primary sway
+            +Math.sin(t*6.3+1.7)*ins*0.019                   // harmonic
+            +Math.sin(t*11.2)*(ins>0.4?(ins-0.4)*0.024:0);   // high-freq tremor at low sanity
     camera.rotation.z=w;
   } else {
-    camera.rotation.z*=0.9;
+    camera.rotation.z*=0.88;
     if(Math.abs(camera.rotation.z)<0.001)camera.rotation.z=0;
-  }
-
-  // Grain — only update every 6 frames (~10fps at 60fps render)
-  if(vrGrainMesh){
-    const tgtG=ins*0.06;
-    vrGrainMesh.material.opacity+=(tgtG-vrGrainMesh.material.opacity)*4*dt;
-    vrGrainMesh.visible=vrGrainMesh.material.opacity>0.005;
-    if(vrGrainMesh.visible&&++_vrGrainFrame%6===0){
-      const id=vrGrainCtx.createImageData(64,64);
-      for(let i=0;i<id.data.length;i+=4){
-        const v=Math.random()>0.5?120+Math.random()*80:Math.random()*20;
-        id.data[i]=v*0.7;id.data[i+1]=v*0.8;id.data[i+2]=v;id.data[i+3]=255;
-      }
-      vrGrainCtx.putImageData(id,0,0);vrGrainTex.needsUpdate=true;
-    }
   }
 }
 
@@ -2533,24 +2504,11 @@ function startExitVideo(){
   exitVideoEl.onended=()=>finishExitVideo();
   exitVideoEl.play().catch(()=>{});
   document.body.appendChild(exitVideoEl);
-  const eb=document.createElement('a');
-  eb.id='welfare-exit-btn';
-  eb.href='https://earthlingofficial.com';
-  eb.target='_blank';
-  eb.rel='noopener';
-  eb.innerHTML="CAN'T HANDLE IT? — WE UNDERSTAND.<br><span style='font-size:9px;letter-spacing:2px;opacity:0.6'>They couldn't look away.</span>";
-  document.body.appendChild(eb);
-  setTimeout(()=>{eb.style.opacity='1';eb.style.pointerEvents='auto';},4200);
   setObjective('');
-  setTimeout(()=>{
-    exitVideoCanSkip=true;
-    setObjective(isMobile?'Tap to continue →':'[ E ] Continue →');
-  },2000);
 }
 
 function finishExitVideo(){
   if(exitVideoEl){exitVideoEl.pause();exitVideoEl.remove();exitVideoEl=null;}
-  const eb2=document.getElementById('welfare-exit-btn');if(eb2)eb2.remove();
   exitVideoActive=false;
   ending=true;
   $('fade').classList.add('on');
@@ -3051,10 +3009,7 @@ function updateInteract(){
   $('skipbtn').style.display='none';
 
   if(exitVideoActive){
-    if(exitVideoCanSkip){
-      if(isMobile){$('ibtn').textContent='CONTINUE →';$('ibtn').style.display='flex';}
-      else{hint.style.display='block';hint.textContent='[ E ] CONTINUE →';}
-    }
+    hint.style.display='none';ib.style.display='none';
     return;
   }
 
