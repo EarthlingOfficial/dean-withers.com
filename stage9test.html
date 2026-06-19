@@ -138,7 +138,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
     <div id="c-stage">STAGE 9 — THE HYPOGEUM</div>
     <div id="c-loadbar"><div id="c-loadfill"></div></div>
     <div id="c-loadtxt">INITIALISING</div>
-    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v8 — VR AUDIO / ENTITY GLOW / WALL CLIP / DOOR VIDEO VR</div>
+    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v14 — NO BODY / HUD LOWER / VIDEO CORS FIX / VR SANITY / SMOOTH MOVE</div>
   </div>
   <div id="c-phase2">
     <div class="c-p2-series">A VEGAN BROS. SERIES</div>
@@ -182,10 +182,10 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 <!-- Final TV MP4 — dedicated element, NO crossorigin -->
 <video id="tvvideo-mp4" playsinline webkit-playsinline style="display:none;position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:90;background:#000"></video>
 
-<!-- VR door video element — no crossorigin so Quest can play it -->
-<video id="doorvideo-vr" playsinline webkit-playsinline style="opacity:0;pointer-events:none;position:fixed;left:-9999px;top:-9999px;width:1px;height:1px"></video>
+<!-- VR door video element — crossorigin required for WebGL VideoTexture to read frames -->
+<video id="doorvideo-vr" playsinline webkit-playsinline crossorigin="anonymous" style="opacity:0;pointer-events:none;position:fixed;left:-9999px;top:-9999px;width:1px;height:1px"></video>
 <!-- VR final TV video element -->
-<video id="finalvideo-vr" playsinline webkit-playsinline style="opacity:0;pointer-events:none;position:fixed;left:-9999px;top:-9999px;width:1px;height:1px"></video>
+<video id="finalvideo-vr" playsinline webkit-playsinline crossorigin="anonymous" style="opacity:0;pointer-events:none;position:fixed;left:-9999px;top:-9999px;width:1px;height:1px"></video>
 
 <div id="tokenmask">
   <canvas id="tokencanvas" width="180" height="180"></canvas>
@@ -318,7 +318,7 @@ let playerRig=null;
 let xrSession=null;
 let vrSnapCooldown=false;
 let vrInteractCooldown=false;
-let vrMoveX=0,vrMoveZ=0;
+let vrMoveX=0,vrMoveZ=0,vrMoveXSmooth=0,vrMoveZSmooth=0;
 let vrControllerRight=null,vrControllerLeft=null;
 let vrLaserRight=null,vrLaserLeft=null;
 let vrHintPlane=null;
@@ -429,6 +429,7 @@ function buildDoorVideoPlane(){
 
 // VR door video plane — plane built once, texture recreated fresh each play
 function buildVRDoorVideoPlane(){
+  // Material created without map — gets fully replaced with VideoTexture material at play time
   const mat=new THREE.MeshBasicMaterial({color:0x000000,side:THREE.DoubleSide});
   vrDoorVideoPlane=new THREE.Mesh(new THREE.PlaneGeometry(1.45,3.3),mat);
   vrDoorVideoPlane.visible=false;
@@ -1109,23 +1110,21 @@ function _playVRDoorVideo(door){
   // Ensure AudioContext is running before playing video
   if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});
 
-  // Route audio through WebAudio so it plays through XR audio graph
-  _connectVideoToAC(vrDoorVideoEl);
-
-  vrDoorVideoEl.src=url;
+  // Add unique cache-buster so browser fetches fresh with CORS headers even if URL was cached non-CORS
+  vrDoorVideoEl.src=url+(url.includes('?')?'&':'?')+'_vr='+Date.now();
   vrDoorVideoEl.load();
 
   // Unmute — was preloaded muted, now we want audio
   vrDoorVideoEl.muted=false;
 
-  // Recreate VideoTexture fresh so it reads the new video element state
+  // Recreate VideoTexture AND material — swapping map onto existing material is unreliable
   if(vrDoorVideoTex)vrDoorVideoTex.dispose();
   vrDoorVideoTex=new THREE.VideoTexture(vrDoorVideoEl);
   vrDoorVideoTex.minFilter=THREE.LinearFilter;
   vrDoorVideoTex.magFilter=THREE.LinearFilter;
   if(vrDoorVideoPlane){
-    vrDoorVideoPlane.material.map=vrDoorVideoTex;
-    vrDoorVideoPlane.material.needsUpdate=true;
+    if(vrDoorVideoPlane.material)vrDoorVideoPlane.material.dispose();
+    vrDoorVideoPlane.material=new THREE.MeshBasicMaterial({map:vrDoorVideoTex,side:THREE.DoubleSide});
   }
 
   // Position VR door video plane in front of door
@@ -1378,9 +1377,8 @@ function spawnCrowdFig(){
   const wPhase=Math.random()*Math.PI*2;
   const wAmp=0.025+Math.random()*0.07;
   const frameIdx=Math.floor(Math.random()*shadowFig.frames.length);
-  const mat=new THREE.SpriteMaterial({map:shadowFig.frames[frameIdx],transparent:true,opacity:0,depthWrite:false});
-  const spr=new THREE.Sprite(mat);
-  spr.scale.set(wS,hS,1);
+  const mat=new THREE.MeshBasicMaterial({map:shadowFig.frames[frameIdx],transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide});
+  const spr=new THREE.Mesh(new THREE.PlaneGeometry(wS,hS),mat);
   spr.position.set(p.x,hS/2,p.z);
   scene.add(spr);
   crowd.push({spr,x:p.x,z:p.z,hS,wS,wPhase,wAmp,op:0});
@@ -1412,10 +1410,8 @@ function updateCrowd(dt,t){
     f.spr.material.opacity=f.op;
     f.spr.position.x=f.x+Math.sin(t*1.1+f.wPhase)*f.wAmp*5;
     f.spr.position.y=f.hS/2+Math.sin(t*0.7+f.wPhase+1)*0.05;
-    // Lock upright — ignore camera tilt
     const camWP=camera.getWorldPosition(new THREE.Vector3());
-    const cAngle=Math.atan2(camWP.x-f.spr.position.x, camWP.z-f.spr.position.z);
-    f.spr.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0), cAngle);
+    f.spr.rotation.y=Math.atan2(camWP.x-f.spr.position.x, camWP.z-f.spr.position.z);
   });
   if(crowd.length>0){
     const n=crowd.length;
@@ -1481,6 +1477,8 @@ function init(){
   setupTouch();
   setupPost();
   setupSkipBtn();
+  buildVRHUD();
+  buildVRSanityEffect();
 
   renderer.compile(scene,camera);
   renderer.setRenderTarget(renderTarget);
@@ -1629,6 +1627,155 @@ function setupVRControllers(){
   scene.add(vrHintMesh);
 }
 
+// ════════════════════════════════════════════════════════════════
+// VR HUD — floating canvas panel (sanity / archived / tokens)
+// Quarter-size, fades out, left laser brings it back
+// ════════════════════════════════════════════════════════════════
+let vrHUDMesh=null,vrHUDCanvas=null,vrHUDCtx=null,vrHUDTex=null;
+let vrHUDOpacity=0.12;
+const _vrHUDRay=new THREE.Raycaster();
+const _vrHUDRayOrigin=new THREE.Vector3();
+const _vrHUDRayDir=new THREE.Vector3();
+const _vrHUDRayQ=new THREE.Quaternion();
+
+function buildVRHUD(){
+  vrHUDCanvas=document.createElement('canvas');
+  vrHUDCanvas.width=512;vrHUDCanvas.height=160;
+  vrHUDCtx=vrHUDCanvas.getContext('2d');
+  vrHUDTex=new THREE.CanvasTexture(vrHUDCanvas);
+  const geo=new THREE.PlaneGeometry(0.23,0.073);
+  const mat=new THREE.MeshBasicMaterial({map:vrHUDTex,transparent:true,opacity:0.12,depthTest:false,side:THREE.DoubleSide});
+  vrHUDMesh=new THREE.Mesh(geo,mat);
+  vrHUDMesh.renderOrder=997;
+  vrHUDMesh.position.set(-0.24,-0.383,-0.80);
+  vrHUDMesh.visible=false;
+  camera.add(vrHUDMesh);
+  _drawVRHUD();
+}
+
+function _drawVRHUD(){
+  if(!vrHUDCtx)return;
+  const ctx=vrHUDCtx,W=512,H=160;
+  ctx.clearRect(0,0,W,H);
+  const rr=18;
+  ctx.fillStyle='rgba(6,4,2,0.92)';
+  ctx.beginPath();
+  ctx.moveTo(rr,0);ctx.lineTo(W-rr,0);ctx.quadraticCurveTo(W,0,W,rr);
+  ctx.lineTo(W,H-rr);ctx.quadraticCurveTo(W,H,W-rr,H);
+  ctx.lineTo(rr,H);ctx.quadraticCurveTo(0,H,0,H-rr);
+  ctx.lineTo(0,rr);ctx.quadraticCurveTo(0,0,rr,0);
+  ctx.closePath();ctx.fill();
+  ctx.strokeStyle='rgba(200,184,106,0.30)';ctx.lineWidth=2;ctx.stroke();
+
+  ctx.fillStyle='#7a6a40';ctx.font='bold 20px monospace';ctx.textAlign='left';
+  ctx.fillText('SANITY',14,32);
+  const barX=120,barY=14,barW=W-barX-14,barH=22;
+  ctx.fillStyle='rgba(255,255,255,0.07)';ctx.fillRect(barX,barY,barW,barH);
+  const s=Math.max(0,Math.min(100,sanity));
+  ctx.fillStyle=s>60?'#c8b86a':s>30?'#cc7733':'#cc2222';
+  ctx.fillRect(barX,barY,barW*s/100,barH);
+  ctx.strokeStyle='rgba(200,184,106,0.18)';ctx.lineWidth=1;ctx.strokeRect(barX,barY,barW,barH);
+
+  const arc=Math.min(archived.size,GATE_TOTAL);
+  ctx.fillStyle='#8fd49a';ctx.font='bold 22px monospace';ctx.fillText('ARCHIVED',14,78);
+  for(let i=0;i<GATE_TOTAL;i++){
+    ctx.beginPath();ctx.arc(barX+26+i*36,68,10,0,Math.PI*2);
+    ctx.fillStyle=i<arc?'#8fd49a':'rgba(143,212,154,0.18)';ctx.fill();
+  }
+
+  const tok=collectedTokens.size;
+  ctx.fillStyle='#c8b86a';ctx.font='bold 22px monospace';ctx.fillText('TOKENS',14,126);
+  for(let i=0;i<GATE_TOTAL;i++){
+    ctx.beginPath();ctx.arc(barX+26+i*36,116,10,0,Math.PI*2);
+    ctx.fillStyle=i<tok?'#c8b86a':'rgba(200,184,106,0.18)';ctx.fill();
+  }
+  if(vrHUDTex)vrHUDTex.needsUpdate=true;
+}
+
+function updateVRHUD(dt){
+  if(!vrHUDMesh)return;
+  if(!vrMode){vrHUDMesh.visible=false;return;}
+  vrHUDMesh.visible=true;
+
+  // Left laser hits HUD → fade up to full, else fade down to ghost
+  let laserHit=false;
+  if(vrControllerLeft){
+    vrControllerLeft.getWorldPosition(_vrHUDRayOrigin);
+    vrControllerLeft.getWorldQuaternion(_vrHUDRayQ);
+    _vrHUDRayDir.set(0,0,-1).applyQuaternion(_vrHUDRayQ);
+    _vrHUDRay.set(_vrHUDRayOrigin,_vrHUDRayDir);
+    vrHUDMesh.updateWorldMatrix(true,false);
+    laserHit=_vrHUDRay.intersectObject(vrHUDMesh,false).length>0;
+  }
+  const targetOpacity=laserHit?1.0:0.12;
+  const speed=laserHit?10:2;
+  vrHUDOpacity+=(targetOpacity-vrHUDOpacity)*speed*dt;
+  vrHUDOpacity=Math.max(0.08,Math.min(1.0,vrHUDOpacity));
+  vrHUDMesh.material.opacity=vrHUDOpacity;
+  _drawVRHUD();
+}
+
+// ════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
+// VR SANITY EFFECT — wavy camera wobble + colour overlay + grain
+// ════════════════════════════════════════════════════════════════
+let vrSanityOverlay=null,vrGrainMesh=null,vrGrainCanvas=null,vrGrainCtx=null,vrGrainTex=null;
+let _vrGrainFrame=0;
+
+function buildVRSanityEffect(){
+  // Dark purple vignette overlay — full-screen quad parented to camera
+  const ovMat=new THREE.MeshBasicMaterial({color:0x110022,transparent:true,opacity:0,depthTest:false,side:THREE.DoubleSide});
+  vrSanityOverlay=new THREE.Mesh(new THREE.PlaneGeometry(2,2),ovMat);
+  vrSanityOverlay.renderOrder=998;vrSanityOverlay.position.set(0,0,-0.45);
+  vrSanityOverlay.visible=false;camera.add(vrSanityOverlay);
+
+  // Low-res grain — updated at ~10fps max to save GPU budget
+  vrGrainCanvas=document.createElement('canvas');vrGrainCanvas.width=64;vrGrainCanvas.height=64;
+  vrGrainCtx=vrGrainCanvas.getContext('2d');
+  vrGrainTex=new THREE.CanvasTexture(vrGrainCanvas);
+  const gMat=new THREE.MeshBasicMaterial({map:vrGrainTex,transparent:true,opacity:0,depthTest:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});
+  vrGrainMesh=new THREE.Mesh(new THREE.PlaneGeometry(2,2),gMat);
+  vrGrainMesh.renderOrder=999;vrGrainMesh.position.set(0,0,-0.44);
+  vrGrainMesh.visible=false;camera.add(vrGrainMesh);
+}
+
+function updateVRSanityEffect(dt,t){
+  if(!vrMode)return;
+  const ins=Math.max(0,(100-sanity)/100);
+
+  // Colour overlay
+  if(vrSanityOverlay){
+    const tgt=ins*0.15;
+    vrSanityOverlay.material.opacity+=(tgt-vrSanityOverlay.material.opacity)*6*dt;
+    vrSanityOverlay.visible=vrSanityOverlay.material.opacity>0.01;
+  }
+
+  // Camera roll wobble (wavy feel — zero GPU cost)
+  if(ins>0.05){
+    const w=Math.sin(t*2.8+Math.cos(t*1.4))*ins*0.035
+            +Math.sin(t*7.1)*(ins>0.5?(ins-0.5)*0.05:0);
+    camera.rotation.z=w;
+  } else {
+    camera.rotation.z*=0.9;
+    if(Math.abs(camera.rotation.z)<0.001)camera.rotation.z=0;
+  }
+
+  // Grain — only update every 6 frames (~10fps at 60fps render)
+  if(vrGrainMesh){
+    const tgtG=ins*0.06;
+    vrGrainMesh.material.opacity+=(tgtG-vrGrainMesh.material.opacity)*4*dt;
+    vrGrainMesh.visible=vrGrainMesh.material.opacity>0.005;
+    if(vrGrainMesh.visible&&++_vrGrainFrame%6===0){
+      const id=vrGrainCtx.createImageData(64,64);
+      for(let i=0;i<id.data.length;i+=4){
+        const v=Math.random()>0.5?120+Math.random()*80:Math.random()*20;
+        id.data[i]=v*0.7;id.data[i+1]=v*0.8;id.data[i+2]=v;id.data[i+3]=255;
+      }
+      vrGrainCtx.putImageData(id,0,0);vrGrainTex.needsUpdate=true;
+    }
+  }
+}
+
 function onVREnd(){
   vrMode=false;
   xrSession=null;
@@ -1637,6 +1784,10 @@ function onVREnd(){
   if(vrControllerLeft){playerRig.remove(vrControllerLeft);vrControllerLeft=null;}
   vrLaserRight=null;vrLaserLeft=null;
   if(vrHintMesh){vrHintMesh.visible=false;}
+  if(vrHUDMesh){vrHUDMesh.visible=false;}
+  if(vrSanityOverlay){vrSanityOverlay.visible=false;}
+  if(vrGrainMesh){vrGrainMesh.visible=false;}
+  camera.rotation.z=0;
   stickerLights.forEach(l=>{ if(l._origIntensity!==undefined){l.intensity=l._origIntensity;delete l._origIntensity;} });
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
   renderer.shadowMap.enabled=true;
@@ -1987,23 +2138,20 @@ function _playVRFinalTV(tv,v){
   activeTV=tv;
   if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});
 
-  vrFinalVideoEl.src=v.url;
+  // Cache-buster forces fresh CORS fetch even if URL was previously cached without CORS headers
+  vrFinalVideoEl.src=v.url+(v.url.includes('?')?'&':'?')+'_vr='+Date.now();
   vrFinalVideoEl.load();
 
-  // Route audio through WebAudio so it plays through XR audio graph
-  _connectVideoToAC(vrFinalVideoEl);
-
-  // Create VideoTexture and apply to TV screen mesh
+  // Recreate VideoTexture AND material — swapping map on existing material is unreliable in r128
   if(vrFinalVideoTex){vrFinalVideoTex.dispose();}
   vrFinalVideoTex=new THREE.VideoTexture(vrFinalVideoEl);
   vrFinalVideoTex.minFilter=THREE.LinearFilter;
   vrFinalVideoTex.magFilter=THREE.LinearFilter;
 
   const origMap=tv.scr.material.map;
-  const origColor=tv.scr.material.color.getHex();
-  tv.scr.material.map=vrFinalVideoTex;
-  tv.scr.material.color.setHex(0xffffff);
-  tv.scr.material.needsUpdate=true;
+  const origColor=tv.scr.material.color?tv.scr.material.color.getHex():0x00ff00;
+  if(tv.scr.material)tv.scr.material.dispose();
+  tv.scr.material=new THREE.MeshBasicMaterial({map:vrFinalVideoTex,side:THREE.DoubleSide});
   tv._vrVideoActive=true;
 
   vrFinalVideoEl.play().then(()=>{
@@ -2014,12 +2162,12 @@ function _playVRFinalTV(tv,v){
   });
 
   vrFinalVideoEl.onended=()=>{
-    tv.scr.material.map=origMap;
-    tv.scr.material.color.setHex(origColor);
-    tv.scr.material.needsUpdate=true;
+    // Restore original material (was disposed — recreate a basic one with original map/color)
+    if(tv.scr.material)tv.scr.material.dispose();
+    tv.scr.material=new THREE.MeshBasicMaterial({map:origMap,side:THREE.DoubleSide});
+    if(origMap===null||origMap===undefined)tv.scr.material.color.setHex(origColor||0x000000);
     tv._vrVideoActive=false;
-    vrFinalVideoTex.dispose();
-    vrFinalVideoTex=null;
+    if(vrFinalVideoTex){vrFinalVideoTex.dispose();vrFinalVideoTex=null;}
     vrFinalVideoEl.removeAttribute('src');vrFinalVideoEl.load();
     activeTV=null;
     // Trigger end wall drop
@@ -2484,8 +2632,8 @@ const shadowFig={sprite:null,light:null,frames:null,x:20,z:20,peekCooldown:0};
 let shadowGlitchT=0,jumpscareReady=true;
 function buildShadowFig(){
   shadowFig.frames=makeShadowFrames();
-  const mat=new THREE.SpriteMaterial({map:shadowFig.frames[0],transparent:true,opacity:0,depthWrite:false});
-  shadowFig.sprite=new THREE.Sprite(mat);shadowFig.sprite.scale.set(0.95,2.95,1);
+  const mat=new THREE.MeshBasicMaterial({map:shadowFig.frames[0],transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide});
+  shadowFig.sprite=new THREE.Mesh(new THREE.PlaneGeometry(0.95,2.95),mat);
   shadowFig.sprite.position.set(shadowFig.x,1.3,shadowFig.z);scene.add(shadowFig.sprite);
   shadowFig.light=new THREE.PointLight(0x200010,0,4,2);
   shadowFig.light.position.set(shadowFig.x,1.4,shadowFig.z);scene.add(shadowFig.light);
@@ -2511,11 +2659,9 @@ function updateShadowFig(dt){
   s.peekCooldown=Math.max(0,s.peekCooldown-1);
   s.sprite.position.set(s.x,1.3,s.z);
   if(s.light)s.light.position.set(s.x,1.4,s.z);
-  // Lock sprite upright — only face camera on Y axis, ignore tilt
+  // Y-only billboard — face camera horizontally, stay upright
   const camWP=camera.getWorldPosition(new THREE.Vector3());
-  const angle=Math.atan2(camWP.x-s.x, camWP.z-s.z);
-  s.sprite.material.rotation=0;
-  s.sprite.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0), angle);
+  s.sprite.rotation.y=Math.atan2(camWP.x-s.x, camWP.z-s.z);
   const dx=s.x-playerRig.position.x,dz=s.z-playerRig.position.z;
   const dist=Math.hypot(dx,dz);
   camera.getWorldDirection(_camDir);
@@ -2565,8 +2711,8 @@ const blackFig={
 const BLACK_MAX_OPACITY=0.36,STRIKE_RANGE=1.1,STARE_FRAMES=Math.round(3.8*60),BLACK_LULL_FRAMES=45*60;
 let blackStrikeReady=true,blackCooldown=0,stareFrames=0;
 function buildBlackFig(){
-  const mat=new THREE.SpriteMaterial({map:blackFigureTex(),transparent:true,opacity:0,depthWrite:false,depthTest:true});
-  blackFig.sprite=new THREE.Sprite(mat);blackFig.sprite.scale.set(0.95,1.95,1);
+  const mat=new THREE.MeshBasicMaterial({map:blackFigureTex(),transparent:true,opacity:0,depthWrite:false,depthTest:true,side:THREE.DoubleSide});
+  blackFig.sprite=new THREE.Mesh(new THREE.PlaneGeometry(0.95,1.95),mat);
   blackFig.sprite.position.set(blackFig.x,1.15,blackFig.z);scene.add(blackFig.sprite);
 }
 function darknessAt(x,z){
@@ -2595,10 +2741,9 @@ function blackStrike(){
 }
 function updateBlackFig(){
   const b=blackFig;if(!b.sprite)return;
-  // Lock sprite upright — only face camera on Y axis, ignore tilt
+  // Y-only billboard
   const camWP=camera.getWorldPosition(new THREE.Vector3());
-  const bAngle=Math.atan2(camWP.x-b.x, camWP.z-b.z);
-  b.sprite.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0), bAngle);
+  b.sprite.rotation.y=Math.atan2(camWP.x-b.x, camWP.z-b.z);
   if(blackCooldown>0)blackCooldown--;
   const dx=b.x-playerRig.position.x,dz=b.z-playerRig.position.z;
   const dist=Math.hypot(dx,dz);
@@ -3184,16 +3329,19 @@ function animate(){
 
   const beforeX=playerRig.position.x,beforeZ=playerRig.position.z;
   if(vrMode){
-    const mz=Math.abs(vrMoveZ)>0.12?-vrMoveZ:0;
-    const mx=Math.abs(vrMoveX)>0.12?vrMoveX:0;
-    if(mz!==0||mx!==0){
+    const vdt=Math.min(dt,0.05);  // cap dt — prevents large jumps on dropped frames
+    const targetMZ=Math.abs(vrMoveZ)>0.12?-vrMoveZ:0;
+    const targetMX=Math.abs(vrMoveX)>0.12?vrMoveX:0;
+    vrMoveXSmooth+=(targetMX-vrMoveXSmooth)*Math.min(1,14*vdt);
+    vrMoveZSmooth+=(targetMZ-vrMoveZSmooth)*Math.min(1,14*vdt);
+    if(Math.abs(vrMoveXSmooth)>0.01||Math.abs(vrMoveZSmooth)>0.01){
       camera.getWorldDirection(_camDir);
       _camDir.y=0;
       if(_camDir.length()>0.001)_camDir.normalize();
       const rightX=-_camDir.z, rightZ=_camDir.x;
       const spd=4.2;
-      const wantX=beforeX+(mz*_camDir.x+mx*rightX)*spd*dt;
-      const wantZ=beforeZ+(mz*_camDir.z+mx*rightZ)*spd*dt;
+      const wantX=beforeX+(vrMoveZSmooth*_camDir.x+vrMoveXSmooth*rightX)*spd*vdt;
+      const wantZ=beforeZ+(vrMoveZSmooth*_camDir.z+vrMoveXSmooth*rightZ)*spd*vdt;
       tryMove(wantX,wantZ);
     }
     if(vel.x!==0||vel.z!==0){
@@ -3248,6 +3396,7 @@ function animate(){
   updateInteract();
   updateVideoVisibility();
   updateSanityHUD();
+  if(vrMode){updateVRHUD(dt);updateVRSanityEffect(dt,t);}
 
   if(shadowFig.sprite.material.opacity<0.1&&blackFig.sprite.material.opacity<0.1&&crowd.length===0)
     sanity=Math.min(100,sanity+3*dt);
