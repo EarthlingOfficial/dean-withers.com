@@ -139,7 +139,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
     <div id="c-stage">STAGE 9 — THE HYPOGEUM</div>
     <div id="c-loadbar"><div id="c-loadfill"></div></div>
     <div id="c-loadtxt">INITIALISING</div>
-    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v15 — KILL MSGS / VR DEATH / EXIT VIDEO FIX / EXIT DOOR OFFSET / TV LABELS</div>
+    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v15 — KILL MSGS / EXIT VIDEO FIX / EXIT DOOR OFFSET / TV LABELS</div>
   </div>
   <div id="c-phase2">
     <div class="c-p2-series">A VEGAN BROS. SERIES</div>
@@ -223,91 +223,91 @@ const VIDS=[
 ];
 const GATE_TOTAL=VIDS.filter(v=>v.gate).length;
 const KILL_MESSAGES=[
-  'you were bolt gunned',
-  'gassed like a pig',
-  'your throat was slit halaal style',
-  'you were humanely dispatched',
-  'we used you for food',
-  'you were killed for designer shoes',
-  'you\'re now leather',
-  'you were bred to die',
-  'you died and it doesnt matter',
-  'you\'re now gummy lollies',
-  'you were over milked',
-  'you were inseminated too often',
-  'you entered the chute well done',
-  'that\'ll do pig',
-  'you were left on the kill floor',
-  'stun gun failed, suffer',
-  'you followed the angel goat',
-  'another dead commodity',
-  'died by farmers blade',
-  'head to concrete like a baby pig',
-  'hung upside down and bled',
-  'welcome the sky farm',
-  'Earthling will miss you',
-  'you ate too many rib eyes',
-  'meat cancer death',
-  'Died of meat induced anal cancer',
-  'your meaty heart exploded',
-  'heart disease victim #infinity',
-  'meat karma',
-  'Death by wagyu',
-  'the cow didn\'t want to die',
-  'minced like a male chick',
-  'you\'re minced meat',
-  'you are offal',
-  'you were humanely bludgeoned',
-  'Dean got filleted',
-  'Dean was prepped for dinner',
-  'Dean was cooked',
-  'Dean strips',
-  'You wagyu',
-  'You mignon',
-  'Dean Flambe',
-  'Dean Saute',
-  'You Au Jus',
-  'die meat eater, die',
-  'Dean Tartare',
-  'You Pate',
-  'You ragu',
-  'Braised Dean',
-  'Fillet o Dean',
-  'Time to meet Charlie',
-  'Kirked and deep fried',
-  'Idiot Sandwich',
-  'That\'s a wrap',
-  'You are bacon',
-  'Chargrilled human',
-  'Kirked and Cooked',
-  'At least we\'ll use your meat',
-  'Put a fork in you',
-  'Kids, its dinner time!',
-  'Reduced to a broth',
-  'Dean fingers',
-  'Cheesy Dean pizza',
-  'Welcome to Hu-burger',
-  'involuntary nugget',
-  'You are a value meal',
-  'Happy Meal',
-  'Hello Freshness',
-  'You are the secret ingredient',
-  'Drowned in the scalding tank',
-  'Bolted through the skull',
-  'Into the macerator',
-  'Drained into the floor gate',
-  'Deboned, Gutted and Trussed',
-  'Marinated in agony',
-  'Boiled Alive',
-  'Human stir fry',
-  'Bacon stroke',
-  'Taenia Solium worm',
-  'Expired',
-  'Reduced to dog food',
-  'butcher didn\'t blink',
-  'forever counting sheep',
-  'Earthling approved slaughter',
-  'humanely killed',
+  "you were bolt gunned",
+  "gassed like a pig",
+  "your throat was slit halaal style",
+  "you were humanely dispatched",
+  "we used you for food",
+  "you were killed for designer shoes",
+  "you're now leather",
+  "you were bred to die",
+  "you died and it doesnt matter",
+  "you're now gummy lollies",
+  "you were over milked",
+  "you were inseminated too often",
+  "you entered the chute well done",
+  "that'll do pig",
+  "you were left on the kill floor",
+  "stun gun failed, suffer",
+  "you followed the angel goat",
+  "another dead commodity",
+  "died by farmers blade",
+  "head to concrete like a baby pig",
+  "hung upside down and bled",
+  "welcome the sky farm",
+  "Earthling will miss you",
+  "you ate too many rib eyes",
+  "meat cancer death",
+  "Died of meat induced anal cancer",
+  "your meaty heart exploded",
+  "heart disease victim #infinity",
+  "meat karma",
+  "Death by wagyu",
+  "the cow didn't want to die",
+  "minced like a male chick",
+  "you're minced meat",
+  "you are offal",
+  "you were humanely bludgeoned",
+  "Dean got filleted",
+  "Dean was prepped for dinner",
+  "Dean was cooked",
+  "Dean strips",
+  "You wagyu",
+  "You mignon",
+  "Dean Flambe",
+  "Dean Saute",
+  "You Au Jus",
+  "die meat eater, die",
+  "Dean Tartare",
+  "You Pate",
+  "You ragu",
+  "Braised Dean",
+  "Fillet o Dean",
+  "Time to meet Charlie",
+  "Kirked and deep fried",
+  "Idiot Sandwich",
+  "That's a wrap",
+  "You are bacon",
+  "Chargrilled human",
+  "Kirked and Cooked",
+  "At least we'll use your meat",
+  "Put a fork in you",
+  "Kids, its dinner time!",
+  "Reduced to a broth",
+  "Dean fingers",
+  "Cheesy Dean pizza",
+  "Welcome to Hu-burger",
+  "involuntary nugget",
+  "You are a value meal",
+  "Happy Meal",
+  "Hello Freshness",
+  "You are the secret ingredient",
+  "Drowned in the scalding tank",
+  "Bolted through the skull",
+  "Into the macerator",
+  "Drained into the floor gate",
+  "Deboned, Gutted and Trussed",
+  "Marinated in agony",
+  "Boiled Alive",
+  "Human stir fry",
+  "Bacon stroke",
+  "Taenia Solium worm",
+  "Expired",
+  "Reduced to dog food",
+  "butcher didn't blink",
+  "forever counting sheep",
+  "Earthling approved slaughter",
+  "humanely killed",
 ];
 
 
@@ -425,7 +425,6 @@ let vrDoorVideoTex=null;
 let vrDoorVideoPlane=null;
 let vrFinalVideoTex=null;
 let vrFinalVideoMesh=null; // applied directly to TV screen mesh in VR
-let vrDeathMesh=null;
 
 const colliders=[];
 const lights=[];
@@ -1568,7 +1567,6 @@ function init(){
   setupSkipBtn();
   buildVRHUD();
   buildVRSanityEffect();
-  buildVRDeathScreen();
 
   renderer.compile(scene,camera);
   renderer.setRenderTarget(renderTarget);
@@ -2587,14 +2585,18 @@ function applyCheckpoint(){
 }
 function showOneAndDone(){
   ending=true;
-  const killMsg=KILL_MESSAGES[Math.floor(Math.random()*KILL_MESSAGES.length)];
-  if(vrMode){showVRDeathScreen(killMsg);return;}
+  const killMsg=KILL_MESSAGES[Math.floor(Math.random()*KILL_MESSAGES.length)]||'';
+  if(vrMode){
+    whisper(killMsg+'\nPress Meta / Menu to try again');
+    return;
+  }
   $('fade').classList.add('on');
   setTimeout(()=>{
     const ov=document.createElement('div');
     ov.style.cssText='position:fixed;inset:0;background:#060402;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;padding:32px;text-align:center';
-    ov.innerHTML='<div style="color:#c8b86a;font-family:\'Courier New\',monospace;font-size:clamp(16px,3.5vw,26px);letter-spacing:8px;margin-bottom:10px">SEQUENCE BROKEN</div><div style="color:#cc2222;font-family:\'Courier New\',monospace;font-size:clamp(10px,1.8vw,14px);letter-spacing:3px;margin-bottom:10px">'+(killMsg||\'\')+'</div><div style="color:#3a2a18;font-family:\'Courier New\',monospace;font-size:clamp(8px,1.3vw,11px);letter-spacing:4px;margin-bottom:38px">DEAN SLIPS THROUGH YOUR GRASP</div><button id="cp-btn" style="padding:12px 40px;background:rgba(200,184,106,.07);border:1px solid rgba(200,184,106,.34);color:#c8b86a;font-family:\'Courier New\',monospace;font-size:11px;letter-spacing:5px;cursor:pointer">CONTINUE FROM CHECKPOINT</button><div style="margin-top:14px;color:#1e1a12;font-family:\'Courier New\',monospace;font-size:9px;letter-spacing:3px">YOUR PROGRESS IS SAVED</div>';
+    ov.innerHTML='<div style="color:#c8b86a;font-family:\'Courier New\',monospace;font-size:clamp(16px,3.5vw,26px);letter-spacing:8px;margin-bottom:10px">SEQUENCE BROKEN</div><div id="kill-msg-el" style="color:#cc2222;font-family:\'Courier New\',monospace;font-size:clamp(10px,1.8vw,14px);letter-spacing:3px;margin-bottom:14px"></div><div style="color:#3a2a18;font-family:\'Courier New\',monospace;font-size:clamp(8px,1.3vw,11px);letter-spacing:4px;margin-bottom:38px">DEAN SLIPS THROUGH YOUR GRASP</div><button id="cp-btn" style="padding:12px 40px;background:rgba(200,184,106,.07);border:1px solid rgba(200,184,106,.34);color:#c8b86a;font-family:\'Courier New\',monospace;font-size:11px;letter-spacing:5px;cursor:pointer">CONTINUE FROM CHECKPOINT</button><div style="margin-top:14px;color:#1e1a12;font-family:\'Courier New\',monospace;font-size:9px;letter-spacing:3px">YOUR PROGRESS IS SAVED</div>';
     document.body.appendChild(ov);
+    const kmel=ov.querySelector('#kill-msg-el');if(kmel)kmel.textContent=killMsg;
     document.getElementById('cp-btn').addEventListener('click',()=>location.reload());
   },1300);
 }
@@ -3606,42 +3608,6 @@ function updateFuzz(){
     id.data[i]=v*0.78;id.data[i+1]=v*0.88;id.data[i+2]=v;id.data[i+3]=255;
   }
   fuzzCtx.putImageData(id,0,0);fuzzTex.needsUpdate=true;
-}
-
-// ══ VR DEATH SCREEN ══
-function buildVRDeathScreen(){
-  const c=document.createElement('canvas');c.width=512;c.height=256;
-  const ctx=c.getContext('2d');
-  vrDeathMesh=new THREE.Mesh(
-    new THREE.PlaneGeometry(0.64,0.32),
-    new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthTest:false})
-  );
-  vrDeathMesh.renderOrder=999;
-  vrDeathMesh.visible=false;
-  vrDeathMesh.userData.canvas=c;
-  vrDeathMesh.userData.ctx=ctx;
-  scene.add(vrDeathMesh);
-}
-function showVRDeathScreen(killMsg){
-  if(!vrDeathMesh)return;
-  const c=vrDeathMesh.userData.canvas;
-  const ctx=vrDeathMesh.userData.ctx;
-  ctx.clearRect(0,0,512,256);
-  ctx.fillStyle='rgba(6,4,2,0.92)';ctx.fillRect(0,0,512,256);
-  ctx.strokeStyle='rgba(200,184,106,0.4)';ctx.lineWidth=2;ctx.strokeRect(6,6,500,244);
-  ctx.fillStyle='#cc2222';ctx.font='bold 36px monospace';ctx.textAlign='center';
-  ctx.fillText('YOU DIED',256,60);
-  ctx.fillStyle='#c8b86a';ctx.font='18px monospace';
-  ctx.fillText(killMsg||'',256,108);
-  ctx.fillStyle='#4a3a22';ctx.font='13px monospace';
-  ctx.fillText('PRESS ☰ MENU TO EXIT VR',256,158);
-  ctx.fillText('THEN: TRY AGAIN',256,182);
-  vrDeathMesh.material.map.needsUpdate=true;
-  const camPos=camera.getWorldPosition(new THREE.Vector3());
-  const camDir=new THREE.Vector3();camera.getWorldDirection(camDir);
-  vrDeathMesh.position.set(camPos.x+camDir.x*1.5,camPos.y,camPos.z+camDir.z*1.5);
-  vrDeathMesh.lookAt(camPos);
-  vrDeathMesh.visible=true;
 }
 
 // ════════════════════════════════════════════════════════════════
