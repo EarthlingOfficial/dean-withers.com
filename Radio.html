@@ -20,7 +20,6 @@
             overflow: hidden;
         }
 
-        /* The surreal, empty room container */
         .room {
             text-align: center;
             padding: 40px;
@@ -30,7 +29,6 @@
             border-radius: 4px;
         }
 
-        /* The retro CRT Television screen */
         .tv-monitor {
             width: 320px;
             height: 240px;
@@ -46,7 +44,6 @@
             overflow: hidden;
         }
 
-        /* Static overlay lines across the TV screen */
         .tv-monitor::before {
             content: " ";
             display: block;
@@ -58,7 +55,6 @@
             pointer-events: none;
         }
 
-        /* The digital glitch glow inside the TV when audio activates */
         .screen-glow {
             width: 100%;
             height: 100%;
@@ -73,7 +69,6 @@
             animation: flicker 0.15s infinite;
         }
 
-        /* Industrial interactive control button */
         .industrial-btn {
             background-color: #1a1a1a;
             color: #990000;
@@ -103,7 +98,6 @@
             cursor: not-allowed;
         }
 
-        /* Console log printout beneath the setup */
         .status-feed {
             margin-top: 20px;
             font-size: 11px;
@@ -121,20 +115,17 @@
 <body>
 
     <div class="room">
-        <!-- The CRT TV Box -->
         <div class="tv-monitor">
             <div id="tvScreen" class="screen-glow"></div>
         </div>
 
-        <!-- System Activation Button -->
         <button id="actionBtn" class="industrial-btn" onclick="initiateRadioPipeline()">Intercept Transmission</button>
         
-        <!-- Live status feedback text -->
         <div id="statusLog" class="status-feed">SYSTEM IDLE // AWAITING INPUT</div>
     </div>
 
-    <!-- The invisible continuous live stream link you found -->
-    <audio id="liveSignal" src="https://rfm.fr" crossorigin="anonymous" preload="auto"></audio>
+    <!-- The live stream link -->
+    <audio id="liveSignal" src="https://rfm.lmn.fm/rfm.mp3" preload="auto"></audio>
 
     <script>
         const audioSignal = document.getElementById('liveSignal');
@@ -143,17 +134,14 @@
         const statusLog = document.getElementById('statusLog');
 
         function initiateRadioPipeline() {
-            // Lock down the button so it can only be activated once per session
             actionButton.disabled = true;
             actionButton.innerText = "SIGNAL LOCKED";
             statusLog.innerText = "CONNECTING TO LIVE INTERCEPT...";
 
-            // Initialize the stream silently at absolute zero volume
             audioSignal.volume = 0;
             
             audioSignal.play().then(() => {
                 statusLog.innerText = "FEED STABLE. MONITORING FREQUENCY...";
-                // Boot up the automated random looping system
                 executeGlitchSequence();
             }).catch(err => {
                 statusLog.innerText = "CONNECTION BLOCKED BY BROWSER POLICY. RETRYING...";
@@ -162,28 +150,23 @@
         }
 
         function executeGlitchSequence() {
-            // Generates a random interval between 10 seconds and 1 minute
             const nextEventInterval = Math.random() * (60000 - 10000) + 10000;
 
             setTimeout(() => {
                 if (audioSignal.volume === 0) {
-                    // Turn up the real-world radio stream over 2.5 seconds
                     statusLog.innerText = "ALERT: INCOMING AUDIO INTERCEPT DETECTED";
                     tvScreen.classList.add('screen-active');
                     smoothVolumeTransition(0.7, 2500); 
                 } else {
-                    // Pull the volume all the way back down to zero
                     statusLog.innerText = "FEED LOST. SEARCHING SIGNAL...";
                     tvScreen.classList.remove('screen-active');
                     smoothVolumeTransition(0, 2500); 
                 }
 
-                // Recursively repeat to keep the loop going indefinitely
                 executeGlitchSequence();
             }, nextEventInterval);
         }
 
-        // Handles the math to cleanly twist the volume knob up and down over time
         function smoothVolumeTransition(targetVolume, durationMs) {
             const updatesCount = 25;
             const delayPerUpdate = durationMs / updatesCount;
