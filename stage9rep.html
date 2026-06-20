@@ -139,7 +139,7 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
     <div id="c-stage">STAGE 9 — THE HYPOGEUM</div>
     <div id="c-loadbar"><div id="c-loadfill"></div></div>
     <div id="c-loadtxt">INITIALISING</div>
-    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v15 — KILL MSG / VR DEATH / VIDEO FIX / VR DOOR OFFSET / TV LABELS / EXIT VID FIX</div>
+    <div id="c-buildstamp" style="position:absolute;bottom:18px;right:18px;font-size:9px;letter-spacing:0.12em;opacity:0.38;color:#b8a060;font-family:'Courier New',monospace;">BUILD v15 — KILL MSGS / VR DEATH / EXIT VIDEO FIX / EXIT DOOR OFFSET / TV LABELS</div>
   </div>
   <div id="c-phase2">
     <div class="c-p2-series">A VEGAN BROS. SERIES</div>
@@ -222,86 +222,6 @@ const VIDS=[
   {url:null,lbl:'DEBATE 12 — SIGNAL LOST'},
 ];
 const GATE_TOTAL=VIDS.filter(v=>v.gate).length;
-
-// ── DOOR AI VIDEOS (MP4s from GitHub repo/releases) ──
-const DOOR_VIDS=[
-  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
-  'https://earthlingofficial.com/playroom1.mp4',
-  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
-  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
-  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
-];
-
-// ── TOKENS ──
-const TOKENS=[
-  {shape:'circle',  time:'2:37', color:'#cc0066'},
-  {shape:'triangle',time:'0:28', color:'#1155cc'},
-  {shape:'diamond', time:'0:09', color:'#6600cc'},
-  {shape:'hex',     time:'2:09', color:'#007733'},
-  {shape:'pill',    time:'20:31',color:'#bb4400'},
-];
-
-// ── DARK FACTS ──
-const FACTS=[
-  '80 BILLION LAND ANIMALS ARE KILLED\nFOR FOOD EVERY YEAR.',
-  'A DAIRY COW IS FORCIBLY INSEMINATED\nSO SHE LACTATES. AGAIN. AND AGAIN.',
-  'HER CALF IS TAKEN WITHIN 24 HOURS\nOF BIRTH. SHE CALLS FOR IT FOR DAYS.',
-  'ANIMAL AGRICULTURE DRIVES THE MAJORITY\nOF AMAZON DEFORESTATION.',
-  'ROUGHLY 1,800 GALLONS OF WATER\nFOR A SINGLE POUND OF BEEF.',
-  'MALE CHICKS IN THE EGG INDUSTRY\nARE GROUND ALIVE ON DAY ONE.',
-  'PIGS ARE AS INTELLIGENT AS\n3-YEAR-OLD CHILDREN.',
-  'FISH FEEL PAIN.\nBILLIONS SUFFOCATE ON DECKS EVERY DAY.',
-  'BEAKS. TAILS. TESTICLES.\nCUT WITHOUT ANAESTHETIC. STANDARD PRACTICE.',
-  'THE AVERAGE DAIRY COW LIVES 4 YEARS.\nHER NATURAL LIFE IS 20.',
-  'IT TAKES MANY PLANT CALORIES\nTO PRODUCE ONE CALORIE OF MEAT.',
-  "A PIG'S DISTRESS SCREAM: 115 DECIBELS.\nLOUDER THAN A CHAINSAW. NOBODY COMES.",
-  'MOTHER PIGS LIVE IN GESTATION CRATES\nTOO SMALL TO TURN AROUND.',
-  'YOU WOULD NOT WATCH IT HAPPEN.\nBUT YOU WILL PAY FOR IT TO.',
-  'THE BOLT GUN MISSES OFTEN.\nMANY ARE STILL AWAKE WHEN THE KNIFE COMES.',
-  'THEY CALL A THROAT CUT ON A SCHEDULE\n"HUMANE SLAUGHTER."',
-  'WHEN THE STUN FAILS, PIGS ENTER\nTHE SCALDING TANK STILL BREATHING.',
-  'CHICKENS ARE HUNG UPSIDE DOWN, SHOCKED,\nAND SLIT — ONE EVERY SECOND.',
-  'VEAL IS A CALF KEPT ANAEMIC AND CHAINED\nSO THE MEAT STAYS PALE AND SOFT.',
-  'FOIE GRAS: A PIPE FORCED DOWN THE THROAT\nUNTIL THE LIVER SWELLS TEN TIMES OVER.',
-  'LOBSTERS AND CRABS ARE DROPPED\nINTO THE POT ALIVE AND AWAKE.',
-  'THEY SMELL THE BLOOD OF THE ONE BEFORE.\nTHEY KNOW WHAT THE LINE IS FOR.',
-  'YOU SAY "BACON"\nSO YOU NEVER HAVE TO SAY "PIG."',
-  'YOU SAY BEEF, PORK, VEAL —\nANYTHING BUT COW, PIG, CALF.',
-  '"FREE RANGE" ENDS AT THE SAME BLADE.\n"CAGE-FREE" IS A SHED WITH NO SKY.',
-  'EVERY GLASS OF MILK IS A MOTHER\nGRIEVING A CHILD SHE NEVER GOT TO KEEP.',
-  'THE FLESH ON THE PLATE HAD A FACE,\nA MOTHER, AND A FEAR OF THE END.',
-  'IT FOUGHT THE WHOLE WAY DOWN.\nIT DID NOT WANT TO DIE. IT LOST.',
-  'YOU PAID A STRANGER IN A PLASTIC APRON\nTO DO WHAT YOU COULD NEVER WATCH.',
-  'THE DRAIN ON THE KILL FLOOR\nNEVER STOPS RUNNING RED.',
-];
-
-// ── WALL SCRAWLS ──
-const SCRAWLS=[
-  'INDEXED FOREVER','HE DID THIS TO HIMSELF','watching me watching you',
-  'Deanus Politicus Carnivorus Paradoxus','THE PARADOX REMAINS UNRESOLVED',
-  'i can feel you pull me down','11:40 — THE ADMISSION','18:07 — HE LAUGHED',
-  'CRAZY VEGAN','EPISODE 4 OF 8','SIGNAL LOST','the mask slipped for 0.3 seconds',
-  'he called it a microaggression','bark like a dog','HE LAUGHED FOR THE PIGS',
-];
-
-// ── WHISPERS ──
-const WHISPERS=[
-  'the specimen does not recognise the room.',
-  'observe: he condemns the cage, then pays the keeper.',
-  'he cried for the man. he laughed for the pigs.',
-  'the barrier was never philosophy. only convenience.',
-  'you are watching him watch himself.',
-  'every door in here opens from your side, Dean.',
-  '11:40 — he admitted it, then kept eating.',
-  'the archive does not forget what the mouth let slip.',
-  'you would look away. they cannot.',
-  'you have tasted this scream before.',
-  'the cage was paid for at your checkout.',
-  'you weep for the dog and chew on its twin.',
-  'the knife is held by your appetite.',
-];
-
-// ── KILL MESSAGES ──
 const KILL_MESSAGES=[
   'you were bolt gunned',
   'gassed like a pig',
@@ -390,6 +310,85 @@ const KILL_MESSAGES=[
   'humanely killed',
 ];
 
+
+// ── DOOR AI VIDEOS (MP4s from GitHub repo/releases) ──
+const DOOR_VIDS=[
+  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
+  'https://earthlingofficial.com/playroom1.mp4',
+  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
+  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
+  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
+];
+
+// ── TOKENS ──
+const TOKENS=[
+  {shape:'circle',  time:'2:37', color:'#cc0066'},
+  {shape:'triangle',time:'0:28', color:'#1155cc'},
+  {shape:'diamond', time:'0:09', color:'#6600cc'},
+  {shape:'hex',     time:'2:09', color:'#007733'},
+  {shape:'pill',    time:'20:31',color:'#bb4400'},
+];
+
+// ── DARK FACTS ──
+const FACTS=[
+  '80 BILLION LAND ANIMALS ARE KILLED\nFOR FOOD EVERY YEAR.',
+  'A DAIRY COW IS FORCIBLY INSEMINATED\nSO SHE LACTATES. AGAIN. AND AGAIN.',
+  'HER CALF IS TAKEN WITHIN 24 HOURS\nOF BIRTH. SHE CALLS FOR IT FOR DAYS.',
+  'ANIMAL AGRICULTURE DRIVES THE MAJORITY\nOF AMAZON DEFORESTATION.',
+  'ROUGHLY 1,800 GALLONS OF WATER\nFOR A SINGLE POUND OF BEEF.',
+  'MALE CHICKS IN THE EGG INDUSTRY\nARE GROUND ALIVE ON DAY ONE.',
+  'PIGS ARE AS INTELLIGENT AS\n3-YEAR-OLD CHILDREN.',
+  'FISH FEEL PAIN.\nBILLIONS SUFFOCATE ON DECKS EVERY DAY.',
+  'BEAKS. TAILS. TESTICLES.\nCUT WITHOUT ANAESTHETIC. STANDARD PRACTICE.',
+  'THE AVERAGE DAIRY COW LIVES 4 YEARS.\nHER NATURAL LIFE IS 20.',
+  'IT TAKES MANY PLANT CALORIES\nTO PRODUCE ONE CALORIE OF MEAT.',
+  "A PIG'S DISTRESS SCREAM: 115 DECIBELS.\nLOUDER THAN A CHAINSAW. NOBODY COMES.",
+  'MOTHER PIGS LIVE IN GESTATION CRATES\nTOO SMALL TO TURN AROUND.',
+  'YOU WOULD NOT WATCH IT HAPPEN.\nBUT YOU WILL PAY FOR IT TO.',
+  'THE BOLT GUN MISSES OFTEN.\nMANY ARE STILL AWAKE WHEN THE KNIFE COMES.',
+  'THEY CALL A THROAT CUT ON A SCHEDULE\n"HUMANE SLAUGHTER."',
+  'WHEN THE STUN FAILS, PIGS ENTER\nTHE SCALDING TANK STILL BREATHING.',
+  'CHICKENS ARE HUNG UPSIDE DOWN, SHOCKED,\nAND SLIT — ONE EVERY SECOND.',
+  'VEAL IS A CALF KEPT ANAEMIC AND CHAINED\nSO THE MEAT STAYS PALE AND SOFT.',
+  'FOIE GRAS: A PIPE FORCED DOWN THE THROAT\nUNTIL THE LIVER SWELLS TEN TIMES OVER.',
+  'LOBSTERS AND CRABS ARE DROPPED\nINTO THE POT ALIVE AND AWAKE.',
+  'THEY SMELL THE BLOOD OF THE ONE BEFORE.\nTHEY KNOW WHAT THE LINE IS FOR.',
+  'YOU SAY "BACON"\nSO YOU NEVER HAVE TO SAY "PIG."',
+  'YOU SAY BEEF, PORK, VEAL —\nANYTHING BUT COW, PIG, CALF.',
+  '"FREE RANGE" ENDS AT THE SAME BLADE.\n"CAGE-FREE" IS A SHED WITH NO SKY.',
+  'EVERY GLASS OF MILK IS A MOTHER\nGRIEVING A CHILD SHE NEVER GOT TO KEEP.',
+  'THE FLESH ON THE PLATE HAD A FACE,\nA MOTHER, AND A FEAR OF THE END.',
+  'IT FOUGHT THE WHOLE WAY DOWN.\nIT DID NOT WANT TO DIE. IT LOST.',
+  'YOU PAID A STRANGER IN A PLASTIC APRON\nTO DO WHAT YOU COULD NEVER WATCH.',
+  'THE DRAIN ON THE KILL FLOOR\nNEVER STOPS RUNNING RED.',
+];
+
+// ── WALL SCRAWLS ──
+const SCRAWLS=[
+  'INDEXED FOREVER','HE DID THIS TO HIMSELF','watching me watching you',
+  'Deanus Politicus Carnivorus Paradoxus','THE PARADOX REMAINS UNRESOLVED',
+  'i can feel you pull me down','11:40 — THE ADMISSION','18:07 — HE LAUGHED',
+  'CRAZY VEGAN','EPISODE 4 OF 8','SIGNAL LOST','the mask slipped for 0.3 seconds',
+  'he called it a microaggression','bark like a dog','HE LAUGHED FOR THE PIGS',
+];
+
+// ── WHISPERS ──
+const WHISPERS=[
+  'the specimen does not recognise the room.',
+  'observe: he condemns the cage, then pays the keeper.',
+  'he cried for the man. he laughed for the pigs.',
+  'the barrier was never philosophy. only convenience.',
+  'you are watching him watch himself.',
+  'every door in here opens from your side, Dean.',
+  '11:40 — he admitted it, then kept eating.',
+  'the archive does not forget what the mouth let slip.',
+  'you would look away. they cannot.',
+  'you have tasted this scream before.',
+  'the cage was paid for at your checkout.',
+  'you weep for the dog and chew on its twin.',
+  'the knife is held by your appetite.',
+];
+
 // ── CONSTANTS ──
 const WALL_COLOR=0xc2b280, LIGHT_COLOR=0xf2f5db, SLIDE_COLOR=0x00cc44;
 const WH=4;
@@ -414,7 +413,6 @@ let vrLaserRight=null,vrLaserLeft=null;
 let vrHintPlane=null;
 let vrHintMesh=null;
 let vrHintText='';
-let vrDeathMesh=null;
 let collisionBypassTimer=0;
 const _moveDummy=new THREE.Object3D();
 const _camDir=new THREE.Vector3();
@@ -427,6 +425,7 @@ let vrDoorVideoTex=null;
 let vrDoorVideoPlane=null;
 let vrFinalVideoTex=null;
 let vrFinalVideoMesh=null; // applied directly to TV screen mesh in VR
+let vrDeathMesh=null;
 
 const colliders=[];
 const lights=[];
@@ -1219,10 +1218,9 @@ function _playVRDoorVideo(door){
     vrDoorVideoPlane.material=new THREE.MeshBasicMaterial({map:vrDoorVideoTex,side:THREE.DoubleSide});
   }
 
-  // Position VR door video plane pulled 2m toward player
+  // Position VR door video plane in front of door
   if(vrDoorVideoPlane){
-    const _fdx=door.cFdx||0,_fdz=door.cFdz||0;
-    vrDoorVideoPlane.position.set(door.grp.position.x-_fdx*2.0,1.65,door.grp.position.z-_fdz*2.0);
+    vrDoorVideoPlane.position.set(door.grp.position.x,1.65,door.grp.position.z);
     vrDoorVideoPlane.rotation.y=door.grp.rotation.y;
     vrDoorVideoPlane.visible=true;
   }
@@ -2480,9 +2478,8 @@ function buildEndTV(pos,col){
     const titleSign=txt(titleLines,3.2,th,'#706858',null,7);
     titleSign.position.set(0,-1.32,0.06);
     frame.add(titleSign);
-    // Larger wall sign for mobile/PC readability (beside TV on the wall)
-    const shapeSymbol=col.shape==='circle'?'\u25cf':col.shape==='triangle'?'\u25b2':col.shape==='diamond'?'\u25c6':col.shape==='hex'?'\u2b22':'\u25ac';
-    const bigHeader=col.label+' \u00b7 '+shapeSymbol;
+    const shapeSymbol={circle:'●',triangle:'▲',diamond:'◆',hex:'⬡',pill:'▬'}[col.shape]||'?';
+    const bigHeader=col.label+' '+shapeSymbol;
     const bigLines=wrapTitle(col.title,22);
     const bigH=Math.max(0.7,(bigLines.length+1)*0.22);
     const bigSign=txt([bigHeader,...bigLines],2.8,bigH,'#a89878',null,15);
@@ -2588,54 +2585,15 @@ function applyCheckpoint(){
   if(slideOpen&&slideMat){slideMat.emissive.setHex(0x0f7a3a);slideMat.emissiveIntensity=1.0;if(slideLight)slideLight.intensity=1.8;}
   updateArch();
 }
-function buildVRDeathScreen(){
-  const c=document.createElement('canvas');c.width=512;c.height=256;
-  const ctx=c.getContext('2d');
-  vrDeathMesh=new THREE.Mesh(
-    new THREE.PlaneGeometry(0.64,0.32),
-    new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthTest:false,side:THREE.DoubleSide})
-  );
-  vrDeathMesh.renderOrder=999;
-  vrDeathMesh.position.set(0,-0.04,-0.75);
-  vrDeathMesh.visible=false;
-  camera.add(vrDeathMesh);
-  vrDeathMesh.userData.canvas=c;
-  vrDeathMesh.userData.ctx=ctx;
-}
-function showVRDeathScreen(msg){
-  if(!vrDeathMesh)return;
-  const c=vrDeathMesh.userData.canvas,ctx=vrDeathMesh.userData.ctx;
-  const W=c.width,H=c.height;
-  ctx.clearRect(0,0,W,H);
-  ctx.fillStyle='rgba(4,2,1,0.97)';ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle='rgba(160,20,20,0.6)';ctx.lineWidth=3;ctx.strokeRect(4,4,W-8,H-8);
-  ctx.fillStyle='#cc2222';ctx.font='bold 19px \"Courier New\",monospace';ctx.textAlign='center';
-  ctx.fillText(msg.toUpperCase(),W/2,44);
-  ctx.fillStyle='rgba(160,20,20,0.35)';ctx.fillRect(20,58,W-40,1);
-  ctx.fillStyle='#c8b86a';ctx.font='bold 17px \"Courier New\",monospace';
-  ctx.fillText('PRESS \u2630 MENU TO EXIT VR',W/2,90);
-  ctx.fillStyle='#5a7a5a';ctx.font='14px \"Courier New\",monospace';
-  ctx.fillText('THEN: TRY AGAIN',W/2,122);
-  ctx.fillStyle='#2a2820';ctx.font='11px \"Courier New\",monospace';
-  ctx.fillText('YOUR PROGRESS IS SAVED',W/2,156);
-  ctx.fillStyle='#1a1610';ctx.font='10px \"Courier New\",monospace';
-  ctx.fillText('SEQUENCE BROKEN',W/2,186);
-  vrDeathMesh.material.map.needsUpdate=true;
-  vrDeathMesh.visible=true;
-}
 function showOneAndDone(){
-  const killMsg=KILL_MESSAGES[Math.floor(Math.random()*KILL_MESSAGES.length)];
   ending=true;
-  if(vrMode){
-    showVRDeathScreen(killMsg);
-    return;
-  }
+  const killMsg=KILL_MESSAGES[Math.floor(Math.random()*KILL_MESSAGES.length)];
+  if(vrMode){showVRDeathScreen(killMsg);return;}
   $('fade').classList.add('on');
   setTimeout(()=>{
     const ov=document.createElement('div');
     ov.style.cssText='position:fixed;inset:0;background:#060402;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;padding:32px;text-align:center';
-    const killHtml='<div style=\"color:#cc2222;font-family:\'Courier New\',monospace;font-size:clamp(11px,2vw,16px);letter-spacing:3px;margin-bottom:22px;text-transform:uppercase\">'+killMsg+'</div>';
-    ov.innerHTML='<div style=\"color:#c8b86a;font-family:\'Courier New\',monospace;font-size:clamp(16px,3.5vw,26px);letter-spacing:8px;margin-bottom:10px\">SEQUENCE BROKEN</div>'+killHtml+'<div style=\"color:#3a2a18;font-family:\'Courier New\',monospace;font-size:clamp(8px,1.3vw,11px);letter-spacing:4px;margin-bottom:38px\">DEAN SLIPS THROUGH YOUR GRASP</div><button id=\"cp-btn\" style=\"padding:12px 40px;background:rgba(200,184,106,.07);border:1px solid rgba(200,184,106,.34);color:#c8b86a;font-family:\'Courier New\',monospace;font-size:11px;letter-spacing:5px;cursor:pointer\">CONTINUE FROM CHECKPOINT</button><div style=\"margin-top:14px;color:#1e1a12;font-family:\'Courier New\',monospace;font-size:9px;letter-spacing:3px\">YOUR PROGRESS IS SAVED</div>';
+    ov.innerHTML='<div style="color:#c8b86a;font-family:\'Courier New\',monospace;font-size:clamp(16px,3.5vw,26px);letter-spacing:8px;margin-bottom:10px">SEQUENCE BROKEN</div><div style="color:#cc2222;font-family:\'Courier New\',monospace;font-size:clamp(10px,1.8vw,14px);letter-spacing:3px;margin-bottom:10px">'+(killMsg||\'\')+'</div><div style="color:#3a2a18;font-family:\'Courier New\',monospace;font-size:clamp(8px,1.3vw,11px);letter-spacing:4px;margin-bottom:38px">DEAN SLIPS THROUGH YOUR GRASP</div><button id="cp-btn" style="padding:12px 40px;background:rgba(200,184,106,.07);border:1px solid rgba(200,184,106,.34);color:#c8b86a;font-family:\'Courier New\',monospace;font-size:11px;letter-spacing:5px;cursor:pointer">CONTINUE FROM CHECKPOINT</button><div style="margin-top:14px;color:#1e1a12;font-family:\'Courier New\',monospace;font-size:9px;letter-spacing:3px">YOUR PROGRESS IS SAVED</div>';
     document.body.appendChild(ov);
     document.getElementById('cp-btn').addEventListener('click',()=>location.reload());
   },1300);
@@ -3648,6 +3606,42 @@ function updateFuzz(){
     id.data[i]=v*0.78;id.data[i+1]=v*0.88;id.data[i+2]=v;id.data[i+3]=255;
   }
   fuzzCtx.putImageData(id,0,0);fuzzTex.needsUpdate=true;
+}
+
+// ══ VR DEATH SCREEN ══
+function buildVRDeathScreen(){
+  const c=document.createElement('canvas');c.width=512;c.height=256;
+  const ctx=c.getContext('2d');
+  vrDeathMesh=new THREE.Mesh(
+    new THREE.PlaneGeometry(0.64,0.32),
+    new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthTest:false})
+  );
+  vrDeathMesh.renderOrder=999;
+  vrDeathMesh.visible=false;
+  vrDeathMesh.userData.canvas=c;
+  vrDeathMesh.userData.ctx=ctx;
+  scene.add(vrDeathMesh);
+}
+function showVRDeathScreen(killMsg){
+  if(!vrDeathMesh)return;
+  const c=vrDeathMesh.userData.canvas;
+  const ctx=vrDeathMesh.userData.ctx;
+  ctx.clearRect(0,0,512,256);
+  ctx.fillStyle='rgba(6,4,2,0.92)';ctx.fillRect(0,0,512,256);
+  ctx.strokeStyle='rgba(200,184,106,0.4)';ctx.lineWidth=2;ctx.strokeRect(6,6,500,244);
+  ctx.fillStyle='#cc2222';ctx.font='bold 36px monospace';ctx.textAlign='center';
+  ctx.fillText('YOU DIED',256,60);
+  ctx.fillStyle='#c8b86a';ctx.font='18px monospace';
+  ctx.fillText(killMsg||'',256,108);
+  ctx.fillStyle='#4a3a22';ctx.font='13px monospace';
+  ctx.fillText('PRESS ☰ MENU TO EXIT VR',256,158);
+  ctx.fillText('THEN: TRY AGAIN',256,182);
+  vrDeathMesh.material.map.needsUpdate=true;
+  const camPos=camera.getWorldPosition(new THREE.Vector3());
+  const camDir=new THREE.Vector3();camera.getWorldDirection(camDir);
+  vrDeathMesh.position.set(camPos.x+camDir.x*1.5,camPos.y,camPos.z+camDir.z*1.5);
+  vrDeathMesh.lookAt(camPos);
+  vrDeathMesh.visible=true;
 }
 
 // ════════════════════════════════════════════════════════════════
