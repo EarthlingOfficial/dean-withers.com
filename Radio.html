@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stage 9: Audio Feed Test</title>
+    <style>
+        /* Gritty, dark backrooms style atmosphere */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0b0b0b;
+            color: #d11a1a;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* The surreal, empty room container */
+        .room {
+            text-align: center;
+            padding: 40px;
+            border: 1px solid #222;
+            background: linear-gradient(145deg, #111111, #080808);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+            border-radius: 4px;
+        }
+
+        /* The retro CRT Television screen */
+        .tv-monitor {
+            width: 320px;
+            height: 240px;
+            background-color: #050505;
+            border: 10px solid #252525;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            position: relative;
+            box-shadow: inset 0 0 40px rgba(0,0,0,1), 0 0 10px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Static overlay lines across the TV screen */
+        .tv-monitor::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+        }
+
+        /* The digital glitch glow inside the TV when audio activates */
+        .screen-glow {
+            width: 100%;
+            height: 100%;
+            background-color: #1a1111;
+            opacity: 0.1;
+            transition: opacity 1.5s ease, background-color 1.5s ease;
+        }
+
+        .screen-active {
+            background-color: #4a0d0d;
+            opacity: 0.6;
+            animation: flicker 0.15s infinite;
+        }
+
+        /* Industrial interactive control button */
+        .industrial-btn {
+            background-color: #1a1a1a;
+            color: #990000;
+            border: 2px solid #550000;
+            padding: 12px 28px;
+            font-size: 14px;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 0 #000;
+        }
+
+        .industrial-btn:hover {
+            background-color: #2a0000;
+            color: #ff3333;
+            border-color: #990000;
+        }
+
+        .industrial-btn:disabled {
+            background-color: #0d0d0d;
+            color: #444;
+            border-color: #222;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        /* Console log printout beneath the setup */
+        .status-feed {
+            margin-top: 20px;
+            font-size: 11px;
+            color: #555;
+            height: 15px;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.55; }
+            50% { opacity: 0.65; }
+            100% { opacity: 0.58; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="room">
+        <!-- The CRT TV Box -->
+        <div class="tv-monitor">
+            <div id="tvScreen" class="screen-glow"></div>
+        </div>
+
+        <!-- System Activation Button -->
+        <button id="actionBtn" class="industrial-btn" onclick="initiateRadioPipeline()">Intercept Transmission</button>
+        
+        <!-- Live status feedback text -->
+        <div id="statusLog" class="status-feed">SYSTEM IDLE // AWAITING INPUT</div>
+    </div>
+
+    <!-- The invisible continuous live stream link you found -->
+    <audio id="liveSignal" src="https://rfm.fr" crossorigin="anonymous" preload="auto"></audio>
+
+    <script>
+        const audioSignal = document.getElementById('liveSignal');
+        const actionButton = document.getElementById('actionBtn');
+        const tvScreen = document.getElementById('tvScreen');
+        const statusLog = document.getElementById('statusLog');
+
+        function initiateRadioPipeline() {
+            // Lock down the button so it can only be activated once per session
+            actionButton.disabled = true;
+            actionButton.innerText = "SIGNAL LOCKED";
+            statusLog.innerText = "CONNECTING TO LIVE INTERCEPT...";
+
+            // Initialize the stream silently at absolute zero volume
+            audioSignal.volume = 0;
+            
+            audioSignal.play().then(() => {
+                statusLog.innerText = "FEED STABLE. MONITORING FREQUENCY...";
+                // Boot up the automated random looping system
+                executeGlitchSequence();
+            }).catch(err => {
+                statusLog.innerText = "CONNECTION BLOCKED BY BROWSER POLICY. RETRYING...";
+                console.error("Stream initialization failure: ", err);
+            });
+        }
+
+        function executeGlitchSequence() {
+            // Generates a random interval between 10 seconds and 1 minute
+            const nextEventInterval = Math.random() * (60000 - 10000) + 10000;
+
+            setTimeout(() => {
+                if (audioSignal.volume === 0) {
+                    // Turn up the real-world radio stream over 2.5 seconds
+                    statusLog.innerText = "ALERT: INCOMING AUDIO INTERCEPT DETECTED";
+                    tvScreen.classList.add('screen-active');
+                    smoothVolumeTransition(0.7, 2500); 
+                } else {
+                    // Pull the volume all the way back down to zero
+                    statusLog.innerText = "FEED LOST. SEARCHING SIGNAL...";
+                    tvScreen.classList.remove('screen-active');
+                    smoothVolumeTransition(0, 2500); 
+                }
+
+                // Recursively repeat to keep the loop going indefinitely
+                executeGlitchSequence();
+            }, nextEventInterval);
+        }
+
+        // Handles the math to cleanly twist the volume knob up and down over time
+        function smoothVolumeTransition(targetVolume, durationMs) {
+            const updatesCount = 25;
+            const delayPerUpdate = durationMs / updatesCount;
+            const volumeChangePerStep = (targetVolume - audioSignal.volume) / updatesCount;
+            let currentStep = 0;
+
+            const fadeClock = setInterval(() => {
+                audioSignal.volume = Math.max(0, Math.min(1, audioSignal.volume + volumeChangePerStep));
+                currentStep++;
+
+                if (currentStep >= updatesCount) {
+                    audioSignal.volume = targetVolume;
+                    clearInterval(fadeClock);
+                }
+            }, delayPerUpdate);
+        }
+    </script>
+
+</body>
+</html>
