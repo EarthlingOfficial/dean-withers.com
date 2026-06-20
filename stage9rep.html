@@ -2491,16 +2491,6 @@ const DEATH_MSGS=['you were bolt gunned','gassed like a pig','your throat was sl
 function showOneAndDone(){
   ending=true;$('fade').classList.add('on');
   const msg=DEATH_MSGS[Math.floor(Math.random()*DEATH_MSGS.length)];
-  if(vrMode){
-    const deathLines=['SEQUENCE BROKEN',msg.toUpperCase(),'','PRESS META TO TRY AGAIN'];
-    const dth=deathLines.length*0.24;
-    const deathTxt=txt(deathLines,5.0,dth,'#c8b86a',null,18);
-    const _dc=new THREE.Vector3();camera.getWorldDirection(_dc);
-    deathTxt.position.set(playerRig.position.x+_dc.x*2.2,camera.position.y,playerRig.position.z+_dc.z*2.2);
-    deathTxt.rotation.y=Math.atan2(_dc.x,_dc.z)+Math.PI;
-    scene.add(deathTxt);
-    return;
-  }
   setTimeout(()=>{
     const ov=document.createElement('div');
     ov.style.cssText='position:fixed;inset:0;background:#060402;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;padding:32px;text-align:center';
@@ -2623,27 +2613,20 @@ function startExitVideo(){
     vrDoorVideoEl.onended=()=>{if(vrDoorVideoPlane)vrDoorVideoPlane.visible=false;doorVideoState='closed';finishExitVideo();};
     doorVideoState='playing';
   } else {
-    if(tvVideoEl&&videoMP4Obj){
-      tvVideoEl.src=EXIT_VIDEO;
-      tvVideoEl.load();
-      tvVideoEl.play().catch(()=>{});
-      tvVideoEl.onended=()=>finishExitVideo();
-      videoMP4Obj.position.set(slideMouth.x+12,1.65,slideMouth.z+10);
-      videoMP4Obj.rotation.set(0,Math.PI,0);
-      videoMP4Obj.visible=true;
-    } else {
-      doorVideo.src=EXIT_VIDEO;doorVideo.load();
-      if(doorVideoTex)doorVideoTex.dispose();
-      doorVideoTex=new THREE.VideoTexture(doorVideo);
-      doorVideoTex.minFilter=THREE.LinearFilter;doorVideoTex.magFilter=THREE.LinearFilter;
-      if(doorVideoPlane.material)doorVideoPlane.material.dispose();
-      doorVideoPlane.material=new THREE.MeshBasicMaterial({map:doorVideoTex,side:THREE.DoubleSide});
-      doorVideoPlane.position.set(slideMouth.x+12,1.65,slideMouth.z+10);
-      doorVideoPlane.rotation.y=Math.PI;
-      doorVideoPlane.visible=true;
-      doorVideo.play().catch(()=>{});
-      doorVideo.onended=()=>{doorVideoPlane.visible=false;finishExitVideo();};
-    }
+    doorVideo.onended=null;
+    doorVideo.src=EXIT_VIDEO;
+    doorVideo.load();
+    if(doorVideoTex)doorVideoTex.dispose();
+    doorVideoTex=new THREE.VideoTexture(doorVideo);
+    doorVideoTex.minFilter=THREE.LinearFilter;
+    doorVideoTex.magFilter=THREE.LinearFilter;
+    if(doorVideoPlane.material)doorVideoPlane.material.dispose();
+    doorVideoPlane.material=new THREE.MeshBasicMaterial({map:doorVideoTex,side:THREE.DoubleSide});
+    doorVideoPlane.position.set(slideMouth.x+12,1.65,slideMouth.z+10);
+    doorVideoPlane.rotation.y=Math.PI;
+    doorVideoPlane.visible=true;
+    doorVideo.play().catch(()=>{});
+    doorVideo.onended=()=>{doorVideoPlane.visible=false;finishExitVideo();};
   }
   setObjective('');
 }
@@ -2656,6 +2639,7 @@ function finishExitVideo(){
   } else {
     if(tvVideoEl){tvVideoEl.pause();tvVideoEl.removeAttribute('src');tvVideoEl.load();}
     if(videoMP4Obj)videoMP4Obj.visible=false;
+    doorVideo.pause();doorVideoPlane.visible=false;
   }
   exitVideoActive=false;
   ending=true;
