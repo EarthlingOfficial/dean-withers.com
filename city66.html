@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Procedural City Walker</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; overflow: hidden; font-family: 'Courier New', monospace; }
+  #canvas { display: block; width: 100vw; height: 100vh; }
+
+  #ui {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 10;
+  }
+
+  /* Crosshair */
+  #crosshair {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px; height: 20px;
+  }
+  #crosshair::before, #crosshair::after {
+    content: ''; position: absolute; background: rgba(255,255,255,0.8);
+  }
+  #crosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
+  #crosshair::after  { height: 2px; width: 100%; top: 50%; transform: translateY(-50%); }
+
+  /* HUD */
+  #hud {
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+    color: rgba(255,255,255,0.6); font-size: 12px; text-align: center;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  }
+
+  /* Controls panel */
+  #controls-panel {
+    position: absolute; top: 16px; right: 16px;
+    background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px; padding: 12px 16px; color: #ccc; font-size: 11px;
+    line-height: 1.9; min-width: 160px;
+  }
+  #controls-panel h3 { color: #fff; font-size: 12px; margin-bottom: 6px; letter-spacing: 1px; }
+  #controls-panel span { color: #80cfff; }
+
+  /* Loading overlay */
+  #loading {
+    position: fixed; inset: 0; background: #0a0a0f;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 100; color: #fff;
+  }
+  #loading h1 { font-size: 22px; letter-spacing: 3px; margin-bottom: 24px; color: #adf; }
+  #progress-bar {
+    width: 280px; height: 4px; background: rgba(255,255,255,0.1);
+    border-radius: 2px; overflow: hidden; margin-bottom: 12px;
+  }
+  #progress-fill {
+    height: 100%; width: 0%; background: #5af;
+    transition: width 0.2s ease; border-radius: 2px;
+  }
+  #loading-text { font-size: 12px; color: #888; letter-spacing: 1px; }
+
+  /* Click-to-start overlay */
+  #start-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 50; color: #fff; cursor: pointer;
+    pointer-events: all;
+  }
+  #start-overlay h2 { font-size: 28px; letter-spacing: 4px; margin-bottom: 12px; }
+  #start-overlay p  { font-size: 13px; color: #aaa; letter-spacing: 1px; }
+
+  /* Mobile joystick zone */
+  #mobile-controls {
+    display: none;
+    position: fixed; bottom: 0; left: 0; width: 100%; height: 220px;
+    pointer-events: none; z-index: 20;
+  }
+  #joystick-zone {
+    position: absolute; left: 30px; bottom: 30px;
+    width: 110px; height: 110px;
+    border-radius: 50%; background: rgba(255,255,255,0.07);
+    border: 2px solid rgba(255,255,255,0.2);
+    pointer-events: all;
+  }
+  #joystick-knob {
+    position: absolute; width: 42px; height: 42px;
+    border-radius: 50%; background: rgba(100,200,255,0.5);
+    border: 2px solid rgba(100,200,255,0.8);
+    top: 50%; left: 50%; transform: translate(-50%,-50%);
+    pointer-events: none;
+  }
+  #btn-jump {
+    position: absolute; right: 30px; bottom: 30px;
+    width: 64px; height: 64px; border-radius: 50%;
+    background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3);
+    color: #fff; font-size: 11px; font-family: 'Courier New', monospace;
+    letter-spacing: 1px; cursor: pointer; pointer-events: all;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #btn-sprint {
+    position: absolute; right: 110px; bottom: 30px;
+    width: 56px; height: 56px; border-radius: 50%;
+    background: rgba(255,150,50,0.15); border: 2px solid rgba(255,150,50,0.4);
+    color: #fa0; font-size: 10px; font-family: 'Courier New', monospace;
+    cursor: pointer; pointer-events: all;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  @media (pointer: coarse) {
+    #mobile-controls { display: block; }
+    #controls-panel { display: none; }
+    #hud { bottom: 240px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<!-- Loading -->
+<div id="loading">
+  <h1>CITY WALKER</h1>
+  <div id="progress-bar"><div id="progress-fill"></div></div>
+  <div id="loading-text">Fetching city... 0%</div>
+</div>
+
+<!-- Click to start -->
+<div id="start-overlay" onclick="startGame()">
+  <h2>ENTER CITY</h2>
+  <p>Click to lock mouse &amp; walk</p>
+</div>
+
+<!-- UI -->
+<div id="ui">
+  <div id="crosshair"></div>
+  <div id="hud">WASD · MOVE &nbsp;|&nbsp; MOUSE · LOOK &nbsp;|&nbsp; SHIFT · SPRINT &nbsp;|&nbsp; SPACE · JUMP</div>
+  <div id="controls-panel">
+    <h3>CONTROLS</h3>
+    <span>W A S D</span> Move<br>
+    <span>MOUSE</span> Look<br>
+    <span>SHIFT</span> Sprint<br>
+    <span>SPACE</span> Jump<br>
+    <span>ESC</span> Release mouse<br>
+    <span>F</span> Fly toggle<br>
+    <span>G</span> Gravity toggle<br>
+    <span>↑ ↓</span> Speed<br>
+  </div>
+</div>
+
+<!-- Mobile -->
+<div id="mobile-controls">
+  <div id="joystick-zone"><div id="joystick-knob"></div></div>
+  <div id="btn-jump">JUMP</div>
+  <div id="btn-sprint">RUN</div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+
+const GLB_URL = 'https://media.githubusercontent.com/media/EarthlingOfficial/dean-withers.com/main/procedural_city_66.glb';
+
+// ─── Scene setup ───────────────────────────────────────────────────────────
+const canvas   = document.getElementById('canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled  = true;
+renderer.shadowMap.type     = THREE.PCFSoftShadowMap;
+renderer.toneMapping        = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+renderer.outputColorSpace   = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0d1520);
+scene.fog        = new THREE.FogExp2(0x0d1520, 0.008);
+
+// ─── Camera (player) ───────────────────────────────────────────────────────
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1200);
+camera.position.set(0, 2, 0);
+
+// ─── Lighting ──────────────────────────────────────────────────────────────
+const ambient = new THREE.AmbientLight(0x223344, 1.2);
+scene.add(ambient);
+
+const sun = new THREE.DirectionalLight(0xffd4aa, 2.5);
+sun.position.set(80, 120, 60);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.near = 0.5;
+sun.shadow.camera.far  = 400;
+sun.shadow.camera.left = sun.shadow.camera.bottom = -150;
+sun.shadow.camera.right = sun.shadow.camera.top   =  150;
+scene.add(sun);
+
+// City glow fill lights
+const fillA = new THREE.DirectionalLight(0x4488ff, 0.6);
+fillA.position.set(-60, 40, -80); scene.add(fillA);
+const fillB = new THREE.DirectionalLight(0xff6633, 0.3);
+fillB.position.set( 60, 20,  80); scene.add(fillB);
+
+// Ground (fallback)
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(2000, 2000),
+  new THREE.MeshLambertMaterial({ color: 0x111118 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// ─── Collision system ──────────────────────────────────────────────────────
+const collidables = [];
+const raycasterDown  = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0,-1,0), 0, 4);
+const raycasterFwd   = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(), 0, 0.6);
+
+// ─── Load GLB ──────────────────────────────────────────────────────────────
+const loadingEl = document.getElementById('loading');
+const fillEl    = document.getElementById('progress-fill');
+const textEl    = document.getElementById('loading-text');
+const startEl   = document.getElementById('start-overlay');
+
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
+
+const loader = new GLTFLoader();
+loader.setDRACOLoader(dracoLoader);
+
+loader.load(
+  GLB_URL,
+  (gltf) => {
+    const model = gltf.scene;
+    model.traverse(node => {
+      if (node.isMesh) {
+        node.castShadow    = true;
+        node.receiveShadow = true;
+        collidables.push(node);
+      }
+    });
+    scene.add(model);
+
+    // Auto-centre & set player start above ground
+    const box = new THREE.Box3().setFromObject(model);
+    const centre = box.getCenter(new THREE.Vector3());
+    model.position.x -= centre.x;
+    model.position.z -= centre.z;
+
+    // Spawn player slightly above the min Y of the model
+    const minY = box.min.y;
+    camera.position.set(0, minY + 4, 0);
+    playerVelocityY = 0;
+
+    // Rebuild collidable list after repositioning
+    collidables.length = 0;
+    model.traverse(node => { if (node.isMesh) collidables.push(node); });
+
+    loadingEl.style.display = 'none';
+    startEl.style.display   = 'flex';
+  },
+  (xhr) => {
+    if (xhr.total) {
+      const pct = Math.round((xhr.loaded / xhr.total) * 100);
+      fillEl.style.width = pct + '%';
+      textEl.textContent = `Loading city... ${pct}%`;
+    } else {
+      const mb = (xhr.loaded / 1048576).toFixed(1);
+      textEl.textContent = `Loading... ${mb} MB`;
+      // Fake progress for streamed response without Content-Length
+      fillEl.style.width = Math.min(95, parseFloat(fillEl.style.width || 0) + 0.3) + '%';
+    }
+  },
+  (err) => {
+    textEl.textContent = 'Load error: ' + err.message;
+    console.error(err);
+  }
+);
+
+// ─── Player state ──────────────────────────────────────────────────────────
+let yaw = 0, pitch = 0;
+let playerVelocityY = 0;
+let onGround = false;
+let flyMode  = false;
+let gravity  = true;
+let moveSpeed = 5;
+const SPRINT_MUL = 2.2;
+const JUMP_VEL   = 7;
+const GRAVITY    = -18;
+
+const keys = {};
+let sprintMobile = false;
+let jumpQueued   = false;
+
+// ─── Mouse lock ────────────────────────────────────────────────────────────
+let locked = false;
+document.addEventListener('pointerlockchange', () => {
+  locked = document.pointerLockElement === canvas;
+  startEl.style.display = locked ? 'none' : 'flex';
+});
+document.addEventListener('mousemove', e => {
+  if (!locked) return;
+  const sens = 0.0018;
+  yaw   -= e.movementX * sens;
+  pitch -= e.movementY * sens;
+  pitch  = Math.max(-Math.PI/2 + 0.05, Math.min(Math.PI/2 - 0.05, pitch));
+});
+
+window.startGame = function() {
+  canvas.requestPointerLock();
+};
+
+// ─── Keyboard ──────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'KeyF') flyMode = !flyMode;
+  if (e.code === 'KeyG') { gravity = !gravity; playerVelocityY = 0; }
+  if (e.code === 'Space') { e.preventDefault(); jumpQueued = true; }
+  if (e.code === 'ArrowUp')   moveSpeed = Math.min(moveSpeed + 1, 30);
+  if (e.code === 'ArrowDown') moveSpeed = Math.max(moveSpeed - 1, 1);
+});
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// ─── Mobile joystick ───────────────────────────────────────────────────────
+const joystickZone = document.getElementById('joystick-zone');
+const joystickKnob = document.getElementById('joystick-knob');
+const btnJump      = document.getElementById('btn-jump');
+const btnSprint    = document.getElementById('btn-sprint');
+
+let joystick = { active: false, id: null, startX: 0, startZ: 0, dx: 0, dy: 0 };
+
+joystickZone.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  const r = joystickZone.getBoundingClientRect();
+  joystick = { active: true, id: t.identifier,
+    startX: r.left + r.width/2, startY: r.top + r.height/2, dx: 0, dy: 0 };
+}, { passive: false });
+
+document.addEventListener('touchmove', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    if (t.identifier === joystick.id) {
+      const maxR = 35;
+      let dx = t.clientX - joystick.startX;
+      let dy = t.clientY - joystick.startY;
+      const len = Math.sqrt(dx*dx + dy*dy);
+      if (len > maxR) { dx = dx/len*maxR; dy = dy/len*maxR; }
+      joystick.dx = dx / maxR;
+      joystick.dy = dy / maxR;
+      joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+    }
+  }
+  // Look via right half swipe
+  for (const t of e.changedTouches) {
+    if (t.identifier !== joystick.id && !btnJump.contains(t.target) && !btnSprint.contains(t.target)) {
+      // handled below via separate logic
+    }
+  }
+}, { passive: false });
+
+document.addEventListener('touchend', e => {
+  for (const t of e.changedTouches) {
+    if (t.identifier === joystick.id) {
+      joystick.active = false; joystick.dx = 0; joystick.dy = 0;
+      joystickKnob.style.transform = 'translate(-50%,-50%)';
+    }
+  }
+});
+
+// Look touch (right side)
+let lookTouch = { id: null, lastX: 0, lastY: 0 };
+document.addEventListener('touchstart', e => {
+  for (const t of e.changedTouches) {
+    if (t.clientX > window.innerWidth / 2 &&
+        !btnJump.contains(e.target) && !btnSprint.contains(e.target)) {
+      lookTouch = { id: t.identifier, lastX: t.clientX, lastY: t.clientY };
+    }
+  }
+}, { passive: false });
+document.addEventListener('touchmove', e => {
+  for (const t of e.changedTouches) {
+    if (t.identifier === lookTouch.id) {
+      const dx = t.clientX - lookTouch.lastX;
+      const dy = t.clientY - lookTouch.lastY;
+      yaw   -= dx * 0.004;
+      pitch -= dy * 0.004;
+      pitch  = Math.max(-Math.PI/2+0.05, Math.min(Math.PI/2-0.05, pitch));
+      lookTouch.lastX = t.clientX; lookTouch.lastY = t.clientY;
+    }
+  }
+}, { passive: false });
+
+btnJump.addEventListener('touchstart', e => { e.preventDefault(); jumpQueued = true; }, { passive: false });
+btnSprint.addEventListener('touchstart', e => { e.preventDefault(); sprintMobile = true; }, { passive: false });
+btnSprint.addEventListener('touchend',   e => { e.preventDefault(); sprintMobile = false; }, { passive: false });
+
+// ─── Clock ─────────────────────────────────────────────────────────────────
+const clock = new THREE.Clock();
+const moveDir = new THREE.Vector3();
+
+// ─── Main loop ─────────────────────────────────────────────────────────────
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+
+  const sprint = keys['ShiftLeft'] || keys['ShiftRight'] || sprintMobile;
+  const speed  = moveSpeed * (sprint ? SPRINT_MUL : 1);
+
+  // Build horizontal move vector from input
+  moveDir.set(0, 0, 0);
+
+  if (keys['KeyW'] || keys['ArrowUp_disabled'])    moveDir.z -= 1;
+  if (keys['KeyS'] || keys['ArrowDown_disabled'])  moveDir.z += 1;
+  if (keys['KeyA'])                                moveDir.x -= 1;
+  if (keys['KeyD'])                                moveDir.x += 1;
+
+  // Mobile joystick
+  if (joystick.active) {
+    moveDir.x += joystick.dx;
+    moveDir.z += joystick.dy;
+  }
+
+  if (moveDir.length() > 1) moveDir.normalize();
+
+  // Rotate by yaw
+  const cos = Math.cos(yaw), sin = Math.sin(yaw);
+  const worldX = moveDir.x * cos - moveDir.z * sin;
+  const worldZ = moveDir.x * sin + moveDir.z * cos;
+
+  // Apply camera orientation
+  camera.rotation.order = 'YXZ';
+  camera.rotation.y = yaw;
+  camera.rotation.x = pitch;
+
+  if (flyMode) {
+    // Free fly
+    const fwd = new THREE.Vector3(-sin * moveDir.z, 0, -cos * moveDir.z);
+    camera.position.x += worldX * speed * dt;
+    camera.position.z += worldZ * speed * dt;
+    if (keys['Space'])    camera.position.y += speed * dt;
+    if (keys['ControlLeft'] || keys['ControlRight']) camera.position.y -= speed * dt;
+  } else {
+    // Gravity physics
+    if (gravity) {
+      playerVelocityY += GRAVITY * dt;
+    }
+
+    // Jump
+    if (jumpQueued && onGround) {
+      playerVelocityY = JUMP_VEL;
+    }
+    jumpQueued = false;
+
+    // Horizontal movement
+    camera.position.x += worldX * speed * dt;
+    camera.position.z += worldZ * speed * dt;
+
+    // Vertical
+    camera.position.y += playerVelocityY * dt;
+
+    // Ground collision
+    onGround = false;
+    raycasterDown.ray.origin.copy(camera.position);
+    const hits = raycasterDown.intersectObjects(collidables, false);
+    if (hits.length > 0) {
+      const h = hits[0];
+      const floorY = h.point.y + 1.8; // eye height
+      if (camera.position.y < floorY) {
+        camera.position.y = floorY;
+        if (playerVelocityY < 0) playerVelocityY = 0;
+        onGround = true;
+      }
+    }
+
+    // Simple ground plane fallback
+    if (camera.position.y < 2) {
+      camera.position.y = 2;
+      if (playerVelocityY < 0) playerVelocityY = 0;
+      onGround = true;
+    }
+
+    // Wall collision (forward)
+    if (worldX !== 0 || worldZ !== 0) {
+      const fwdDir = new THREE.Vector3(worldX, 0, worldZ).normalize();
+      raycasterFwd.ray.origin.copy(camera.position);
+      raycasterFwd.ray.direction.copy(fwdDir);
+      const wallHits = raycasterFwd.intersectObjects(collidables, false);
+      if (wallHits.length > 0 && wallHits[0].distance < 0.55) {
+        // Push back
+        const push = fwdDir.multiplyScalar(-(0.55 - wallHits[0].distance));
+        camera.position.add(push);
+      }
+    }
+  }
+
+  renderer.render(scene, camera);
+}
+animate();
+
+// ─── Resize ────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+</script>
+</body>
+</html>
