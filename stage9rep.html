@@ -210,10 +210,10 @@ const isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
 // ── VIDEO ARCHIVE (5 gated clips) ──
 const VIDS=[
   {url:'https://www.youtube.com/embed/zprJXFASoNs',lbl:'ARCHIVE RECORD — 30 DEC 2025',gate:true,vrUrl:'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/Factual%20Verification.mp4'},
-  {url:'https://www.youtube.com/embed/H724ZGObr4g',lbl:'THE MIRROR',gate:true},
-  {url:'https://www.youtube.com/embed/fkoWAO_CdWA',lbl:'THE OBSERVATORY',gate:true},
-  {url:'https://www.youtube.com/embed/jDQ9zZ0IGFw',lbl:'THE ECHO CHAMBER',gate:true},
-  {url:'https://www.youtube.com/embed/RNWmEeJLGnI',lbl:'THE CALORIC CON',gate:true},
+  {url:'https://www.youtube.com/embed/H724ZGObr4g',lbl:'THE MIRROR',gate:true,vrUrl:'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/Deanwitherssees.mp4'},
+  {url:'https://www.youtube.com/embed/fkoWAO_CdWA',lbl:'THE OBSERVATORY',gate:true,vrUrl:'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/deanwithersreacts.mp4'},
+  {url:'https://www.youtube.com/embed/jDQ9zZ0IGFw',lbl:'THE ECHO CHAMBER',gate:true,vrUrl:'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/deanwithersvshimself.mp4'},
+  {url:'https://www.youtube.com/embed/RNWmEeJLGnI',lbl:'THE CALORIC CON',gate:true,vrUrl:'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/deanxsantana.mp4'},
   {url:null,lbl:'DEBATE 06 — SIGNAL LOST'},
   {url:'https://earthlingofficial.com/slaughter.mp4',lbl:'THE FINAL RECORD',gate:false,isMP4:true},
   {url:null,lbl:'DEBATE 09 — SIGNAL LOST'},
@@ -1137,7 +1137,7 @@ function _playVRDoorVideo(door){
   }
 
   vrDoorVideoEl.play().then(()=>{
-    setObjective('Watch the archive. Trigger to skip.');
+    setObjective('Watch the archive. Squeeze to skip.');
   }).catch(()=>{
     // Autoplay blocked — try after short delay then skip
     setTimeout(()=>{
@@ -1282,7 +1282,7 @@ function exitCorridor(){
     teleportPlayer(corridorEntryPos.x, corridorEntryPos.z);
     setObjective(archived.size>=GATE_TOTAL?
       'All archived. Find the end room. Order the timestamps — shortest first.':
-      'Find every screen. Press right trigger to watch. Archive all five.');
+      'Find every screen. Press right squeeze to watch. Archive all five.');
     return;
   }
 
@@ -1336,7 +1336,7 @@ function collectToken(vidIdx){
     setTimeout(()=>blip(660,0.25,'sine',0.09),160);
     setTimeout(()=>blip(880,0.2,'sine',0.06),320);
     const shapes={circle:'●',triangle:'▲',diamond:'◆',hex:'⬡',pill:'▬'};
-    whisper('TOKEN COLLECTED\n'+(shapes[tok.shape]||'?')+'  '+(tok.time||''));
+    whisper('TOKEN COLLECTED\n'+(shapes[tok.shape]||'?'));
     return;
   }
   const tc=$('tokencanvas'), tx=tc.getContext('2d');
@@ -1353,12 +1353,8 @@ function collectToken(vidIdx){
   else{ tx.moveTo(mx-rr,my-rr*0.4);tx.arcTo(mx+rr,my-rr*0.4,mx+rr,my+rr*0.4,rr*0.4);tx.arcTo(mx+rr,my+rr*0.4,mx-rr,my+rr*0.4,rr*0.4);tx.arcTo(mx-rr,my+rr*0.4,mx-rr,my-rr*0.4,rr*0.4);tx.arcTo(mx-rr,my-rr*0.4,mx+rr,my-rr*0.4,rr*0.4);tx.closePath(); }
   tx.fill();
   tx.shadowBlur=0;
-  if(tok.time){
-    tx.fillStyle='#fff';tx.font='bold 26px "Courier New",monospace';tx.textAlign='center';tx.textBaseline='middle';
-    tx.fillText(tok.time,mx,my);
-  }
   const shapes={circle:'●',triangle:'▲',diamond:'◆',hex:'⬡',pill:'▬'};
-  $('tokenlabel').textContent=(shapes[tok.shape]||'?')+'  '+(tok.time||'— ');
+  $('tokenlabel').textContent=(shapes[tok.shape]||'?');
   const tm=$('tokenmask'); tm.style.display='flex';
   setTimeout(()=>{ tm.style.display='none'; },4200);
 }
@@ -2134,7 +2130,7 @@ function _playVRFinalTV(tv,v){
     setObjective('Playing final record…');
   }).catch(()=>{
     // Autoplay blocked — wait for next trigger press (select event will retry)
-    setObjective('Press trigger to play final record.');
+    setObjective('Press squeeze to play final record.');
   });
 
   vrFinalVideoEl.onended=()=>{
@@ -2386,10 +2382,10 @@ function buildEndTV(pos,col){
   scr.position.set(0,0,0.07);
   frame.add(scr);
   if(!pos.isCeiling){
-    const titleLines=wrapTitle(col.title,28);
-    const th=Math.max(0.18,titleLines.length*0.15);
-    const titleSign=txt(titleLines,3.2,th,'#706858',null,7);
-    titleSign.position.set(0,-1.32,0.06);
+    const titleLines=wrapTitle(col.title,36);
+    const th=Math.max(0.28,titleLines.length*0.22);
+    const titleSign=txt(titleLines,5.0,th,'#9a8868',null,20);
+    titleSign.position.set(3.6,0,0.12);
     frame.add(titleSign);
   }
   const glow=new THREE.PointLight(col.hex,0,8);
@@ -2491,12 +2487,14 @@ function applyCheckpoint(){
   if(slideOpen&&slideMat){slideMat.emissive.setHex(0x0f7a3a);slideMat.emissiveIntensity=1.0;if(slideLight)slideLight.intensity=1.8;}
   updateArch();
 }
+const DEATH_MSGS=['you were bolt gunned','gassed like a pig','your throat was slit halaal style','you were humanely dispatched','we used you for food','you were killed for designer shoes',"you're now leather",'you were bred to die',"you died and it doesn't matter","you're now gummy lollies",'you were over milked','you were inseminated too often','you entered the chute well done',"that'll do pig",'you were left on the kill floor','stun gun failed, suffer','you followed the angel goat','another dead commodity','died by farmers blade','head to concrete like a baby pig','hung upside down and bled','welcome the sky farm','Earthling will miss you','you ate too many rib eyes','meat cancer death','Died of meat induced anal cancer','your meaty heart exploded','heart disease victim #infinity','meat karma','Death by wagyu','the cow didn\'t want to die','minced like a male chick',"you're minced meat",'you are offal','you were humanely bludgeoned','Dean got filleted','Dean was prepped for dinner','Dean was cooked','Dean strips','You wagyu','You mignon','Dean Flambe','Dean Saute','You Au Jus','die meat eater, die','Dean Tartare','You Pate','You ragu','Braised Dean','Fillet o Dean','Time to meet Charlie','Kirked and deep fried','Idiot Sandwich',"That's a wrap",'You are bacon','Chargrilled human','Kirked and Cooked',"At least we'll use your meat",'Put a fork in you','Kids, its dinner time!','Reduced to a broth','Dean fingers','Cheesy Dean pizza','Welcome to Hu-burger','involuntary nugget','You are a value meal','Happy Meal','Hello Freshness','You are the secret ingredient','Drowned in the scolding tank','Bolted through the skull','Into the macerator','Drained into the floor gate','Deboned, Gutted and Trussed','Marinated in agony','Boiled Alive','Human stir fry','Bacon stroke','Taenia Solium worm','Expired','Reduced to dog food',"butcher didn't blink",'forever counting sheep','Earthling approved slaughter','humanely sourced human','sold with a cheap toy','Fries with that?'];
 function showOneAndDone(){
   ending=true;$('fade').classList.add('on');
+  const msg=DEATH_MSGS[Math.floor(Math.random()*DEATH_MSGS.length)];
   setTimeout(()=>{
     const ov=document.createElement('div');
     ov.style.cssText='position:fixed;inset:0;background:#060402;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;padding:32px;text-align:center';
-    ov.innerHTML='<div style="color:#c8b86a;font-family:\'Courier New\',monospace;font-size:clamp(16px,3.5vw,26px);letter-spacing:8px;margin-bottom:10px">SEQUENCE BROKEN</div><div style="color:#3a2a18;font-family:\'Courier New\',monospace;font-size:clamp(8px,1.3vw,11px);letter-spacing:4px;margin-bottom:38px">DEAN SLIPS THROUGH YOUR GRASP</div><button id="cp-btn" style="padding:12px 40px;background:rgba(200,184,106,.07);border:1px solid rgba(200,184,106,.34);color:#c8b86a;font-family:\'Courier New\',monospace;font-size:11px;letter-spacing:5px;cursor:pointer">CONTINUE FROM CHECKPOINT</button><div style="margin-top:14px;color:#1e1a12;font-family:\'Courier New\',monospace;font-size:9px;letter-spacing:3px">YOUR PROGRESS IS SAVED</div>';
+    ov.innerHTML=`<div style="color:#c8b86a;font-family:'Courier New',monospace;font-size:clamp(16px,3.5vw,26px);letter-spacing:8px;margin-bottom:14px">SEQUENCE BROKEN</div><div style="color:#7a5828;font-family:'Courier New',monospace;font-size:clamp(13px,2.2vw,19px);letter-spacing:2px;margin-bottom:28px;font-style:italic">${msg}</div><div style="color:#3a2a18;font-family:'Courier New',monospace;font-size:clamp(8px,1.3vw,11px);letter-spacing:4px;margin-bottom:38px">DEAN SLIPS THROUGH YOUR GRASP</div><button id="cp-btn" style="padding:12px 40px;background:rgba(200,184,106,.07);border:1px solid rgba(200,184,106,.34);color:#c8b86a;font-family:'Courier New',monospace;font-size:11px;letter-spacing:5px;cursor:pointer">CONTINUE FROM CHECKPOINT</button><div style="margin-top:14px;color:#1e1a12;font-family:'Courier New',monospace;font-size:9px;letter-spacing:3px">YOUR PROGRESS IS SAVED</div>`;
     document.body.appendChild(ov);
     document.getElementById('cp-btn').addEventListener('click',()=>location.reload());
   },1300);
@@ -2514,7 +2512,7 @@ function pressEndTV(tv){
     blip(330+endSequencePos*80,0.5,'sine',0.12);
     whisper('correct.');
     saveCheckpoint();
-    if(endSequencePos>=5) solveSequence();
+    if(endSequencePos>=5) setTimeout(solveSequence,800);
     else setObjective('Correct. '+(5-endSequencePos)+' remaining.');
   } else {
     strobeOnce();
@@ -2526,6 +2524,7 @@ function pressEndTV(tv){
 
 function dropEndWall(){
   if(!endWall)return;
+  saveCheckpoint();
   for(let i=colliders.length-1;i>=0;i--){
     const c=colliders[i];
     if(c.x0>=144&&c.x1<=(144+T_WALL+1)&&c.z0<=48&&c.z1>=96){
@@ -2602,8 +2601,9 @@ function startExitVideo(){
     if(vrDoorVideoPlane){
       if(vrDoorVideoPlane.material)vrDoorVideoPlane.material.dispose();
       vrDoorVideoPlane.material=new THREE.MeshBasicMaterial({map:vrDoorVideoTex,side:THREE.DoubleSide});
-      vrDoorVideoPlane.position.set(slideMouth.x+12,1.65,slideMouth.z+10);
-      vrDoorVideoPlane.rotation.y=Math.PI;
+      const _cd=new THREE.Vector3();camera.getWorldDirection(_cd);
+      vrDoorVideoPlane.position.set(playerRig.position.x+_cd.x*2.5,1.65,playerRig.position.z+_cd.z*2.5);
+      vrDoorVideoPlane.rotation.y=Math.atan2(_cd.x,_cd.z)+Math.PI;
       vrDoorVideoPlane.visible=true;
     }
     vrDoorVideoEl.muted=false;
@@ -2613,15 +2613,20 @@ function startExitVideo(){
     vrDoorVideoEl.onended=()=>{if(vrDoorVideoPlane)vrDoorVideoPlane.visible=false;doorVideoState='closed';finishExitVideo();};
     doorVideoState='playing';
   } else {
-    if(tvVideoEl&&videoMP4Obj){
-      tvVideoEl.src=EXIT_VIDEO;
-      tvVideoEl.load();
-      tvVideoEl.play().catch(()=>{});
-      tvVideoEl.onended=()=>finishExitVideo();
-      videoMP4Obj.position.set(slideMouth.x+12,1.65,slideMouth.z+10);
-      videoMP4Obj.rotation.set(0,Math.PI,0);
-      videoMP4Obj.visible=true;
-    }
+    doorVideo.onended=null;
+    doorVideo.src=EXIT_VIDEO;
+    doorVideo.load();
+    if(doorVideoTex)doorVideoTex.dispose();
+    doorVideoTex=new THREE.VideoTexture(doorVideo);
+    doorVideoTex.minFilter=THREE.LinearFilter;
+    doorVideoTex.magFilter=THREE.LinearFilter;
+    if(doorVideoPlane.material)doorVideoPlane.material.dispose();
+    doorVideoPlane.material=new THREE.MeshBasicMaterial({map:doorVideoTex,side:THREE.DoubleSide});
+    doorVideoPlane.position.set(slideMouth.x+12,1.65,slideMouth.z+10);
+    doorVideoPlane.rotation.y=Math.PI;
+    doorVideoPlane.visible=true;
+    doorVideo.play().catch(()=>{});
+    doorVideo.onended=()=>{doorVideoPlane.visible=false;finishExitVideo();};
   }
   setObjective('');
 }
@@ -2634,6 +2639,7 @@ function finishExitVideo(){
   } else {
     if(tvVideoEl){tvVideoEl.pause();tvVideoEl.removeAttribute('src');tvVideoEl.load();}
     if(videoMP4Obj)videoMP4Obj.visible=false;
+    doorVideo.pause();doorVideoPlane.visible=false;
   }
   exitVideoActive=false;
   ending=true;
@@ -3143,7 +3149,7 @@ function updateInteract(){
     for(const et of endTVs){
       if(!et.activated&&_getPlayerWP().distanceTo(et.wp)<3.8){
         nearTV={isEndTV:true,tv:et};
-        label=et.col.label;
+        label=et.col.shape;
         $('xh').classList.add('lock');
         break;
       }
@@ -3367,7 +3373,7 @@ function startGame(){
   startMusicCycle();
   const ov=$('connect');ov.classList.add('fade');setTimeout(()=>ov.style.display='none',1700);
   if(!vrMode&&matchMedia('(hover:hover) and (pointer:fine)').matches)document.body.requestPointerLock&&document.body.requestPointerLock();
-  setObjective(vrMode?'Find every screen. Press right trigger to watch. Archive all five.':
+  setObjective(vrMode?'Find every screen. Press right squeeze to watch. Archive all five.':
     (isMobile?'Find every screen. Tap WATCH. Archive all five.':'Find every screen. Press [E] to watch. Archive all five.'));
   if(!vrMode){
     let warmFrames=0;

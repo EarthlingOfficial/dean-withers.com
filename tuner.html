@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Aussie Radio Player</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      text-align: center;
+      padding: 40px;
+    }
+
+    button {
+      display: block;
+      width: 260px;
+      margin: 12px auto;
+      padding: 14px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #2d89ef;
+      color: white;
+    }
+
+    button:hover {
+      background: #1b5fa7;
+    }
+
+    audio {
+      margin-top: 20px;
+      width: 300px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>Aussie Radio Stream Player</h2>
+
+<audio id="player" controls autoplay></audio>
+
+<button onclick="playStation('https://mediaserviceslive.akamaized.net/hls/live/2038302/localsydney/index.m3u8')">
+  ABC Radio Sydney (Talk/News)
+</button>
+
+<button onclick="playStation('https://mediaserviceslive.akamaized.net/hls/live/2038304/localbrisbane/index.m3u8')">
+  ABC Radio Brisbane (Talk/News)
+</button>
+
+<button onclick="playStation('https://mediaserviceslive.akamaized.net/hls/live/2038308/triplejnsw/index.m3u8')">
+  triple j (Alt / Indie / Rock)
+</button>
+
+<button onclick="playStation('https://mediaserviceslive.akamaized.net/hls/live/2038319/abcjazz/index.m3u8')">
+  ABC Jazz (Smooth / Instrumental)
+</button>
+
+<script>
+function playStation(url) {
+  const audio = document.getElementById("player");
+
+  // HLS streams need browser support (Chrome works via native HLS or fallback)
+  audio.src = url;
+  audio.play().catch(err => {
+    console.log("Playback failed:", err);
+    alert("Stream couldn't start (browser may not support this stream type directly). Try Chrome or Safari.");
+  });
+}
+</script>
+
+</body>
+</html>

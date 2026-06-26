@@ -1,0 +1,1711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Go Dean! — Stage 10: The Outside World</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#c8b86a;--gold-dim:rgba(200,184,106,0.18);
+  --red:#cc2222;--green:#4ade80;
+  --bg:#080604;
+}
+body{margin:0;overflow:hidden;background:var(--bg);font-family:'Courier New',monospace;touch-action:none;-webkit-user-select:none;user-select:none}
+#c{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+#css3d-layer{position:fixed;inset:0;z-index:1;pointer-events:none}
+#css3d-layer iframe{border:0;pointer-events:auto}
+
+/* WARNING */
+#warning-overlay{position:fixed;inset:0;z-index:9999;background:#050402;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 32px;text-align:center;transition:opacity 0.9s}
+#warning-overlay .w-icon{color:#8b0000;font-size:clamp(18px,3.5vw,30px);letter-spacing:10px;margin-bottom:20px;animation:warnpulse 2.2s ease-in-out infinite}
+@keyframes warnpulse{0%,100%{opacity:1}50%{opacity:0.3}}
+#warning-overlay .w-title{color:var(--gold);font-size:clamp(22px,5vw,40px);letter-spacing:10px;margin-bottom:4px;font-weight:700}
+#warning-overlay .w-sub{color:#6a4a1a;font-size:clamp(8px,1.2vw,10px);letter-spacing:5px;margin-bottom:24px}
+#warning-overlay .w-body{color:#3a2a12;font-size:clamp(8px,1.1vw,10px);letter-spacing:1.6px;line-height:2.4;margin-bottom:32px;border-top:1px solid rgba(200,184,106,.07);border-bottom:1px solid rgba(200,184,106,.07);padding:16px 0;max-width:500px}
+#warning-overlay .w-body b{color:#4a3418;letter-spacing:3px}
+.w-buttons{display:flex;gap:20px;justify-content:center}
+#warning-enter{padding:12px 44px;background:var(--gold-dim);border:1px solid rgba(200,184,106,.4);color:var(--gold);font-family:'Courier New',monospace;font-size:11px;letter-spacing:5px;cursor:pointer;transition:all .2s}
+#warning-enter:hover{background:rgba(200,184,106,.2);border-color:var(--gold)}
+#warning-exit{padding:12px 44px;background:rgba(60,10,10,.1);border:1px solid rgba(120,20,20,.25);color:#5a2020;font-family:'Courier New',monospace;font-size:11px;letter-spacing:5px;cursor:pointer}
+
+/* CONNECT */
+#connect{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;transition:opacity 1.8s}
+#connect.fade{opacity:0;pointer-events:none}
+#c-phase1{display:flex;flex-direction:column;align-items:center;text-align:center}
+#c-series{color:#1e1c16;font-size:clamp(7px,1vw,9px);letter-spacing:7px;margin-bottom:16px}
+#c-title{color:var(--gold);font-size:clamp(24px,6vw,48px);letter-spacing:12px;margin-bottom:4px;font-weight:700}
+#c-stage{color:#2e2b20;font-size:clamp(8px,1.3vw,11px);letter-spacing:6px;margin-bottom:36px}
+#c-loadbar{width:200px;height:2px;background:rgba(200,184,106,.1);border:1px solid rgba(200,184,106,.12);margin-bottom:12px;overflow:hidden}
+#c-loadfill{height:100%;width:0%;background:var(--gold);transition:width .5s ease}
+#c-loadtxt{color:#222018;font-size:9px;letter-spacing:5px}
+#c-phase2{display:none;flex-direction:column;align-items:center;text-align:center;padding:0 28px;max-width:580px}
+#c-phase2 .p2-series{color:#1e1c16;font-size:9px;letter-spacing:6px;margin-bottom:10px}
+#c-phase2 .p2-title{color:var(--gold);font-size:clamp(20px,4.5vw,36px);letter-spacing:10px;margin-bottom:4px;font-weight:700}
+#c-phase2 .p2-stage{color:#2a2720;font-size:10px;letter-spacing:5px;margin-bottom:24px}
+#c-disclaimer{color:#1a1810;font-size:clamp(7px,1.1vw,9px);letter-spacing:1.4px;line-height:2.2;margin-bottom:26px;border-top:1px solid rgba(200,184,106,.07);border-bottom:1px solid rgba(200,184,106,.07);padding:16px 0;text-align:left}
+#c-disclaimer b{color:#26220e;letter-spacing:2px}
+#c-main{color:var(--gold);font-size:clamp(14px,3vw,22px);letter-spacing:8px;animation:pulse 2.6s ease-in-out infinite;cursor:pointer}
+#c-sub{color:#1a1810;font-size:9px;letter-spacing:3px;margin-top:12px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.2}}
+
+/* HUD */
+#hud{position:fixed;top:0;left:0;right:0;z-index:10;pointer-events:none;padding:16px 20px 0}
+#hud-inner{display:flex;justify-content:space-between;align-items:flex-start}
+#hud-label{color:rgba(200,184,106,0.5);font-size:9px;letter-spacing:5px;margin-bottom:4px}
+#hud-name{color:var(--gold);font-size:14px;letter-spacing:4px;font-weight:700;text-shadow:0 0 12px rgba(200,184,106,0.4)}
+#heartbeat-wrap{margin-top:6px;width:90px;height:24px;overflow:hidden}
+#heartbeat-svg{width:90px;height:24px}
+#hud-center{text-align:center;flex:1;display:flex;flex-direction:column;align-items:center}
+#door-counter{color:rgba(200,184,106,0.3);font-size:8px;letter-spacing:5px;margin-bottom:4px}
+#door-pips{display:flex;gap:3px;flex-wrap:wrap;justify-content:center;max-width:200px}
+.door-pip{width:7px;height:7px;border-radius:50%;background:rgba(200,184,106,0.12);border:1px solid rgba(200,184,106,0.2);transition:all .5s}
+.door-pip.open{background:var(--green);border-color:var(--green);box-shadow:0 0 6px rgba(74,222,128,0.6)}
+.door-pip.live{background:var(--red);border-color:var(--red);box-shadow:0 0 6px rgba(204,34,34,0.6);animation:pipblink .8s infinite}
+@keyframes pipblink{0%,100%{opacity:1}50%{opacity:0.3}}
+#hud-right{text-align:right}
+#san-label{color:rgba(200,184,106,0.5);font-size:9px;letter-spacing:4px;margin-bottom:4px}
+#san-bar{width:100px;height:3px;background:rgba(255,255,255,.06);border:1px solid rgba(200,184,106,.15)}
+#san-fill{height:100%;width:100%;background:var(--gold);transition:width .4s,background .4s}
+#san-num{color:rgba(200,184,106,0.25);font-size:8px;letter-spacing:3px;margin-top:3px}
+
+/* OBJECTIVE */
+#obj{position:fixed;top:52px;left:50%;transform:translateX(-50%);color:rgba(176,144,96,0.7);font-style:italic;font-size:clamp(10px,1.6vw,13px);text-align:center;width:88%;pointer-events:none;z-index:10;text-shadow:0 1px 12px rgba(0,0,0,.98);letter-spacing:.06em}
+
+/* CROSSHAIR */
+#xh{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:10;width:20px;height:20px}
+#xh-h,#xh-v{position:absolute;background:rgba(255,255,255,.3);transition:background .2s}
+#xh-h{width:16px;height:1px;top:50%;left:50%;transform:translate(-50%,-50%)}
+#xh-v{width:1px;height:16px;top:50%;left:50%;transform:translate(-50%,-50%)}
+#xh.lock #xh-h,#xh.lock #xh-v{background:var(--green);box-shadow:0 0 8px rgba(74,222,128,.8)}
+
+/* HINT */
+#hint{position:fixed;bottom:28%;left:50%;transform:translateX(-50%);color:var(--gold);font-size:10px;letter-spacing:5px;padding:7px 18px;border:1px solid rgba(200,184,106,.2);background:rgba(0,0,0,.6);pointer-events:none;z-index:10;display:none;backdrop-filter:blur(4px)}
+
+/* ANIMAL STATEMENT */
+#animal-stmt{position:fixed;left:50%;bottom:18%;transform:translateX(-50%);z-index:15;pointer-events:none;text-align:center;width:78%;opacity:0;transition:opacity 0s}
+#animal-stmt .stmt-line{display:block;color:#e8e0cc;font-family:Georgia,'Times New Roman',serif;font-size:clamp(18px,3.5vw,32px);font-style:italic;letter-spacing:.06em;line-height:1.5;text-shadow:0 2px 40px rgba(0,0,0,1),0 0 60px rgba(0,0,0,.9)}
+#animal-stmt .stmt-attr{display:block;color:rgba(200,184,106,0.35);font-size:clamp(8px,1.1vw,10px);letter-spacing:4px;margin-top:10px;font-family:'Courier New',monospace;font-style:normal}
+#animal-stmt.show{animation:stmtAnim 10s forwards}
+@keyframes stmtAnim{
+  0%{opacity:0;filter:blur(8px);transform:translateX(-50%) translateY(10px)}
+  8%{opacity:1;filter:blur(0);transform:translateX(-50%) translateY(0)}
+  78%{opacity:1;filter:blur(0);transform:translateX(-50%) translateY(0)}
+  100%{opacity:0;filter:blur(4px);transform:translateX(-50%) translateY(-6px)}
+}
+
+/* DOOR TIMER */
+#door-timer{position:fixed;top:50%;right:20px;transform:translateY(-50%);z-index:20;pointer-events:none;display:none;flex-direction:column;align-items:center;gap:4px}
+#timer-ring-wrap{position:relative;width:64px;height:64px}
+#timer-ring{transform:rotate(-90deg)}
+#timer-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:18px;font-weight:700}
+#timer-label{color:rgba(200,184,106,0.35);font-size:7px;letter-spacing:4px;text-align:center}
+#timer-task{position:fixed;top:20%;left:50%;transform:translateX(-50%);color:rgba(232,224,204,0.75);font-family:Georgia,serif;font-style:italic;font-size:clamp(11px,2vw,16px);text-align:center;max-width:500px;padding:10px 20px;z-index:20;pointer-events:none;display:none;text-shadow:0 2px 20px rgba(0,0,0,1);letter-spacing:.04em;line-height:1.7}
+
+/* FOUND IT */
+#found-btn{position:fixed;bottom:22%;left:50%;transform:translateX(-50%);display:none;z-index:25;padding:12px 36px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.4);color:var(--green);font-family:'Courier New',monospace;font-size:10px;letter-spacing:5px;cursor:pointer;animation:foundpulse 1.6s ease-in-out infinite;backdrop-filter:blur(4px)}
+@keyframes foundpulse{0%,100%{box-shadow:0 0 0 rgba(74,222,128,0)}50%{box-shadow:0 0 20px rgba(74,222,128,.3)}}
+#found-btn:hover{background:rgba(74,222,128,.2)}
+
+/* REWARD */
+#reward-flash{position:fixed;inset:0;z-index:50;background:radial-gradient(ellipse at center,rgba(74,222,128,.25) 0%,transparent 70%);pointer-events:none;opacity:0;transition:opacity .3s}
+#reward-msg{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:55;pointer-events:none;text-align:center;opacity:0;transition:opacity .4s}
+#reward-msg .r-title{color:var(--green);font-size:clamp(20px,4vw,32px);letter-spacing:8px;font-weight:700;text-shadow:0 0 30px rgba(74,222,128,.6)}
+#reward-msg .r-fact{color:rgba(232,224,204,0.7);font-family:Georgia,serif;font-style:italic;font-size:clamp(12px,1.8vw,16px);margin-top:12px;max-width:400px;line-height:1.7}
+
+/* LIVE BADGE */
+#live-badge{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:18;pointer-events:none;display:none;color:#ff2222;font-size:9px;letter-spacing:4px;padding:4px 12px;border:1px solid rgba(255,34,34,.4);background:rgba(0,0,0,.7);animation:liveblink .9s infinite}
+@keyframes liveblink{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* CLOSE FEED BUTTON */
+#close-feed-btn{position:fixed;bottom:22%;right:20px;z-index:25;display:none;padding:8px 18px;background:rgba(200,184,106,.12);border:1px solid rgba(200,184,106,.3);color:var(--gold);font-family:'Courier New',monospace;font-size:9px;letter-spacing:4px;cursor:pointer;backdrop-filter:blur(4px)}
+#close-feed-btn:hover{background:rgba(200,184,106,.22)}
+
+/* VOID / RESPAWN OVERLAY */
+#void-overlay{position:fixed;inset:0;z-index:200;background:#000;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px}
+#void-msg{color:rgba(200,184,106,0.6);font-size:clamp(14px,2.5vw,22px);letter-spacing:6px;font-family:Georgia,serif;font-style:italic;line-height:1.8;max-width:500px}
+#void-sub{color:rgba(200,184,106,0.2);font-size:9px;letter-spacing:4px;margin-top:20px}
+
+/* RADIO */
+#radio-tuner{position:fixed;bottom:14px;right:14px;z-index:15;pointer-events:none;opacity:0;transition:opacity 1.4s;color:rgba(200,184,106,0.25);font-family:'Courier New',monospace;font-size:7px;letter-spacing:2px;text-align:right;line-height:1.8}
+#radio-tuner.on{opacity:1}
+#radio-bars{display:flex;gap:2px;justify-content:flex-end;margin-top:2px;align-items:flex-end;height:9px}
+#radio-bars span{width:2px;background:rgba(200,184,106,0.3);animation:rbar .55s ease-in-out infinite}
+#radio-bars span:nth-child(1){height:3px;animation-delay:0s}
+#radio-bars span:nth-child(2){height:7px;animation-delay:.12s}
+#radio-bars span:nth-child(3){height:5px;animation-delay:.24s}
+#radio-bars span:nth-child(4){height:9px;animation-delay:.06s}
+#radio-bars span:nth-child(5){height:4px;animation-delay:.18s}
+@keyframes rbar{0%,100%{opacity:.25}50%{opacity:.85}}
+
+/* MISC */
+#flash{position:fixed;inset:0;background:rgba(160,0,0,.1);pointer-events:none;z-index:5;opacity:0;transition:opacity .25s}
+#strobe{position:fixed;inset:0;background:#fff;pointer-events:none;z-index:12;opacity:0}
+#fade{position:fixed;inset:0;background:#000;pointer-events:none;z-index:120;opacity:0;transition:opacity 1.2s ease}
+#fade.on{opacity:1}
+#toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-20px);z-index:30;pointer-events:none;opacity:0;transition:all .4s;color:var(--gold);font-size:9px;letter-spacing:4px;padding:6px 16px;border:1px solid rgba(200,184,106,.25);background:rgba(0,0,0,.75);backdrop-filter:blur(6px)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#ibtn{position:fixed;bottom:130px;left:50%;transform:translateX(-50%);min-width:70px;height:38px;padding:0 18px;border-radius:19px;background:rgba(200,184,106,.14);border:1px solid rgba(200,184,106,.42);color:var(--gold);font-size:10px;letter-spacing:3px;display:none;align-items:center;justify-content:center;z-index:20;pointer-events:auto}
+.jz{position:fixed;bottom:22px;width:96px;height:96px;background:rgba(255,255,255,.02);border:1px solid rgba(200,184,106,.1);border-radius:50%;touch-action:none;z-index:20}
+#lj{left:18px}#rj{right:18px}
+.kn{position:absolute;top:50%;left:50%;width:34px;height:34px;margin:-17px 0 0 -17px;background:rgba(200,184,106,.28);border-radius:50%;pointer-events:none}
+@media(hover:hover) and (pointer:fine){.jz,#ibtn{display:none!important}}
+#buildstamp{position:fixed;bottom:14px;left:14px;font-size:8px;letter-spacing:.1em;opacity:.22;color:var(--gold);font-family:'Courier New',monospace;pointer-events:none;z-index:5}
+
+/* BILLBOARD LABEL */
+.bb-activate{position:fixed;display:none;}
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+</head>
+<body>
+
+<!-- WARNING -->
+<div id="warning-overlay">
+  <div style="max-width:520px">
+    <div class="w-icon">⚠ WARNING</div>
+    <div class="w-title">THE OUTSIDE WORLD</div>
+    <div class="w-sub">GO DEAN! — STAGE 10 — 18+ ONLY</div>
+    <div class="w-body">
+      This stage contains <b>real-world footage</b>, live feeds from global media,
+      and confronting factual material about animal suffering and industrial agriculture.<br><br>
+      Some content is live and unfiltered. Viewer discretion is essential.<br><br>
+      <b>ENTER ONLY IF YOU ARE 18 OR OVER.</b>
+    </div>
+    <div class="w-buttons">
+      <button id="warning-enter">ENTER</button>
+      <button id="warning-exit" onclick="history.back()">EXIT</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONNECT -->
+<div id="connect">
+  <div id="c-phase1">
+    <div id="c-series">A VEGAN BROS. SERIES</div>
+    <div id="c-title">GO DEAN!</div>
+    <div id="c-stage">STAGE 10 — THE OUTSIDE WORLD</div>
+    <div id="c-loadbar"><div id="c-loadfill"></div></div>
+    <div id="c-loadtxt">LOADING CITY</div>
+  </div>
+  <div id="c-phase2">
+    <div class="p2-series">A VEGAN BROS. SERIES</div>
+    <div class="p2-title">GO DEAN!</div>
+    <div class="p2-stage">STAGE 10 — THE OUTSIDE WORLD</div>
+    <div id="c-disclaimer">
+      <b>NOTICE &amp; DISCLAIMER</b><br><br>
+      Go Dean! / Vegan Bros. is a non-profit work of parody and satire produced in the public interest
+      by @earthling_official / earthlingofficial.com.<br><br>
+      Stage 10 integrates live public broadcast feeds, publicly available satellite imagery,
+      and real-world coordinates of documented animal agriculture facilities.<br><br>
+      All Dean Withers quotes are direct and verified. The archive does not forget.<br><br>
+      <b>IT EXISTS FOR THE ANIMALS.</b>
+    </div>
+    <div id="c-main">TAP TO ENTER THE OUTSIDE WORLD</div>
+    <div id="c-sub">earthlingofficial.com</div>
+  </div>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div id="hud-inner">
+    <div id="hud-left">
+      <div id="hud-label">SPECIMEN</div>
+      <div id="hud-name">DEAN</div>
+      <div id="heartbeat-wrap">
+        <svg id="heartbeat-svg" viewBox="0 0 90 24" fill="none">
+          <polyline id="hb-line" points="0,12 15,12 20,4 25,20 30,12 40,12 43,8 46,16 49,12 90,12" stroke="rgba(200,184,106,0.5)" stroke-width="1.2" fill="none"/>
+        </svg>
+      </div>
+    </div>
+    <div id="hud-center">
+      <div id="door-counter">DOORS OPENED  0 / 15</div>
+      <div id="door-pips"></div>
+    </div>
+    <div id="hud-right">
+      <div id="san-label">SANITY</div>
+      <div id="san-bar"><div id="san-fill"></div></div>
+      <div id="san-num">100</div>
+    </div>
+  </div>
+</div>
+
+<div id="obj"></div>
+<div id="xh"><div id="xh-h"></div><div id="xh-v"></div></div>
+<div id="hint"></div>
+<div id="live-badge">● LIVE</div>
+
+<!-- ANIMAL STATEMENT -->
+<div id="animal-stmt">
+  <span class="stmt-line" id="stmt-text"></span>
+  <span class="stmt-attr" id="stmt-attr"></span>
+</div>
+
+<!-- DOOR TIMER -->
+<div id="door-timer">
+  <div id="timer-ring-wrap">
+    <svg id="timer-ring" width="64" height="64" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="28" stroke="rgba(200,184,106,0.1)" stroke-width="3" fill="none"/>
+      <circle id="timer-arc" cx="32" cy="32" r="28" stroke="rgba(200,184,106,0.7)" stroke-width="3" fill="none"
+        stroke-dasharray="176" stroke-dashoffset="0" stroke-linecap="round" style="transition:stroke-dashoffset .9s linear,stroke .5s"/>
+    </svg>
+    <div id="timer-num">60</div>
+  </div>
+  <div id="timer-label">SECONDS</div>
+</div>
+<div id="timer-task"></div>
+<button id="found-btn" onclick="claimFound()">✓ FOUND IT</button>
+<button id="close-feed-btn" onclick="closeDoorFeed()">✕ CLOSE</button>
+
+<!-- REWARD -->
+<div id="reward-flash"></div>
+<div id="reward-msg">
+  <div class="r-title">TOKEN EARNED</div>
+  <div class="r-fact" id="reward-fact-text"></div>
+</div>
+
+<!-- VOID RESPAWN -->
+<div id="void-overlay">
+  <div id="void-msg"></div>
+  <div id="void-sub">RESPAWNING...</div>
+</div>
+
+<!-- MISC -->
+<div id="flash"></div>
+<div id="strobe"></div>
+<div id="fade"></div>
+<div id="toast"></div>
+<div id="radio-tuner">
+  <div id="radio-freq">— —</div>
+  <div id="radio-bars"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+<div id="ibtn">OPEN</div>
+<div id="lj" class="jz"><div class="kn"></div></div>
+<div id="rj" class="jz"><div class="kn"></div></div>
+<div id="css3d-layer"></div>
+<canvas id="c"></canvas>
+<div id="buildstamp">GO DEAN! S10 — BUILD v2 — earthlingofficial.com</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// GO DEAN! — STAGE 10: THE OUTSIDE WORLD — v2
+// @earthling_official / earthlingofficial.com
+// ═══════════════════════════════════════════════════
+
+const $=id=>document.getElementById(id);
+const isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+
+// ── GLB ──
+const GLB_URL='https://github.com/EarthlingOfficial/dean-withers.com/releases/download/v3/procedural_city_6.glb';
+
+// ── DOORS (15, zero debates) ──
+// Types: 'youtube' | 'map' | 'portrait'
+// portrait = door-sized vertical video (9:16 ratio)
+// map = satellite view of real location (no API key, works via embed)
+const DOORS=[
+  // 0: Portrait door video — Earthling Official
+  {
+    type:'portrait',
+    label:'EARTHLING OFFICIAL',
+    youtubeId:'C4tzKTXd0yw',
+    overlay:'The archive does not forget.\nEvery conversation documented.\nEvery claim verified.',
+    liveBadge:false,
+    task:null
+  },
+  // 1–5: Satellite maps of real Australian animal ag facilities
+  {
+    type:'map',
+    label:'JBS DINMORE — LARGEST ABATTOIR IN SOUTHERN HEMISPHERE',
+    lat:-27.6391,lng:152.7108,zoom:17,
+    task:'You are looking at JBS Dinmore from above.\nThis single facility kills 3,800 cattle per day.\nFind the kill floor chimney stack.',
+    landmark:'the chimney stack',
+    isLandmarkHunt:true,
+    overlay:'JBS Dinmore processes 1.4 million cattle annually.\nMore animals than the population of Adelaide.\nThis is legal. This is Tuesday.',
+    reward:'The chimney stack at Dinmore dispenses the byproduct of 3,800 deaths per day. You found it. They cannot leave.'
+  },
+  {
+    type:'map',
+    label:'PIGGERY — COROWA NSW',
+    lat:-36.0247,lng:146.3882,zoom:17,
+    task:'4,000 pigs processed here per week.\n90 minutes from Sydney.\nFind the exhaust ventilation towers.',
+    landmark:'the ventilation towers',
+    isLandmarkHunt:true,
+    overlay:'Inside this building, pigs are held in gestation crates.\nToo small to turn around.\nHer entire pregnancy.\nThis is standard practice in Australia.',
+    reward:'Gestation crates: a cage too small for a pregnant sow to turn around for her entire pregnancy. This facility runs them 24/7.'
+  },
+  {
+    type:'map',
+    label:'DARLING DOWNS FEEDLOT — QUEENSLAND',
+    lat:-27.3714,lng:151.5889,zoom:16,
+    task:'50,000 cattle held here at any one time.\n2 hours from Brisbane.\nFind the feed silos.',
+    landmark:'the feed silos',
+    isLandmarkHunt:true,
+    overlay:'50,000 cattle simultaneously.\nEach killed at 18 months.\nNatural lifespan: 20 years.\nDean said the system is not cruel.',
+    reward:'Feed silos at Jondaryan feedlot. Each one supports the simultaneous confinement of 50,000 animals who will never see open pasture.'
+  },
+  {
+    type:'map',
+    label:'WODONGA SALEYARDS — VICTORIA',
+    lat:-36.1218,lng:146.8794,zoom:17,
+    task:'One of the largest livestock auction facilities in Australia.\nAnimals assessed as commodities before slaughter.\nFind the holding pens.',
+    landmark:'the holding pens',
+    isLandmarkHunt:true,
+    overlay:'Hundreds of thousands of animals processed annually.\nEach one sold by weight.\nNone leave alive.\n— VERIFIED RECORD',
+    reward:'The holding pens at Wodonga. Animals wait here to be assessed by price per kilogram. They were born for this transaction.'
+  },
+  {
+    type:'map',
+    label:'CHICKEN FACILITY — TOOWOOMBA QLD',
+    lat:-27.5698,lng:151.9836,zoom:17,
+    task:'40,000 chickens inside this shed right now.\nThey have never seen sunlight.\nFind the ventilation fans along the shed wall.',
+    landmark:'the ventilation fans',
+    isLandmarkHunt:true,
+    overlay:'Broiler chickens bred to grow so fast\ntheir legs collapse under their own weight.\n40,000 per shed.\nNo sky. No name. No exit.',
+    reward:'The ventilation fans keep 40,000 chickens alive long enough to be slaughtered. Without them, they would suffocate within hours.'
+  },
+  // 6–9: Live YouTube feeds
+  {
+    type:'youtube',
+    label:'NASA TV — LIVE',
+    youtubeId:'21X5lGlDOfg',
+    liveBadge:true,
+    overlay:'Human beings reached space.\nThey celebrated with a steak dinner.\n80 billion animals died that year.\nNone of it made the broadcast.',
+    task:null
+  },
+  {
+    type:'youtube',
+    label:'AL JAZEERA ENGLISH — LIVE',
+    youtubeId:'nS9TNpyVZoE',
+    liveBadge:true,
+    overlay:'In the time you have been watching this channel:\n2,300 pigs were gassed.\n14,000 chickens were slaughtered.\nNone of it made the news.',
+    task:null
+  },
+  {
+    type:'youtube',
+    label:'FRANCE 24 — LIVE WORLD NEWS',
+    youtubeId:'F-2kNENtZWE',
+    liveBadge:true,
+    overlay:'Every hour, 10 million land animals are killed for food.\nNot one makes the broadcast.\nDean calls the system not cruel.',
+    task:null
+  },
+  {
+    type:'youtube',
+    label:'ISS — EARTH VIEW LIVE',
+    youtubeId:'P9C25Un7xaM',
+    liveBadge:true,
+    overlay:'From up here, the screaming is inaudible.\nWe fear aliens because somewhere we know\nthey might treat us exactly as we treat animals.\n— @earthling_official',
+    task:null
+  },
+  // 10–14: Nature / reality feeds
+  {
+    type:'youtube',
+    label:'TOKYO FISH MARKET — LIVE',
+    youtubeId:'jfKfPfyJRdk',
+    liveBadge:true,
+    overlay:'Every fish here was conscious 72 hours ago.\n2,000 tonnes of seafood processed daily.\nFish feel pain. This is settled science.',
+    task:null
+  },
+  {
+    type:'youtube',
+    label:'LIVESTOCK AUCTION — LIVE SALE',
+    youtubeId:'h4LS4oDYhVw',
+    liveBadge:false,
+    overlay:'You are watching a livestock auction.\nEach number called is an animal.\nEach bid is a death sentence.\nThis is legal. This is normal. This is Tuesday.',
+    task:null
+  },
+  {
+    type:'youtube',
+    label:'WILD AFRICA — NATURE CAM',
+    youtubeId:'ydYDqZQpim8',
+    liveBadge:false,
+    overlay:'These animals are free.\n80 billion others were born into a system\nthat never intended them to be.\nDean called the system humane.',
+    task:null
+  },
+  {
+    type:'youtube',
+    label:'AMAZON RAINFOREST — DRONE',
+    youtubeId:'cIrvJP8XlVA',
+    liveBadge:false,
+    overlay:'80% of Amazon deforestation is animal agriculture.\nThe smoke in this footage is not wildfire.\nIt is your supply chain.\nDean said he recycles.',
+    task:null
+  },
+  {
+    type:'youtube',
+    label:'EARTHLING OFFICIAL — ARCHIVE',
+    youtubeId:'ce4DJh-L7Ys',
+    liveBadge:false,
+    overlay:'This is the record.\nEvery conversation documented.\nEvery claim verified.\nThe archive does not forget.\n— earthlingofficial.com',
+    task:null
+  },
+];
+
+// ── BILLBOARDS (10 around the city) ──
+const BILLBOARDS=[
+  {
+    label:'DEAN WITHERS — TASTE PREFERENCE TEST',
+    youtubeId:'k8yAH_kSKtE',
+    caption:'"If a plant tasted the same, I would go vegan." — Dean Withers. 11:40. Verified.\nThe barrier was never philosophy. The plant exists. He knows it.'
+  },
+  {label:'BILLBOARD 02',youtubeId:null,caption:'— COMING SOON —'},
+  {label:'BILLBOARD 03',youtubeId:null,caption:'— COMING SOON —'},
+  {label:'BILLBOARD 04',youtubeId:null,caption:'— COMING SOON —'},
+  {label:'BILLBOARD 05',youtubeId:null,caption:'— COMING SOON —'},
+  {label:'BILLBOARD 06',youtubeId:null,caption:'— COMING SOON —'},
+  {label:'BILLBOARD 07',youtubeId:null,caption:'— COMING SOON —'},
+  {label:'BILLBOARD 08',youtubeId:null,caption:'— COMING SOON —'},
+  {label:'BILLBOARD 09',youtubeId:null,caption:'— COMING SOON —'},
+  {label:'BILLBOARD 10',youtubeId:null,caption:'— COMING SOON —'},
+];
+
+// ── STATEMENTS ──
+const ALL_STATEMENTS=[
+  {text:"80 billion land animals are killed for food every year.",attr:"— THE RECORD"},
+  {text:"You have never met a humane slaughterhouse. You have only met a brochure.",attr:"— earthlingofficial.com"},
+  {text:"Dairy is not a gift. It is a theft committed in a shed you will never visit.",attr:"— @earthling_official"},
+  {text:"Every glass of milk is a mother's grief, pasteurised and sold at $2.40.",attr:"— @earthling_official"},
+  {text:"The word livestock was invented so you would never have to say the word victim.",attr:"— THE ARCHIVE"},
+  {text:"A pig is as intelligent as a three-year-old child. You would not eat the child.",attr:"— THE ARCHIVE"},
+  {text:"The bolt gun misses often. Many animals are still conscious when the knife arrives.",attr:"— INDUSTRY DATA"},
+  {text:"Free range ends at the same blade as cage. The label is for your conscience, not theirs.",attr:"— @earthling_official"},
+  {text:"You paid someone you will never meet to do something you could never watch.",attr:"— THE RECORD"},
+  {text:"Male chicks in the egg industry are ground alive on day one. This is legal. This is standard.",attr:"— INDUSTRY RECORD"},
+  {text:"The calf is taken within 24 hours of birth. She calls for it for days.",attr:"— FARM RECORDS"},
+  {text:"Animal agriculture drives the majority of Amazon deforestation. Your steak is the smoke.",attr:"— THE DATA"},
+  {text:"One hamburger. 660 gallons of water. One hamburger.",attr:"— RESOURCE AUDIT"},
+  {text:"Fish feel pain. This is settled science. Billions suffocate on decks every day.",attr:"— PEER REVIEWED"},
+  {text:"The difference between a pet and a plate is a story you were told as a child.",attr:"— @earthling_official"},
+  {text:"If you would not do it to your dog, the question is why you are paying for it to be done to a pig.",attr:"— THE ARCHIVE"},
+  {text:"Going vegan reduces your food carbon footprint by up to 73%.",attr:"— OXFORD RESEARCH"},
+  {text:"Slaughterhouse workers report PTSD rates comparable to combat veterans.",attr:"— OCCUPATIONAL STUDY"},
+  {text:"The ocean is being scraped empty by trawlers. 40% of catch is bycatch — thrown back dead.",attr:"— OCEANIC DATA"},
+  {text:"There is a live feed from the ISS right now. From up there, the screaming is inaudible.",attr:"— @earthling_official"},
+  {text:'"If a plant tasted the same, I would go vegan." — Dean Withers. The plant exists. He knows it.',attr:"— 11:40 VERIFIED"},
+  {text:"The animals do not need your sympathy. They need you to stop paying for their deaths.",attr:"— earthlingofficial.com"},
+  {text:"I can hear the one before me.",attr:"— ANONYMOUS PIG, PROCESSING FACILITY"},
+  {text:"My milk is not yours. It was hers. She needed it.",attr:"— ANONYMOUS DAIRY COW"},
+  {text:"I called for her for four days. She did not come. She could not come.",attr:"— ANONYMOUS DAIRY CALF"},
+  {text:"There is no sky in here. I was told there was sky somewhere.",attr:"— ANONYMOUS BATTERY HEN"},
+  {text:"I am three days old and I am already a commodity.",attr:"— ANONYMOUS BOBBY CALF"},
+  {text:"They stunned me. It did not take. I felt the knife.",attr:"— ANONYMOUS SHEEP"},
+  {text:"I have never seen the outside of this shed. I was born in here.",attr:"— ANONYMOUS BROILER CHICKEN"},
+  {text:"I smelled the blood before I saw the room. I slowed. They pushed me forward.",attr:"— ANONYMOUS PIG"},
+  {text:"He looked at me for three seconds through the glass. Then he paid and walked away.",attr:"— ANONYMOUS LOBSTER, RESTAURANT TANK"},
+  {text:"I did not want to die. That is all. That was everything.",attr:"— ANONYMOUS EVERY ANIMAL"},
+  {text:"Everything I am, I am because I want to live. That is my only argument.",attr:"— ANONYMOUS EVERY ANIMAL"},
+  {text:"Dean said the system is not cruel. I am the system.",attr:"— ANONYMOUS ANIMAL"},
+  {text:"You are watching a live feed from space right now. I am in a shed with no windows.",attr:"— ANONYMOUS PIG"},
+];
+
+// ── VOID MESSAGES (falling off world) ──
+const VOID_MESSAGES=[
+  "You were discarded from reality\nlike an animal.",
+  "You fell through.\nThey cannot.",
+  "The floor gave way.\nFor them it was a ramp.",
+  "Expelled from the world.\nThis is how they arrive\nat the processing floor.",
+  "You were dropped.\nThey were hung.",
+  "The city rejected you.\nThe kill floor never does.",
+  "You found the edge.\nThey were never given one.",
+];
+
+// ── RADIO ──
+const RADIO_STATIONS=[
+  {url:"https://live-radio01.mediahubaustralia.com/2TJW/aac/",hls:false,name:"TRIPLE J"},
+  {url:"https://live-radio01.mediahubaustralia.com/2RNW/aac/",hls:false,name:"ABC RADIO NATIONAL"},
+  {url:"https://ice1.somafm.com/scanner-128-mp3",hls:false,scanner:true,name:"POLICE SCANNER"},
+  {url:"https://ice1.somafm.com/secretagent-128-mp3",hls:false,name:"SECRET AGENT"},
+  {url:"https://ice1.somafm.com/defcon-128-mp3",hls:false,name:"DEF CON RADIO"},
+  {url:"https://ice6.somafm.com/thetrip-128-mp3",hls:false,name:"THE TRIP"},
+  {url:"https://npr-ice.streamguys1.com/live.mp3",hls:false,name:"NPR NEWS"},
+];
+
+const MUSIC_URLS=[
+  'https://earthlingofficial.com/srsstudio-life-is-just-nothing-else-pioggia-liminal-tranquillo-328126.mp3',
+  'https://earthlingofficial.com/9jackjack8-drowsy-liminal-dreamcore-512448.mp3'
+];
+
+// ═══════════════════════════════════════════════════
+// ENGINE VARS
+// ═══════════════════════════════════════════════════
+let scene,camera,renderer,css3d,clock;
+let postScene,postCamera,renderTarget,postMaterial;
+let playerRig=null;
+let started=false,ending=false;
+let sanity=100;
+let kW=0,kA=0,kS=0,kD=0;
+const vel=new THREE.Vector3();
+const td={l:{a:0,sx:0,sy:0,mx:0,my:0},r:{a:0,sx:0,sy:0,mx:0,my:0}};
+const ray=new THREE.Raycaster();
+const sc2=new THREE.Vector2(0,0);
+
+// doors
+let doorOpenCount=0;
+const openedDoors=new Set();
+let nearDoor=null,nearBillboard=null;
+let activeDoorIdx=-1;
+let timerInterval=null,timerSeconds=60,timerActive=false;
+
+// door iframes (one per door, CSS3D)
+const doorCSS3DObjs=[];
+const doorIframes=[];
+
+// billboard iframes
+const bbCSS3DObjs=[];
+const bbIframes=[];
+
+// city
+let cityObj=null;
+let cityBounds={minX:-60,maxX:60,minZ:-60,maxZ:60};
+const PLAYER_H=1.85,PLAYER_R=0.5;
+let groundY=0;
+
+// music/radio
+let musicEls=[],musicActive=null,musicVol=0,musicTarget=0;
+const MUSIC_CEILING=0.25,MUSIC_FADE=2.5;
+let radioCtx=null,radioGain=null,radioFilter=null,radioSrc=null;
+let radioEl=null,radioHls=null,radioPlaying=false,radioTimer=null;
+let radioStIdx=0,radioFailCount=0;
+
+// heartbeat
+let hbPhase=0;
+
+// statement queue
+let stmtAll=[...ALL_STATEMENTS].sort(()=>Math.random()-0.5);
+let stmtAllIdx=0;
+
+// door objects in 3D world
+const doorObjects3D=[]; // {mesh, wp, ry, doorIdx, open, labelMesh}
+const billboardObjects3D=[]; // {group, wp, bbIdx, active}
+
+// door pips
+const doorPipsEl=$('door-pips');
+for(let i=0;i<15;i++){
+  const p=document.createElement('div');
+  p.className='door-pip';p.id='pip-'+i;
+  doorPipsEl.appendChild(p);
+}
+
+// ═══════════════════════════════════════════════════
+// WARNING → CONNECT
+// ═══════════════════════════════════════════════════
+$('warning-enter').addEventListener('click',()=>{
+  $('warning-overlay').style.opacity='0';
+  setTimeout(()=>$('warning-overlay').style.display='none',900);
+  init();
+});
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+function init(){
+  try{
+    scene=new THREE.Scene();
+    scene.fog=new THREE.FogExp2(0x0a0c10,0.025);
+    scene.background=new THREE.Color(0x0a0c10);
+
+    camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,800);
+    camera.rotation.order='YXZ';
+
+    playerRig=new THREE.Group();
+    playerRig.position.set(0,PLAYER_H,0);
+    scene.add(playerRig);
+    playerRig.add(camera);
+    camera.position.set(0,0,0);
+
+    clock=new THREE.Clock();
+
+    renderer=new THREE.WebGLRenderer({canvas:$('c'),antialias:!isMobile});
+    renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+    renderer.setSize(innerWidth,innerHeight);
+    renderer.shadowMap.enabled=!isMobile;
+    renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+
+    if(typeof THREE.CSS3DRenderer==='function'){
+      css3d=new THREE.CSS3DRenderer();
+      css3d.setSize(innerWidth,innerHeight);
+      $('css3d-layer').appendChild(css3d.domElement);
+      css3d.domElement.style.position='absolute';
+      css3d.domElement.style.top='0';
+      css3d.domElement.style.left='0';
+    }
+
+    // Ambient + directional light
+    scene.add(new THREE.AmbientLight(0x334455,1.2));
+    const sun=new THREE.DirectionalLight(0xffeedd,1.4);
+    sun.position.set(40,80,30);
+    sun.castShadow=!isMobile;
+    scene.add(sun);
+
+    // Sky/city atmosphere lights
+    const cityGlow=new THREE.PointLight(0xff4400,0.6,200);
+    cityGlow.position.set(0,30,0);
+    scene.add(cityGlow);
+
+    // Ground plane (in case GLB has no ground)
+    const groundMat=new THREE.MeshStandardMaterial({color:0x111111,roughness:0.95});
+    const ground=new THREE.Mesh(new THREE.PlaneGeometry(400,400),groundMat);
+    ground.rotation.x=-Math.PI/2;
+    ground.position.y=-0.05;
+    ground.receiveShadow=true;
+    scene.add(ground);
+
+    setupPost();
+    setupControls();
+    setupTouch();
+    buildMusic();
+
+    $('connect').addEventListener('click',startGame);
+    $('connect').addEventListener('touchstart',startGame,{passive:true});
+    $('ibtn').addEventListener('click',interact);
+    $('ibtn').addEventListener('touchstart',e=>{e.preventDefault();interact();},{passive:false});
+    addEventListener('resize',onResize);
+
+    setObjective('Loading city...');
+    renderer.setAnimationLoop(animate);
+
+    // Load GLB city
+    loadCity();
+
+  }catch(err){
+    console.error('Stage 10 init error:',err);
+    $('c-loadtxt').textContent='ERROR: '+err.message;
+    $('c-loadfill').style.background='#cc2222';
+    $('c-loadfill').style.width='100%';
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// LOAD GLB CITY
+// ═══════════════════════════════════════════════════
+function loadCity(){
+  if(typeof THREE.GLTFLoader!=='function'){
+    $('c-loadtxt').textContent='GLB LOADER UNAVAILABLE';
+    onCityLoaded(null);return;
+  }
+
+  const loader=new THREE.GLTFLoader();
+  $('c-loadfill').style.transition='none';
+
+  loader.load(
+    GLB_URL,
+    (gltf)=>{
+      cityObj=gltf.scene;
+
+      // Compute bounding box
+      const bbox=new THREE.Box3().setFromObject(cityObj);
+      const center=new THREE.Vector3();
+      bbox.getCenter(center);
+      const size=new THREE.Vector3();
+      bbox.getSize(size);
+
+      // Center city at origin
+      cityObj.position.x=-center.x;
+      cityObj.position.z=-center.z;
+      cityObj.position.y=-bbox.min.y; // sit on ground
+
+      // Enable shadows on meshes
+      cityObj.traverse(c=>{
+        if(c.isMesh){
+          c.castShadow=!isMobile;
+          c.receiveShadow=true;
+          // Keep original materials, just ensure they work
+          if(c.material){
+            if(Array.isArray(c.material)){
+              c.material.forEach(m=>{m.needsUpdate=true;});
+            } else {
+              c.material.needsUpdate=true;
+            }
+          }
+        }
+      });
+
+      scene.add(cityObj);
+
+      // Update bounds
+      const nb=new THREE.Box3().setFromObject(cityObj);
+      cityBounds={
+        minX:nb.min.x+3,maxX:nb.max.x-3,
+        minZ:nb.min.z+3,maxZ:nb.max.z-3
+      };
+      groundY=0;
+
+      $('c-loadfill').style.transition='width .5s ease';
+      $('c-loadfill').style.width='100%';
+      $('c-loadtxt').textContent='CITY LOADED';
+
+      onCityLoaded(nb);
+    },
+    (progress)=>{
+      if(progress.total>0){
+        const pct=Math.round((progress.loaded/progress.total)*90);
+        $('c-loadfill').style.width=pct+'%';
+        $('c-loadtxt').textContent='LOADING '+pct+'%';
+      }
+    },
+    (err)=>{
+      console.warn('GLB load error (building fallback city):',err);
+      $('c-loadtxt').textContent='BUILDING FALLBACK...';
+      $('c-loadfill').style.width='80%';
+      onCityLoaded(null);
+    }
+  );
+}
+
+function onCityLoaded(bbox){
+  // Build doors and billboards
+  buildDoors3D(bbox);
+  buildBillboards3D(bbox);
+  buildStreetLights(bbox);
+
+  // Phase 2
+  $('c-loadfill').style.width='100%';
+  setTimeout(()=>{
+    $('c-phase1').style.display='none';
+    $('c-phase2').style.display='flex';
+  },400);
+}
+
+// ═══════════════════════════════════════════════════
+// BUILD 3D DOORS
+// Door dimensions: 1.2w × 2.4h (portrait / door-shaped)
+// ═══════════════════════════════════════════════════
+function buildDoors3D(bbox){
+  // Spread 15 doors evenly around the city
+  // Without knowing exact building positions, distribute in a ring
+  // and along inner streets.
+  const cx=0,cz=0;
+  const R1=18,R2=32,R3=45; // ring radii
+
+  // Positions: mix of angles and radii
+  const positions=[];
+  for(let i=0;i<5;i++){
+    const a=(i/5)*Math.PI*2;
+    positions.push({x:Math.cos(a)*R1,z:Math.sin(a)*R1,ry:a+Math.PI});
+  }
+  for(let i=0;i<5;i++){
+    const a=((i+0.5)/5)*Math.PI*2;
+    positions.push({x:Math.cos(a)*R2,z:Math.sin(a)*R2,ry:a+Math.PI});
+  }
+  for(let i=0;i<5;i++){
+    const a=(i/5)*Math.PI*2+0.2;
+    positions.push({x:Math.cos(a)*R3,z:Math.sin(a)*R3,ry:a+Math.PI});
+  }
+
+  const DW=1.2,DH=2.4;
+
+  positions.forEach((pos,i)=>{
+    if(i>=15)return;
+    const d=DOORS[i];
+
+    const grp=new THREE.Group();
+    grp.position.set(pos.x,0,pos.z);
+    grp.rotation.y=pos.ry;
+
+    // Door frame (dark surround)
+    const frameMat=new THREE.MeshStandardMaterial({color:0x111111,roughness:0.8,metalness:0.4});
+    const frame=new THREE.Mesh(new THREE.BoxGeometry(DW+0.18,DH+0.18,0.08),frameMat);
+    frame.position.set(0,DH/2,0);
+    grp.add(frame);
+
+    // White door panel
+    const doorMat=new THREE.MeshStandardMaterial({
+      color:0xf0f0f0,roughness:0.4,metalness:0.1,
+      emissive:0xffffff,emissiveIntensity:0.05
+    });
+    const doorPanel=new THREE.Mesh(new THREE.BoxGeometry(DW,DH,0.06),doorMat);
+    doorPanel.position.set(0,DH/2,0.04);
+    doorPanel.castShadow=true;
+    grp.add(doorPanel);
+
+    // Door number label
+    const numLabel=makeTextSprite('DOOR '+(i+1).toString().padStart(2,'0'),{color:'#c8b86a',fontSize:22,bg:'rgba(0,0,0,0)'});
+    numLabel.position.set(0,DH+0.25,0.1);
+    grp.add(numLabel);
+
+    // Type label
+    const typeLabel=makeTextSprite(d.label||'PORTAL',{color:'#ffffff',fontSize:14,bg:'rgba(0,0,0,0)'});
+    typeLabel.position.set(0,DH+0.02,0.1);
+    grp.add(typeLabel);
+
+    // Glow light at base
+    const glow=new THREE.PointLight(0x6688ff,0.4,5);
+    glow.position.set(0,0.5,0.3);
+    grp.add(glow);
+
+    // Activation marker on ground in front
+    const markerGeo=new THREE.CircleGeometry(0.4,16);
+    const markerMat=new THREE.MeshBasicMaterial({color:0x4444aa,transparent:true,opacity:0.6});
+    const marker=new THREE.Mesh(markerGeo,markerMat);
+    marker.rotation.x=-Math.PI/2;
+    marker.position.set(0,-0.01,1.2);
+    grp.add(marker);
+
+    scene.add(grp);
+
+    const wp=new THREE.Vector3(pos.x,PLAYER_H,pos.z);
+
+    doorObjects3D.push({
+      grp,doorPanel,glow,marker,
+      wp,
+      x:pos.x,z:pos.z,ry:pos.ry,
+      doorIdx:i,
+      open:false
+    });
+
+    // Create CSS3D iframe for this door
+    createDoorIframe(i,pos,DW,DH);
+  });
+}
+
+function createDoorIframe(idx,pos,DW,DH){
+  if(!css3d||typeof THREE.CSS3DObject!=='function'){
+    doorCSS3DObjs.push(null);
+    doorIframes.push(null);
+    return;
+  }
+
+  const d=DOORS[idx];
+  const isPortrait=(d.type==='portrait');
+
+  // iframe pixel size — mapped to door physical size
+  // physical DW=1.2 units, DH=2.4 units
+  // CSS3D scale: we want iframe to fill the door
+  const PX_W=isPortrait?360:640;
+  const PX_H=isPortrait?640:360;
+  const scaleX=(DW)/PX_W;
+  const scaleY=(DH)/PX_H;
+  const scale=Math.min(scaleX,scaleY)*1000; // *1000 because CSS3D scale is in px
+
+  const iframe=document.createElement('iframe');
+  iframe.width=PX_W;
+  iframe.height=PX_H;
+  iframe.style.width=PX_W+'px';
+  iframe.style.height=PX_H+'px';
+  iframe.style.background='#000';
+  // NO allowfullscreen — prevents forced fullscreen
+  iframe.allow='autoplay;encrypted-media;picture-in-picture;web-share';
+  iframe.setAttribute('sandbox','allow-scripts allow-same-origin allow-presentation allow-popups');
+
+  const obj=new THREE.CSS3DObject(iframe);
+  const s=1.0/1000; // 1px = 0.001 three units
+  obj.scale.set(s*DW/scaleX*1000,s*DH/scaleY*1000,1);
+
+  // Actually let's do it simpler: scale so PX_W px = DW three units
+  const finalScale=DW/PX_W;
+  obj.scale.set(finalScale,finalScale,finalScale);
+
+  // Position at door face center
+  const nx=Math.sin(pos.ry);
+  const nz=Math.cos(pos.ry);
+  obj.position.set(pos.x+nx*0.05, DH/2, pos.z+nz*0.05);
+  obj.rotation.set(0, pos.ry, 0);
+  obj.visible=false;
+
+  scene.add(obj);
+  doorCSS3DObjs.push(obj);
+  doorIframes.push(iframe);
+}
+
+// ═══════════════════════════════════════════════════
+// BUILD BILLBOARDS
+// ═══════════════════════════════════════════════════
+function buildBillboards3D(bbox){
+  const BBW=6.4,BBH=3.6; // 16:9 landscape
+  const POLE_H=8;
+
+  // Distribute 10 billboards around city
+  const positions=[];
+  for(let i=0;i<10;i++){
+    const a=(i/10)*Math.PI*2+0.1;
+    const r=38+Math.sin(i*1.7)*8;
+    positions.push({x:Math.cos(a)*r,z:Math.sin(a)*r,ry:a+Math.PI/2});
+  }
+
+  positions.forEach((pos,i)=>{
+    const bb=BILLBOARDS[i];
+    const grp=new THREE.Group();
+    grp.position.set(pos.x,0,pos.z);
+    grp.rotation.y=pos.ry;
+
+    // Pole
+    const poleMat=new THREE.MeshStandardMaterial({color:0x222222,metalness:0.6,roughness:0.5});
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.1,POLE_H,8),poleMat);
+    pole.position.set(0,POLE_H/2,0);
+    pole.castShadow=true;
+    grp.add(pole);
+
+    // Billboard face
+    const hasvid=!!bb.youtubeId;
+    const faceMat=new THREE.MeshStandardMaterial({
+      color:hasvid?0x001122:0x0a0a0a,
+      roughness:0.5,metalness:0.2,
+      emissive:hasvid?0x001133:0x050505,
+      emissiveIntensity:hasvid?0.4:0.1
+    });
+    const face=new THREE.Mesh(new THREE.BoxGeometry(BBW,BBH,0.12),faceMat);
+    face.position.set(0,POLE_H+BBH/2,0);
+    face.castShadow=true;
+    grp.add(face);
+
+    // Label
+    const lbl=makeTextSprite(bb.label,{color:hasvid?'#4488ff':'#444444',fontSize:16,bg:'rgba(0,0,0,0)'});
+    lbl.position.set(0,POLE_H+BBH+0.4,0.08);
+    grp.add(lbl);
+
+    // Ground activation circle
+    const actMat=new THREE.MeshBasicMaterial({color:hasvid?0x002244:0x111111,transparent:true,opacity:hasvid?0.7:0.2});
+    const act=new THREE.Mesh(new THREE.CircleGeometry(1.2,16),actMat);
+    act.rotation.x=-Math.PI/2;
+    act.position.set(0,-0.01,2);
+    grp.add(act);
+
+    // Activate light
+    if(hasvid){
+      const bl=new THREE.PointLight(0x0044ff,0.5,10);
+      bl.position.set(0,POLE_H+BBH/2,0.5);
+      grp.add(bl);
+    }
+
+    scene.add(grp);
+
+    const wp=new THREE.Vector3(pos.x,PLAYER_H,pos.z);
+    billboardObjects3D.push({grp,face,wp,x:pos.x,z:pos.z,ry:pos.ry,bbIdx:i,active:false});
+
+    // CSS3D iframe for billboard
+    createBillboardIframe(i,pos,BBW,BBH,POLE_H);
+  });
+}
+
+function createBillboardIframe(idx,pos,BBW,BBH,POLE_H){
+  if(!css3d||typeof THREE.CSS3DObject!=='function'||!BILLBOARDS[idx].youtubeId){
+    bbCSS3DObjs.push(null);
+    bbIframes.push(null);
+    return;
+  }
+  const PX_W=640,PX_H=360;
+  const iframe=document.createElement('iframe');
+  iframe.width=PX_W;iframe.height=PX_H;
+  iframe.style.width=PX_W+'px';iframe.style.height=PX_H+'px';
+  iframe.style.background='#000';
+  iframe.allow='autoplay;encrypted-media;picture-in-picture';
+
+  const obj=new THREE.CSS3DObject(iframe);
+  const scale=BBW/PX_W;
+  obj.scale.set(scale,scale,scale);
+
+  const nx=Math.sin(pos.ry);
+  const nz=Math.cos(pos.ry);
+  obj.position.set(pos.x+nx*0.1, POLE_H+BBH/2, pos.z+nz*0.1);
+  obj.rotation.set(0,pos.ry,0);
+  obj.visible=false;
+
+  scene.add(obj);
+  bbCSS3DObjs.push(obj);
+  bbIframes.push(iframe);
+}
+
+// ═══════════════════════════════════════════════════
+// STREET LIGHTS
+// ═══════════════════════════════════════════════════
+function buildStreetLights(bbox){
+  const positions=[];
+  const count=12;
+  for(let i=0;i<count;i++){
+    const a=(i/count)*Math.PI*2;
+    positions.push({x:Math.cos(a)*25,z:Math.sin(a)*25});
+    positions.push({x:Math.cos(a)*45,z:Math.sin(a)*45});
+  }
+  const postMat=new THREE.MeshStandardMaterial({color:0x333333,metalness:0.5,roughness:0.6});
+  positions.forEach(p=>{
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.05,5,6),postMat);
+    pole.position.set(p.x,2.5,p.z);
+    scene.add(pole);
+    const pl=new THREE.PointLight(0xffeecc,0.8,18);
+    pl.position.set(p.x,5.1,p.z);
+    scene.add(pl);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// TEXT SPRITE HELPER
+// ═══════════════════════════════════════════════════
+function makeTextSprite(text,opts={}){
+  const {color='#c8b86a',fontSize=18,bg='rgba(0,0,0,0.5)'}=opts;
+  const cv=document.createElement('canvas');
+  cv.width=512;cv.height=64;
+  const ctx=cv.getContext('2d');
+  if(bg!=='rgba(0,0,0,0)'){ctx.fillStyle=bg;ctx.fillRect(0,0,512,64);}
+  ctx.fillStyle=color;
+  ctx.font=fontSize+'px "Courier New",monospace';
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  ctx.fillText(text.substring(0,40),256,32);
+  const mat=new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,depthWrite:false});
+  const sp=new THREE.Sprite(mat);
+  sp.scale.set(2,0.25,1);
+  return sp;
+}
+
+// ═══════════════════════════════════════════════════
+// POST PROCESSING
+// ═══════════════════════════════════════════════════
+const PostShader={
+  vertex:`varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position,1.0);}`,
+  frag:`uniform sampler2D tDiffuse;uniform float uTime;uniform float uSan;varying vec2 vUv;
+    float rnd(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+    void main(){
+      float ins=1.0-uSan;
+      vec2 uv=vUv;
+      uv.x+=sin(uv.y*32.0+uTime*3.5)*0.0012*ins*3.0;
+      vec4 c=texture2D(tDiffuse,uv);
+      c.rgb+=(rnd(vUv+sin(uTime)*0.01)-0.5)*(0.06+ins*0.1);
+      vec2 vc=vUv-0.5;float v=1.0-dot(vc,vc)*(1.3+ins*0.8);
+      c.rgb*=clamp(v,0.0,1.0);
+      c.r+=ins*0.12;c.gb*=1.0-ins*0.08;
+      float ca=0.002+ins*0.005;
+      c.r=texture2D(tDiffuse,uv+vec2(ca,0)).r;
+      c.b=texture2D(tDiffuse,uv-vec2(ca,0)).b;
+      gl_FragColor=c;
+    }`
+};
+function setupPost(){
+  postScene=new THREE.Scene();
+  postCamera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+  renderTarget=new THREE.WebGLRenderTarget(innerWidth,innerHeight);
+  postMaterial=new THREE.ShaderMaterial({
+    vertexShader:PostShader.vertex,fragmentShader:PostShader.frag,
+    uniforms:{tDiffuse:{value:renderTarget.texture},uTime:{value:0},uSan:{value:1}}
+  });
+  postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),postMaterial));
+}
+
+// ═══════════════════════════════════════════════════
+// CONTROLS
+// ═══════════════════════════════════════════════════
+function setupControls(){
+  document.addEventListener('keydown',e=>{
+    if(!started)return;
+    const k=e.key.toLowerCase();
+    if(k==='w'||k==='arrowup')kW=1;
+    if(k==='s'||k==='arrowdown')kS=1;
+    if(k==='a'||k==='arrowleft')kA=1;
+    if(k==='d'||k==='arrowright')kD=1;
+    if(k==='e')interact();
+    if(k==='escape')closeDoorFeed();
+  });
+  document.addEventListener('keyup',e=>{
+    const k=e.key.toLowerCase();
+    if(k==='w'||k==='arrowup')kW=0;
+    if(k==='s'||k==='arrowdown')kS=0;
+    if(k==='a'||k==='arrowleft')kA=0;
+    if(k==='d'||k==='arrowright')kD=0;
+  });
+  // Mouse look
+  document.addEventListener('click',()=>{
+    if(!started)return;
+    if(document.pointerLockElement!==document.body)
+      document.body.requestPointerLock().catch(()=>{});
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!started||document.pointerLockElement!==document.body)return;
+    playerRig.rotation.y-=e.movementX*0.002;
+    camera.rotation.x=Math.max(-Math.PI/2.5,Math.min(Math.PI/2.5,camera.rotation.x-e.movementY*0.002));
+  });
+}
+
+function setupTouch(){
+  const lj=$('lj'),rj=$('rj');
+  function tjStart(el,d,e){
+    const t=e.touches[0];d.a=1;d.sx=t.clientX;d.sy=t.clientY;d.mx=0;d.my=0;}
+  function tjMove(el,d,e){
+    if(!d.a)return;const t=e.touches[0];
+    d.mx=Math.max(-1,Math.min(1,(t.clientX-d.sx)/40));
+    d.my=Math.max(-1,Math.min(1,(t.clientY-d.sy)/40));}
+  function tjEnd(d){d.a=0;d.mx=0;d.my=0;}
+  lj.addEventListener('touchstart',e=>tjStart(lj,td.l,e),{passive:true});
+  lj.addEventListener('touchmove',e=>tjMove(lj,td.l,e),{passive:true});
+  lj.addEventListener('touchend',()=>tjEnd(td.l));
+  rj.addEventListener('touchstart',e=>tjStart(rj,td.r,e),{passive:true});
+  rj.addEventListener('touchmove',e=>tjMove(rj,td.r,e),{passive:true});
+  rj.addEventListener('touchend',()=>tjEnd(td.r));
+}
+
+// ═══════════════════════════════════════════════════
+// GAME START
+// ═══════════════════════════════════════════════════
+function startGame(){
+  if(started)return;
+  primeAudio();
+  started=true;
+  $('connect').classList.add('fade');
+  setTimeout(()=>$('connect').style.display='none',1900);
+  setObjective(isMobile?'Walk up to a door. Tap OPEN to see through it.':'Walk up to a door. Press [E] to open it. Each door opens to the real world.');
+  startMusicCycle();
+  setTimeout(radioInit,8000);
+  if(!isMobile){
+    document.body.requestPointerLock().catch(()=>{});
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// DOOR INTERACTION
+// ═══════════════════════════════════════════════════
+function openDoor(dObjIdx){
+  const dobj=doorObjects3D[dObjIdx];
+  const d=DOORS[dobj.doorIdx];
+  if(openedDoors.has(dobj.doorIdx))return;
+  openedDoors.add(dobj.doorIdx);
+  doorOpenCount++;
+  dobj.open=true;
+
+  // Update pip
+  const pip=$('pip-'+dobj.doorIdx);
+  if(pip)pip.classList.add(d.liveBadge?'live':'open');
+  $('door-counter').textContent='DOORS OPENED  '+doorOpenCount+' / 15';
+
+  // Glow up
+  dobj.glow.intensity=2.0;
+  dobj.glow.color.setHex(0x88aaff);
+
+  // Animate door open (swing)
+  animateDoorOpen(dobj);
+
+  // Load content into CSS3D iframe
+  const iframe=doorIframes[dobj.doorIdx];
+  const css3dObj=doorCSS3DObjs[dobj.doorIdx];
+  if(iframe&&css3dObj){
+    const url=getDoorURL(d);
+    if(url){
+      iframe.src=url;
+      css3dObj.visible=true;
+    }
+  }
+
+  // Live badge
+  if(d.liveBadge){
+    $('live-badge').style.display='block';
+    $('live-badge').textContent='● LIVE';
+  } else {
+    $('live-badge').style.display='none';
+  }
+
+  // Task overlay
+  if(d.task){
+    $('timer-task').textContent=d.task;
+    $('timer-task').style.display='block';
+  }
+
+  // Start timer
+  const duration=(d.type==='map')?90:60;
+  startTimer(duration,d);
+
+  // Close button
+  $('close-feed-btn').style.display='block';
+
+  // Statement
+  showStatement();
+
+  if(d.overlay){
+    showBigStatement(d.overlay,'— '+d.label);
+  }
+
+  activeDoorIdx=dobj.doorIdx;
+  sfxOpen();
+  setObjective(d.label+' — '+getDoorTypeLabel(d)+' — press [ESC] or CLOSE to step back');
+}
+
+function animateDoorOpen(dobj){
+  let t=0;
+  const panel=dobj.doorPanel;
+  const targetRY=Math.PI/2;
+  // Pivot around left edge: offset by half width
+  const DW=1.2;
+  const interval=setInterval(()=>{
+    t+=0.05;
+    if(t>=1){t=1;clearInterval(interval);}
+    panel.rotation.y=targetRY*t;
+    panel.position.x=-(DW/2)*Math.sin(targetRY*t);
+    panel.position.z=(DW/2)*(1-Math.cos(targetRY*t));
+  },16);
+}
+
+function getDoorURL(d){
+  if(d.type==='youtube'||d.type==='portrait'){
+    return `https://www.youtube.com/embed/${d.youtubeId}?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1&fs=0`;
+  }
+  if(d.type==='map'){
+    return `https://maps.google.com/maps?q=${d.lat},${d.lng}&t=k&z=${d.zoom||17}&ie=UTF8&iwloc=&output=embed`;
+  }
+  return '';
+}
+
+function getDoorTypeLabel(d){
+  if(d.type==='youtube')return d.liveBadge?'LIVE FEED':'FEED';
+  if(d.type==='portrait')return 'VIDEO';
+  if(d.type==='map')return 'SATELLITE VIEW';
+  return 'PORTAL';
+}
+
+function closeDoorFeed(){
+  // Hide all door iframes
+  doorCSS3DObjs.forEach(obj=>{if(obj)obj.visible=false;});
+  doorIframes.forEach(iframe=>{if(iframe)iframe.src='about:blank';});
+
+  $('live-badge').style.display='none';
+  $('timer-task').style.display='none';
+  $('found-btn').style.display='none';
+  $('close-feed-btn').style.display='none';
+  $('door-timer').style.display='none';
+  stopTimer();
+  activeDoorIdx=-1;
+  setObjective(doorOpenCount>=15?'All portals open. You have seen the world.':'Walk up to a door. Press [E] to open it.');
+}
+
+// ═══════════════════════════════════════════════════
+// BILLBOARD INTERACTION
+// ═══════════════════════════════════════════════════
+function activateBillboard(bbObjIdx){
+  const bbobj=billboardObjects3D[bbObjIdx];
+  const bb=BILLBOARDS[bbobj.bbIdx];
+  if(!bb.youtubeId){
+    flashToast('BILLBOARD '+( bbobj.bbIdx+1)+' — CONTENT COMING SOON');
+    return;
+  }
+
+  // Toggle
+  if(bbobj.active){
+    deactivateBillboard(bbObjIdx);
+    return;
+  }
+
+  // Deactivate all other billboards first
+  billboardObjects3D.forEach((_,i)=>{if(billboardObjects3D[i].active)deactivateBillboard(i);});
+
+  bbobj.active=true;
+  const iframe=bbIframes[bbobj.bbIdx];
+  const css3dObj=bbCSS3DObjs[bbobj.bbIdx];
+  if(iframe&&css3dObj){
+    iframe.src=`https://www.youtube.com/embed/${bb.youtubeId}?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1&fs=0`;
+    css3dObj.visible=true;
+  }
+  flashToast('▶ '+bb.label);
+  setObjective(bb.caption||bb.label);
+  sfxOpen();
+}
+
+function deactivateBillboard(bbObjIdx){
+  const bbobj=billboardObjects3D[bbObjIdx];
+  bbobj.active=false;
+  const iframe=bbIframes[bbobj.bbIdx];
+  const css3dObj=bbCSS3DObjs[bbobj.bbIdx];
+  if(iframe)iframe.src='about:blank';
+  if(css3dObj)css3dObj.visible=false;
+}
+
+// ═══════════════════════════════════════════════════
+// INTERACT
+// ═══════════════════════════════════════════════════
+function updateInteract(){
+  const hint=$('hint'),ib=$('ibtn');
+  nearDoor=null;nearBillboard=null;
+  $('xh').classList.remove('lock');
+
+  // Check doors
+  for(let i=0;i<doorObjects3D.length;i++){
+    const dobj=doorObjects3D[i];
+    const dist=new THREE.Vector3(dobj.x,PLAYER_H,dobj.z).distanceTo(playerRig.position);
+    if(dist<3.5){
+      nearDoor=i;
+      $('xh').classList.add('lock');
+      const lbl=dobj.open?'CLOSE':'OPEN';
+      if(isMobile){ib.textContent=lbl;ib.style.display='flex';hint.style.display='none';}
+      else{hint.style.display='block';hint.textContent='[ E ] '+lbl+' — '+DOORS[dobj.doorIdx].label;ib.style.display='none';}
+      return;
+    }
+  }
+
+  // Check billboards
+  for(let i=0;i<billboardObjects3D.length;i++){
+    const bbobj=billboardObjects3D[i];
+    const dist=new THREE.Vector3(bbobj.x,PLAYER_H,bbobj.z).distanceTo(playerRig.position);
+    if(dist<5){
+      nearBillboard=i;
+      $('xh').classList.add('lock');
+      const bb=BILLBOARDS[bbobj.bbIdx];
+      const lbl=bbobj.active?'STOP':'PLAY';
+      const hasVid=!!bb.youtubeId;
+      const label=hasVid?lbl+' — '+bb.label:'BILLBOARD — COMING SOON';
+      if(isMobile){ib.textContent=hasVid?lbl:'N/A';ib.style.display='flex';hint.style.display='none';}
+      else{hint.style.display='block';hint.textContent='[ E ] '+label;ib.style.display='none';}
+      return;
+    }
+  }
+
+  hint.style.display='none';ib.style.display='none';
+}
+
+function interact(){
+  if(!started||ending)return;
+  primeAudio();sfxUI();
+
+  if(nearDoor!==null){
+    const dobj=doorObjects3D[nearDoor];
+    if(dobj.open){closeDoorFeed();}
+    else{openDoor(nearDoor);}
+    return;
+  }
+  if(nearBillboard!==null){
+    activateBillboard(nearBillboard);
+    return;
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// TIMER
+// ═══════════════════════════════════════════════════
+function startTimer(seconds,doorDef){
+  stopTimer();
+  timerSeconds=seconds;timerActive=true;
+  $('door-timer').style.display='flex';
+  $('timer-num').textContent=seconds;
+  $('timer-arc').style.strokeDashoffset='0';
+  if(doorDef&&doorDef.isLandmarkHunt){
+    $('found-btn').style.display='block';
+    $('found-btn').textContent='✓ FOUND IT — '+doorDef.landmark.toUpperCase();
+  }
+  const circ=176;
+  timerInterval=setInterval(()=>{
+    timerSeconds--;
+    $('timer-num').textContent=Math.max(0,timerSeconds);
+    const prog=1-(timerSeconds/seconds);
+    $('timer-arc').style.strokeDashoffset=String(circ*prog);
+    if(timerSeconds<=10)$('timer-arc').style.stroke='#cc2222';
+    else $('timer-arc').style.stroke='rgba(200,184,106,0.7)';
+    if(timerSeconds<=0){stopTimer();timerExpired();}
+  },1000);
+}
+
+function stopTimer(){
+  if(timerInterval)clearInterval(timerInterval);
+  timerInterval=null;timerActive=false;
+  $('door-timer').style.display='none';
+  $('found-btn').style.display='none';
+}
+
+function timerExpired(){
+  strobeOnce();sfxScare();
+  sanity=Math.max(0,sanity-12);
+  const msgs=["Time ran out. They are still inside.","You looked away. They cannot.","The line kept moving while you watched.","45 seconds. That is all you were asked for."];
+  showBigStatement(msgs[Math.floor(Math.random()*msgs.length)],'— THE TIMER EXPIRED');
+  $('timer-task').style.display='none';
+  closeDoorFeed();
+}
+
+function claimFound(){
+  const d=activeDoorIdx>=0?DOORS[activeDoorIdx]:null;
+  stopTimer();
+  $('timer-task').style.display='none';
+  $('close-feed-btn').style.display='none';
+  const reward=d?d.reward:'You found it. They cannot leave.';
+  showReward(reward);
+  sfxOpen();
+  blip(528,0.3,'sine',0.12);
+  setTimeout(()=>blip(880,0.2,'sine',0.08),200);
+  sanity=Math.min(100,sanity+5);
+  setTimeout(()=>closeDoorFeed(),3000);
+}
+
+function showReward(text){
+  $('reward-fact-text').textContent=text||'';
+  $('reward-flash').style.opacity='1';
+  $('reward-msg').style.opacity='1';
+  setTimeout(()=>{$('reward-flash').style.opacity='0';$('reward-msg').style.opacity='0';},5000);
+}
+
+// ═══════════════════════════════════════════════════
+// EDGE OF WORLD — VOID RESPAWN
+// ═══════════════════════════════════════════════════
+let voidCooldown=0;
+function checkVoid(dt){
+  voidCooldown=Math.max(0,voidCooldown-dt);
+  if(voidCooldown>0)return;
+  const px=playerRig.position.x,pz=playerRig.position.z;
+  const py=playerRig.position.y;
+  const outBounds=px<cityBounds.minX||px>cityBounds.maxX||pz<cityBounds.minZ||pz>cityBounds.maxZ;
+  const fell=py<-5;
+  if(outBounds||fell){
+    triggerVoid();
+  }
+}
+
+function triggerVoid(){
+  voidCooldown=6;
+  closeDoorFeed();
+  const msg=VOID_MESSAGES[Math.floor(Math.random()*VOID_MESSAGES.length)];
+  const vo=$('void-overlay');
+  $('void-msg').textContent=msg;
+  vo.style.display='flex';
+  sfxScare();
+  sanity=Math.max(0,sanity-8);
+  setTimeout(()=>{
+    // Respawn at center
+    playerRig.position.set(0,PLAYER_H,0);
+    playerRig.rotation.y=0;
+    camera.rotation.x=0;
+    vel.set(0,0,0);
+    vo.style.display='none';
+    flashToast('RESPAWNED — THE CITY RECLAIMED YOU');
+    setObjective('Approach a door. Press [E] to open it. Each door opens to the real world.');
+  },3500);
+}
+
+// ═══════════════════════════════════════════════════
+// STATEMENTS
+// ═══════════════════════════════════════════════════
+function showStatement(){
+  const s=stmtAll[stmtAllIdx++%stmtAll.length];
+  showBigStatement(s.text,s.attr);
+}
+function showBigStatement(text,attr){
+  const el=$('animal-stmt');
+  $('stmt-text').textContent=text;
+  $('stmt-attr').textContent=attr||'';
+  el.classList.remove('show');void el.offsetWidth;
+  el.classList.add('show');
+}
+
+// ═══════════════════════════════════════════════════
+// HEARTBEAT
+// ═══════════════════════════════════════════════════
+function updateHeartbeat(dt){
+  hbPhase+=dt*1.2;
+  const base=12;
+  const pts=[[0,base],[15,base],[20,base-8*(sanity/100)],[25,base+8*(sanity/100)],[30,base],[40,base],[43,base-4*(sanity/100)],[46,base+4*(sanity/100)],[49,base],[90,base]];
+  const irr=sanity<40?(Math.random()-0.5)*4:0;
+  pts[2][1]+=irr;pts[3][1]-=irr;
+  const line=$('hb-line');
+  if(line)line.setAttribute('points',pts.map(p=>p.join(',')).join(' '));
+  const col=sanity>60?'rgba(200,184,106,0.5)':sanity>30?'rgba(204,119,51,0.7)':'rgba(204,34,34,0.8)';
+  if(line)line.setAttribute('stroke',col);
+}
+
+// ═══════════════════════════════════════════════════
+// MOVEMENT + PHYSICS
+// ═══════════════════════════════════════════════════
+const SPEED=6,GRAVITY=20,JUMP=0;
+function updateMovement(dt){
+  if(!started)return;
+
+  // Touch joystick
+  const lx=td.l.mx,lz=td.l.my;
+  const rx=td.r.mx,ry=td.r.my;
+  if(td.r.a){
+    playerRig.rotation.y-=rx*0.04;
+    camera.rotation.x=Math.max(-Math.PI/2.5,Math.min(Math.PI/2.5,camera.rotation.x-ry*0.04));
+  }
+
+  const fwd=new THREE.Vector3(-Math.sin(playerRig.rotation.y),0,-Math.cos(playerRig.rotation.y));
+  const rgt=new THREE.Vector3(Math.cos(playerRig.rotation.y),0,-Math.sin(playerRig.rotation.y));
+
+  let mx=0,mz=0;
+  if(kW||td.l.my<-0.1){mx+=fwd.x;mz+=fwd.z;}
+  if(kS||td.l.my>0.1){mx-=fwd.x;mz-=fwd.z;}
+  if(kA||td.l.mx<-0.1){mx-=rgt.x;mz-=rgt.z;}
+  if(kD||td.l.mx>0.1){mx+=rgt.x;mz+=rgt.z;}
+
+  // Normalize diagonal
+  const mag=Math.hypot(mx,mz);
+  if(mag>0){mx/=mag;mz/=mag;}
+
+  vel.x=mx*SPEED;
+  vel.z=mz*SPEED;
+
+  // Gravity
+  vel.y-=GRAVITY*dt;
+
+  // Move
+  playerRig.position.x+=vel.x*dt;
+  playerRig.position.z+=vel.z*dt;
+  playerRig.position.y+=vel.y*dt;
+
+  // Ground clamp
+  const minY=groundY+PLAYER_H;
+  if(playerRig.position.y<=minY){
+    playerRig.position.y=minY;
+    vel.y=0;
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// SANITY HUD
+// ═══════════════════════════════════════════════════
+function updateSanityHUD(){
+  const s=Math.max(0,Math.min(100,sanity));
+  $('san-fill').style.width=s+'%';
+  $('san-fill').style.background=s>60?'#c8b86a':s>30?'rgba(204,119,51,0.9)':'#cc2222';
+  $('san-num').textContent=Math.round(s);
+}
+
+// ═══════════════════════════════════════════════════
+// AUDIO
+// ═══════════════════════════════════════════════════
+let AC=null;
+function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}}return AC;}
+function blip(freq,dur,type,vol){const a=ac();if(!a)return;const o=a.createOscillator(),g=a.createGain();o.type=type||'sine';o.frequency.value=freq;g.gain.value=vol||0.06;o.connect(g);g.connect(a.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+(dur||0.3));o.stop(a.currentTime+(dur||0.3));}
+function strobeOnce(){const s=$('strobe');s.style.opacity='0.6';setTimeout(()=>s.style.opacity='0',110);}
+function sfxScare(){blip(70,0.5,'sawtooth',0.16);blip(120,0.4,'square',0.09);}
+function sfxOpen(){blip(330,0.5,'sine',0.09);blip(495,0.5,'sine',0.06);}
+function sfxUI(){blip(440,0.1,'sine',0.04);}
+let _primed=false;
+function primeAudio(){
+  const a=ac();if(a&&a.state==='suspended')a.resume().catch(()=>{});
+  if(_primed)return;_primed=true;
+  musicEls.forEach(el=>{el.play().then(()=>setTimeout(()=>el.pause(),80)).catch(()=>{});});
+}
+
+function buildMusic(){
+  musicEls=MUSIC_URLS.map(u=>{const a=new Audio();a.src=u;a.preload='metadata';a.loop=true;a.volume=0;return a;});
+}
+let _musicStarted=false;
+function startMusicCycle(){
+  if(_musicStarted)return;_musicStarted=true;
+  scheduleBurst(3+Math.random()*5);
+}
+function scheduleBurst(delay){
+  setTimeout(()=>{
+    if(ending)return;
+    musicActive=musicEls[Math.floor(Math.random()*musicEls.length)];
+    const d=musicActive.duration;
+    musicActive.currentTime=(isFinite(d)&&d>30)?Math.random()*(d-20):0;
+    musicVol=0;musicActive.play().catch(()=>{});musicTarget=MUSIC_CEILING;
+    const hold=15+Math.random()*40;
+    setTimeout(()=>{musicTarget=0;},hold*1000);
+    setTimeout(()=>{if(musicActive)musicActive.pause();scheduleBurst(20+Math.random()*60);},(hold+MUSIC_FADE*2)*1000);
+  },delay*1000);
+}
+function updateMusic(dt){
+  const spd=MUSIC_CEILING/MUSIC_FADE;
+  if(musicVol<musicTarget)musicVol=Math.min(musicTarget,musicVol+spd*dt);
+  else if(musicVol>musicTarget)musicVol=Math.max(musicTarget,musicVol-spd*dt);
+  if(musicActive)musicActive.volume=Math.max(0,Math.min(1,musicVol));
+}
+
+// RADIO
+function radioTunerShow(on,st){
+  const el=$('radio-tuner');if(!el)return;
+  if(on&&st){el.querySelector('#radio-freq').textContent=st.name+(st.scanner?' / SCANNING':'');el.classList.add('on');}
+  else el.classList.remove('on');
+}
+function initRadioCtx(){
+  if(radioCtx)return;
+  radioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  radioFilter=radioCtx.createBiquadFilter();radioFilter.type='bandpass';radioFilter.frequency.value=2200;radioFilter.Q.value=0.5;
+  radioGain=radioCtx.createGain();radioGain.gain.value=0;
+  radioFilter.connect(radioGain);radioGain.connect(radioCtx.destination);
+  radioEl=document.createElement('audio');radioEl.crossOrigin='anonymous';radioEl.preload='none';
+  radioSrc=radioCtx.createMediaElementSource(radioEl);radioSrc.connect(radioFilter);
+  radioEl.addEventListener('error',radioOnError);
+}
+function radioOnError(){
+  radioFailCount++;
+  if(radioFailCount>=RADIO_STATIONS.length){radioFailCount=0;radioPlaying=false;radioTunerShow(false,null);radioTimer=setTimeout(radioStartCycle,Math.random()*60000+30000);return;}
+  radioStIdx=(radioStIdx+1)%RADIO_STATIONS.length;
+  setTimeout(radioPlayNow,500);
+}
+function radioPlayNow(){
+  if(!radioCtx)return;
+  const st=RADIO_STATIONS[radioStIdx];
+  if(radioHls){radioHls.destroy();radioHls=null;}
+  radioEl.pause();radioEl.removeAttribute('src');radioEl.load();
+  if(st.hls&&window.Hls&&Hls.isSupported()){
+    radioHls=new Hls({enableWorker:false,lowLatencyMode:false});
+    radioHls.loadSource(st.url);radioHls.attachMedia(radioEl);
+    radioHls.on(Hls.Events.MANIFEST_PARSED,()=>{radioEl.play().then(()=>{radioFailCount=0;radioOnPlay(st);}).catch(radioOnError);});
+    radioHls.on(Hls.Events.ERROR,(ev,d)=>{if(d.fatal)radioOnError();});
+  } else {
+    radioEl.src=st.url;radioEl.play().then(()=>{radioFailCount=0;radioOnPlay(st);}).catch(radioOnError);
+  }
+}
+function radioOnPlay(st){
+  const t=radioCtx.currentTime;
+  radioGain.gain.cancelScheduledValues(t);radioGain.gain.setValueAtTime(0,t);radioGain.gain.linearRampToValueAtTime(0.24,t+2.5);
+  radioFilter.frequency.setValueAtTime(180,t);radioFilter.frequency.exponentialRampToValueAtTime(2200,t+2);
+  radioTunerShow(true,st);
+  const ms=Math.random()*120000+30000;
+  radioTimer=setTimeout(()=>{
+    const t2=radioCtx.currentTime;
+    radioGain.gain.setValueAtTime(radioGain.gain.value,t2);radioGain.gain.linearRampToValueAtTime(0,t2+2.5);
+    setTimeout(()=>{radioEl.pause();radioPlaying=false;radioTunerShow(false,null);if(!ending)radioTimer=setTimeout(radioStartCycle,Math.random()*60000+20000);},2800);
+  },ms);
+}
+function radioStartCycle(){
+  if(radioPlaying||ending)return;radioPlaying=true;radioFailCount=0;
+  radioStIdx=Math.floor(Math.random()*RADIO_STATIONS.length);radioPlayNow();
+}
+function radioInit(){initRadioCtx();if(radioCtx.state==='suspended')radioCtx.resume();radioStartCycle();}
+
+// ═══════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════
+function setObjective(t){$('obj').textContent=t;}
+function flashToast(t,dur){
+  const el=$('toast');el.textContent=t;el.classList.add('show');
+  clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),dur||3500);
+}
+
+// ═══════════════════════════════════════════════════
+// RESIZE
+// ═══════════════════════════════════════════════════
+function onResize(){
+  camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+  if(renderTarget)renderTarget.setSize(innerWidth,innerHeight);
+  if(css3d)css3d.setSize(innerWidth,innerHeight);
+}
+
+// ═══════════════════════════════════════════════════
+// ANIMATE LOOP
+// ═══════════════════════════════════════════════════
+let factTimer=15;
+function animate(){
+  const dt=Math.min(clock.getDelta(),0.05);
+
+  if(started){
+    updateMovement(dt);
+    updateInteract();
+    updateHeartbeat(dt);
+    updateSanityHUD();
+    updateMusic(dt);
+    checkVoid(dt);
+
+    // Passive sanity drain
+    sanity=Math.max(0,sanity-dt*0.3);
+
+    // Random statement
+    factTimer-=dt;
+    if(factTimer<=0){
+      factTimer=20+Math.random()*25;
+      showStatement();
+    }
+  }
+
+  // Render to target for post processing
+  if(renderTarget&&postMaterial){
+    renderer.setRenderTarget(renderTarget);
+    renderer.render(scene,camera);
+    renderer.setRenderTarget(null);
+    postMaterial.uniforms.uTime.value+=dt;
+    postMaterial.uniforms.uSan.value=sanity/100;
+    renderer.render(postScene,postCamera);
+  } else {
+    renderer.render(scene,camera);
+  }
+
+  if(css3d)css3d.render(scene,camera);
+}
+
+</script>
+</body>
+</html>
