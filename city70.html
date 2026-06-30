@@ -393,7 +393,8 @@ function init(){
 
   loadHDR();
   setupPost();setupControls();setupTouch();buildMusic();
-  // ⚠ startGame listeners added ONLY after city loaded — see onCityReady
+  $('connect').addEventListener('click',startGame,{once:true});
+  $('connect').addEventListener('touchstart',startGame,{passive:true,once:true});
   addEventListener('resize',onResize);
   renderer.setAnimationLoop(animate);
   loadCity();
@@ -463,14 +464,7 @@ function spawnPlayer(){
 
 function onCityReady(bbox){
   buildDoors();buildBillboards();buildLights();
-  // City is loaded — NOW allow entering
-  setTimeout(()=>{
-    $('cp1').style.display='none';
-    $('cp2').style.display='flex';
-    // Only wire up enter AFTER city is ready
-    $('connect').addEventListener('click',startGame,{once:true});
-    $('connect').addEventListener('touchstart',startGame,{passive:true,once:true});
-  },500);
+  setTimeout(()=>{$('cp1').style.display='none';$('cp2').style.display='flex';},500);
 }
 
 function buildDoors(){
