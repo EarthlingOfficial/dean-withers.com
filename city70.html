@@ -128,7 +128,6 @@ canvas{position:fixed;inset:0;width:100%;height:100%;z-index:0}
 <div id="hud">
   <div id="hbwrap"><svg id="hbsvg" viewBox="0 0 80 20" fill="none"><polyline id="hbline" points="0,10 12,10 16,3 20,17 24,10 34,10 36,6 38,14 40,10 80,10" stroke="rgba(200,184,106,0.4)" stroke-width="1.1" fill="none"/></svg></div>
   <div id="dcount">0 / 15</div>
-  <div id="stamp">GO DEAN! S10 — earthlingofficial.com</div>
 </div>
 
 <div id="tod"></div>
@@ -235,15 +234,17 @@ const VOIDMSGS=["You were discarded from reality\nlike an animal.","You fell thr
 
 const RADIO=[
   {url:"https://live-radio01.mediahubaustralia.com/2TJW/aac/",name:"TRIPLE J"},
+  {url:"https://live-radio01.mediahubaustralia.com/2RNW/aac/",name:"ABC RN"},
+  {url:"https://live-radio02.mediahubaustralia.com/ABCCLASSIC/mp3",name:"ABC CLASSIC"},
+  {url:"https://ice1.somafm.com/scanner-128-mp3",name:"SCANNER FM"},
+  {url:"https://ice1.somafm.com/secretagent-128-mp3",name:"SECRET AGENT"},
+  {url:"https://ice1.somafm.com/defcon-128-mp3",name:"DEF CON"},
+  {url:"https://npr-ice.streamguys1.com/live.mp3",name:"NPR"},
   {url:"https://hotfm.streamguys1.com/hotfm",name:"HOT FM"},
   {url:"https://seafm.streamguys1.com/seafm",name:"SEA FM"},
   {url:"https://kiis1065.streamguys1.com/live",name:"KIIS 106.5"},
   {url:"https://nova969.streamguys1.com/live",name:"NOVA 96.9"},
   {url:"https://foxfm.streamguys1.com/live",name:"FOX FM"},
-  {url:"https://2day.streamguys1.com/live",name:"2DAY FM"},
-  {url:"https://live-radio01.mediahubaustralia.com/2RNW/aac/",name:"ABC RN"},
-  {url:"https://live-radio02.mediahubaustralia.com/ABCCLASSIC/mp3",name:"ABC CLASSIC"},
-  {url:"https://ice1.somafm.com/scanner-128-mp3",name:"SCANNER FM"},
 ];
 
 const MUSIC=['https://earthlingofficial.com/srsstudio-life-is-just-nothing-else-pioggia-liminal-tranquillo-328126.mp3','https://earthlingofficial.com/9jackjack8-drowsy-liminal-dreamcore-512448.mp3'];
@@ -275,9 +276,13 @@ let voidCD=0;
 
 // DAY / NIGHT  — 0=midnight  0.25=6am  0.5=noon  0.75=6pm
 const DAY_CYCLE=720; // 12 real minutes per full day
-let dayTime=0.93;    // start ~10pm (night)
-let _sunLight=null,_ambLight=null,_hdrTex=null;
-const _bgCol=new THREE.Color();
+let dayTime=0.93;    // start ~10pm (night) — identical to city67 opening scene
+let _daySun=null,_hdrTex=null;
+// Sky colours for smooth lerp — no snapping
+const _skyNight=new THREE.Color(0x080a0e); // city67 exact night bg
+const _skyDawn =new THREE.Color(0x1a0705); // pre-dawn warm dark
+const _skyDay  =new THREE.Color(0x5a9dc8); // daytime sky blue
+const _skyTmp  =new THREE.Color();
 
 // Heartbeat
 let hbPhase=0,hbSpeed=1,hbSpike=0;
@@ -295,28 +300,32 @@ function updateDayNight(dt){
   const nf=nightFactor();
   const isDay=nf<0.5;
 
-  if(_sunLight){
+  // Day sun: only active during daytime, moves on arc — does NOT exist at night
+  if(_daySun){
     const a=(dayTime-0.25)*Math.PI*2;
-    _sunLight.position.set(Math.cos(a)*80,Math.sin(a)*70,40);
-    _sunLight.intensity=(isMobile?1.0:1.6)*Math.max(0,1-nf*0.98);
+    _daySun.position.set(Math.cos(a)*80,Math.sin(a)*70,40);
     const warmth=1-Math.abs(Math.sin(dayTime*Math.PI*2-Math.PI/2));
-    _sunLight.color.setRGB(1,0.84+warmth*0.16,0.6+warmth*0.4);
+    _daySun.color.setRGB(1,0.84+warmth*0.16,0.6+warmth*0.4);
+    // Fade out before twilight so transition is imperceptible
+    _daySun.intensity=(isMobile?0.9:1.3)*Math.max(0,1-nf*5);
   }
-  if(_ambLight){
-    _ambLight.intensity=(isMobile?1.8:1.2)*(0.12+0.88*(1-nf));
-  }
+
+  // Exposure: city67's exact value (1.0) at night, smoothly moves to 0.82 at noon
+  renderer.toneMappingExposure=1.0-0.18*(1-nf);
+
+  // Background: smooth colour lerp — ZERO snapping, no conditional HDR switch
   if(scene){
-    if(_hdrTex&&nf<0.5){
-      scene.background=_hdrTex;
-      renderer.toneMappingExposure=Math.max(0.3,0.82*(1-nf*1.8));
+    if(nf>=0.5){
+      _skyTmp.lerpColors(_skyDawn,_skyNight,(nf-0.5)*2);
     } else {
-      const dark=0.03*(1-nf);
-      _bgCol.setRGB(dark*0.53,dark*0.6,dark);
-      scene.background=_bgCol;
-      renderer.toneMappingExposure=nf>0.85?0.15:Math.max(0.15,0.82*(1-nf));
+      _skyTmp.lerpColors(_skyDay,_skyDawn,nf*2);
     }
+    scene.background=_skyTmp;
+    // Apply HDR as environment map only (PBR reflections) — never as background
+    if(_hdrTex)scene.environment=_hdrTex;
     scene.fog.density=isDay?(isMobile?0.016:0.012):(isMobile?0.022:0.016);
   }
+
   if(postMat)postMat.uniforms.uNight.value=nf;
 
   const el=$('tod');
@@ -331,7 +340,12 @@ function loadHDR(){
   try{
     new THREE.RGBELoader().load(
       HDR_URL,
-      tex=>{tex.mapping=THREE.EquirectangularReflectionMapping;_hdrTex=tex;},
+      tex=>{
+        tex.mapping=THREE.EquirectangularReflectionMapping;
+        _hdrTex=tex;
+        // environment only — never set as scene.background (causes snap)
+        if(scene)scene.environment=tex;
+      },
       undefined,
       ()=>{}
     );
@@ -355,7 +369,9 @@ function init(){
   renderer.setPixelRatio(isMobile?Math.min(devicePixelRatio,1.5):Math.min(devicePixelRatio,2));
   renderer.setSize(innerWidth,innerHeight);
   renderer.shadowMap.enabled=!isMobile;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-  renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=0.15;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  // Start at city67's exact exposure — night looks identical to city67 from frame 1
+  renderer.toneMappingExposure=1.0;
 
   if(typeof THREE.CSS3DRenderer==='function'){
     css3d=new THREE.CSS3DRenderer();css3d.setSize(innerWidth,innerHeight);
@@ -363,14 +379,18 @@ function init(){
     Object.assign(css3d.domElement.style,{position:'absolute',top:'0',left:'0',pointerEvents:'none'});
   }
 
-  _ambLight=new THREE.AmbientLight(0x223344,isMobile?1.8*0.12:1.2*0.12);
-  scene.add(_ambLight);
-  _sunLight=new THREE.DirectionalLight(0xffeedd,0);
-  _sunLight.position.set(50,90,40);
-  if(!isMobile){_sunLight.castShadow=true;_sunLight.shadow.mapSize.set(1024,1024);_sunLight.shadow.camera.far=200;}
-  scene.add(_sunLight);
+  // ── CITY67 EXACT NIGHT LIGHTS — never mutated at night ──
+  const ambLight=new THREE.AmbientLight(0x223344,isMobile?1.8:1.2);
+  scene.add(ambLight);
+  const staticSun=new THREE.DirectionalLight(0xffeedd,isMobile?1.0:1.6);
+  staticSun.position.set(50,90,40); // city67's exact fixed position
+  if(!isMobile){staticSun.castShadow=true;staticSun.shadow.mapSize.set(1024,1024);staticSun.shadow.camera.far=200;}
+  scene.add(staticSun);
   const c1=new THREE.PointLight(0xff4400,0.5,200);c1.position.set(0,25,0);scene.add(c1);
   const c2=new THREE.DirectionalLight(0x4466aa,0.4);c2.position.set(-40,30,-60);scene.add(c2);
+  // ── DAY-ONLY SUN — moves on arc, zero at night ──
+  _daySun=new THREE.DirectionalLight(0xffd090,0);
+  scene.add(_daySun);
 
   const gnd=new THREE.Mesh(new THREE.PlaneGeometry(600,600),new THREE.MeshStandardMaterial({color:0x0e1016,roughness:1}));
   gnd.rotation.x=-Math.PI/2;gnd.position.y=-0.05;gnd.receiveShadow=true;scene.add(gnd);
