@@ -450,13 +450,25 @@ function spawnPlayer(){
 
 function onCityReady(bbox){
   cityReady=true;
-  buildDoors();buildBillboards();buildLights();
-  setTimeout(()=>{
-    $('cp1').style.display='none';
-    $('cp2').style.display='flex';
-    $('ctap').addEventListener('click',startGame,{once:true});
-    $('ctap').addEventListener('touchstart',startGame,{passive:true,once:true});
-  },500);
+  try{
+    buildDoors();
+  }catch(e){console.error('buildDoors failed:',e);}
+  try{
+    buildBillboards();
+  }catch(e){console.error('buildBillboards failed:',e);}
+  try{
+    buildLights();
+  }catch(e){console.error('buildLights failed:',e);}
+  showTapScreen();
+}
+
+function showTapScreen(){
+  if(document.body.dataset.tapShown)return;
+  document.body.dataset.tapShown='1';
+  $('cp1').style.display='none';
+  $('cp2').style.display='flex';
+  $('ctap').addEventListener('click',startGame);
+  $('ctap').addEventListener('touchstart',startGame,{passive:true});
 }
 
 function buildDoors(){
@@ -855,3 +867,4 @@ function animate(){
 </script>
 </body>
 </html>
+
