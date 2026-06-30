@@ -40,6 +40,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;z-index:0}
 #hbwrap{width:80px;height:20px}
 #hbsvg{width:80px;height:20px}
 #dcount{color:rgba(200,184,106,0.2);font-size:8px;letter-spacing:4px}
+#mmap{position:fixed;bottom:70px;right:12px;z-index:15;border-radius:50%;border:1px solid rgba(200,184,106,0.18);opacity:0.72;pointer-events:none;image-rendering:pixelated}
 #stamp{color:rgba(200,184,106,0.1);font-size:7px;letter-spacing:2px}
 #tod{position:fixed;top:12px;left:12px;z-index:15;pointer-events:none;color:rgba(200,184,106,0.3);font-size:7px;letter-spacing:3px}
 #xh{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:10;width:18px;height:18px}
@@ -162,6 +163,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;z-index:0}
   <div id="btnf" class="mbb locked">F</div>
 </div>
 
+<canvas id="mmap" width="110" height="110"></canvas>
 <div id="css3d-layer"></div>
 <canvas id="c"></canvas>
 
@@ -277,12 +279,7 @@ let voidCD=0;
 // DAY / NIGHT  — 0=midnight  0.25=6am  0.5=noon  0.75=6pm
 const DAY_CYCLE=720; // 12 real minutes per full day
 let dayTime=0.93;    // start ~10pm (night) — identical to city67 opening scene
-let _daySun=null,_hdrTex=null;
-// Sky colours for smooth lerp — no snapping
-const _skyNight=new THREE.Color(0x080a0e); // city67 exact night bg
-const _skyDawn =new THREE.Color(0x1a0705); // pre-dawn warm dark
-const _skyDay  =new THREE.Color(0x5a9dc8); // daytime sky blue
-const _skyTmp  =new THREE.Color();
+let _daySun=null,_hdrTex=null,_skySphere=null,_skyMat=null;
 
 // Heartbeat
 let hbPhase=0,hbSpeed=1,hbSpike=0;
@@ -300,31 +297,28 @@ function updateDayNight(dt){
   const nf=nightFactor();
   const isDay=nf<0.5;
 
-  // Day sun: only active during daytime, moves on arc — does NOT exist at night
+  // Sky sphere: invisible at night (city67 exact dark bg shows through),
+  // fades in smoothly as day approaches. scene.background NEVER changes.
+  if(_skyMat){
+    // nf=1 → opacity 0 (invisible, city67 bg shows)
+    // nf=0 → opacity 1 (full daytime HDR mountains visible)
+    _skyMat.opacity=Math.max(0,Math.min(1,1-nf*2.8));
+  }
+
+  // Day sun: fades in from zero — city67's static lights handle night entirely
   if(_daySun){
     const a=(dayTime-0.25)*Math.PI*2;
     _daySun.position.set(Math.cos(a)*80,Math.sin(a)*70,40);
     const warmth=1-Math.abs(Math.sin(dayTime*Math.PI*2-Math.PI/2));
     _daySun.color.setRGB(1,0.84+warmth*0.16,0.6+warmth*0.4);
-    // Fade out before twilight so transition is imperceptible
-    _daySun.intensity=(isMobile?0.9:1.3)*Math.max(0,1-nf*5);
+    _daySun.intensity=(isMobile?0.9:1.3)*Math.max(0,1-nf*4);
   }
 
-  // Exposure: city67's exact value (1.0) at night, smoothly moves to 0.82 at noon
-  renderer.toneMappingExposure=1.0-0.18*(1-nf);
+  // Exposure: exactly 1.0 at night (city67's value) — only trim slightly at noon
+  renderer.toneMappingExposure=1.0-0.12*(1-nf);
 
-  // Background: smooth colour lerp — ZERO snapping, no conditional HDR switch
-  if(scene){
-    if(nf>=0.5){
-      _skyTmp.lerpColors(_skyDawn,_skyNight,(nf-0.5)*2);
-    } else {
-      _skyTmp.lerpColors(_skyDay,_skyDawn,nf*2);
-    }
-    scene.background=_skyTmp;
-    // Apply HDR as environment map only (PBR reflections) — never as background
-    if(_hdrTex)scene.environment=_hdrTex;
-    scene.fog.density=isDay?(isMobile?0.016:0.012):(isMobile?0.022:0.016);
-  }
+  // Fog — city67 exact at night, slightly lighter at day
+  if(scene)scene.fog.density=isDay?(isMobile?0.016:0.012):(isMobile?0.02:0.015);
 
   if(postMat)postMat.uniforms.uNight.value=nf;
 
@@ -338,17 +332,19 @@ function updateDayNight(dt){
 function loadHDR(){
   if(typeof THREE.RGBELoader!=='function')return;
   try{
-    new THREE.RGBELoader().load(
-      HDR_URL,
-      tex=>{
-        tex.mapping=THREE.EquirectangularReflectionMapping;
-        _hdrTex=tex;
-        // environment only — never set as scene.background (causes snap)
-        if(scene)scene.environment=tex;
-      },
-      undefined,
-      ()=>{}
-    );
+    new THREE.RGBELoader().load(HDR_URL,tex=>{
+      _hdrTex=tex;
+      // Create sky sphere — starts invisible (opacity=0), fades in during day.
+      // scene.background stays city67's solid dark ALWAYS. No snap, ever.
+      tex.mapping=THREE.EquirectangularReflectionMapping;
+      _skyMat=new THREE.MeshBasicMaterial({
+        map:tex,side:THREE.BackSide,transparent:true,opacity:0,depthWrite:false
+      });
+      _skySphere=new THREE.Mesh(new THREE.SphereGeometry(480,32,16),_skyMat);
+      // Render behind everything
+      _skySphere.renderOrder=-1;
+      if(scene)scene.add(_skySphere);
+    },undefined,()=>{});
   }catch(e){}
 }
 
@@ -397,8 +393,7 @@ function init(){
 
   loadHDR();
   setupPost();setupControls();setupTouch();buildMusic();
-  $('connect').addEventListener('click',startGame,{once:true});
-  $('connect').addEventListener('touchstart',startGame,{passive:true,once:true});
+  // ⚠ startGame listeners added ONLY after city loaded — see onCityReady
   addEventListener('resize',onResize);
   renderer.setAnimationLoop(animate);
   loadCity();
@@ -466,7 +461,17 @@ function spawnPlayer(){
   rig.position.set(28,PLAYER_H+1,0);vel.set(0,0,0);
 }
 
-function onCityReady(bbox){buildDoors();buildBillboards();buildLights();setTimeout(()=>{$('cp1').style.display='none';$('cp2').style.display='flex';},500);}
+function onCityReady(bbox){
+  buildDoors();buildBillboards();buildLights();
+  // City is loaded — NOW allow entering
+  setTimeout(()=>{
+    $('cp1').style.display='none';
+    $('cp2').style.display='flex';
+    // Only wire up enter AFTER city is ready
+    $('connect').addEventListener('click',startGame,{once:true});
+    $('connect').addEventListener('touchstart',startGame,{passive:true,once:true});
+  },500);
+}
 
 function buildDoors(){
   const DW=1.1,DH=2.4;
@@ -483,29 +488,43 @@ function buildDoors(){
     const grp=new THREE.Group();
     grp.position.set(pos.x,0,pos.z);grp.rotation.y=pos.ry;
 
-    const fm=new THREE.MeshStandardMaterial({color:0x111122,roughness:0.6,metalness:0.5,emissive:0x1a2255,emissiveIntensity:0.4});
-    const fT=new THREE.Mesh(new THREE.BoxGeometry(DW+0.16,0.08,0.08),fm);fT.position.set(0,DH+0.04,0);
-    const fB=new THREE.Mesh(new THREE.BoxGeometry(DW+0.16,0.08,0.08),fm);fB.position.set(0,0.04,0);
-    const fL=new THREE.Mesh(new THREE.BoxGeometry(0.08,DH,0.08),fm);fL.position.set(-(DW/2+0.04),DH/2,0);
-    const fR=new THREE.Mesh(new THREE.BoxGeometry(0.08,DH,0.08),fm);fR.position.set(DW/2+0.04,DH/2,0);
+    // Door frame — bright glowing blue so it reads across the city
+    const fm=new THREE.MeshStandardMaterial({color:0x0a0f2a,roughness:0.4,metalness:0.7,emissive:0x1a44ff,emissiveIntensity:1.8});
+    const fT=new THREE.Mesh(new THREE.BoxGeometry(DW+0.22,0.1,0.1),fm);fT.position.set(0,DH+0.05,0);
+    const fB=new THREE.Mesh(new THREE.BoxGeometry(DW+0.22,0.1,0.1),fm);fB.position.set(0,0.05,0);
+    const fL=new THREE.Mesh(new THREE.BoxGeometry(0.1,DH,0.1),fm);fL.position.set(-(DW/2+0.05),DH/2,0);
+    const fR=new THREE.Mesh(new THREE.BoxGeometry(0.1,DH,0.1),fm);fR.position.set(DW/2+0.05,DH/2,0);
     grp.add(fT,fB,fL,fR);
 
-    const fill=new THREE.Mesh(new THREE.PlaneGeometry(DW,DH),new THREE.MeshStandardMaterial({color:0x040610,emissive:0x0a1030,emissiveIntensity:0.3}));
-    fill.position.set(0,DH/2,0.01);grp.add(fill);
+    // Door fill — deep glowing blue panel, visible at a glance
+    const fill=new THREE.Mesh(new THREE.PlaneGeometry(DW,DH),new THREE.MeshStandardMaterial({color:0x020418,emissive:0x0828cc,emissiveIntensity:1.6,side:THREE.DoubleSide}));
+    fill.position.set(0,DH/2,0.02);grp.add(fill);
 
-    grp.add(Object.assign(mkSprite((i+1).toString().padStart(2,'0'),{color:'#c8b86a',sz:20}),{position:new THREE.Vector3(0,DH+0.3,0.06)}));
-    grp.add(Object.assign(mkSprite(d.label,{color:'#667788',sz:10}),{position:new THREE.Vector3(0,DH+0.08,0.06)}));
+    // Number and label sprites — large, gold, always visible
+    grp.add(Object.assign(mkSprite((i+1).toString().padStart(2,'0'),{color:'#ffdd66',sz:28}),{position:new THREE.Vector3(0,DH+0.55,0.08)}));
+    grp.add(Object.assign(mkSprite(d.label,{color:'#8899cc',sz:12}),{position:new THREE.Vector3(0,DH+0.18,0.08)}));
 
-    const trig=new THREE.Mesh(new THREE.CircleGeometry(0.55,16),new THREE.MeshBasicMaterial({color:0x1a2255,transparent:true,opacity:0.55}));
-    trig.rotation.x=-Math.PI/2;trig.position.set(0,-0.01,1.1);grp.add(trig);
+    // Ground halo ring — bright blue ring at feet, massive visibility boost
+    const haloMat=new THREE.MeshBasicMaterial({color:0x2255ff,transparent:true,opacity:0.55,side:THREE.DoubleSide});
+    const halo=new THREE.Mesh(new THREE.RingGeometry(0.7,1.4,32),haloMat);
+    halo.rotation.x=-Math.PI/2;halo.position.set(0,0.01,0.8);grp.add(halo);
+    // Inner glow disc
+    const disc=new THREE.Mesh(new THREE.CircleGeometry(0.7,32),new THREE.MeshBasicMaterial({color:0x1133ff,transparent:true,opacity:0.22}));
+    disc.rotation.x=-Math.PI/2;disc.position.set(0,0.015,0.8);grp.add(disc);
 
-    const gl=new THREE.PointLight(0x3355ff,0.8,10);gl.position.set(0,DH/2,0.4);grp.add(gl);
+    // Near point light — illuminates doorway
+    const gl=new THREE.PointLight(0x3366ff,2.5,18);gl.position.set(0,DH/2,0.6);grp.add(gl);
+    // Low ground light — casts blue glow on floor
+    const glow=new THREE.PointLight(0x1133ff,3.5,8);glow.position.set(0,0.3,0.8);grp.add(glow);
 
-    // Beacon — tall glowing column visible across city at night
-    const beaconMat=new THREE.MeshStandardMaterial({color:0x1133ff,emissive:0x2244ff,emissiveIntensity:2.0,transparent:true,opacity:0.7});
-    const beacon=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,12,6),beaconMat);
-    beacon.position.set(0,6+DH/2,0);grp.add(beacon);
-    const bLight=new THREE.PointLight(0x2255ff,1.2,22);bLight.position.set(0,13,0);grp.add(bLight);
+    // Beacon — tall glowing column, city-wide visibility
+    const beaconMat=new THREE.MeshStandardMaterial({color:0x4466ff,emissive:0x5577ff,emissiveIntensity:12.0,transparent:true,opacity:1.0,depthWrite:false});
+    const beacon=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,16,6),beaconMat);
+    beacon.position.set(0,8+DH/2,0);grp.add(beacon);
+    // Bright top light — visible from across the city
+    const bLight=new THREE.PointLight(0x4466ff,5.0,55);bLight.position.set(0,17,0);grp.add(bLight);
+    // Mid-height light so the column itself is lit
+    const mLight=new THREE.PointLight(0x2244ff,2.5,20);mLight.position.set(0,8,0);grp.add(mLight);
 
     scene.add(grp);
 
@@ -526,7 +545,7 @@ function buildDoors(){
       cssObj.rotation.y=pos.ry;cssObj.visible=false;
       scene.add(cssObj);
     }
-    doorObjs.push({grp,fill,gl,beacon,beaconMat,bLight,pos,ry:pos.ry,doorIdx:i,opened:false,cssObj,iframe});
+    doorObjs.push({grp,fill,gl,glow,beacon,beaconMat,bLight,haloMat,pos,ry:pos.ry,doorIdx:i,opened:false,cssObj,iframe});
   });
 }
 
@@ -935,10 +954,90 @@ function rStart(){if(rPlay||ending)return;rPlay=true;rFail=0;rIdx=Math.floor(Mat
 function toast(t,dur){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),dur||3200);}
 function onResize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);if(rt)rt.setSize(innerWidth,innerHeight);if(css3d)css3d.setSize(innerWidth,innerHeight);}
 
+// ── MINIMAP ──────────────────────────────────────────────────────────
+const _mmC=$('mmap');const _mmX=_mmC?_mmC.getContext('2d'):null;
+const MM=110,MM_R=MM/2,MM_SCALE=1.8; // 1 unit = MM_SCALE px on map
+let _mmPulse=0;
+
+function updateMinimap(dt){
+  if(!_mmX||!started)return;
+  _mmPulse=((_mmPulse||0)+dt)%4;
+  const cx=MM_R,cy=MM_R;
+  _mmX.clearRect(0,0,MM,MM);
+
+  // Circular clip
+  _mmX.save();
+  _mmX.beginPath();_mmX.arc(cx,cy,MM_R-1,0,Math.PI*2);_mmX.clip();
+
+  // Dark bg
+  _mmX.fillStyle='rgba(4,6,14,0.82)';_mmX.fillRect(0,0,MM,MM);
+
+  // Player heading arrow to orient the map
+  const py=rig?rig.rotation.y:0;
+
+  // Helper: world pos → minimap px (rotated to face camera heading)
+  function wToM(wx,wz){
+    const rx=rig?wx-rig.position.x:wx;
+    const rz=wz-(rig?rig.position.z:0);
+    const cos=Math.cos(-py),sin=Math.sin(-py);
+    const mx=rx*cos-rz*sin;
+    const mz=rx*sin+rz*cos;
+    return [cx+mx*MM_SCALE, cy+mz*MM_SCALE];
+  }
+
+  // Distance rings
+  _mmX.strokeStyle='rgba(200,184,106,0.06)';_mmX.lineWidth=0.5;
+  [15,30,45].forEach(r=>{_mmX.beginPath();_mmX.arc(cx,cy,r,0,Math.PI*2);_mmX.stroke();});
+
+  // Billboards — small gold squares
+  bbObjs.forEach(b=>{
+    const[mx,mz]=wToM(b.pos.x,b.pos.z);
+    if(mx<4||mx>MM-4||mz<4||mz>MM-4)return;
+    _mmX.fillStyle=b.active?'rgba(200,184,106,0.9)':b.unlocked?'rgba(200,184,106,0.35)':'rgba(60,60,80,0.5)';
+    _mmX.fillRect(mx-2,mz-2,4,4);
+  });
+
+  // Doors — blue dots, bright = unopened, dim = opened
+  doorObjs.forEach((o,i)=>{
+    const[mx,mz]=wToM(o.pos.x,o.pos.z);
+    if(mx<4||mx>MM-4||mz<4||mz>MM-4)return;
+    const pulse=o.opened?0:0.5+0.5*Math.sin(_mmPulse*Math.PI*2);
+    const alpha=o.opened?0.25:0.55+pulse*0.35;
+    const radius=o.opened?2.5:3.5;
+    _mmX.beginPath();_mmX.arc(mx,mz,radius,0,Math.PI*2);
+    _mmX.fillStyle=`rgba(60,120,255,${alpha.toFixed(2)})`;
+    _mmX.fill();
+    // Number label on nearby doors
+    if(!o.opened){
+      _mmX.fillStyle='rgba(200,184,106,0.7)';
+      _mmX.font='5px monospace';_mmX.textAlign='center';_mmX.textBaseline='middle';
+      _mmX.fillText(String(i+1),mx,mz-6);
+    }
+  });
+
+  // Player — white triangle pointing up (forward direction = up on minimap)
+  _mmX.save();_mmX.translate(cx,cy);
+  _mmX.fillStyle='rgba(255,255,255,0.9)';
+  _mmX.beginPath();_mmX.moveTo(0,-5);_mmX.lineTo(3.5,4);_mmX.lineTo(-3.5,4);_mmX.closePath();_mmX.fill();
+  _mmX.restore();
+
+  // North label
+  const[nx,nz]=wToM(0,-30);
+  _mmX.fillStyle='rgba(200,184,106,0.25)';_mmX.font='5px monospace';
+  _mmX.textAlign='center';_mmX.textBaseline='middle';
+  _mmX.fillText('N',nx,nz);
+
+  _mmX.restore();
+
+  // Border ring
+  _mmX.beginPath();_mmX.arc(cx,cy,MM_R-1,0,Math.PI*2);
+  _mmX.strokeStyle='rgba(200,184,106,0.18)';_mmX.lineWidth=1;_mmX.stroke();
+}
+
 function animate(){
   const dt=Math.min(clock.getDelta(),0.05);
   updateDayNight(dt);
-  if(started){updateMovement(dt);updateNear();updateHB(dt);updateMusic(dt);checkVoid(dt);stmtT-=dt;if(stmtT<=0){stmtT=20+Math.random()*22;showStmt();}}
+  if(started){updateMovement(dt);updateNear();updateHB(dt);updateMusic(dt);checkVoid(dt);updateMinimap(dt);stmtT-=dt;if(stmtT<=0){stmtT=20+Math.random()*22;showStmt();}}
   if(rt&&postMat){renderer.setRenderTarget(rt);renderer.render(scene,camera);renderer.setRenderTarget(null);postMat.uniforms.uT.value+=dt;renderer.render(postScene,postCamera);}
   else renderer.render(scene,camera);
   if(css3d)css3d.render(scene,camera);
