@@ -170,8 +170,11 @@ canvas{position:fixed;inset:0;width:100%;height:100%;z-index:0}
 <script>
 const $=id=>document.getElementById(id);
 const isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-const GLB_URL='./procedural_city_66.glb';
+const GLB_URL='./procedural_city_6.glb';
 const HDR_URL='https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/autumn_hill_view_8k.hdr';
+
+// DOOR/BILLBOARD COLORS — per-door unique glow
+const DOOR_COLORS=[0xff3333,0xff6633,0xff9933,0xffcc33,0xccff33,0x66ff33,0x33ff66,0x33ff99,0x33ffcc,0x33ccff,0x3399ff,0x3366ff,0x6633ff,0x9933ff,0xcc33ff];
 
 const DOORS=[
   {type:'portrait',label:'EARTHLING OFFICIAL',youtubeId:'C4tzKTXd0yw',live:false,overlay:'The archive does not forget.\nEvery conversation documented.\nEvery claim verified.'},
@@ -203,6 +206,13 @@ const BILLBOARDS=[
   {label:'BILLBOARD 09',youtubeId:null,caption:'— COMING SOON —'},
   {label:'BILLBOARD 10',youtubeId:null,caption:'— COMING SOON —'},
 ];
+
+const FINAL_BILLBOARD={label:'THE FINAL ARCHIVE',youtubeId:'PLACEHOLDER_S11_ARCHIVE',caption:'All 15 doors opened.\nAll footage witnessed.\nThe archive is complete.\nNow face what you have learned.'};
+
+const HIEROGLYPH_STONE={
+  texts:['PEACEFUL','ETHICAL','HYPOCRISY','DEATH','KARMA','FLOW'],
+  url:'earthlingofficial.com/veganbrosstage11.html'
+};
 
 const STMTS=[
   {t:"80 billion land animals are killed for food every year.",a:"— THE RECORD"},
@@ -242,11 +252,17 @@ const RADIO=[
   {url:"https://ice1.somafm.com/secretagent-128-mp3",name:"SECRET AGENT"},
   {url:"https://ice1.somafm.com/defcon-128-mp3",name:"DEF CON"},
   {url:"https://npr-ice.streamguys1.com/live.mp3",name:"NPR"},
-  {url:"https://hotfm.streamguys1.com/hotfm",name:"HOT FM"},
-  {url:"https://seafm.streamguys1.com/seafm",name:"SEA FM"},
-  {url:"https://kiis1065.streamguys1.com/live",name:"KIIS 106.5"},
-  {url:"https://nova969.streamguys1.com/live",name:"NOVA 96.9"},
-  {url:"https://foxfm.streamguys1.com/live",name:"FOX FM"},
+  {url:"https://stream.1.10.com/live",name:"CAPITAL FM"},
+  {url:"https://radioeins.de/live.mp3",name:"RADIO EINS"},
+  {url:"https://stream.laut.fm/hitradio",name:"HIT RADIO"},
+  {url:"https://stream.srp.de/pop/mp3-128/livestream.mp3",name:"POP RADIO"},
+  {url:"https://stream-muc.104.6rtl.com/live/mp3-192",name:"104.6 RTL"},
+  {url:"https://live.rockradio.com/rockradio.mp3",name:"ROCK RADIO"},
+  {url:"https://stream.radionomy.com/80sflow",name:"80S FLOW"},
+  {url:"https://stream.radionomy.com/90sflow",name:"90S FLOW"},
+  {url:"https://stream.radionomy.com/synthwave",name:"SYNTHWAVE"},
+  {url:"https://stream.radionomy.com/indieflow",name:"INDIE FLOW"},
+  {url:"https://stream.radionomy.com/hiphopclassic",name:"HIP HOP"},
 ];
 
 const MUSIC=['https://earthlingofficial.com/srsstudio-life-is-just-nothing-else-pioggia-liminal-tranquillo-328126.mp3','https://earthlingofficial.com/9jackjack8-drowsy-liminal-dreamcore-512448.mp3'];
@@ -263,10 +279,10 @@ let groundY=0;
 const td={l:{a:0,id:-1,sx:0,sy:0,mx:0,my:0},r:{a:0,id:-1,sx:0,sy:0,mx:0,my:0}};
 let doorCount=0;
 const openedDoors=new Set();
-let nearDoor=null,nearBB=null,activeDoorIdx=-1,doorState='closed';
+let nearDoor=null,nearBB=null,nearHiero=null,activeDoorIdx=-1,doorState='closed';
 let svTimer=null,svSeconds=40;
 const doorObjs=[],bbObjs=[];
-let cityMeshes=[],cityBounds={minX:-60,maxX:60,minZ:-60,maxZ:60};
+let cityMeshes=[],cityBounds={minX:-90,maxX:35,minZ:-40,maxZ:80};
 const rayDown=new THREE.Raycaster(new THREE.Vector3(),new THREE.Vector3(0,-1,0),0,5);
 const rayFwd=new THREE.Raycaster(new THREE.Vector3(),new THREE.Vector3(),0,0.7);
 let musicEls=[],musicActive=null,musicVol=0,musicTarget=0;
@@ -275,14 +291,14 @@ let _primed=false,_musicStart=false;
 let rCtx=null,rGain=null,rEl=null,rSrc=null,rPlay=false,rIdx=0,rFail=0,rTimer=null;
 let stmtQ=[...STMTS].sort(()=>Math.random()-0.5),stmtIdx=0,stmtT=18;
 let voidCD=0;
+let hieroObj=null,hieroActive=false;
 
 // DAY / NIGHT  — 0=midnight  0.25=6am  0.5=noon  0.75=6pm
-const DAY_CYCLE=720; // 12 real minutes per full day
-let dayTime=0.93;    // start ~10pm (night) — identical to city67 opening scene
+const DAY_CYCLE=720;
+let dayTime=0.93;
 let _daySun=null,_hdrTex=null,_skySphere=null,_skyMat=null,_skyScene=null,_skyCamera=null;
 const _q=new THREE.Quaternion();
 
-// Heartbeat
 let hbPhase=0,hbSpeed=1,hbSpike=0;
 
 function nightFactor(){
@@ -297,16 +313,7 @@ function updateDayNight(dt){
   dayTime=(dayTime+dt/DAY_CYCLE)%1;
   const nf=nightFactor();
   const isDay=nf<0.5;
-
-  // Sky sphere: invisible at night (city67 exact dark bg shows through),
-  // fades in smoothly as day approaches. scene.background NEVER changes.
-  if(_skyMat){
-    // nf=1 → opacity 0 (invisible, city67 bg shows)
-    // nf=0 → opacity 1 (full daytime HDR mountains visible)
-    _skyMat.opacity=Math.max(0,Math.min(1,1-nf*2.8));
-  }
-
-  // Day sun: fades in from zero — city67's static lights handle night entirely
+  if(_skyMat){_skyMat.opacity=Math.max(0,Math.min(1,1-nf*2.8));}
   if(_daySun){
     const a=(dayTime-0.25)*Math.PI*2;
     _daySun.position.set(Math.cos(a)*80,Math.sin(a)*70,40);
@@ -314,15 +321,9 @@ function updateDayNight(dt){
     _daySun.color.setRGB(1,0.84+warmth*0.16,0.6+warmth*0.4);
     _daySun.intensity=(isMobile?0.9:1.3)*Math.max(0,1-nf*4);
   }
-
-  // Exposure: exactly 1.0 at night (city67's value) — only trim slightly at noon
   renderer.toneMappingExposure=1.0-0.12*(1-nf);
-
-  // Fog — city67 exact at night, slightly lighter at day
   if(scene)scene.fog.density=isDay?(isMobile?0.016:0.012):(isMobile?0.02:0.015);
-
   if(postMat)postMat.uniforms.uNight.value=nf;
-
   const el=$('tod');
   if(el){
     const h=Math.floor(dayTime*24),m=Math.floor((dayTime*24-h)*60);
@@ -335,11 +336,7 @@ function loadHDR(){
   try{
     new THREE.RGBELoader().load(HDR_URL,tex=>{
       _hdrTex=tex;
-      // Create sky sphere — starts invisible (opacity=0), fades in during day.
-      // scene.background stays city67's solid dark ALWAYS. No snap, ever.
       tex.mapping=THREE.EquirectangularReflectionMapping;
-      // Sky sphere lives in _skyScene — completely isolated from main scene.
-      // radius=1, camera at origin — fills FOV perfectly.
       _skyMat=new THREE.MeshBasicMaterial({map:tex,side:THREE.BackSide,transparent:true,opacity:0,depthWrite:false});
       _skySphere=new THREE.Mesh(new THREE.SphereGeometry(1,32,16),_skyMat);
       if(_skyScene)_skyScene.add(_skySphere);
@@ -355,7 +352,6 @@ $('wen').addEventListener('click',()=>{
 function init(){
   scene=new THREE.Scene();
   scene.fog=new THREE.FogExp2(0x080a0e,isMobile?0.02:0.015);
-  // Sky scene isolated — transparent sky sphere lives here, never in main scene
   _skyScene=new THREE.Scene();_skyScene.background=new THREE.Color(0x080a0e);
   _skyCamera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,2);
   camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,600);
@@ -365,7 +361,7 @@ function init(){
   renderer=new THREE.WebGLRenderer({canvas:$('c'),antialias:!isMobile,powerPreference:'high-performance'});
   renderer.setPixelRatio(isMobile?Math.min(devicePixelRatio,1.5):Math.min(devicePixelRatio,2));
   renderer.setSize(innerWidth,innerHeight);
-  renderer.setClearColor(0x080a0e,1); // city67 exact night colour — used when sky pass absent
+  renderer.setClearColor(0x080a0e,1);
   renderer.shadowMap.enabled=!isMobile;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   renderer.toneMapping=THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure=1.0;
@@ -376,16 +372,14 @@ function init(){
     Object.assign(css3d.domElement.style,{position:'absolute',top:'0',left:'0',pointerEvents:'none'});
   }
 
-  // ── CITY67 EXACT NIGHT LIGHTS — never mutated at night ──
   const ambLight=new THREE.AmbientLight(0x223344,isMobile?1.8:1.2);
   scene.add(ambLight);
   const staticSun=new THREE.DirectionalLight(0xffeedd,isMobile?1.0:1.6);
-  staticSun.position.set(50,90,40); // city67's exact fixed position
+  staticSun.position.set(50,90,40);
   if(!isMobile){staticSun.castShadow=true;staticSun.shadow.mapSize.set(1024,1024);staticSun.shadow.camera.far=200;}
   scene.add(staticSun);
   const c1=new THREE.PointLight(0xff4400,0.5,200);c1.position.set(0,25,0);scene.add(c1);
   const c2=new THREE.DirectionalLight(0x4466aa,0.4);c2.position.set(-40,30,-60);scene.add(c2);
-  // ── DAY-ONLY SUN — moves on arc, zero at night ──
   _daySun=new THREE.DirectionalLight(0xffd090,0);
   scene.add(_daySun);
 
@@ -423,7 +417,7 @@ function loadCity(){
       });
       scene.add(city);
       const nb=new THREE.Box3().setFromObject(city);
-      cityBounds={minX:nb.min.x+4,maxX:nb.max.x-4,minZ:nb.min.z+4,maxZ:nb.max.z-4};
+      cityBounds={minX:nb.min.x+8,maxX:nb.max.x-8,minZ:nb.min.z+8,maxZ:nb.max.z-8};
       groundY=0;spawnPlayer();
       $('cfill').style.width='100%';$('ctxt').textContent='CITY LOADED';
       onCityReady(nb);
@@ -434,32 +428,18 @@ function loadCity(){
 }
 
 function spawnPlayer(){
-  // Try many open ground spots, prefer street level (y < 1.5), avoid being inside buildings
-  const candidates=[];
-  const radii=[8,12,16,20,25,30];
-  const steps=8;
-  for(const r of radii){
-    for(let i=0;i<steps;i++){
-      const a=(i/steps)*Math.PI*2;
-      candidates.push([Math.cos(a)*r,Math.sin(a)*r]);
-    }
-  }
-  // Also try cardinal points close in
-  candidates.push(...[[4,0],[-4,0],[0,4],[0,-4],[5,5],[-5,5],[5,-5],[-5,-5]]);
-
+  const candidates=[[0,0],[15,0],[-15,0],[0,15],[0,-15],[10,10],[-10,10],[10,-10],[-10,-10],[20,5],[-20,5],[5,20],[-5,-20]];
   for(const [x,z] of candidates){
     const rayD=new THREE.Raycaster(new THREE.Vector3(x,80,z),new THREE.Vector3(0,-1,0),0,200);
     const hitsD=rayD.intersectObjects(cityMeshes,false);
     if(hitsD.length===0)continue;
     const groundHit=hitsD[0].point.y;
-    if(groundHit>2)continue; // skip rooftops
-    // Check nothing above player head
+    if(groundHit>2)continue;
     const rayU=new THREE.Raycaster(new THREE.Vector3(x,groundHit+0.1,z),new THREE.Vector3(0,1,0),0,3.5);
     const hitsU=rayU.intersectObjects(cityMeshes,false);
-    if(hitsU.length>0)continue; // inside a building
+    if(hitsU.length>0)continue;
     rig.position.set(x,groundHit+PLAYER_H,z);vel.set(0,0,0);return;
   }
-  // Fallback: city centre — usually an open plaza in procedural cities
   rig.position.set(0,PLAYER_H+1,0);vel.set(0,0,0);
 }
 
@@ -471,8 +451,8 @@ function onCityReady(bbox){
 function buildDoors(){
   const DW=1.1,DH=2.4;
   const positions=[];
-  // Inner rings first so player sees doors immediately on spawn
-  [[5,2],[10,3],[18,4],[28,4],[40,2]].forEach(([r,n],ri)=>{
+  // Smart placement: rings around center at different radii
+  [[8,3],[14,4],[22,4],[32,3],[45,2]].forEach(([r,n],ri)=>{
     for(let i=0;i<n&&positions.length<15;i++){
       const a=(i/n)*Math.PI*2+(ri*0.6);
       positions.push({x:Math.cos(a)*r,z:Math.sin(a)*r,ry:a+Math.PI});
@@ -481,61 +461,37 @@ function buildDoors(){
 
   positions.slice(0,15).forEach((pos,i)=>{
     const d=DOORS[i];
-    
-    // CRITICAL FIX: Raycast to find actual ground at this door's X/Z position
-    const rayD=new THREE.Raycaster(new THREE.Vector3(pos.x,80,pos.z),new THREE.Vector3(0,-1,0),0,200);
-    const hitsD=rayD.intersectObjects(cityMeshes,false);
-    let groundY=0;
-    
-    if(hitsD.length>0&&hitsD[0].point.y<=2){
-      groundY=hitsD[0].point.y;
-      // Check ceiling — if there's something above, skip this spot
-      const rayU=new THREE.Raycaster(new THREE.Vector3(pos.x,groundY+0.1,pos.z),new THREE.Vector3(0,1,0),0,3.5);
-      const hitsU=rayU.intersectObjects(cityMeshes,false);
-      if(hitsU.length>0)return; // inside a building, skip
-    }
-    
+    const col=DOOR_COLORS[i];
     const grp=new THREE.Group();
-    grp.position.set(pos.x,groundY,pos.z);
-    grp.rotation.y=pos.ry;
+    grp.position.set(pos.x,0,pos.z);grp.rotation.y=pos.ry;
 
-    // Door frame — bright glowing blue so it reads across the city
-    const fm=new THREE.MeshStandardMaterial({color:0x0a0f2a,roughness:0.4,metalness:0.7,emissive:0x1a44ff,emissiveIntensity:1.8});
+    const fm=new THREE.MeshStandardMaterial({color:0x0a0f2a,roughness:0.4,metalness:0.7,emissive:col,emissiveIntensity:1.8});
     const fT=new THREE.Mesh(new THREE.BoxGeometry(DW+0.22,0.1,0.1),fm);fT.position.set(0,DH+0.05,0);
     const fB=new THREE.Mesh(new THREE.BoxGeometry(DW+0.22,0.1,0.1),fm);fB.position.set(0,0.05,0);
     const fL=new THREE.Mesh(new THREE.BoxGeometry(0.1,DH,0.1),fm);fL.position.set(-(DW/2+0.05),DH/2,0);
     const fR=new THREE.Mesh(new THREE.BoxGeometry(0.1,DH,0.1),fm);fR.position.set(DW/2+0.05,DH/2,0);
     grp.add(fT,fB,fL,fR);
 
-    // Door fill — deep glowing blue panel, visible at a glance
-    const fill=new THREE.Mesh(new THREE.PlaneGeometry(DW,DH),new THREE.MeshStandardMaterial({color:0x020418,emissive:0x0828cc,emissiveIntensity:1.6,side:THREE.DoubleSide}));
+    const fill=new THREE.Mesh(new THREE.PlaneGeometry(DW,DH),new THREE.MeshStandardMaterial({color:0x020418,emissive:col,emissiveIntensity:1.4,side:THREE.DoubleSide}));
     fill.position.set(0,DH/2,0.02);grp.add(fill);
 
-    // Number and label sprites — large, gold, always visible
     grp.add(Object.assign(mkSprite((i+1).toString().padStart(2,'0'),{color:'#ffdd66',sz:28}),{position:new THREE.Vector3(0,DH+0.55,0.08)}));
     grp.add(Object.assign(mkSprite(d.label,{color:'#8899cc',sz:12}),{position:new THREE.Vector3(0,DH+0.18,0.08)}));
 
-    // Ground halo ring — bright blue ring at feet, massive visibility boost
-    const haloMat=new THREE.MeshBasicMaterial({color:0x2255ff,transparent:true,opacity:0.55,side:THREE.DoubleSide});
+    const haloMat=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.55,side:THREE.DoubleSide});
     const halo=new THREE.Mesh(new THREE.RingGeometry(0.7,1.4,32),haloMat);
     halo.rotation.x=-Math.PI/2;halo.position.set(0,0.01,0.8);grp.add(halo);
-    // Inner glow disc
-    const disc=new THREE.Mesh(new THREE.CircleGeometry(0.7,32),new THREE.MeshBasicMaterial({color:0x1133ff,transparent:true,opacity:0.22}));
+    const disc=new THREE.Mesh(new THREE.CircleGeometry(0.7,32),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.22}));
     disc.rotation.x=-Math.PI/2;disc.position.set(0,0.015,0.8);grp.add(disc);
 
-    // Near point light — illuminates doorway
-    const gl=new THREE.PointLight(0x3366ff,2.5,18);gl.position.set(0,DH/2,0.6);grp.add(gl);
-    // Low ground light — casts blue glow on floor
-    const glow=new THREE.PointLight(0x1133ff,3.5,8);glow.position.set(0,0.3,0.8);grp.add(glow);
+    const gl=new THREE.PointLight(col,2.5,18);gl.position.set(0,DH/2,0.6);grp.add(gl);
+    const glow=new THREE.PointLight(col,3.5,8);glow.position.set(0,0.3,0.8);grp.add(glow);
 
-    // Beacon — tall glowing column, city-wide visibility
-    const beaconMat=new THREE.MeshStandardMaterial({color:0x4466ff,emissive:0x5577ff,emissiveIntensity:12.0,transparent:true,opacity:1.0,depthWrite:false});
+    const beaconMat=new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:12.0,transparent:true,opacity:1.0,depthWrite:false});
     const beacon=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,16,6),beaconMat);
     beacon.position.set(0,8+DH/2,0);grp.add(beacon);
-    // Bright top light — visible from across the city
-    const bLight=new THREE.PointLight(0x4466ff,5.0,55);bLight.position.set(0,17,0);grp.add(bLight);
-    // Mid-height light so the column itself is lit
-    const mLight=new THREE.PointLight(0x2244ff,2.5,20);mLight.position.set(0,8,0);grp.add(mLight);
+    const bLight=new THREE.PointLight(col,5.0,55);bLight.position.set(0,17,0);grp.add(bLight);
+    const mLight=new THREE.PointLight(col,2.5,20);mLight.position.set(0,8,0);grp.add(mLight);
 
     scene.add(grp);
 
@@ -552,7 +508,7 @@ function buildDoors(){
       cssObj=new THREE.CSS3DObject(iframe);
       cssObj.scale.setScalar(0.01);
       const nx=Math.sin(pos.ry)*0.07,nz=Math.cos(pos.ry)*0.07;
-      cssObj.position.set(pos.x+nx,groundY+DH/2,pos.z+nz);
+      cssObj.position.set(pos.x+nx,DH/2,pos.z+nz);
       cssObj.rotation.y=pos.ry;cssObj.visible=false;
       scene.add(cssObj);
     }
@@ -561,45 +517,27 @@ function buildDoors(){
 }
 
 function buildBillboards(){
-  const BBW=5.0,BBH=2.8,ELEV=4; // floating 4m above ground, no poles
+  const BBW=5.0,BBH=2.8,ELEV=14.1; // at mid-building height
   for(let i=0;i<10;i++){
     const a=(i/10)*Math.PI*2+0.3;
-    const r=50+Math.sin(i*2.3)*5; // outer city edge
-    const pos={x:Math.cos(a)*r,z:Math.sin(a)*r,ry:a+Math.PI}; // face inward
-    
-    // CRITICAL FIX: Raycast to find actual ground at this billboard's X/Z position
-    const rayD=new THREE.Raycaster(new THREE.Vector3(pos.x,80,pos.z),new THREE.Vector3(0,-1,0),0,200);
-    const hitsD=rayD.intersectObjects(cityMeshes,false);
-    let groundY=0;
-    
-    if(hitsD.length>0&&hitsD[0].point.y<=2){
-      groundY=hitsD[0].point.y;
-      // Check ceiling
-      const rayU=new THREE.Raycaster(new THREE.Vector3(pos.x,groundY+0.1,pos.z),new THREE.Vector3(0,1,0),0,3.5);
-      const hitsU=rayU.intersectObjects(cityMeshes,false);
-      if(hitsU.length>0)continue; // inside building, skip
-    }
-    
+    const r=50+Math.sin(i*2.3)*8;
+    const pos={x:Math.cos(a)*r,z:Math.sin(a)*r,ry:a+Math.PI};
     const bb=BILLBOARDS[i];
-    const grp=new THREE.Group();grp.position.set(pos.x,groundY,pos.z);grp.rotation.y=pos.ry;
+    const grp=new THREE.Group();grp.position.set(pos.x,0,pos.z);grp.rotation.y=pos.ry;
 
     const hasVid=!!bb.youtubeId;
-    // Main billboard body
     const bm=new THREE.MeshStandardMaterial({color:0x080808,roughness:0.5,metalness:0.3,emissive:hasVid?0x001133:0x050505,emissiveIntensity:hasVid?0.6:0.1});
     const back=new THREE.Mesh(new THREE.BoxGeometry(BBW,BBH,0.12),bm);back.position.set(0,ELEV+BBH/2,0);grp.add(back);
 
-    // White glow edge frame — slightly oversized, bright emissive
     const glowM=new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xffffff,emissiveIntensity:hasVid?1.8:0.6,roughness:0.5,metalness:0.2});
     const gTop=new THREE.Mesh(new THREE.BoxGeometry(BBW+0.3,0.08,0.14),glowM);gTop.position.set(0,ELEV+BBH+0.04,0);grp.add(gTop);
     const gBot=new THREE.Mesh(new THREE.BoxGeometry(BBW+0.3,0.08,0.14),glowM);gBot.position.set(0,ELEV-0.04,0);grp.add(gBot);
     const gL=new THREE.Mesh(new THREE.BoxGeometry(0.08,BBH+0.16,0.14),glowM);gL.position.set(-(BBW/2+0.04),ELEV+BBH/2,0);grp.add(gL);
     const gR=new THREE.Mesh(new THREE.BoxGeometry(0.08,BBH+0.16,0.14),glowM);gR.position.set(BBW/2+0.04,ELEV+BBH/2,0);grp.add(gR);
 
-    // Label sprite above billboard
     grp.add(Object.assign(mkSprite(bb.label,{color:hasVid?'#aabbdd':'#404040',sz:13}),{position:new THREE.Vector3(0,ELEV+BBH+0.5,0.06)}));
 
-    // Point light glow
-    if(hasVid){const bl=new THREE.PointLight(0x4488ff,0.5,20);bl.position.set(0,ELEV+BBH/2,0.6);grp.add(bl);}
+    if(hasVid){const bl=new THREE.PointLight(0xffffff,0.5,20);bl.position.set(0,ELEV+BBH/2,0.6);grp.add(bl);}
 
     scene.add(grp);
 
@@ -610,22 +548,85 @@ function buildBillboards(){
       iframe.setAttribute('sandbox','allow-scripts allow-same-origin allow-presentation allow-popups');
       iframe.style.cssText='background:#000;display:block;';iframe.src='about:blank';
       const PW=Math.round(BBW*100),PH=Math.round(BBH*100);
-      iframe.width=PW;iframe.height=PH;
-      iframe.style.width=PW+'px';iframe.style.height=PH+'px';
+      iframe.width=PW;iframe.height=PH;iframe.style.width=PW+'px';iframe.style.height=PH+'px';
       cssObj=new THREE.CSS3DObject(iframe);cssObj.scale.setScalar(0.01);
       const nx=Math.sin(pos.ry)*0.07,nz=Math.cos(pos.ry)*0.07;
-      cssObj.position.set(pos.x+nx,groundY+ELEV+BBH/2,pos.z+nz);cssObj.rotation.y=pos.ry;cssObj.visible=false;
+      cssObj.position.set(pos.x+nx,ELEV+BBH/2,pos.z+nz);cssObj.rotation.y=pos.ry;cssObj.visible=false;
       scene.add(cssObj);
     }
     bbObjs.push({grp,pos,ry:pos.ry,bbIdx:i,active:false,cssObj,iframe,unlocked:i===0});
   }
 }
 
+function buildFinalBillboard(){
+  const BBW=8.0,BBH=4.5,ELEV=18; // skyscraper height
+  const grp=new THREE.Group();grp.position.set(0,0,0);
+
+  const bm=new THREE.MeshStandardMaterial({color:0x080808,roughness:0.3,metalness:0.5,emissive:0x222222,emissiveIntensity:1.0});
+  const back=new THREE.Mesh(new THREE.BoxGeometry(BBW,BBH,0.2),bm);back.position.set(0,ELEV+BBH/2,20);grp.add(back);
+
+  const glowM=new THREE.MeshStandardMaterial({color:0xff6600,emissive:0xff6600,emissiveIntensity:2.5,roughness:0.3,metalness:0.4});
+  const gTop=new THREE.Mesh(new THREE.BoxGeometry(BBW+0.4,0.12,0.2),glowM);gTop.position.set(0,ELEV+BBH+0.06,20);grp.add(gTop);
+  const gBot=new THREE.Mesh(new THREE.BoxGeometry(BBW+0.4,0.12,0.2),glowM);gBot.position.set(0,ELEV-0.06,20);grp.add(gBot);
+  const gL=new THREE.Mesh(new THREE.BoxGeometry(0.12,BBH+0.24,0.2),glowM);gL.position.set(-(BBW/2+0.06),ELEV+BBH/2,20);grp.add(gL);
+  const gR=new THREE.Mesh(new THREE.BoxGeometry(0.12,BBH+0.24,0.2),glowM);gR.position.set(BBW/2+0.06,ELEV+BBH/2,20);grp.add(gR);
+
+  grp.add(Object.assign(mkSprite('THE FINAL ARCHIVE',{color:'#ff8833',sz:18}),{position:new THREE.Vector3(0,ELEV+BBH+0.8,20.08)}));
+
+  const bLight=new THREE.PointLight(0xff6600,8.0,80);bLight.position.set(0,ELEV+BBH/2,25);grp.add(bLight);
+
+  scene.add(grp);
+
+  let cssObj=null,iframe=null;
+  if(css3d&&typeof THREE.CSS3DObject==='function'){
+    iframe=document.createElement('iframe');
+    iframe.allow='autoplay;encrypted-media;fullscreen;picture-in-picture';
+    iframe.setAttribute('sandbox','allow-scripts allow-same-origin allow-presentation allow-popups');
+    iframe.style.cssText='background:#000;display:block;';iframe.src='about:blank';
+    const PW=Math.round(BBW*100),PH=Math.round(BBH*100);
+    iframe.width=PW;iframe.height=PH;iframe.style.width=PW+'px';iframe.style.height=PH+'px';
+    cssObj=new THREE.CSS3DObject(iframe);cssObj.scale.setScalar(0.01);
+    cssObj.position.set(0,ELEV+BBH/2,20.08);cssObj.visible=false;
+    scene.add(cssObj);
+  }
+
+  return {grp,cssObj,iframe,watched:false};
+}
+
+function buildHieroglyphStone(){
+  const SH=2.2,SW=1.2;
+  const grp=new THREE.Group();grp.position.set(0,0,0);
+
+  const stoneMat=new THREE.MeshStandardMaterial({color:0x5a5245,roughness:0.8,metalness:0.0});
+  const stone=new THREE.Mesh(new THREE.BoxGeometry(SW,SH,SW*0.6),stoneMat);
+  stone.position.set(0,SH/2,0);stone.castShadow=true;stone.receiveShadow=true;
+  grp.add(stone);
+
+  const glowMat=new THREE.MeshStandardMaterial({color:0xffc800,emissive:0xffc800,emissiveIntensity:0.8});
+  const glowEdge=new THREE.Mesh(new THREE.BoxGeometry(SW+0.15,SH+0.15,SW*0.6+0.15),glowMat);
+  glowEdge.position.set(0,SH/2,0);glowEdge.scale.set(1.02,1.02,1.02);
+  grp.add(glowEdge);
+
+  const texts=HIEROGLYPH_STONE.texts;
+  texts.forEach((txt,idx)=>{
+    const angle=(idx/texts.length)*Math.PI*2;
+    const rad=0.4;
+    const sx=Math.cos(angle)*rad,sz=Math.sin(angle)*rad;
+    const sprite=mkSprite(txt,{color:'#8b4513',sz:10});
+    sprite.position.set(sx,SH/2+0.2,sz);
+    grp.add(sprite);
+  });
+
+  const light=new THREE.PointLight(0xffc800,2.0,15);light.position.set(0,SH/2+0.5,0);grp.add(light);
+
+  return {grp,pos:{x:0,z:0}};
+}
+
 function buildLights(){
   const mat=new THREE.MeshStandardMaterial({color:0x1a1a1a,metalness:0.5,roughness:0.6});
   for(let i=0;i<18;i++){
     const a=(i/18)*Math.PI*2;
-    const r=18+Math.sin(i*1.5)*10;
+    const r=25+Math.sin(i*1.5)*8;
     const x=Math.cos(a)*r,z=Math.sin(a)*r;
     const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.045,5,6),mat);
     pole.position.set(x,2.5,z);scene.add(pole);
@@ -733,7 +734,6 @@ function startGame(){
   showStmt();
 }
 
-// DOOR LOGIC
 function openDoor(dIdx){
   const dobj=doorObjs[dIdx];const d=DOORS[dobj.doorIdx];
   if(!dobj.opened){
@@ -741,7 +741,6 @@ function openDoor(dIdx){
     $('dcount').textContent=doorCount+' / 15';
     updateBBLocks();checkBBUnlock();
     dobj.fill.visible=false;dobj.gl.intensity=2.0;dobj.gl.color.setHex(0x88aaff);
-    // Dim beacon when opened
     if(dobj.beaconMat){dobj.beaconMat.emissiveIntensity=0.2;dobj.beaconMat.opacity=0.2;}
     if(dobj.bLight)dobj.bLight.intensity=0;
     activeDoorIdx=dobj.doorIdx;doorState='feed';
@@ -750,6 +749,9 @@ function openDoor(dIdx){
     if(d.live)$('live').style.display='block';
     sfxOpen();showBigStmt(d.overlay,'— '+d.label);
     triggerHBSpike();
+    if(doorCount===15&&!hieroObj){
+      setTimeout(()=>{toast('FINAL BILLBOARD UNLOCKED');hieroObj=buildHieroglyphStone();scene.add(hieroObj.grp);},800);
+    }
   } else {
     if(doorState==='feed'&&d.type==='streetview'){enterSV(d);}
     else if(doorState==='feed'){closeFeed();}
@@ -804,7 +806,6 @@ function closeFeed(){
   doorState='closed';activeDoorIdx=-1;exitSV();
 }
 
-// BILLBOARDS
 function updateBBLocks(){
   const uc=1+Math.floor(doorCount/2);
   bbObjs.forEach((b,i)=>b.unlocked=i<uc);
@@ -837,9 +838,8 @@ function activateBB(idx){
   toast('▶ '+bb.label);sfxOpen();triggerHBSpike();
 }
 
-// INTERACT
 function updateNear(){
-  nearDoor=null;nearBB=null;$('xh').classList.remove('lock');$('hint').style.display='none';
+  nearDoor=null;nearBB=null;nearHiero=null;$('xh').classList.remove('lock');$('hint').style.display='none';
   for(let i=0;i<doorObjs.length;i++){
     const o=doorObjs[i];
     if(Math.hypot(o.pos.x-rig.position.x,o.pos.z-rig.position.z)<3.2){
@@ -859,12 +859,18 @@ function updateNear(){
       return;
     }
   }
+  if(hieroObj&&Math.hypot(hieroObj.pos.x-rig.position.x,hieroObj.pos.z-rig.position.z)<2.8){
+    nearHiero=true;$('xh').classList.add('lock');
+    if(!isMobile){$('hint').style.display='block';$('hint').textContent='[ E ] ENTER STAGE 11';}
+    return;
+  }
 }
 
 function interact(){
   if(!started||ending)return;primeAudio();sfxUI();
   if(nearDoor!==null){openDoor(nearDoor);return;}
   if(nearBB!==null){activateBB(nearBB);return;}
+  if(nearHiero){window.location.href='https://'+HIEROGLYPH_STONE.url;return;}
 }
 
 function doJump(){if(onGround&&!flyMode)vel.y=JUMP_V;}
@@ -916,7 +922,6 @@ function checkVoid(dt){
   }
 }
 
-// ANIMATED HEARTBEAT
 function triggerHBSpike(){hbSpike=1.0;}
 
 function updateHB(dt){
@@ -936,7 +941,6 @@ function updateHB(dt){
   ];
   const line=$('hbline');
   if(line)line.setAttribute('points',pts.map(p=>p.join(',')).join(' '));
-  // Pulse opacity based on beat
   const op=0.28+Math.max(0,beat)*0.18+hbSpike*0.2;
   if(line)line.setAttribute('stroke',`rgba(200,184,106,${op.toFixed(2)})`);
 }
@@ -959,21 +963,21 @@ function updateMusic(dt){const spd=MCEIL/MFADE;musicVol=musicTarget>musicVol?Mat
 function radioInit(){
   if(rCtx)return;rCtx=new(window.AudioContext||window.webkitAudioContext)();
   const filt=rCtx.createBiquadFilter();filt.type='bandpass';filt.frequency.value=2200;filt.Q.value=0.5;
-  rGain=rCtx.createGain();rGain.gain.value=0;filt.connect(rGain);rGain.connect(rCtx.destination);
+  rGain=rCtx.createGain();rGain.gain.value=0.6;
+  filt.connect(rGain);rGain.connect(rCtx.destination);
   rEl=document.createElement('audio');rEl.crossOrigin='anonymous';rEl.preload='none';
   rSrc=rCtx.createMediaElementSource(rEl);rSrc.connect(filt);rEl.addEventListener('error',rErr);
   if(rCtx.state==='suspended')rCtx.resume();rStart();
 }
 function rErr(){rFail++;if(rFail>=RADIO.length){rFail=0;rPlay=false;$('radio').classList.remove('on');rTimer=setTimeout(rStart,40000+Math.random()*30000);return;}rIdx=(rIdx+1)%RADIO.length;setTimeout(rNow,600);}
-function rNow(){if(!rCtx)return;const st=RADIO[rIdx];rEl.pause();rEl.removeAttribute('src');rEl.load();rEl.src=st.url;rEl.play().then(()=>{rFail=0;const t=rCtx.currentTime;rGain.gain.setValueAtTime(0,t);rGain.gain.linearRampToValueAtTime(0.38,t+2);$('rfreq').textContent=st.name;$('radio').classList.add('on');rTimer=setTimeout(()=>{const t2=rCtx.currentTime;rGain.gain.setValueAtTime(rGain.gain.value,t2);rGain.gain.linearRampToValueAtTime(0,t2+2);setTimeout(()=>{rEl.pause();rPlay=false;$('radio').classList.remove('on');if(!ending)rTimer=setTimeout(rStart,20000+Math.random()*50000);},2500);},(30000+Math.random()*90000));}).catch(rErr);}
+function rNow(){if(!rCtx)return;const st=RADIO[rIdx];rEl.pause();rEl.removeAttribute('src');rEl.load();rEl.src=st.url;rEl.play().then(()=>{rFail=0;const t=rCtx.currentTime;rGain.gain.setValueAtTime(0.6,t);$('rfreq').textContent=st.name;$('radio').classList.add('on');rTimer=setTimeout(()=>{const t2=rCtx.currentTime;rGain.gain.setValueAtTime(rGain.gain.value,t2);rGain.gain.linearRampToValueAtTime(0,t2+2);setTimeout(()=>{rEl.pause();rPlay=false;$('radio').classList.remove('on');if(!ending)rTimer=setTimeout(rStart,20000+Math.random()*50000);},2500);},(30000+Math.random()*90000));}).catch(rErr);}
 function rStart(){if(rPlay||ending)return;rPlay=true;rFail=0;rIdx=Math.floor(Math.random()*RADIO.length);rNow();}
 
 function toast(t,dur){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),dur||3200);}
 function onResize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();if(_skyCamera){_skyCamera.aspect=camera.aspect;_skyCamera.updateProjectionMatrix();}renderer.setSize(innerWidth,innerHeight);if(rt)rt.setSize(innerWidth,innerHeight);if(css3d)css3d.setSize(innerWidth,innerHeight);}
 
-// ── MINIMAP ──────────────────────────────────────────────────────────
 const _mmC=$('mmap');const _mmX=_mmC?_mmC.getContext('2d'):null;
-const MM=110,MM_R=MM/2,MM_SCALE=1.8; // 1 unit = MM_SCALE px on map
+const MM=110,MM_R=MM/2,MM_SCALE=1.8;
 let _mmPulse=0;
 
 function updateMinimap(dt){
@@ -981,18 +985,10 @@ function updateMinimap(dt){
   _mmPulse=((_mmPulse||0)+dt)%4;
   const cx=MM_R,cy=MM_R;
   _mmX.clearRect(0,0,MM,MM);
-
-  // Circular clip
   _mmX.save();
   _mmX.beginPath();_mmX.arc(cx,cy,MM_R-1,0,Math.PI*2);_mmX.clip();
-
-  // Dark bg
   _mmX.fillStyle='rgba(4,6,14,0.82)';_mmX.fillRect(0,0,MM,MM);
-
-  // Player heading arrow to orient the map
   const py=rig?rig.rotation.y:0;
-
-  // Helper: world pos → minimap px (rotated to face camera heading)
   function wToM(wx,wz){
     const rx=rig?wx-rig.position.x:wx;
     const rz=wz-(rig?rig.position.z:0);
@@ -1001,20 +997,14 @@ function updateMinimap(dt){
     const mz=rx*sin+rz*cos;
     return [cx+mx*MM_SCALE, cy+mz*MM_SCALE];
   }
-
-  // Distance rings
   _mmX.strokeStyle='rgba(200,184,106,0.06)';_mmX.lineWidth=0.5;
   [15,30,45].forEach(r=>{_mmX.beginPath();_mmX.arc(cx,cy,r,0,Math.PI*2);_mmX.stroke();});
-
-  // Billboards — green squares
   bbObjs.forEach(b=>{
     const[mx,mz]=wToM(b.pos.x,b.pos.z);
     if(mx<4||mx>MM-4||mz<4||mz>MM-4)return;
     _mmX.fillStyle=b.active?'rgba(60,255,100,0.95)':b.unlocked?'rgba(60,200,80,0.5)':'rgba(30,80,40,0.5)';
     _mmX.fillRect(mx-3,mz-3,6,6);
   });
-
-  // Doors — red dots, pulse when unopened
   doorObjs.forEach((o,i)=>{
     const[mx,mz]=wToM(o.pos.x,o.pos.z);
     if(mx<4||mx>MM-4||mz<4||mz>MM-4)return;
@@ -1030,22 +1020,22 @@ function updateMinimap(dt){
       _mmX.fillText(String(i+1),mx,mz-6);
     }
   });
-
-  // Player — white triangle pointing up (forward direction = up on minimap)
+  if(hieroObj){
+    const[mx,mz]=wToM(hieroObj.pos.x,hieroObj.pos.z);
+    if(mx>=4&&mx<=MM-4&&mz>=4&&mz<=MM-4){
+      _mmX.fillStyle='rgba(255,200,100,0.8)';
+      _mmX.beginPath();_mmX.arc(mx,mz,4,0,Math.PI*2);_mmX.fill();
+    }
+  }
   _mmX.save();_mmX.translate(cx,cy);
   _mmX.fillStyle='rgba(255,255,255,0.9)';
   _mmX.beginPath();_mmX.moveTo(0,-5);_mmX.lineTo(3.5,4);_mmX.lineTo(-3.5,4);_mmX.closePath();_mmX.fill();
   _mmX.restore();
-
-  // North label
   const[nx,nz]=wToM(0,-30);
   _mmX.fillStyle='rgba(200,184,106,0.25)';_mmX.font='5px monospace';
   _mmX.textAlign='center';_mmX.textBaseline='middle';
   _mmX.fillText('N',nx,nz);
-
   _mmX.restore();
-
-  // Border ring
   _mmX.beginPath();_mmX.arc(cx,cy,MM_R-1,0,Math.PI*2);
   _mmX.strokeStyle='rgba(200,184,106,0.18)';_mmX.lineWidth=1;_mmX.stroke();
 }
@@ -1058,11 +1048,9 @@ function animate(){
   if(rt&&postMat){
     renderer.setRenderTarget(rt);
     if(skyOn){
-      // Pass 1: render sky — clears RT to night colour, blends transparent sphere
       _skyCamera.fov=camera.fov;_skyCamera.aspect=camera.aspect;_skyCamera.updateProjectionMatrix();
       camera.getWorldQuaternion(_q);_skyCamera.quaternion.copy(_q);
       renderer.autoClearColor=true;renderer.render(_skyScene,_skyCamera);
-      // Pass 2: render city on top — keep sky colours, fresh depth
       renderer.autoClearColor=false;
     }
     renderer.render(scene,camera);
