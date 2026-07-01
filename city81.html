@@ -398,32 +398,58 @@ function init(){
 function loadCity(){
   if(typeof THREE.GLTFLoader!=='function'){onCityReady(null);return;}
   const loader=new THREE.GLTFLoader();
+  let loadTimeout=setTimeout(()=>{
+    console.error('GLB load timeout — file may be corrupted or network slow');
+    $('ctxt').textContent='LOAD TIMEOUT — RELOAD';
+    setTimeout(()=>location.reload(),3000);
+  },60000);
+  
   loader.load(GLB_URL,
     gltf=>{
-      const city=gltf.scene;
-      const bbox=new THREE.Box3().setFromObject(city);
-      const c=new THREE.Vector3();bbox.getCenter(c);
-      city.position.set(-c.x,-bbox.min.y,-c.z);
-      city.traverse(n=>{
-        if(n.isMesh){
-          n.castShadow=!isMobile;n.receiveShadow=true;cityMeshes.push(n);
-          if(n.material){
-            const mats=Array.isArray(n.material)?n.material:[n.material];
-            mats.forEach(m=>{
-              if(m.map&&m.transparent){m.alphaTest=0.5;m.needsUpdate=true;}
-            });
-          }
+      clearTimeout(loadTimeout);
+      $('cfill').style.width='95%';$('ctxt').textContent='PARSING...';
+      
+      setTimeout(()=>{
+        try{
+          const city=gltf.scene;
+          const bbox=new THREE.Box3().setFromObject(city);
+          const c=new THREE.Vector3();bbox.getCenter(c);
+          city.position.set(-c.x,-bbox.min.y,-c.z);
+          city.traverse(n=>{
+            if(n.isMesh){
+              n.castShadow=!isMobile;n.receiveShadow=true;cityMeshes.push(n);
+              if(n.material){
+                const mats=Array.isArray(n.material)?n.material:[n.material];
+                mats.forEach(m=>{
+                  if(m.map&&m.transparent){m.alphaTest=0.5;m.needsUpdate=true;}
+                });
+              }
+            }
+          });
+          scene.add(city);
+          const nb=new THREE.Box3().setFromObject(city);
+          cityBounds={minX:nb.min.x+8,maxX:nb.max.x-8,minZ:nb.min.z+8,maxZ:nb.max.z-8};
+          groundY=0;
+          
+          $('cfill').style.width='98%';$('ctxt').textContent='SPAWNING...';
+          spawnPlayer();
+          
+          $('cfill').style.width='100%';$('ctxt').textContent='CITY READY';
+          setTimeout(()=>onCityReady(nb),100);
+        }catch(e){
+          console.error('Parse error:',e);
+          $('ctxt').textContent='ERROR: '+e.message;
+          setTimeout(()=>location.reload(),3000);
         }
-      });
-      scene.add(city);
-      const nb=new THREE.Box3().setFromObject(city);
-      cityBounds={minX:nb.min.x+8,maxX:nb.max.x-8,minZ:nb.min.z+8,maxZ:nb.max.z-8};
-      groundY=0;spawnPlayer();
-      $('cfill').style.width='100%';$('ctxt').textContent='CITY LOADED';
-      onCityReady(nb);
+      },100);
     },
     p=>{if(p.total>0){const pct=Math.round(p.loaded/p.total*90);$('cfill').style.width=pct+'%';$('ctxt').textContent='LOADING '+pct+'%';}else{$('ctxt').textContent='LOADING '+(p.loaded/1048576).toFixed(1)+' MB';}},
-    err=>{console.warn('GLB:',err);onCityReady(null);}
+    err=>{
+      clearTimeout(loadTimeout);
+      console.error('GLB error:',err);
+      $('ctxt').textContent='LOAD FAILED';
+      setTimeout(()=>location.reload(),3000);
+    }
   );
 }
 
@@ -475,8 +501,8 @@ function buildDoors(){
     const fill=new THREE.Mesh(new THREE.PlaneGeometry(DW,DH),new THREE.MeshStandardMaterial({color:0x020418,emissive:col,emissiveIntensity:1.4,side:THREE.DoubleSide}));
     fill.position.set(0,DH/2,0.02);grp.add(fill);
 
-    grp.add(Object.assign(mkSprite((i+1).toString().padStart(2,'0'),{color:'#ffdd66',sz:28}),{position:new THREE.Vector3(0,DH+0.55,0.08)}));
-    grp.add(Object.assign(mkSprite(d.label,{color:'#8899cc',sz:12}),{position:new THREE.Vector3(0,DH+0.18,0.08)}));
+    const sp1=mkSprite((i+1).toString().padStart(2,'0'),{color:'#ffdd66',sz:28});sp1.position.set(0,DH+0.55,0.08);grp.add(sp1);
+    const sp2=mkSprite(d.label,{color:'#8899cc',sz:12});sp2.position.set(0,DH+0.18,0.08);grp.add(sp2);
 
     const haloMat=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.55,side:THREE.DoubleSide});
     const halo=new THREE.Mesh(new THREE.RingGeometry(0.7,1.4,32),haloMat);
@@ -535,7 +561,7 @@ function buildBillboards(){
     const gL=new THREE.Mesh(new THREE.BoxGeometry(0.08,BBH+0.16,0.14),glowM);gL.position.set(-(BBW/2+0.04),ELEV+BBH/2,0);grp.add(gL);
     const gR=new THREE.Mesh(new THREE.BoxGeometry(0.08,BBH+0.16,0.14),glowM);gR.position.set(BBW/2+0.04,ELEV+BBH/2,0);grp.add(gR);
 
-    grp.add(Object.assign(mkSprite(bb.label,{color:hasVid?'#aabbdd':'#404040',sz:13}),{position:new THREE.Vector3(0,ELEV+BBH+0.5,0.06)}));
+    const bbLabel=mkSprite(bb.label,{color:hasVid?'#aabbdd':'#404040',sz:13});bbLabel.position.set(0,ELEV+BBH+0.5,0.06);grp.add(bbLabel);
 
     if(hasVid){const bl=new THREE.PointLight(0xffffff,0.5,20);bl.position.set(0,ELEV+BBH/2,0.6);grp.add(bl);}
 
@@ -571,7 +597,7 @@ function buildFinalBillboard(){
   const gL=new THREE.Mesh(new THREE.BoxGeometry(0.12,BBH+0.24,0.2),glowM);gL.position.set(-(BBW/2+0.06),ELEV+BBH/2,20);grp.add(gL);
   const gR=new THREE.Mesh(new THREE.BoxGeometry(0.12,BBH+0.24,0.2),glowM);gR.position.set(BBW/2+0.06,ELEV+BBH/2,20);grp.add(gR);
 
-  grp.add(Object.assign(mkSprite('THE FINAL ARCHIVE',{color:'#ff8833',sz:18}),{position:new THREE.Vector3(0,ELEV+BBH+0.8,20.08)}));
+  const finalLabel=mkSprite('THE FINAL ARCHIVE',{color:'#ff8833',sz:18});finalLabel.position.set(0,ELEV+BBH+0.8,20.08);grp.add(finalLabel);
 
   const bLight=new THREE.PointLight(0xff6600,8.0,80);bLight.position.set(0,ELEV+BBH/2,25);grp.add(bLight);
 
