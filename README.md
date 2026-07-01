@@ -1,7 +1,7 @@
 # earthlingofficial.com
 Earthling official The wildlife archive for Deanus Politicus Carnivorus Paradoxus 
 # Project Title: Tiktok WildLIVE & Go Dean!
-
+# Official page for missing person Sally Grace Contarino please see https://earthlingofficial.com/find-sally-contarino.html and contact Las Vegas Metro Police if you have any information
 ## Mission Statement
 
 This repository serves as a **non-profit, independent archival project**. Its primary purpose is the documentation and analysis of public discourse, internet culture, and digital accountability.
