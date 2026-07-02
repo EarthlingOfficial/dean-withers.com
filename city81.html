@@ -600,9 +600,20 @@ function mkHieroglyphTexture(){
 function buildDoors(){
   const DW=1.1,DH=2.4;
   const placed=[];
+  // Store spawn position for test door placement
+  const spawnX=rig?rig.position.x:0;
+  const spawnZ=rig?rig.position.z:0;
+  const spawnY=rig?rig.position.y-PLAYER_H:0;
   for(let i=0;i<15;i++){
     const d=DOORS[i];
-    const spot=findDoorSpot(i);
+    let spot;
+    if(i===0){
+      // TEST: Place first door 1.5m in front of spawn, facing the player
+      spot={x:spawnX,y:spawnY,z:spawnZ-1.5,ry:0};
+      console.log('[TEST DOOR] Placed at',spot,'spawn was',spawnX,spawnY,spawnZ);
+    } else {
+      spot=findDoorSpot(i);
+    }
     placed.push({x:spot.x,z:spot.z});
     const grp=new THREE.Group();
     grp.position.set(spot.x,spot.y,spot.z);grp.rotation.y=spot.ry;
