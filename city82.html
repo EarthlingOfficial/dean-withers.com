@@ -382,25 +382,31 @@ function loadCity(){
   const loader=new THREE.GLTFLoader();
   loader.load(GLB_URL,
     gltf=>{
-      const city=gltf.scene;
-      const bbox=new THREE.Box3().setFromObject(city);
-      const c=new THREE.Vector3();bbox.getCenter(c);
-      city.position.set(-c.x,-bbox.min.y,-c.z);
-      city.traverse(n=>{
-        if(n.isMesh){
-          n.castShadow=!isMobile;n.receiveShadow=true;cityMeshes.push(n);
-          if(n.material){
-            const mats=Array.isArray(n.material)?n.material:[n.material];
-            mats.forEach(m=>{if(m.map&&m.transparent){m.alphaTest=0.5;m.needsUpdate=true;}});
+      try{
+        const city=gltf.scene;
+        const bbox=new THREE.Box3().setFromObject(city);
+        const c=new THREE.Vector3();bbox.getCenter(c);
+        city.position.set(-c.x,-bbox.min.y,-c.z);
+        city.traverse(n=>{
+          if(n.isMesh){
+            n.castShadow=!isMobile;n.receiveShadow=true;cityMeshes.push(n);
+            if(n.material){
+              const mats=Array.isArray(n.material)?n.material:[n.material];
+              mats.forEach(m=>{if(m.map&&m.transparent){m.alphaTest=0.5;m.needsUpdate=true;}});
+            }
           }
-        }
-      });
-      scene.add(city);
-      const nb=new THREE.Box3().setFromObject(city);
-      cityBounds={minX:nb.min.x+4,maxX:nb.max.x-4,minZ:nb.min.z+4,maxZ:nb.max.z-4};
-      groundY=0;spawnPlayer();
-      $('cfill').style.width='100%';$('ctxt').textContent='CITY LOADED';
-      onCityReady(nb);
+        });
+        scene.add(city);
+        const nb=new THREE.Box3().setFromObject(city);
+        cityBounds={minX:nb.min.x+4,maxX:nb.max.x-4,minZ:nb.min.z+4,maxZ:nb.max.z-4};
+        groundY=0;spawnPlayer();
+        $('cfill').style.width='100%';$('ctxt').textContent='CITY LOADED';
+        onCityReady(nb);
+      }catch(e){
+        console.error('City setup error:',e);
+        $('ctxt').textContent='ERROR: '+e.message;
+        onCityReady(null);
+      }
     },
     p=>{if(p.total>0){const pct=Math.round(p.loaded/p.total*90);$('cfill').style.width=pct+'%';$('ctxt').textContent='LOADING '+pct+'%';}else{$('ctxt').textContent='LOADING '+(p.loaded/1048576).toFixed(1)+' MB';}},
     err=>{console.warn('GLB:',err);onCityReady(null);}
@@ -428,7 +434,11 @@ function spawnPlayer(){
 }
 
 function onCityReady(bbox){
-  buildDoors();buildBillboards();buildFinalBillboard();buildStone();buildLights();
+  try{buildDoors();}catch(e){console.error('buildDoors:',e);}
+  try{buildBillboards();}catch(e){console.error('buildBillboards:',e);}
+  try{buildFinalBillboard();}catch(e){console.error('buildFinalBillboard:',e);}
+  try{buildStone();}catch(e){console.error('buildStone:',e);}
+  try{buildLights();}catch(e){console.error('buildLights:',e);}
   setTimeout(()=>{$('cp1').style.display='none';$('cp2').style.display='flex';},500);
 }
 
