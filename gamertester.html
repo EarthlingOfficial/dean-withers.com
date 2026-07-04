@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Click Game</title>
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    background: #111;
+    color: white;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+  }
+
+  #game {
+    position: relative;
+    width: 400px;
+    height: 400px;
+    border: 2px solid #444;
+    background: #1a1a1a;
+    overflow: hidden;
+  }
+
+  #box {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background: red;
+    cursor: pointer;
+  }
+
+  #score {
+    margin-top: 20px;
+    font-size: 20px;
+  }
+
+  button {
+    margin-top: 10px;
+    padding: 8px 14px;
+    background: #333;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<h1>Click the Box</h1>
+
+<div id="game">
+  <div id="box"></div>
+</div>
+
+<div id="score">Score: 0</div>
+<button onclick="startGame()">Restart</button>
+
+<script>
+let box = document.getElementById("box");
+let scoreDisplay = document.getElementById("score");
+let score = 0;
+let gameSize = 360;
+
+function moveBox() {
+  let x = Math.random() * gameSize;
+  let y = Math.random() * gameSize;
+  box.style.left = x + "px";
+  box.style.top = y + "px";
+}
+
+box.addEventListener("click", () => {
+  score++;
+  scoreDisplay.textContent = "Score: " + score;
+  moveBox();
+});
+
+function startGame() {
+  score = 0;
+  scoreDisplay.textContent = "Score: 0";
+  moveBox();
+}
+
+startGame();
+</script>
+
+</body>
+</html>
