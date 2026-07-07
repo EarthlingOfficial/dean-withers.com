@@ -6,7 +6,7 @@
     <title>Official Home | Earthling Official</title>
     
     <link rel="canonical" href="https://earthlingofficial.com/" />
-    <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #000; color: #fff; overflow-x: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; text-align: center; }
@@ -30,35 +30,17 @@
             text-align: center;
         }
         .official-badge { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; color: #fff; margin-bottom: 10px; font-weight: bold; border: 1px solid #fff; padding: 5px 10px; display: inline-block; }
-        
         .title-container { display: inline-block; text-align: left; }
         .platform-label { display: block; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 3px; color: rgba(255,255,255,0.8); margin-bottom: -5px; font-weight: bold; }
-        
         h1 { font-size: 3rem; margin-bottom: 5px; font-style: italic; color: #f0f0f0; }
         .species { font-size: 1.2rem; color: #aaa; margin-bottom: 10px; letter-spacing: 1px; }
         .debate-history { font-size: 0.9rem; color: #ff3e3e; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: bold; }
-        
-        .enter-button { display: inline-block; padding: 15px 40px; background: transparent; border: 2px solid #fff; color: #fff; text-decoration: none; font-weight: bold; text-transform: uppercase; transition: all 0.3s ease; cursor: pointer; margin-bottom: 5px; width: 100%; max-width: 400px; }
+        .enter-button { display: inline-block; padding: 15px 40px; background: transparent; border: 2px solid #fff; color: #fff; text-decoration: none; font-weight: bold; text-transform: uppercase; transition: all 0.3s ease; cursor: pointer; width: 100%; max-width: 400px; }
         .enter-button:hover { background: #fff; color: #000; }
-        
-        .legal-btn { 
-            display: inline-block; 
-            margin-top: 10px; 
-            padding: 8px 16px; 
-            font-size: 0.7rem; 
-            color: rgba(255, 255, 255, 0.6); 
-            border: 1px solid rgba(255, 255, 255, 0.3); 
-            text-decoration: none; 
-            text-transform: uppercase; 
-            letter-spacing: 1px; 
-            transition: 0.3s;
-        }
+        .legal-btn { display: inline-block; margin-top: 10px; padding: 8px 16px; font-size: 0.7rem; color: rgba(255, 255, 255, 0.6); border: 1px solid rgba(255, 255, 255, 0.3); text-decoration: none; text-transform: uppercase; letter-spacing: 1px; transition: 0.3s; }
         .legal-btn:hover { color: #fff; border-color: #fff; background: rgba(255,255,255,0.1); }
-        .anxiety-note { font-family: 'Courier New', monospace; font-size: 0.8rem; color: #666; margin-bottom: 15px; }
-        
         .music-attribution { font-size: 10px; color: rgba(255,255,255,0.8); margin-top: 5px; text-transform: uppercase; letter-spacing: 1px; }
         .coming-soon { color: #ff3e3e; font-weight: bold; display: block; margin-top: 2px; }
-
         .socials { display: flex; justify-content: center; gap: 15px; margin-top: 25px; flex-wrap: wrap; }
         .btn-pro { text-decoration: none; font-weight: bold; font-size: 0.8rem; text-transform: uppercase; padding: 10px 20px; border-radius: 5px; transition: 0.3s; display: flex; align-items: center; gap: 8px; }
         .btn-yt { background-color: #FF0000; color: #fff; border: 1px solid #FF0000; }
@@ -68,41 +50,178 @@
         .btn-tt:hover { transform: translateY(-2px); box-shadow: -3px 0 0 #ff0050, 3px 0 0 #00f2ea; }
         .yt-link { display: block; color: #666; font-size: 0.7rem; text-decoration: none; margin-top: 15px; }
         #scribble-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
-        
         .bottom-actions { display: flex; flex-direction: column; align-items: center; margin-bottom: 40px; }
+        footer { position: relative; z-index: 10; font-size: 9px; color: rgba(255,255,255,0.3); text-align: center; padding: 20px; max-width: 900px; line-height: 1.6; text-transform: uppercase; letter-spacing: 0.5px; }
 
-        footer { 
-            position: relative; 
-            z-index: 10; 
-            font-size: 9px; 
-            color: rgba(255,255,255,0.3); 
-            text-align: center; 
-            padding: 20px; 
-            max-width: 900px; 
-            line-height: 1.6;
+        .sally-banner { position: fixed; top: 0; left: 0; width: 100%; background-color: #ff3333; color: white; text-align: center; padding: 8px; font-weight: bold; font-size: 14px; z-index: 9999; }
+        .sally-banner a { color: white; text-decoration: underline; margin-left: 10px; }
+        body { padding-top: 40px; }
+
+        /* GAME SECTION */
+        .game-section {
+            margin: 28px auto 0;
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .game-label {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 0.55rem;
+            color: #00ff88;
+            letter-spacing: 2px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 8px #00ff88;
+            animation: flicker 3s infinite;
+            text-align: center;
+            width: 100%;
+        }
+        @keyframes flicker {
+            0%,100% { opacity: 1; }
+            92% { opacity: 1; }
+            93% { opacity: 0.4; }
+            94% { opacity: 1; }
+            96% { opacity: 0.6; }
+            97% { opacity: 1; }
+        }
+        .game-btn {
+            display: block;
+            width: 100%;
+            max-width: 400px;
+            padding: 14px 20px;
+            margin: 0 auto;
+            text-decoration: none;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 0.6rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border-radius: 3px;
+            transition: all 0.15s ease;
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+        }
+        .game-btn-vegan {
+            background: #000;
+            color: #00ff88;
+            border: 2px solid #00ff88;
+            box-shadow: 0 0 10px #00ff8855, inset 0 0 10px #00ff8811;
+            text-shadow: 0 0 8px #00ff88;
+        }
+        .game-btn-vegan:hover {
+            background: #00ff88;
+            color: #000;
+            box-shadow: 0 0 20px #00ff88, 0 0 40px #00ff8866;
+            transform: translateY(-2px);
         }
 
-        .sally-banner {
-            position: fixed;
-            top: 0;
+        /* VHS BACKROOMS — Stage 9 */
+        .game-btn-stage9 {
+            background: #0a0005;
+            color: #e8d5ff;
+            border: 2px solid #6a0dad;
+            box-shadow:
+                0 0 8px #6a0dad88,
+                inset 0 0 12px #1a0028,
+                2px 0 0 #ff000033,
+                -2px 0 0 #00ffff22;
+            text-shadow: 2px 0 #ff000066, -1px 0 #00ffff44, 0 0 10px #bf7fff;
+            font-family: 'Press Start 2P', monospace;
+            position: relative;
+            overflow: hidden;
+            image-rendering: pixelated;
+        }
+        .game-btn-stage9::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.18) 2px,
+                rgba(0,0,0,0.18) 4px
+            );
+            pointer-events: none;
+            z-index: 1;
+            animation: scanlines 8s linear infinite;
+        }
+        .game-btn-stage9::after {
+            content: '';
+            position: absolute;
+            top: -50%;
             left: 0;
             width: 100%;
-            background-color: #ff3333;
-            color: white;
-            text-align: center;
-            padding: 8px;
-            font-weight: bold;
-            font-size: 14px;
-            z-index: 9999;
+            height: 30%;
+            background: rgba(255,255,255,0.03);
+            animation: vhs-sweep 5s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 2;
         }
-        .sally-banner a {
-            color: white;
-            text-decoration: underline;
-            margin-left: 10px;
+        @keyframes scanlines {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 40px; }
         }
-        body { padding-top: 40px; }
+        @keyframes vhs-sweep {
+            0% { top: -30%; }
+            100% { top: 130%; }
+        }
+        .game-btn-stage9 span.game-btn-inner {
+            position: relative;
+            z-index: 3;
+            display: block;
+        }
+        .game-btn-stage9:hover {
+            background: #1a0030;
+            border-color: #bf7fff;
+            box-shadow:
+                0 0 20px #bf7fff,
+                0 0 40px #6a0dad88,
+                inset 0 0 20px #2a0050,
+                3px 0 0 #ff000055,
+                -3px 0 0 #00ffff44;
+            text-shadow: 3px 0 #ff000088, -2px 0 #00ffff66, 0 0 16px #fff;
+            transform: translateY(-2px);
+            color: #fff;
+        }
+        .game-btn-stage9 .vhs-tag {
+            display: block;
+            font-size: 0.35rem;
+            color: rgba(200,150,255,0.6);
+            margin-top: 4px;
+            letter-spacing: 2px;
+            font-family: 'Press Start 2P', monospace;
+            text-shadow: 1px 0 #ff000044, 0 0 6px #bf7fff88;
+        }
+
+        .game-btn-stage {
+            display: block;
+            font-size: 0.45rem;
+            color: rgba(255,255,255,0.5);
+            margin-top: 3px;
+            font-family: 'Press Start 2P', monospace;
+        }
+        .pixel-divider { display: none; }
+
+        /* Button stack — pen + music tight together */
+        .action-stack {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            max-width: 400px;
+            margin: 8px auto 10px;
+        }
+        .action-stack .enter-button {
+            margin: 0;
+        }
+        .action-stack #musicBtn {
+            margin: 0;
+        }
     </style>
 </head>
 <body>
@@ -130,11 +249,29 @@
         <p class="species">Cataloging: <em>Deanus Politicus Carnivorus Paradoxus</em></p>
         <a href="deanus-politicus-carnivorus-paradoxus.html" class="legal-btn" style="margin-bottom: 20px;">Specimen Data</a>
         <p class="debate-history">Veteran of 11 Debates & Counting</p>
-        
-        <a href="quiz.html" class="enter-button">Enter the Pen Here</a>
-        <p class="anxiety-note">(Not an anxiety pen)</p>
-        
-        <button id="musicBtn" class="enter-button">Play Music</button>
+
+        <!-- GAME SECTION — above the main buttons -->
+        <div class="game-section">
+            <div class="game-label">🕹 Now Playing: Vegan Bros Universe</div>
+            <a href="veganbros.html" class="game-btn game-btn-vegan">
+                ▶ Vegan Bros
+                <span class="game-btn-stage">Stage 1 — Begin Your Journey</span>
+            </a>
+            <div class="pixel-divider">▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓</div>
+            <a href="veganbrosstage9.html" class="game-btn game-btn-stage9">
+                <span class="game-btn-inner">
+                    📼 Go Dean! The Hypogeum
+                    <span class="vhs-tag">[ STAGE 9 — THE FINAL DESCENT ]</span>
+                </span>
+            </a>
+        </div>
+
+        <!-- Enter + Music tight together -->
+        <div class="action-stack">
+            <a href="quiz.html" class="enter-button">Enter the Pen Here</a>
+            <button id="musicBtn" class="enter-button">Play Music</button>
+        </div>
+
         <p class="music-attribution">
             Prod. Taysty & Boss Beats | Vocals: Caskey
             <span class="coming-soon">Full track featuring Earthling coming soon</span>
@@ -182,7 +319,6 @@
         function cycleWatcher() {
             watcher.style.transition = "opacity 2s ease-in-out";
             watcher.style.opacity = 0;
-            
             setTimeout(() => {
                 watcher.innerHTML = watchPhrases[phraseIndex];
                 watcher.style.opacity = 1;
@@ -192,13 +328,13 @@
         setInterval(cycleWatcher, 8000);
         cycleWatcher(); 
         const quotes = [
-            "Vegans are threatening my life.",  "I wouldn't eat my cat because it's cute.",
+            "Vegans are threatening my life.", "I wouldn't eat my cat because it's cute.",
             "Let's do an exploitation logic tree.", "Not until you say sorry Earthling.", "Earthling why do you do this?",
             "Thanks for the gift for the KFC DNC grift fund.", "Just have to thank my dono's tehe.",
             "I wouldn't despatch a pregnant rabbit but only because it's cute.", "People are saying Earthling's right.",
-             "I have nothing in my head.", "Vegans are the upper echelon.",
+            "I have nothing in my head.", "Vegans are the upper echelon.",
             "I have many vegan friends.", "Are you even sentient.", "Yummy pork tacos.",
-            "What do you mean The Vegan King pat me on the head?", "Is do anything for a Hello Fresh sponsorship.",
+            "What do you mean The Vegan King pat me on the head?", "I do anything for a Hello Fresh sponsorship.",
             "Call me Booster Gold.", "Someone's going to clip that.", "It's an anxiety pen.",
             "That's what I'd say if I had a small vape pen.", "You're crazy, everyone's crazy.",
             "If you call someone crazy you probably have a small vape pen.", "No I don't remember talking about Davenport.",
@@ -214,7 +350,6 @@
             if(!container) return;
             const quote = quotes[Math.floor(Math.random() * quotes.length)];
             const el = document.createElement('div');
-            
             el.style.position = 'absolute';
             el.style.left = (Math.random() * 60 + 5) + '%';
             el.style.top = (Math.random() * 70 + 10) + '%';
