@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -76,9 +75,16 @@ const TV_YOUTUBE_IDS = [
 // Instead we hit the metadata API (JSON, CORS-friendly) to find the real
 // node + dir, then build a direct URL that serves the file with proper
 // Access-Control-Allow-Origin headers — no redirect involved.
+// Archive.org item. We resolve the direct storage-node URL via the metadata
+// API rather than hardcoding archive.org/download/... (which 302-redirects
+// and breaks CORS). NOTE: as of last test, this specific file's storage node
+// was not sending an Access-Control-Allow-Origin header at all, which means
+// this WILL still fail with the same CORS error you saw before, unless
+// archive.org has since finished processing / fixed that on their end.
 const IA_IDENTIFIER = 'backrooms_vr';
 const IA_FILENAME = 'backrooms_vr.glb';
 const IA_DOWNLOAD_URL = `https://archive.org/download/${IA_IDENTIFIER}/${IA_FILENAME}`;
+let GLB_URL = IA_DOWNLOAD_URL;
 
 async function resolveGlbUrl() {
   try {
@@ -88,57 +94,9 @@ async function resolveGlbUrl() {
     if (!data.server || !data.dir) throw new Error('metadata missing server/dir');
     return `https://${data.server}${data.dir}/${IA_FILENAME}`;
   } catch (e) {
-    console.warn('Falling back to /download/ URL:', e);
+    console.warn('Metadata lookup failed, using /download/ URL:', e);
     return IA_DOWNLOAD_URL;
   }
-}
-
-// archive.org's file servers don't send Access-Control-Allow-Origin, so a
-// plain browser fetch() gets blocked no matter which archive.org URL we hit.
-// We route the byte-fetch through public CORS proxies instead (they add the
-// header for us), try each in order, and hand the raw ArrayBuffer to
-// GLTFLoader.parse() directly — bypassing GLTFLoader.load()'s own fetch.
-function proxyUrls(targetUrl) {
-  const enc = encodeURIComponent(targetUrl);
-  return [
-    `https://corsproxy.io/?url=${enc}`,
-    `https://api.allorigins.win/raw?url=${enc}`,
-    `https://api.codetabs.com/v1/proxy?quest=${targetUrl}`,
-  ];
-}
-
-async function fetchGlbArrayBuffer(onProgress) {
-  const directUrl = await resolveGlbUrl();
-  const candidates = [directUrl, ...proxyUrls(directUrl)];
-  let lastErr;
-  for (const url of candidates) {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const total = Number(res.headers.get('content-length')) || 0;
-      if (!res.body) {
-        return await res.arrayBuffer();
-      }
-      const reader = res.body.getReader();
-      const chunks = [];
-      let received = 0;
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-        received += value.length;
-        if (total && onProgress) onProgress(received, total);
-      }
-      const buf = new Uint8Array(received);
-      let offset = 0;
-      for (const c of chunks) { buf.set(c, offset); offset += c.length; }
-      return buf.buffer;
-    } catch (e) {
-      console.warn('GLB fetch failed via', url, e);
-      lastErr = e;
-    }
-  }
-  throw lastErr || new Error('All GLB fetch attempts failed');
 }
 
 const TV_PLACEMENTS = [
@@ -224,30 +182,22 @@ const draco=new DRACOLoader();
 draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
 const loader=new GLTFLoader();loader.setDRACOLoader(draco);
 
-fetchGlbArrayBuffer((loaded,total)=>{
-  const p=Math.round(loaded/total*100);
-  barEl.style.width=p+'%';
-  pctEl.textContent=p+'%';
-}).then(arrayBuffer=>{
-  loader.parse(arrayBuffer, '',
+resolveGlbUrl().then(url=>{
+  loader.load(url,
     gltf=>{
       gltf.scene.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});
       scene.add(gltf.scene);
       loadingEl.style.display='none';
       overlayEl.style.display='flex';
     },
+    ev=>{if(ev.total){const p=Math.round(ev.loaded/ev.total*100);barEl.style.width=p+'%';pctEl.textContent=p+'%';}},
     error=>{
-      console.error('GLB parse failed:', error);
+      console.error('GLB load failed:', error);
       pctEl.textContent='';
-      errEl.textContent='Failed to parse the environment file.';
+      errEl.textContent='Failed to load the environment file. Check your connection and try again.';
       errEl.style.display='block';
     }
   );
-}).catch(error=>{
-  console.error('GLB fetch failed:', error);
-  pctEl.textContent='';
-  errEl.textContent='Failed to load the environment file (all sources failed). Check your connection and try again.';
-  errEl.style.display='block';
 });
 
 const keys=new Set();
