@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -21,30 +22,58 @@
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "Person",
-    "name": "Sally Grace Contarino",
-    "image": "https://earthlingofficial.github.io/dean-withers.com/sally.jpg",
-    "description": "Missing person - Endangered Missing Adult",
-    "birthDate": "1999-2000",
-    "nationality": "Australian",
-    "address": {
-      "@type": "PostalAddress",
-      "addressLocality": "Melbourne",
-      "addressRegion": "Victoria",
-      "addressCountry": "AU"
-    },
-    "missingData": {
-      "dateMissing": "2026-06-20",
-      "location": "Las Vegas, Nevada, USA",
-      "policeCase": "LLV260600083886"
-    },
-    "contactPoint": {
-      "@type": "ContactPoint",
-      "contactType": "Police",
-      "telephone": "+1-702-828-3111",
-      "email": "missingpersons@lvmpd.com",
-      "organization": "Las Vegas Metropolitan Police Department"
-    }
+    "@graph": [
+      {
+        "@type": "Person",
+        "@id": "https://earthlingofficial.com/find-sally-contarino.html#sally-grace-contarino",
+        "name": "Sally Grace Contarino",
+        "alternateName": "Sally Contarino",
+        "image": "https://earthlingofficial.github.io/dean-withers.com/sally.jpg",
+        "description": "Sally Grace Contarino, 26, is an Australian woman from Melbourne, Victoria, who has been classified as an Endangered Missing Adult by the Las Vegas Metropolitan Police Department since June 20, 2026. LVMPD case number LLV260600083886. She was last seen near 9700 West Skye Canyon Drive, Las Vegas, Nevada. She is 5 feet 5 inches tall, weighs approximately 130 pounds, has brown hair and brown eyes, and a slim build. She was last seen wearing a grey/blue sweatshirt, jean shorts, black and white shoes, and carrying a purse. She may be wearing a John Hardy citrine pendant on a silver chain.",
+        "birthDate": "2000",
+        "gender": "Female",
+        "nationality": "Australian",
+        "homeLocation": {
+          "@type": "Place",
+          "name": "Melbourne, Victoria, Australia",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Melbourne",
+            "addressRegion": "Victoria",
+            "addressCountry": "AU"
+          }
+        },
+        "url": "https://earthlingofficial.com/find-sally-contarino.html"
+      },
+      {
+        "@type": "WebPage",
+        "@id": "https://earthlingofficial.com/find-sally-contarino.html",
+        "url": "https://earthlingofficial.com/find-sally-contarino.html",
+        "name": "Sally Grace Contarino | Endangered Missing | Las Vegas 2026",
+        "description": "The dedicated missing persons awareness page for Sally Grace Contarino, 26, from Melbourne Australia, classified Endangered Missing in Las Vegas since June 20, 2026. LVMPD case LLV260600083886.",
+        "inLanguage": "en",
+        "isPartOf": {
+          "@type": "WebSite",
+          "url": "https://earthlingofficial.com",
+          "name": "Earthling Official"
+        },
+        "about": {
+          "@id": "https://earthlingofficial.com/find-sally-contarino.html#sally-grace-contarino"
+        },
+        "primaryImageOfPage": {
+          "@type": "ImageObject",
+          "url": "https://earthlingofficial.github.io/dean-withers.com/sally.jpg"
+        },
+        "datePublished": "2026-06-26",
+        "dateModified": "2026-07-16",
+        "publisher": {
+          "@type": "Organization",
+          "name": "Earthling Official",
+          "url": "https://earthlingofficial.com"
+        },
+        "specialty": "Missing Person Awareness — Sally Grace Contarino"
+      }
+    ]
   }
   </script>
   
@@ -60,9 +89,21 @@
     .container { max-width: 860px; margin: 0 auto; padding: 40px 20px; }
     .missing-label { font-size: 5rem; font-weight: 900; color: #cc0000; letter-spacing: 8px; text-transform: uppercase; line-height: 1; margin-bottom: 8px; text-align:center; }
     .location-label { font-size: 1.1rem; color: #888; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 40px; text-align:center; }
-    .images-row { display: flex; gap: 24px; justify-content: center; align-items: flex-start; flex-wrap: wrap; margin-bottom: 40px; }
-    .poster-img { width: 280px; border: 4px solid #cc0000; border-radius: 4px; }
-    .photo-img { width: 240px; border: 4px solid #444; border-radius: 4px; }
+
+    /* Carousel */
+    .carousel { position: relative; width: 100%; max-width: 680px; margin: 0 auto 40px; background: #111; border-radius: 4px; overflow: hidden; }
+    .carousel-track { display: flex; transition: transform 0.4s ease; }
+    .carousel-slide { min-width: 100%; position: relative; }
+    .carousel-slide img { width: 100%; height: 420px; object-fit: cover; display: block; }
+    .carousel-caption { background: rgba(0,0,0,0.75); color: #ccc; font-size: 0.82rem; letter-spacing: 1px; text-transform: uppercase; padding: 10px 16px; text-align: center; }
+    .carousel-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.6); border: none; color: #fff; font-size: 1.6rem; padding: 10px 16px; cursor: pointer; z-index: 10; border-radius: 2px; }
+    .carousel-btn:hover { background: rgba(204,0,0,0.8); }
+    .carousel-btn.prev { left: 0; }
+    .carousel-btn.next { right: 0; }
+    .carousel-dots { display: flex; justify-content: center; gap: 8px; padding: 12px 0 6px; background: #111; }
+    .carousel-dots span { width: 8px; height: 8px; border-radius: 50%; background: #444; cursor: pointer; transition: background 0.2s; }
+    .carousel-dots span.active { background: #cc0000; }
+
     .name-block { margin-bottom: 40px; text-align:center; }
     .name-block h1 { font-size: 2.8rem; color: #cc0000; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 6px; }
     .name-block .subtitle { font-size: 1.1rem; color: #aaa; letter-spacing: 1px; }
@@ -77,6 +118,19 @@
     .section a { color: #cc0000; }
     .tag { display:inline-block; background:#2a1010; color:#ff8080; font-size:0.7rem; letter-spacing:1px; text-transform:uppercase; padding:2px 8px; border-radius:3px; margin-left:6px; vertical-align:middle; }
     .source-note { font-size:0.8rem; color:#777; margin-top:4px; font-style:italic; }
+
+    /* Pendant section */
+    .pendant-section { background: #161616; border-left: 4px solid #ff8800; padding: 24px 28px; margin-bottom: 24px; border-radius: 0 4px 4px 0; }
+    .pendant-section h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 3px; color: #ff8800; margin-bottom: 14px; }
+    .pendant-section p, .pendant-section li { font-size: 1rem; line-height: 1.8; color: #ddd; }
+    .pendant-section ul { list-style: none; padding: 0; }
+    .pendant-section ul li { margin-bottom: 6px; }
+    .pendant-section ul li::before { content: ">> "; color: #ff8800; }
+    .pendant-img-wrap { float: right; margin: 0 0 16px 24px; }
+    .pendant-img-wrap img { width: 200px; border: 3px solid #ff8800; border-radius: 4px; display: block; }
+    .pendant-img-wrap .cap { font-size: 0.72rem; color: #888; text-align: center; margin-top: 6px; text-transform: uppercase; letter-spacing: 1px; }
+    .clearfix::after { content: ""; display: table; clear: both; }
+
     .video-embed { position: relative; width: 100%; max-width: 600px; margin: 24px auto; background: #000; border-radius: 4px; overflow: hidden; }
     .video-embed iframe { width: 100%; height: 450px; border: none; display: block; }
     @media (max-width: 700px) { .video-embed iframe { height: 315px; } }
@@ -97,8 +151,9 @@
       .missing-label { font-size: 3rem; letter-spacing: 4px; }
       .name-block h1 { font-size: 1.8rem; }
       .contact-box .phone { font-size: 1.4rem; }
-      .poster-img { width: 100%; max-width: 320px; }
-      .photo-img { width: 100%; max-width: 280px; }
+      .carousel-slide img { height: 260px; }
+      .pendant-img-wrap { float: none; margin: 0 auto 16px; display: block; text-align: center; }
+      .pendant-img-wrap img { width: 160px; margin: 0 auto; }
     }
   </style>
 </head>
@@ -111,13 +166,58 @@
   <div class="missing-label">MISSING</div>
   <div style="text-align:center;color:#ff6600;font-size:1rem;font-weight:bold;letter-spacing:4px;text-transform:uppercase;margin-bottom:8px;">&#x26A0; LVMPD: Endangered Missing Adult &mdash; May Be Experiencing Severe Emotional Distress</div>
   <div class="location-label">Las Vegas, Nevada &nbsp;&middot;&nbsp; Southern California</div>
+
   <div style="text-align:center;margin-bottom:16px;">
     <img src="https://earthlingofficial.github.io/dean-withers.com/sally.jpg" alt="Sally Grace Contarino missing poster" style="width:280px;border:4px solid #cc0000;border-radius:4px;display:block;margin:0 auto;" onerror="this.style.display='none';">
   </div>
-  <div class="last-updated">Page last updated: July 3, 2026 &nbsp;&middot;&nbsp; Search entering its third week</div>
+
+  <!-- CAROUSEL -->
+  <div class="carousel" id="mainCarousel">
+    <div class="carousel-track" id="carouselTrack">
+      <div class="carousel-slide">
+        <img src="https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/chain.jpg" alt="John Hardy citrine pendant Sally Contarino">
+        <div class="carousel-caption">John Hardy citrine pendant &mdash; not found among Sally's belongings, suggesting she was wearing it</div>
+      </div>
+      <div class="carousel-slide">
+        <img src="https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/chain1.jpg" alt="Sally Grace Contarino captured on ATM footage">
+        <div class="carousel-caption">Sally Grace Contarino captured on ATM footage, June 2026</div>
+      </div>
+      <div class="carousel-slide">
+        <img src="https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/mountain.jpg" alt="Mount Charleston area Las Vegas Nevada">
+        <div class="carousel-caption">Mount Charleston / Skye Canyon area &mdash; last known location</div>
+      </div>
+      <div class="carousel-slide">
+        <img src="https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/bungalowhotel.jpg" alt="The Bungalows Hostel Las Vegas where Sally was staying">
+        <div class="carousel-caption">The Bungalows Hostel, Las Vegas &mdash; where Sally was staying</div>
+      </div>
+    </div>
+    <button class="carousel-btn prev" onclick="carouselMove(-1)">&#8249;</button>
+    <button class="carousel-btn next" onclick="carouselMove(1)">&#8250;</button>
+    <div class="carousel-dots" id="carouselDots">
+      <span class="active" onclick="carouselGo(0)"></span>
+      <span onclick="carouselGo(1)"></span>
+      <span onclick="carouselGo(2)"></span>
+      <span onclick="carouselGo(3)"></span>
+    </div>
+  </div>
+
+  <div class="last-updated">Page last updated: July 16, 2026 &nbsp;&middot;&nbsp; Search entering its fourth week</div>
   <div class="name-block">
     <h1>Sally Grace Contarino</h1>
     <div class="subtitle">26 years old &nbsp;&middot;&nbsp; Melbourne, Victoria, Australia &nbsp;&middot;&nbsp; 5'5", ~130 lbs, fair skin &nbsp;&middot;&nbsp; Brown hair &nbsp;&middot;&nbsp; Brown eyes &nbsp;&middot;&nbsp; Slim build</div>
+  </div>
+
+  <!-- PENDANT SECTION -->
+  <div class="pendant-section clearfix">
+    <h2>&#x1F4CD; Key Lead &mdash; John Hardy Citrine Pendant</h2>
+    <div class="pendant-img-wrap">
+      <img src="https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/chain.jpg" alt="John Hardy citrine pendant Sally Contarino">
+      <div class="cap">John Hardy citrine pendant</div>
+    </div>
+    <p>One possible lead involves a necklace Sally is understood to always wear. Her sisters have been <strong>unable to locate her John Hardy citrine pendant</strong>, attached to a silver chain, among her recovered belongings — strongly suggesting she was wearing it when she disappeared.</p>
+    <p style="margin-top:12px;">The pendant was received as a <strong>gift from a family member</strong>, who purchased the cherished item from a <strong>vintage jewellery store</strong>. Its absence from her belongings suggests she may have been wearing it at the time of her disappearance.</p>
+    <p style="margin-top:12px;">This information was reported by <strong>Real Vegas Locals</strong>, a prominent social media account that has been providing updates on behalf of the family.</p>
+    <p style="margin-top:12px;font-size:0.85rem;color:#aa6600;"><strong>If you have seen this pendant or have any information about it, contact LVMPD immediately at 702-828-3111 or missingpersons@lvmpd.com</strong></p>
   </div>
 
   <div class="section">
@@ -126,7 +226,7 @@
       <li>Sally, a frequent traveller to the US, was on a solo holiday that had already included stops in <strong>Palm Springs, California</strong>, before she arrived in the Las Vegas area.</li>
       <li><strong>June 17, 3:46 PM:</strong> Newly surfaced footage &mdash; recorded on an influencer's Meta smart glasses and shared publicly on June 28 &mdash; appears to show Sally outside the 7-Eleven, 4880 Boulder Highway, Las Vegas. In the clip a man approaches her and asks for her number. She tells him she has a boyfriend. He apologizes and asks if she's waiting for her boyfriend, to which she replies, "No, I'm just gonna have a cigarette and go inside." He then gets in his car and leaves. Police say they have no indication the man is connected to her disappearance and confirm the footage was provided to them before it was posted online.</li>
       <li><strong>June 19, ~8:00 PM:</strong> Sally texted friends: <em>"I'm about to hike up Lone Mountain then go home &mdash; I fly back tomorrow."</em></li>
-      <li><strong>June 19, 8:45–10:28 PM:</strong> CCTV placed Sally at <strong>Timbers Bar &amp; Grill</strong>, a locals bar near UNLV. She arrived on foot, sat at the bar, had drinks, played gaming machines, spoke with other patrons, and used an ATM. Staff, including manager Jocelyn Zeigler-Arthur, described her as "quiet" and appearing calm, content, and "not under any stress." She left alone around 10:28 PM, walking eastbound on Cheyenne Street.</li>
+      <li><strong>June 19, 8:45–10:28 PM:</strong> CCTV placed Sally at <strong>Timbers Bar &amp; Grill</strong>, a locals bar near UNLV. She arrived on foot, sat at the bar, had drinks, played gaming machines, spoke with other patrons, and used an ATM. Restaurant manager Jocelyn Zeigler-Arthur said she was "quiet" and appeared "happy." The detective's report noted she "did not appear to be under any stress and seemed calm and enjoying herself." She left alone around 10:28 PM, walking eastbound on Cheyenne Street.</li>
       <li><strong>Early hours, June 20:</strong> CCTV captured Sally returning to <strong>The Bungalows Hostel</strong> in downtown Las Vegas. There is no known CCTV of her leaving the hostel again.</li>
       <li><strong>June 20 morning:</strong> Property staff confirmed Sally checked out remotely via the hostel's website/app and left her luggage behind, saying she'd return for it. She then visited a nearby café she regularly used in Las Vegas, ordering breakfast and a protein smoothie.</li>
       <li><strong>June 20, ~1:02 PM:</strong> CCTV captured Sally leaving <strong>Smith's Marketplace</strong> in Las Vegas. Police believe she then boarded a local bus and was last seen near <strong>9700 W. Skye Canyon Drive</strong>, consistent with the Mount Charleston / Lone Mountain corridor northwest of the Strip.</li>
@@ -141,14 +241,15 @@
     <ul>
       <li>LVMPD has opened a missing persons case and classified Sally as an <strong>"endangered missing adult"</strong> who "might possibly be in severe emotional distress and in need of medical assistance."</li>
       <li>Police have recovered Sally's luggage from the hostel.</li>
+      <li>Sally was using the <strong>Wise app</strong> for transferring funds and owns an <strong>Apple iPhone</strong>.</li>
       <li><strong>Search dogs (K9 units)</strong> have been deployed using her clothing to try to pick up her scent, alongside a grid search of the Lone Mountain / Mount Charleston area. Sniffer dogs have followed the tourist's scent from Smith's Marketplace to an area several kilometres away closer to the edge of town.</li>
       <li><strong>Red Rock Search &amp; Rescue</strong> is assisting LVMPD and has publicly appealed for sightings.</li>
       <li>Hospitals across the Nevada region have been contacted and asked to check patient records.</li>
       <li>Online sleuthing communities (including Websleuths, where Sally's family has been posting directly) have called for a focused search of Lone Mountain.</li>
       <li>Sally's two sisters have travelled from Australia to Las Vegas to assist authorities.</li>
-      <li>As of this update, Sally has <strong>not been located</strong>. The search is entering its third week.</li>
+      <li>As of this update, Sally has <strong>not been located</strong>. The search is entering its fourth week.</li>
     </ul>
-    <p class="source-note">Sourced from LVMPD statements, Red Rock Search &amp; Rescue, family statements via Websleuths, and reporting by the Las Vegas Review-Journal, Casino.org, Fox5 Vegas, news.com.au, The Nightly, NZ Herald, and others.</p>
+    <p class="source-note">Sourced from LVMPD statements, Red Rock Search &amp; Rescue, family statements via Websleuths, and reporting by the Las Vegas Review-Journal, Casino.org, Fox5 Vegas, news.com.au, The Nightly, NZ Herald, New York Post, Nine.com.au, and others.</p>
   </div>
 
   <div class="section">
@@ -182,6 +283,7 @@
       <a id="shareFacebook" href="#" target="_blank" rel="noopener" style="background:#222;color:#fff;border:1px solid #444;padding:12px 22px;border-radius:4px;font-size:0.95rem;font-weight:bold;letter-spacing:1px;text-transform:uppercase;text-decoration:none;">Facebook</a>
       <a id="shareX" href="#" target="_blank" rel="noopener" style="background:#222;color:#fff;border:1px solid #444;padding:12px 22px;border-radius:4px;font-size:0.95rem;font-weight:bold;letter-spacing:1px;text-transform:uppercase;text-decoration:none;">X / Twitter</a>
       <a id="shareWhatsapp" href="#" target="_blank" rel="noopener" style="background:#222;color:#fff;border:1px solid #444;padding:12px 22px;border-radius:4px;font-size:0.95rem;font-weight:bold;letter-spacing:1px;text-transform:uppercase;text-decoration:none;">WhatsApp</a>
+      <a id="shareThreads" href="#" target="_blank" rel="noopener" style="background:#222;color:#fff;border:1px solid #444;padding:12px 22px;border-radius:4px;font-size:0.95rem;font-weight:bold;letter-spacing:1px;text-transform:uppercase;text-decoration:none;">Threads</a>
     </div>
     <div id="copyFeedback" style="margin-top:14px;font-size:0.9rem;color:#2d7a2d;font-weight:bold;height:1.2em;"></div>
   </div>
@@ -193,6 +295,7 @@
       document.getElementById('shareFacebook').href = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(pageUrl);
       document.getElementById('shareX').href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText) + '&url=' + encodeURIComponent(pageUrl);
       document.getElementById('shareWhatsapp').href = 'https://wa.me/?text=' + encodeURIComponent(shareText + ' ' + pageUrl);
+      document.getElementById('shareThreads').href = 'https://www.threads.net/intent/post?text=' + encodeURIComponent(shareText + ' ' + pageUrl);
       window.copyShareLink = function() {
         var feedback = document.getElementById('copyFeedback');
         function showCopied() {
@@ -216,16 +319,29 @@
         }
       };
     })();
+
+    // Carousel
+    var current = 0;
+    var total = 4;
+    function carouselUpdate() {
+      document.getElementById('carouselTrack').style.transform = 'translateX(-' + (current * 100) + '%)';
+      var dots = document.querySelectorAll('#carouselDots span');
+      dots.forEach(function(d, i) { d.classList.toggle('active', i === current); });
+    }
+    function carouselMove(dir) {
+      current = (current + dir + total) % total;
+      carouselUpdate();
+    }
+    function carouselGo(idx) {
+      current = idx;
+      carouselUpdate();
+    }
   </script>
 
   <div class="thanks-section">
     <h2>&#x1F44F; Thank You, Dean Withers</h2>
     <p>A massive thank you to <strong>Dean Withers</strong> for joining us and speaking about Sally's case in front of <strong>27,000 viewers</strong>. Putting aside everything else to help find a missing person says everything about what matters most. That reach could make the difference. We are genuinely grateful. &#x1F64F;</p>
     <p style="margin-top:10px;font-size:0.9rem;">&rarr; <a href="https://www.youtube.com/live/aZ8k9lszGtA?si=5oUjlSVEp7YcSXmC&t=10590" rel="nofollow" target="_blank" style="color:#2d7a2d;">Dean Withers discusses Sally's case (YouTube, from 2:56:30)</a></p>
-  </div>
-  <div class="thanks-section">
-    <h2>&#x1F952; Thank You, Dark Pickles</h2>
-    <p>A massive thank you to <strong>Dark Pickles</strong> for stepping up immediately and sharing Sally's story with his community. In a sea of indifference, you chose to help. That means everything. Absolute legend. &#x1F64F;</p>
   </div>
 
   <div class="section">
@@ -243,6 +359,8 @@
     <p style="font-size:0.88rem;margin-bottom:6px;"><a href="https://www.fox5vegas.com/2026/06/26/search-underway-woman-reported-missing-after-trip-las-vegas-area/" rel="nofollow" target="_blank" style="color:#777;text-decoration:none;">Fox5 Vegas &mdash; Search underway for woman reported missing after trip to Las Vegas area</a></p>
     <p style="font-size:0.88rem;margin-bottom:6px;"><a href="https://thenightly.com.au/world/usa/sally-grace-contarino-nevada-police-launch-appeal-after-australian-traveller-goes-missing-on-usa-trip-c-22483589" rel="nofollow" target="_blank" style="color:#777;text-decoration:none;">The Nightly &mdash; Nevada Police launch appeal after Australian traveller goes missing</a></p>
     <p style="font-size:0.88rem;margin-bottom:6px;"><a href="https://www.nzherald.co.nz/world/footage-shows-moment-australian-woman-sally-contarino-was-approached-by-man-in-las-vegas-before-going-missing/CEKLAUIRUVHMRCGADFXZRL5OKU/" rel="nofollow" target="_blank" style="color:#777;text-decoration:none;">NZ Herald &mdash; Footage shows moment Sally Contarino was approached by man in Las Vegas</a></p>
+    <p style="font-size:0.88rem;margin-bottom:6px;"><a href="https://nypost.com/2026/07/15/us-news/subtle-clue-that-could-crack-case-of-tourist-who-mysteriously-vanished-in-las-vegas/" rel="nofollow" target="_blank" style="color:#777;text-decoration:none;">New York Post &mdash; Subtle clue that could crack case of tourist who mysteriously vanished in Las Vegas</a></p>
+    <p style="font-size:0.88rem;margin-bottom:6px;"><a href="https://www.nine.com.au/australia-news/new-clue-in-search-for-missing-australian-tourist-in-the-us-20260715-p60fks.html" rel="nofollow" target="_blank" style="color:#777;text-decoration:none;">Nine.com.au &mdash; New clue in search for missing Australian tourist in the US</a></p>
     <p style="font-size:0.88rem;"><a href="https://websleuths.com/threads/nv-sally-contarino-26-mount-charleston-20th-june-2026.775424/" rel="nofollow" target="_blank" style="color:#777;text-decoration:none;">Websleuths &mdash; NV Sally Contarino, 26, Mount Charleston 20th June 2026</a></p>
   </div>
 
