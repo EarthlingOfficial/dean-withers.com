@@ -1,0 +1,590 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GO DEAN! Stage 12 — Quite Frankly</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#000; overflow:hidden; font-family:'Courier New',monospace; }
+canvas#c { display:block; position:fixed; top:0; left:0; width:100%; height:100%; }
+
+.scanlines {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.25) 2px, rgba(0,0,0,0.25) 4px);
+  pointer-events:none; z-index:300;
+}
+
+#titleScreen {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:#000; display:flex; flex-direction:column;
+  justify-content:center; align-items:center; z-index:200;
+  gap:20px;
+}
+.vhs-badge {
+  font-size:0.75rem; letter-spacing:6px; color:rgba(255,255,255,0.5);
+  text-transform:uppercase; margin-bottom:10px;
+}
+.vhs-stage {
+  font-size:1rem; letter-spacing:8px; color:#bf7fff;
+  text-shadow: 2px 0 #ff000066, -2px 0 #00ffff44;
+  text-transform:uppercase; margin-bottom:6px;
+}
+.vhs-title {
+  font-size:clamp(3rem,10vw,7rem); font-weight:900;
+  color:#e8d5ff;
+  text-shadow: 4px 0 #ff000088, -3px 0 #00ffff66, 0 0 30px #bf7fff;
+  letter-spacing:4px; text-transform:uppercase;
+  animation: glitch 4s infinite;
+}
+.vhs-sub {
+  font-size:clamp(1rem,3vw,2rem); color:#00ff88;
+  text-shadow: 2px 0 #ff000055, 0 0 20px #00ff88;
+  letter-spacing:6px; text-transform:uppercase;
+  animation: flicker 3s infinite;
+}
+.vhs-prompt {
+  margin-top:30px; font-size:0.9rem; color:rgba(255,255,255,0.6);
+  letter-spacing:3px; animation: blink 1.2s step-end infinite;
+}
+.vhs-warning {
+  position:absolute; bottom:30px;
+  font-size:0.65rem; color:rgba(255,100,100,0.6); letter-spacing:2px;
+  text-align:center; max-width:600px;
+}
+
+@keyframes glitch {
+  0%,92%,100% { text-shadow: 4px 0 #ff000088, -3px 0 #00ffff66, 0 0 30px #bf7fff; transform:none; }
+  93% { text-shadow: -4px 0 #ff0000, 4px 0 #00ffff, 0 0 30px #fff; transform:translateX(3px); }
+  94% { text-shadow: 4px 0 #ff0000, -4px 0 #00ffff; transform:translateX(-2px) skewX(2deg); }
+  95% { transform:none; }
+}
+@keyframes flicker {
+  0%,100% { opacity:1; }
+  92% { opacity:1; }
+  93% { opacity:0.3; }
+  94% { opacity:1; }
+  96% { opacity:0.6; }
+  97% { opacity:1; }
+}
+@keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
+
+#goFlash {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:#cc0000; display:none; z-index:200;
+  justify-content:center; align-items:center;
+}
+#goFlash span {
+  font-size:25vw; font-weight:900; color:#fff;
+  text-shadow: 6px 6px 0 #000;
+  animation: goScale 0.5s ease-out;
+}
+@keyframes goScale { from { transform:scale(3); opacity:0; } to { transform:scale(1); opacity:1; } }
+
+#hud {
+  position:fixed; top:20px; left:20px; z-index:100;
+  color:rgba(255,255,255,0.7); font-size:0.75rem; letter-spacing:2px;
+  display:none; text-shadow:0 0 6px rgba(255,255,255,0.5);
+}
+#crosshair {
+  position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+  color:rgba(255,255,255,0.7); font-size:18px; z-index:100;
+  display:none; pointer-events:none; line-height:1;
+}
+#clickPrompt {
+  position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
+  color:rgba(255,255,255,0.6); font-size:0.75rem; letter-spacing:2px;
+  z-index:100; display:none; text-align:center;
+  animation: blink 2s step-end infinite;
+}
+#deathScreen {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(180,0,0,0.95); display:none; z-index:200;
+  flex-direction:column; justify-content:center; align-items:center; gap:20px;
+}
+#deathScreen .d-title {
+  font-size:clamp(2rem,8vw,5rem); color:#fff; font-weight:900;
+  text-shadow: 4px 0 #ff000088, -4px 0 #00ffff44;
+  letter-spacing:4px; text-transform:uppercase;
+}
+#deathScreen .d-sub {
+  font-size:1rem; color:rgba(255,255,255,0.7); letter-spacing:3px;
+}
+#deathScreen button {
+  margin-top:20px; padding:14px 40px;
+  background:transparent; border:2px solid #fff;
+  color:#fff; font-family:'Courier New',monospace;
+  font-size:1rem; letter-spacing:3px; text-transform:uppercase;
+  cursor:pointer; transition:all 0.2s;
+}
+#deathScreen button:hover { background:#fff; color:#cc0000; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="scanlines"></div>
+
+<div id="titleScreen">
+  <div class="vhs-badge">📼 Earthling Official Presents</div>
+  <div class="vhs-stage">Stage 12</div>
+  <div class="vhs-title">GO DEAN!</div>
+  <div class="vhs-sub">Quite Frankly</div>
+  <div class="vhs-prompt">[ PRESS ENTER OR CLICK TO START ]</div>
+  <div class="vhs-warning">WASD to move · MOUSE to look · SURVIVE<br>Do not let them surround you</div>
+</div>
+
+<div id="goFlash" style="display:flex;"><span>GO!</span></div>
+<div id="hud">STAGE 12 &nbsp;|&nbsp; QUITE FRANKLY</div>
+<div id="crosshair">+</div>
+<div id="clickPrompt">CLICK TO LOOK</div>
+
+<div id="deathScreen" style="display:flex;">
+  <div class="d-title">QUITE FRANKLY</div>
+  <div class="d-sub">YOU HAVE BEEN CAUGHT</div>
+  <button onclick="restartGame()">TRY AGAIN</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
+const MAZE_W = 18, MAZE_H = 18;
+const CELL = 5;
+const WALL_H = 3.2;
+const WALL_T = 0.25;
+const PLAYER_R = 0.35;
+const PLAYER_H = 1.6;
+const PLAYER_SPEED = 4.5;
+const HEAD_URL = 'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/dean_head.png';
+const AUDIO_URL = 'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/quite_frankly.MP3';
+const ENEMY_COUNT = 6;
+const DEATH_TOUCH = 1.3;
+const DEATH_SURROUND_DIST = 2.5;
+const DEATH_SURROUND_COUNT = 3;
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let scene, camera, renderer, maze, wallBoxes=[], enemies=[], lights=[];
+let yaw=0, pitch=0, playerPos={x:CELL*0.5+0.5, z:CELL*0.5+0.5};
+let keys={}, mouseLocked=false, gameActive=false;
+let audioCtx=null, quiteBuffer=null;
+let footTimer=0, isMoving=false;
+let clock, lastTime=0;
+let startTime=0;
+
+// ─── MAZE GENERATION ─────────────────────────────────────────────────────────
+function generateMaze(w,h){
+  const grid=Array.from({length:h},()=>Array.from({length:w},()=>({v:false,N:true,E:true,S:true,W:true})));
+  function carve(x,y){
+    grid[y][x].v=true;
+    const dirs=[{dx:0,dy:-1,a:'N',b:'S'},{dx:1,dy:0,a:'E',b:'W'},{dx:0,dy:1,a:'S',b:'N'},{dx:-1,dy:0,a:'W',b:'E'}];
+    for(let i=dirs.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[dirs[i],dirs[j]]=[dirs[j],dirs[i]];}
+    for(const {dx,dy,a,b} of dirs){
+      const nx=x+dx,ny=y+dy;
+      if(nx>=0&&nx<w&&ny>=0&&ny<h&&!grid[ny][nx].v){
+        grid[y][x][a]=false; grid[ny][nx][b]=false; carve(nx,ny);
+      }
+    }
+  }
+  carve(0,0); return grid;
+}
+
+// ─── TEXTURE HELPERS ─────────────────────────────────────────────────────────
+function makeCanvas(w,h,fn){const c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'),w,h);return new THREE.CanvasTexture(c);}
+
+const wallTex=makeCanvas(256,256,(ctx,w,h)=>{
+  ctx.fillStyle='#e8c84a'; ctx.fillRect(0,0,w,h);
+  for(let i=0;i<40;i++){ctx.fillStyle=`rgba(${160+Math.random()*40},${100+Math.random()*30},10,${Math.random()*0.25})`;ctx.beginPath();ctx.arc(Math.random()*w,Math.random()*h,Math.random()*25+3,0,Math.PI*2);ctx.fill();}
+  ctx.strokeStyle='rgba(200,160,25,0.4)'; ctx.lineWidth=1;
+  for(let y=0;y<=h;y+=24){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+  for(let x=0;x<=w;x+=48){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+});
+wallTex.wrapS=wallTex.wrapT=THREE.RepeatWrapping; wallTex.repeat.set(1,1);
+
+const floorTex=makeCanvas(256,256,(ctx,w,h)=>{
+  ctx.fillStyle='#b09050'; ctx.fillRect(0,0,w,h);
+  for(let i=0;i<3000;i++){ctx.fillStyle=`rgba(${80+Math.random()*60},${60+Math.random()*40},20,0.2)`;ctx.fillRect(Math.random()*w,Math.random()*h,2,2);}
+  ctx.strokeStyle='rgba(0,0,0,0.3)'; ctx.lineWidth=2;
+  for(let i=0;i<=w;i+=64){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,h);ctx.stroke();}
+  for(let i=0;i<=h;i+=64){ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(w,i);ctx.stroke();}
+});
+floorTex.wrapS=floorTex.wrapT=THREE.RepeatWrapping; floorTex.repeat.set(4,4);
+
+const ceilTex=makeCanvas(256,256,(ctx,w,h)=>{
+  ctx.fillStyle='#d4cfc0'; ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle='rgba(160,150,130,0.6)'; ctx.lineWidth=1.5;
+  for(let i=0;i<=w;i+=32){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,h);ctx.stroke();}
+  for(let i=0;i<=h;i+=32){ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(w,i);ctx.stroke();}
+  for(let i=0;i<8;i++){ctx.fillStyle=`rgba(100,90,70,${Math.random()*0.15})`;ctx.beginPath();ctx.arc(Math.random()*w,Math.random()*h,Math.random()*20+5,0,Math.PI*2);ctx.fill();}
+});
+ceilTex.wrapS=ceilTex.wrapT=THREE.RepeatWrapping; ceilTex.repeat.set(4,4);
+
+// ─── SCENE SETUP ─────────────────────────────────────────────────────────────
+function initScene(){
+  scene=new THREE.Scene();
+  scene.fog=new THREE.Fog(0x1a1200,8,35);
+  camera=new THREE.PerspectiveCamera(80,innerWidth/innerHeight,0.1,100);
+  renderer=new THREE.Renderer||new THREE.WebGLRenderer({canvas:document.getElementById('c'),antialias:false});
+  renderer=new THREE.WebGLRenderer({canvas:document.getElementById('c'),antialias:false});
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.shadowMap.enabled=false;
+
+  scene.add(new THREE.AmbientLight(0xffeeaa,0.35));
+
+  maze=generateMaze(MAZE_W,MAZE_H);
+  buildMaze();
+  spawnEnemies();
+  updateCamera();
+}
+
+// ─── MAZE BUILDER ────────────────────────────────────────────────────────────
+function addWall(x,y,z,w,h,d){
+  const mesh=new THREE.Mesh(
+    new THREE.BoxGeometry(w,h,d),
+    new THREE.MeshLambertMaterial({map:wallTex})
+  );
+  mesh.position.set(x,y,z); scene.add(mesh);
+  wallBoxes.push({minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2});
+}
+
+function addLight(x,z){
+  const pl=new THREE.PointLight(0xffffc8,1.1,12);
+  pl.position.set(x,WALL_H-0.15,z);
+  pl.userData.baseInt=1.1;
+  pl.userData.flicker=Math.random()>0.65;
+  pl.userData.ft=Math.random()*8;
+  scene.add(pl); lights.push(pl);
+  // Light panel on ceiling
+  const panel=new THREE.Mesh(new THREE.PlaneGeometry(0.8,2),new THREE.MeshBasicMaterial({color:0xffffee}));
+  panel.rotation.x=Math.PI/2; panel.position.set(x,WALL_H-0.05,z); scene.add(panel);
+}
+
+function buildMaze(){
+  wallBoxes=[];
+  const wallMat=new THREE.MeshLambertMaterial({map:wallTex});
+  const floorMat=new THREE.MeshLambertMaterial({map:floorTex});
+  const ceilMat=new THREE.MeshLambertMaterial({map:ceilTex,color:0xddddcc});
+
+  // Floor and ceiling
+  const fw=MAZE_W*CELL, fh=MAZE_H*CELL;
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(fw,fh),floorMat);
+  floor.rotation.x=-Math.PI/2; floor.position.set(fw/2,0,fh/2); scene.add(floor);
+  const ceil=new THREE.Mesh(new THREE.PlaneGeometry(fw,fh),ceilMat);
+  ceil.rotation.x=Math.PI/2; ceil.position.set(fw/2,WALL_H,fh/2); scene.add(ceil);
+
+  // Outer boundary walls
+  addWall(fw/2,-WALL_H/2+WALL_H/2,-WALL_T/2,fw+WALL_T*2,WALL_H,WALL_T); // N
+  addWall(fw/2,WALL_H/2,fh+WALL_T/2,fw+WALL_T*2,WALL_H,WALL_T); // S
+  addWall(-WALL_T/2,WALL_H/2,fh/2,WALL_T,WALL_H,fh); // W
+  addWall(fw+WALL_T/2,WALL_H/2,fh/2,WALL_T,WALL_H,fh); // E
+
+  for(let cy=0;cy<MAZE_H;cy++){
+    for(let cx=0;cx<MAZE_W;cx++){
+      const cell=maze[cy][cx];
+      const ox=cx*CELL, oz=cy*CELL;
+      // South wall
+      if(cell.S&&cy<MAZE_H-1){
+        addWall(ox+CELL/2,WALL_H/2,oz+CELL,CELL+WALL_T,WALL_H,WALL_T);
+      }
+      // East wall
+      if(cell.E&&cx<MAZE_W-1){
+        addWall(ox+CELL,WALL_H/2,oz+CELL/2,WALL_T,WALL_H,CELL+WALL_T);
+      }
+      // Light every 2-3 cells
+      if((cx+cy)%3===0){
+        addLight(ox+CELL/2,oz+CELL/2);
+      }
+    }
+  }
+}
+
+// ─── COLLISION ───────────────────────────────────────────────────────────────
+function circleBox(px,pz,r,b){
+  const cx=Math.max(b.minX,Math.min(px,b.maxX));
+  const cz=Math.max(b.minZ,Math.min(pz,b.maxZ));
+  const dx=px-cx, dz=pz-cz;
+  return dx*dx+dz*dz<r*r;
+}
+function canStep(nx,nz){
+  for(const b of wallBoxes) if(circleBox(nx,nz,PLAYER_R,b)) return false;
+  return true;
+}
+
+// ─── ENEMIES ─────────────────────────────────────────────────────────────────
+function spawnEnemies(){
+  enemies=[];
+  const loader=new THREE.TextureLoader();
+  const headTex=loader.load(HEAD_URL);
+  headTex.magFilter=THREE.LinearFilter;
+
+  for(let i=0;i<ENEMY_COUNT;i++){
+    let ex,ez;
+    do{
+      ex=(2+Math.floor(Math.random()*(MAZE_W-2)))*CELL+CELL/2;
+      ez=(2+Math.floor(Math.random()*(MAZE_H-2)))*CELL+CELL/2;
+    }while(dist2d(ex,ez,playerPos.x,playerPos.z)<CELL*4);
+
+    const mat=new THREE.SpriteMaterial({map:headTex,transparent:true,depthTest:true});
+    const sprite=new THREE.Sprite(mat);
+    sprite.scale.set(2.2,2.8,1);
+    sprite.position.set(ex,WALL_H/2+0.2,ez);
+    scene.add(sprite);
+
+    enemies.push({
+      sprite, x:ex, z:ez,
+      speed:1.3+Math.random()*0.7+i*0.1,
+      state:'wander',
+      wt:{x:ex,z:ez}, wtTimer:0,
+      gain:null, source:null, panner:null
+    });
+  }
+}
+
+function dist2d(ax,az,bx,bz){return Math.sqrt((ax-bx)**2+(az-bz)**2);}
+
+function updateEnemies(dt){
+  for(const e of enemies){
+    const d=dist2d(e.x,e.z,playerPos.x,playerPos.z);
+    // State machine
+    if(d<18) e.state='chase'; else if(d>22) e.state='wander';
+
+    let dx=0,dz=0;
+    if(e.state==='chase'){
+      dx=playerPos.x-e.x; dz=playerPos.z-e.z;
+      const len=Math.sqrt(dx*dx+dz*dz);
+      if(len>0.01){dx/=len;dz/=len;}
+    } else {
+      e.wtTimer-=dt;
+      if(e.wtTimer<=0||dist2d(e.x,e.z,e.wt.x,e.wt.z)<0.5){
+        e.wt.x=(0.5+Math.floor(Math.random()*MAZE_W))*CELL;
+        e.wt.z=(0.5+Math.floor(Math.random()*MAZE_H))*CELL;
+        e.wtTimer=3+Math.random()*4;
+      }
+      dx=e.wt.x-e.x; dz=e.wt.z-e.z;
+      const len=Math.sqrt(dx*dx+dz*dz);
+      if(len>0.01){dx/=len;dz/=len;}
+    }
+
+    const spd=e.speed*(e.state==='chase'?1.4:0.7)*dt;
+    const nx=e.x+dx*spd, nz=e.z+dz*spd;
+    if(canStep(nx,nz)){e.x=nx;e.z=nz;}
+    else{
+      if(canStep(nx,e.z)){e.x=nx;}
+      else if(canStep(e.x,nz)){e.z=nz;}
+    }
+    e.sprite.position.set(e.x,WALL_H/2+0.2,e.z);
+
+    // Audio
+    updateEnemyAudio(e,d);
+  }
+}
+
+function checkDeath(){
+  let closeCount=0;
+  for(const e of enemies){
+    const d=dist2d(e.x,e.z,playerPos.x,playerPos.z);
+    if(d<DEATH_TOUCH) return true;
+    if(d<DEATH_SURROUND_DIST) closeCount++;
+  }
+  return closeCount>=DEATH_SURROUND_COUNT;
+}
+
+// ─── AUDIO ───────────────────────────────────────────────────────────────────
+async function initAudio(){
+  try{
+    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    const resp=await fetch(AUDIO_URL);
+    const buf=await resp.arrayBuffer();
+    quiteBuffer=await audioCtx.decodeAudioData(buf);
+    for(const e of enemies) startEnemyAudio(e);
+  }catch(err){console.warn('Audio load failed:',err);}
+}
+
+function startEnemyAudio(e){
+  if(!audioCtx||!quiteBuffer) return;
+  const src=audioCtx.createBufferSource();
+  src.buffer=quiteBuffer; src.loop=true;
+  const gain=audioCtx.createGain(); gain.gain.value=0;
+  const pan=audioCtx.createStereoPanner();
+  src.connect(gain); gain.connect(pan); pan.connect(audioCtx.destination);
+  src.start(audioCtx.currentTime+Math.random()*2);
+  e.source=src; e.gain=gain; e.panner=pan;
+}
+
+function updateEnemyAudio(e,dist){
+  if(!e.gain||!audioCtx) return;
+  const maxD=22;
+  if(dist<maxD){
+    const t=Math.max(0,1-dist/maxD);
+    e.gain.gain.setTargetAtTime(t*0.9,audioCtx.currentTime,0.15);
+    e.source.playbackRate.setTargetAtTime(1+t*2.2,audioCtx.currentTime,0.15);
+    const angle=Math.atan2(e.x-playerPos.x,e.z-playerPos.z)-yaw;
+    e.panner.pan.setTargetAtTime(Math.max(-1,Math.min(1,Math.sin(angle)*0.9)),audioCtx.currentTime,0.1);
+  } else {
+    e.gain.gain.setTargetAtTime(0,audioCtx.currentTime,0.3);
+    e.source.playbackRate.setTargetAtTime(1,audioCtx.currentTime,0.3);
+  }
+}
+
+function makeNoiseBurst(freq=120,dur=0.06,vol=0.25){
+  if(!audioCtx) return;
+  const buf=audioCtx.createBuffer(1,Math.floor(audioCtx.sampleRate*dur),audioCtx.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/(audioCtx.sampleRate*0.025));
+  const src=audioCtx.createBufferSource(); src.buffer=buf;
+  const g=audioCtx.createGain(); g.gain.value=vol;
+  const f=audioCtx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=freq;
+  src.connect(f); f.connect(g); g.connect(audioCtx.destination);
+  src.start();
+}
+
+// ─── PLAYER ──────────────────────────────────────────────────────────────────
+function updateCamera(){
+  camera.position.set(playerPos.x,PLAYER_H,playerPos.z);
+  camera.rotation.order='YXZ';
+  camera.rotation.y=yaw;
+  camera.rotation.x=pitch;
+}
+
+function updatePlayer(dt){
+  const fwd={x:Math.sin(yaw),z:Math.cos(yaw)};
+  const rgt={x:Math.cos(yaw),z:-Math.sin(yaw)};
+  let mx=0,mz=0;
+
+  if(keys['KeyW']||keys['ArrowUp']){mx+=fwd.x;mz+=fwd.z;}
+  if(keys['KeyS']||keys['ArrowDown']){mx-=fwd.x;mz-=fwd.z;}
+  if(keys['KeyA']||keys['ArrowLeft']){mx-=rgt.x;mz-=rgt.z;}
+  if(keys['KeyD']||keys['ArrowRight']){mx+=rgt.x;mz+=rgt.z;}
+
+  const len=Math.sqrt(mx*mx+mz*mz);
+  isMoving=len>0.01;
+  if(isMoving){
+    mx/=len; mz/=len;
+    const spd=PLAYER_SPEED*dt;
+    const nx=playerPos.x+mx*spd, nz=playerPos.z+mz*spd;
+    if(canStep(nx,playerPos.z)) playerPos.x=nx;
+    if(canStep(playerPos.x,nz)) playerPos.z=nz;
+  }
+
+  // Footsteps
+  if(isMoving&&audioCtx){
+    footTimer-=dt;
+    if(footTimer<=0){makeNoiseBurst(110,0.07,0.3);footTimer=0.38;}
+  }
+}
+
+// ─── LIGHTS FLICKER ──────────────────────────────────────────────────────────
+function updateLights(dt){
+  for(const l of lights){
+    if(!l.userData.flicker) continue;
+    l.userData.ft-=dt;
+    if(l.userData.ft<=0){
+      l.intensity=Math.random()>0.15?l.userData.baseInt:0.05;
+      l.userData.ft=Math.random()*(Math.random()>0.9?0.08:6)+0.02;
+    }
+  }
+}
+
+// ─── GAME LOOP ───────────────────────────────────────────────────────────────
+function loop(ts){
+  if(!gameActive) return;
+  requestAnimationFrame(loop);
+  const dt=Math.min((ts-lastTime)/1000,0.05); lastTime=ts;
+
+  updatePlayer(dt);
+  updateEnemies(dt);
+  updateLights(dt);
+  updateCamera();
+
+  if(checkDeath()){triggerDeath();return;}
+
+  renderer.render(scene,camera);
+}
+
+// ─── UI / STATE ──────────────────────────────────────────────────────────────
+function startGame(){
+  document.getElementById('titleScreen').style.display='none';
+  const go=document.getElementById('goFlash');
+  go.style.display='flex';
+  setTimeout(()=>{
+    go.style.display='none';
+    document.getElementById('hud').style.display='block';
+    document.getElementById('crosshair').style.display='block';
+    document.getElementById('clickPrompt').style.display='block';
+    gameActive=true;
+    lastTime=performance.now();
+    requestAnimationFrame(loop);
+    initAudio();
+  },700);
+}
+
+function triggerDeath(){
+  gameActive=false;
+  if(audioCtx) for(const e of enemies){try{e.source&&e.source.stop();}catch(err){}}
+  document.getElementById('hud').style.display='none';
+  document.getElementById('crosshair').style.display='none';
+  document.getElementById('clickPrompt').style.display='none';
+  document.getElementById('deathScreen').style.display='flex';
+  if(document.pointerLockElement) document.exitPointerLock();
+}
+
+function restartGame(){
+  // Teardown
+  while(scene.children.length) scene.remove(scene.children[0]);
+  wallBoxes=[]; enemies=[]; lights=[];
+  yaw=0; pitch=0;
+  playerPos={x:CELL*0.5+0.5, z:CELL*0.5+0.5};
+  if(audioCtx){audioCtx.close();audioCtx=null;quiteBuffer=null;}
+  document.getElementById('deathScreen').style.display='none';
+  document.getElementById('hud').style.display='none';
+  document.getElementById('crosshair').style.display='none';
+
+  maze=generateMaze(MAZE_W,MAZE_H);
+  buildMaze();
+  spawnEnemies();
+  updateCamera();
+
+  document.getElementById('hud').style.display='block';
+  document.getElementById('crosshair').style.display='block';
+  document.getElementById('clickPrompt').style.display='block';
+  gameActive=true;
+  lastTime=performance.now();
+  requestAnimationFrame(loop);
+  initAudio();
+}
+
+// ─── INPUT ───────────────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  keys[e.code]=true;
+  if(!gameActive&&(e.code==='Enter'||e.code==='Space')) startGame();
+});
+document.addEventListener('keyup',e=>keys[e.code]=false);
+
+document.addEventListener('mousemove',e=>{
+  if(!mouseLocked) return;
+  yaw-=e.movementX*0.0022;
+  pitch-=e.movementY*0.0022;
+  pitch=Math.max(-Math.PI/3,Math.min(Math.PI/3,pitch));
+});
+
+document.addEventListener('pointerlockchange',()=>{
+  mouseLocked=!!document.pointerLockElement;
+  document.getElementById('clickPrompt').style.display=mouseLocked?'none':'block';
+});
+
+document.getElementById('c').addEventListener('click',()=>{
+  if(!gameActive) startGame();
+  else document.getElementById('c').requestPointerLock();
+});
+
+window.addEventListener('resize',()=>{
+  if(!renderer) return;
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+initScene();
+</script>
+</body>
+</html>
