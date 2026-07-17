@@ -13,17 +13,16 @@
   #bar-wrap { width: 260px; height: 3px; background: #222; border-radius: 2px; overflow: hidden; }
   #bar { height: 100%; background: #c8b97a; width: 0%; transition: width .3s; }
   #pct { margin-top: 12px; font-size: 12px; opacity: .35; }
-  #err { margin-top: 16px; font-size: 11px; opacity: .5; max-width: 320px; text-align: center; display: none; color: #d97a7a; }
   #overlay { position: fixed; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,.75); cursor: pointer; z-index: 10; color: #c8b97a; }
   #overlay h1 { font-size: 22px; letter-spacing: 4px; margin-bottom: 16px; }
   #overlay p { font-size: 12px; opacity: .5; line-height: 2.2; text-align: center; }
   #xhair { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); pointer-events: none; display: none; z-index: 5; }
   #xh { width: 16px; height: 1px; background: rgba(255,255,255,.6); position: absolute; top: 0; left: -8px; }
   #xv { width: 1px; height: 16px; background: rgba(255,255,255,.6); position: absolute; top: -8px; left: 0; }
-  #tv-popup { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.82); z-index: 15; color: #c8b97a; cursor: default; }
+  #tv-popup { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.82); z-index: 15; color: #c8b97a; }
   #tv-inner { border: 1px solid rgba(200,185,122,.2); padding: 32px 44px; text-align: center; max-width: 420px; }
   #tv-inner .tag { font-size: 11px; letter-spacing: 3px; opacity: .45; margin-bottom: 14px; }
-  #tv-inner a { color: #c8b97a; font-size: 14px; text-decoration: underline; cursor: pointer; }
+  #tv-inner a { color: #c8b97a; font-size: 14px; text-decoration: underline; }
   #tv-inner .esc { margin-top: 24px; font-size: 11px; opacity: .3; }
   #hint { position: fixed; bottom: 16px; left: 20px; color: rgba(200,185,122,.28); font-size: 11px; letter-spacing: 1px; display: none; pointer-events: none; }
 </style>
@@ -37,7 +36,6 @@
   <div id="loading-label">Entering the Backrooms</div>
   <div id="bar-wrap"><div id="bar"></div></div>
   <div id="pct">0%</div>
-  <div id="err"></div>
 </div>
 <div id="overlay">
   <h1>CLICK TO ENTER</h1>
@@ -48,7 +46,7 @@
   <div id="tv-inner">
     <div class="tag">TV SIGNAL</div>
     <div id="tv-link"></div>
-    <div class="esc">ESC or click outside to close</div>
+    <div class="esc">ESC to close</div>
   </div>
 </div>
 <div id="hint">WASD &nbsp;·&nbsp; SHIFT &nbsp;·&nbsp; CLICK TV</div>
@@ -68,36 +66,7 @@ const TV_YOUTUBE_IDS = [
   'PLACEHOLDER_6','PLACEHOLDER_7','PLACEHOLDER_8','PLACEHOLDER_9','PLACEHOLDER_10',
 ];
 
-// ── ARCHIVE.ORG ITEM ──────────────────────────────────────────────────────────
-// We do NOT use https://archive.org/download/<id>/<file> directly: that path
-// issues a 302 redirect to the actual storage node, and browsers refuse to
-// follow a cross-origin redirect that doesn't itself carry the CORS header.
-// Instead we hit the metadata API (JSON, CORS-friendly) to find the real
-// node + dir, then build a direct URL that serves the file with proper
-// Access-Control-Allow-Origin headers — no redirect involved.
-// Archive.org item. We resolve the direct storage-node URL via the metadata
-// API rather than hardcoding archive.org/download/... (which 302-redirects
-// and breaks CORS). NOTE: as of last test, this specific file's storage node
-// was not sending an Access-Control-Allow-Origin header at all, which means
-// this WILL still fail with the same CORS error you saw before, unless
-// archive.org has since finished processing / fixed that on their end.
-const IA_IDENTIFIER = 'backrooms_vr';
-const IA_FILENAME = 'backrooms_vr.glb';
-const IA_DOWNLOAD_URL = `https://archive.org/download/${IA_IDENTIFIER}/${IA_FILENAME}`;
-let GLB_URL = IA_DOWNLOAD_URL;
-
-async function resolveGlbUrl() {
-  try {
-    const res = await fetch(`https://archive.org/metadata/${IA_IDENTIFIER}`);
-    if (!res.ok) throw new Error('metadata fetch failed: ' + res.status);
-    const data = await res.json();
-    if (!data.server || !data.dir) throw new Error('metadata missing server/dir');
-    return `https://${data.server}${data.dir}/${IA_FILENAME}`;
-  } catch (e) {
-    console.warn('Metadata lookup failed, using /download/ URL:', e);
-    return IA_DOWNLOAD_URL;
-  }
-}
+const GLB_URL = 'https://7ef686bf-a54a-461f-b222-19a4d7da7cf2-00-2ny7p7odxk6d4.janeway.replit.dev/api/glb';
 
 const TV_PLACEMENTS = [
   {pos:[6,1.8,-4],   ry:-Math.PI/2,  rx:0,         rz:0},
@@ -115,7 +84,6 @@ const TV_PLACEMENTS = [
 const loadingEl=document.getElementById('loading');
 const barEl=document.getElementById('bar');
 const pctEl=document.getElementById('pct');
-const errEl=document.getElementById('err');
 const overlayEl=document.getElementById('overlay');
 const xhairEl=document.getElementById('xhair');
 const popupEl=document.getElementById('tv-popup');
@@ -153,12 +121,7 @@ composer.addPass(new OutputPass());
 
 const controls=new PointerLockControls(camera,document.body);
 controls.addEventListener('lock',()=>{overlayEl.style.display='none';xhairEl.style.display='block';hintEl.style.display='block';});
-controls.addEventListener('unlock',()=>{
-  xhairEl.style.display='none';
-  hintEl.style.display='none';
-  // Only show the "click to enter" overlay if the TV popup isn't the reason we unlocked.
-  if (popupEl.style.display !== 'flex') overlayEl.style.display='flex';
-});
+controls.addEventListener('unlock',()=>{overlayEl.style.display='flex';xhairEl.style.display='none';hintEl.style.display='none';popupEl.style.display='none';});
 overlayEl.addEventListener('click',()=>controls.lock());
 
 function makeNoise(){const c=document.createElement('canvas');c.width=128;c.height=72;return c;}
@@ -181,54 +144,18 @@ TV_PLACEMENTS.forEach((p,i)=>{
 const draco=new DRACOLoader();
 draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
 const loader=new GLTFLoader();loader.setDRACOLoader(draco);
-
-resolveGlbUrl().then(url=>{
-  loader.load(url,
-    gltf=>{
-      gltf.scene.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});
-      scene.add(gltf.scene);
-      loadingEl.style.display='none';
-      overlayEl.style.display='flex';
-    },
-    ev=>{if(ev.total){const p=Math.round(ev.loaded/ev.total*100);barEl.style.width=p+'%';pctEl.textContent=p+'%';}},
-    error=>{
-      console.error('GLB load failed:', error);
-      pctEl.textContent='';
-      errEl.textContent='Failed to load the environment file. Check your connection and try again.';
-      errEl.style.display='block';
-    }
-  );
-});
+loader.load(GLB_URL,
+  gltf=>{gltf.scene.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});scene.add(gltf.scene);loadingEl.style.display='none';overlayEl.style.display='flex';},
+  ev=>{if(ev.total){const p=Math.round(ev.loaded/ev.total*100);barEl.style.width=p+'%';pctEl.textContent=p+'%';}},
+  ()=>{loadingEl.style.display='none';overlayEl.style.display='flex';}
+);
 
 const keys=new Set();
-document.addEventListener('keydown',e=>{
-  keys.add(e.code);
-  if(e.code==='Escape' && popupEl.style.display==='flex'){
-    closeTvPopup();
-  }
-});
+document.addEventListener('keydown',e=>{keys.add(e.code);if(e.code==='Escape')popupEl.style.display='none';});
 document.addEventListener('keyup',e=>keys.delete(e.code));
 
-function openTvPopup(id){
-  tvLinkEl.innerHTML=id.startsWith('PLACEHOLDER')
-    ? '<span style="opacity:.6;font-size:13px">YouTube link not set yet.</span>'
-    : `<a href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener">▶ Open Video</a>`;
-  popupEl.style.display='flex';
-  // Release pointer lock so the mouse cursor is free to click the link.
-  if (controls.isLocked) controls.unlock();
-  xhairEl.style.display='none';
-  hintEl.style.display='none';
-}
-function closeTvPopup(){
-  popupEl.style.display='none';
-  overlayEl.style.display='flex';
-}
-popupEl.addEventListener('click',(e)=>{
-  if(e.target===popupEl) closeTvPopup(); // click outside the box closes it
-});
-
 const ray=new THREE.Raycaster();
-canvas.addEventListener('click',()=>{
+document.addEventListener('click',()=>{
   if(!controls.isLocked)return;
   ray.setFromCamera(new THREE.Vector2(0,0),camera);
   const meshes=[];tvGroups.forEach(g=>g.traverse(c=>{if(c.isMesh)meshes.push(c);}));
@@ -236,7 +163,11 @@ canvas.addEventListener('click',()=>{
   if(hits.length&&hits[0].distance<6){
     for(let i=0;i<tvGroups.length;i++){
       let found=false;tvGroups[i].traverse(c=>{if(c===hits[0].object)found=true;});
-      if(found){ openTvPopup(tvYtIds[i]); break; }
+      if(found){
+        const id=tvYtIds[i];
+        tvLinkEl.innerHTML=id.startsWith('PLACEHOLDER')?'<span style="opacity:.6;font-size:13px">YouTube link not set yet.</span>':`<a href="https://www.youtube.com/watch?v=${id}" target="_blank">▶ Open Video</a>`;
+        popupEl.style.display='flex';break;
+      }
     }
   }
 });
