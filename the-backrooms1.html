@@ -130,7 +130,7 @@ const WALL_TVS = [
 const WINDOW_TVS = [
   // W1a — calibrated from in-game coords X:-3.59 Z:0.36, window height Y:2.65
   // ry:0 = screen faces into the room (negative Z)
-  { id:'W1a', pos:[-3.59, 2.65, 0.36], ry: Math.PI/2, wide:true },
+  { id:'W1a', pos:[-3.59, 2.65, 0.28], ry: Math.PI/2, wide:true },
 ];
 
 const GLB_URL_FINAL = GLB_URL;
@@ -484,14 +484,6 @@ function enterGame(){
   loadEl.style.transition = 'opacity 0.8s';
   loadEl.style.opacity = '0';
   setTimeout(()=>{ loadEl.style.display='none'; overlayEl.style.display='flex'; }, 800);
-  // Stop video 30 seconds after entering — fade audio out then pause
-  setTimeout(()=>{
-    const steps = 30;
-    const interval = setInterval(()=>{
-      if(introVideo.volume > 0.03){ introVideo.volume = Math.max(0, introVideo.volume - 1/steps); }
-      else { introVideo.volume = 0; introVideo.pause(); clearInterval(interval); }
-    }, 1000);
-  }, 30000);
 }
 
 function onGLBReady(){
