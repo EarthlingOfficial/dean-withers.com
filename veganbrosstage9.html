@@ -358,9 +358,9 @@ function tvDuckEnd(){
 const DOOR_VIDS=[
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
   'https://earthlingofficial.com/playroom1.mp4',
-  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
-  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
-  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
+  'https://earthlingofficial.com/purple.mp4',
+  'https://earthlingofficial.com/greenhex.mp4',
+  'https://earthlingofficial.com/orange.mp4',
 ];
 
 // ── TOKENS ──
@@ -505,7 +505,7 @@ const VOID_DOOR_POSITIONS=[
   // vidIdx 2 — R3 (ox=0,oz=48): east wall
   {x:46,y:0,z:66,ry:-Math.PI/2},
   // vidIdx 3 — R4 (ox=-48,oz=0): south wall
-  {x:-28,y:0,z:46,ry:Math.PI},
+  {x:-38,y:0,z:46,ry:Math.PI},
   // vidIdx 4 — R5a (ox=48,oz=48): north wall
   {x:66,y:0,z:50,ry:0},
 ];
@@ -792,6 +792,8 @@ function buildEntity(){
     entityModel.position.set(entityX,entityYOffset,entityZ);
     scene.add(entityModel);
     if(entityClips.length>0){entityCurrentAction=entityActions[0];entityCurrentAction.play();}
+    // Warm entity materials immediately after load to avoid first-render GPU stall
+    if(renderer)renderer.compile(scene,camera);
   },undefined,()=>{});
 }
 
@@ -1513,7 +1515,11 @@ function updateVideoVisibility(){
 }
 
 // ════ WORLD ════
-function buildWorld(){buildR1(0,0);buildR2(48,0);buildR4(-48,0);buildR3(0,48);buildR5a(48,48);buildR5b(96,48);buildSlideDoor();buildEnd(144,48);applyCheckpoint();}
+function buildWorld(){buildR1(0,0);buildR2(48,0);buildR4(-48,0);buildR3(0,48);buildR5a(48,48);buildR5b(96,48);buildSlideDoor();buildEnd(144,48);applyCheckpoint();
+  // Pre-build all void doors (hidden) so renderer.compile() warms their GPU materials
+  // preventing freeze stalls on first corridor-return reveal
+  for(let i=0;i<5;i++)buildVoidDoor(i);
+}
 
 function buildR1(ox,oz){
   floorCeil(ox,oz,48,48);roomLights(ox,oz,48,48);walls(ox,oz,48,48,{s:true,e:true,w:true});
@@ -1551,7 +1557,7 @@ function buildR4(ox,oz){
   floorCeil(ox,oz,48,48);roomLights(ox,oz,48,48);walls(ox,oz,48,48,{e:true});
   const cx=ox+24,cz=oz+24;
   addTV(cx,oz+4,3,0);
-  [[5.2,'#cc7733',22],[4.6,'#aa5522',17],[4,'#882211',13],[3.4,'#661100',10],[2.8,'#440800',8]].forEach((a,i)=>{T(['"crazy vegan"','— Dean Withers'],a[0],a[0]*0.5,a[1],null,a[2],cx,3.1-i*0.36,oz+46.6-i*0.25,Math.PI);});
+  [[5.2,'#cc7733',22],[4.6,'#aa5522',17],[4,'#882211',13],[3.4,'#661100',10],[2.8,'#440800',8]].forEach((a,i)=>{T(['"crazy vegan"','— Dean Withers'],a[0],a[0]*0.5,a[1],null,a[2],cx,3.1-i*0.36,oz+20+i*0.25,Math.PI);});
   T(['he called it a microaggression.','',"\"That's what I'd say if I had a small penis.\"",'— Dean Withers','','...micro.'],6,1.1,'#c8b86a','#060400',13,ox+0.6,2.2,cz,Math.PI/2);
   T(['What Dean claimed I said:','"No humans are victims"','','What was actually said:','"The animals are the victims."','','not a misunderstanding. a choice.'],5.5,1.1,'#aa7744','#040300',11,cx,2,oz+46.6,Math.PI);
   T(['when the logic ran out,','he asked me to bark like a dog.','I said goodbye. I meant it.'],3.5,2.4,'#886633',null,12,cx,2,oz+1.2,0);
@@ -1761,7 +1767,7 @@ function startExitVideo(){
 function finishExitVideo(){
   if(vrMode){vrDoorVideoEl.pause();vrDoorVideoEl.removeAttribute('src');vrDoorVideoEl.load();if(vrDoorVideoPlane)vrDoorVideoPlane.visible=false;doorVideoState='closed';}
   else{if(tvVideoEl){tvVideoEl.pause();tvVideoEl.removeAttribute('src');tvVideoEl.load();}if(videoMP4Obj)videoMP4Obj.visible=false;}
-  exitVideoActive=false;ending=true;$('fade').classList.add('on');setTimeout(()=>{window.location.href='veganbrosstage10.html';},1200);
+  exitVideoActive=false;ending=true;$('fade').classList.add('on');setTimeout(()=>{window.location.href='https://earthlingofficial.com/the-backrooms.html';},1200);
 }
 
 function openSlide(){
@@ -1973,7 +1979,7 @@ function playCorridorTV(tv){
 }
 
 function closeDoorVideo(){doorVideoState='closed';doorVideo.pause();doorVideo.src='';if(doorVideoPlane)doorVideoPlane.visible=false;if(activeDoor){collectToken(activeDoor.vidIdx);activeDoor=null;}}
-function rideSlide(){if(ending)return;ending=true;setObjective('');$('hint').style.display='none';if(videoIframe)videoIframe.src='';musicTarget=0;followQueue.length=0;whisper('down, then. mind the drop.');$('fade').classList.add('on');setTimeout(()=>{window.location.href='veganbrosstage10.html';},1300);}
+function rideSlide(){if(ending)return;ending=true;setObjective('');$('hint').style.display='none';if(videoIframe)videoIframe.src='';musicTarget=0;followQueue.length=0;whisper('down, then. mind the drop.');$('fade').classList.add('on');setTimeout(()=>{window.location.href='https://earthlingofficial.com/the-backrooms.html';},1300);}
 
 // ════ CONTROLS ════
 function setupControls(){
