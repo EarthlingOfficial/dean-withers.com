@@ -358,9 +358,9 @@ function tvDuckEnd(){
 const DOOR_VIDS=[
   'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
   'https://earthlingofficial.com/playroom1.mp4',
-  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
-  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
-  'https://earthlingofficial.com/lv_0_20260603163212%5B1%5D.mp4',
+  'https://earthlingofficial.com/purple.mp4',
+  'https://earthlingofficial.com/greenhex.mp4',
+  'https://earthlingofficial.com/orange.mp4',
 ];
 
 // ── TOKENS ──
@@ -498,8 +498,8 @@ const _voidLabels=(()=>{const a=[...VOID_DOOR_LABELS];for(let i=a.length-1;i>0;i
 // Positions for void doors — one per room, on a wall that isn't the TV wall
 // These are set in each buildR* call
 const VOID_DOOR_POSITIONS=[
-  // vidIdx 0 — R1 (ox=0,oz=0): west wall
-  {x:2,y:0,z:20,ry:Math.PI/2},
+  // vidIdx 0 — R1 (ox=0,oz=0): west wall — NASA ISS panoramic panel
+  {x:0.8,y:0,z:36,ry:Math.PI/2},
   // vidIdx 1 — R2 (ox=48,oz=0): north wall
   {x:72,y:0,z:2,ry:0},
   // vidIdx 2 — R3 (ox=0,oz=48): east wall
@@ -526,13 +526,34 @@ function buildVoidDoor(vidIdx){
   grp.position.set(pos.x,pos.y,pos.z);
   grp.rotation.y=pos.ry;
 
-  // ── PURE BLACK VOID PLANE — same geometry as door video screen ──
+  // ── VOID PLANE — panoramic for vidIdx 0 (NASA ISS), portrait for others ──
+  const isNASA=(vidIdx===0);
+  const voidW=isNASA?9.0:1.45, voidH=isNASA?3.9:3.3;
   const voidMesh=new THREE.Mesh(
-    new THREE.PlaneGeometry(1.45,3.3),
+    new THREE.PlaneGeometry(voidW,voidH),
     new THREE.MeshBasicMaterial({color:0x000000,side:THREE.DoubleSide})
   );
-  voidMesh.position.set(0,1.65,0);
+  voidMesh.position.set(0,voidH/2,0);
   grp.add(voidMesh);
+
+  // ── NASA ISS LIVE STREAM (vidIdx 0 only) — CSS3D iframe fills the panel ──
+  if(isNASA&&css3d&&typeof THREE.CSS3DObject==='function'){
+    const nasaEl=document.createElement('iframe');
+    nasaEl.src='https://www.youtube.com/embed/3F0XlKxaqbk?si=xC65sXloDolL9XS6&autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&playsinline=1';
+    nasaEl.allow='autoplay; encrypted-media; picture-in-picture';
+    nasaEl.setAttribute('allowfullscreen','');
+    nasaEl.setAttribute('frameborder','0');
+    // pixel dimensions — will be scaled to match voidW x voidH in world units
+    const nasaPxW=1280, nasaPxH=560;
+    nasaEl.style.cssText='width:'+nasaPxW+'px;height:'+nasaPxH+'px;border:0;background:#000;display:block;';
+    const nasaObj=new THREE.CSS3DObject(nasaEl);
+    const nasaScaleW=voidW/nasaPxW, nasaScaleH=voidH/nasaPxH;
+    // use uniform scale that fills the panel (use the larger scale so it covers edge-to-edge)
+    const nasaScale=Math.max(nasaScaleW,nasaScaleH);
+    nasaObj.scale.set(nasaScale,nasaScale,nasaScale);
+    nasaObj.position.set(0,voidH/2,0.01);
+    grp.add(nasaObj);
+  }
 
   // ── YOUTUBE BUTTON — hovering in front, eye height ──
   const ytCanvas=document.createElement('canvas');
@@ -568,7 +589,7 @@ function buildVoidDoor(vidIdx){
     new THREE.MeshBasicMaterial({map:ytTex,transparent:true,side:THREE.DoubleSide,depthWrite:false})
   );
   // Hover in front of the void at centre height, clearly off the ground
-  ytMesh.position.set(0,1.65,0.22);
+  ytMesh.position.set(isNASA?3.8:0,isNASA?0.55:1.65,0.22);
   grp.add(ytMesh);
 
   // ── TEXT LABEL — hovering above and to one side, no background ──
@@ -587,13 +608,13 @@ function buildVoidDoor(vidIdx){
     new THREE.MeshBasicMaterial({map:txtTex,transparent:true,side:THREE.DoubleSide,depthWrite:false})
   );
   // Float above the void door, slightly to one side
-  txtMesh.position.set(0.3,3.55,0.18);
+  txtMesh.position.set(isNASA?3.8:0.3,isNASA?1.05:3.55,0.18);
   grp.add(txtMesh);
 
   // Subtle glow (token colour) — PC only
   if(!isMobile){
     const gl=new THREE.PointLight(tokenColorHex,0.5,5);
-    gl.position.set(0,1.65,0.6);
+    gl.position.set(isNASA?3.8:0,isNASA?0.55:1.65,0.6);
     grp.add(gl);
   }
 
@@ -792,6 +813,8 @@ function buildEntity(){
     entityModel.position.set(entityX,entityYOffset,entityZ);
     scene.add(entityModel);
     if(entityClips.length>0){entityCurrentAction=entityActions[0];entityCurrentAction.play();}
+    // Warm entity materials immediately after load to avoid first-render GPU stall
+    if(renderer)renderer.compile(scene,camera);
   },undefined,()=>{});
 }
 
@@ -1513,7 +1536,11 @@ function updateVideoVisibility(){
 }
 
 // ════ WORLD ════
-function buildWorld(){buildR1(0,0);buildR2(48,0);buildR4(-48,0);buildR3(0,48);buildR5a(48,48);buildR5b(96,48);buildSlideDoor();buildEnd(144,48);applyCheckpoint();}
+function buildWorld(){buildR1(0,0);buildR2(48,0);buildR4(-48,0);buildR3(0,48);buildR5a(48,48);buildR5b(96,48);buildSlideDoor();buildEnd(144,48);applyCheckpoint();
+  // Pre-build all void doors (hidden) so renderer.compile() warms their GPU materials
+  // preventing freeze stalls on first corridor-return reveal
+  for(let i=0;i<5;i++)buildVoidDoor(i);
+}
 
 function buildR1(ox,oz){
   floorCeil(ox,oz,48,48);roomLights(ox,oz,48,48);walls(ox,oz,48,48,{s:true,e:true,w:true});
@@ -1551,7 +1578,7 @@ function buildR4(ox,oz){
   floorCeil(ox,oz,48,48);roomLights(ox,oz,48,48);walls(ox,oz,48,48,{e:true});
   const cx=ox+24,cz=oz+24;
   addTV(cx,oz+4,3,0);
-  [[5.2,'#cc7733',22],[4.6,'#aa5522',17],[4,'#882211',13],[3.4,'#661100',10],[2.8,'#440800',8]].forEach((a,i)=>{T(['"crazy vegan"','— Dean Withers'],a[0],a[0]*0.5,a[1],null,a[2],cx,3.1-i*0.36,oz+46.6-i*0.25,Math.PI);});
+  [[5.2,'#cc7733',22],[4.6,'#aa5522',17],[4,'#882211',13],[3.4,'#661100',10],[2.8,'#440800',8]].forEach((a,i)=>{T(['"crazy vegan"','— Dean Withers'],a[0],a[0]*0.5,a[1],null,a[2],cx,3.1-i*0.36,oz+20+i*0.25,Math.PI);});
   T(['he called it a microaggression.','',"\"That's what I'd say if I had a small penis.\"",'— Dean Withers','','...micro.'],6,1.1,'#c8b86a','#060400',13,ox+0.6,2.2,cz,Math.PI/2);
   T(['What Dean claimed I said:','"No humans are victims"','','What was actually said:','"The animals are the victims."','','not a misunderstanding. a choice.'],5.5,1.1,'#aa7744','#040300',11,cx,2,oz+46.6,Math.PI);
   T(['when the logic ran out,','he asked me to bark like a dog.','I said goodbye. I meant it.'],3.5,2.4,'#886633',null,12,cx,2,oz+1.2,0);
@@ -1761,7 +1788,7 @@ function startExitVideo(){
 function finishExitVideo(){
   if(vrMode){vrDoorVideoEl.pause();vrDoorVideoEl.removeAttribute('src');vrDoorVideoEl.load();if(vrDoorVideoPlane)vrDoorVideoPlane.visible=false;doorVideoState='closed';}
   else{if(tvVideoEl){tvVideoEl.pause();tvVideoEl.removeAttribute('src');tvVideoEl.load();}if(videoMP4Obj)videoMP4Obj.visible=false;}
-  exitVideoActive=false;ending=true;$('fade').classList.add('on');setTimeout(()=>{window.location.href='veganbrosstage10.html';},1200);
+  exitVideoActive=false;ending=true;$('fade').classList.add('on');setTimeout(()=>{window.location.href='https://earthlingofficial.com/the-backrooms.html';},1200);
 }
 
 function openSlide(){
@@ -1973,7 +2000,7 @@ function playCorridorTV(tv){
 }
 
 function closeDoorVideo(){doorVideoState='closed';doorVideo.pause();doorVideo.src='';if(doorVideoPlane)doorVideoPlane.visible=false;if(activeDoor){collectToken(activeDoor.vidIdx);activeDoor=null;}}
-function rideSlide(){if(ending)return;ending=true;setObjective('');$('hint').style.display='none';if(videoIframe)videoIframe.src='';musicTarget=0;followQueue.length=0;whisper('down, then. mind the drop.');$('fade').classList.add('on');setTimeout(()=>{window.location.href='veganbrosstage10.html';},1300);}
+function rideSlide(){if(ending)return;ending=true;setObjective('');$('hint').style.display='none';if(videoIframe)videoIframe.src='';musicTarget=0;followQueue.length=0;whisper('down, then. mind the drop.');$('fade').classList.add('on');setTimeout(()=>{window.location.href='https://earthlingofficial.com/the-backrooms.html';},1300);}
 
 // ════ CONTROLS ════
 function setupControls(){
@@ -2045,7 +2072,7 @@ function updateFuzz(){const id=fuzzCtx.createImageData(64,48);for(let i=0;i<id.d
     radioEl.addEventListener("error",radioOnError);
   }
 
-  function radioOnError(){radioFailCount++;if(radioFailCount>=RADIO_STATIONS.length){radioFailCount=0;radioPlaying=false;radioTunerShow(false,null);radioTimer=setTimeout(radioStartCycle,Math.random()*75000+45000);return;}radioStIdx=(radioStIdx+1)%RADIO_STATIONS.length;setTimeout(radioPlayNow,500);}
+  function radioOnError(){radioFailCount++;if(radioFailCount>=RADIO_STATIONS.length){radioFailCount=0;radioPlaying=false;radioTunerShow(false,null);radioTimer=setTimeout(radioStartCycle,Math.random()*12000+4000);return;}radioStIdx=(radioStIdx+1)%RADIO_STATIONS.length;setTimeout(radioPlayNow,500);}
 
   function radioPlayNow(){
     if(!radioCtx)return;const st=RADIO_STATIONS[radioStIdx];
@@ -2072,7 +2099,7 @@ function updateFuzz(){const id=fuzzCtx.createImageData(64,48);for(let i=0;i<id.d
       setTimeout(()=>{radioEl.pause();radioStIdx=(radioStIdx+1)%RADIO_STATIONS.length;if(radioScanHops===0)radioBehavior="long";radioPlayNow();},300);
     } else {
       radioGain.gain.cancelScheduledValues(t);radioGain.gain.setValueAtTime(radioGain.gain.value,t);radioFilter.frequency.cancelScheduledValues(t);radioFilter.frequency.setValueAtTime(radioFilter.frequency.value,t);radioFilter.frequency.exponentialRampToValueAtTime(180,t+2.5);radioFilter.Q.setValueAtTime(0.5,t);radioFilter.Q.linearRampToValueAtTime(4.0,t+2);radioGain.gain.linearRampToValueAtTime(0,t+2.8);
-      setTimeout(()=>{radioEl.pause();radioPlaying=false;radioTunerShow(false,null);if(ending)return;if(radioBehavior==="short"){radioStartCycle();}else{radioTimer=setTimeout(radioStartCycle,Math.random()*75000+45000);}},2900);
+      setTimeout(()=>{radioEl.pause();radioPlaying=false;radioTunerShow(false,null);if(ending)return;if(radioBehavior==="short"){radioStartCycle();}else{radioTimer=setTimeout(radioStartCycle,Math.random()*12000+4000);}},2900);
     }
   }
 
