@@ -1,7 +1,18 @@
+This repository is a non-profit, independent archival project dedicated to the documentation of public discourse and ethical practices in various industries. This includes investigative research into animal agriculture and digital accountability. All materials are presented for educational and documentary purposes, consistent with the project's commitment to factual transparency and public interest. 
+
+Content Policy & Age Verification
+This project contains mature themes, including documentary footage related to agricultural industry practices. This content is intended for a mature audience only.
+Age Restriction: Access to mature-rated documentary components within the project is protected by an integrated 18+ age-gate. Users are required to verify their age before proceeding.
+
+Educational Context: All documentary and archive materials are provided solely for research, documentation, and educational purposes regarding public discourse and industry practices.
+User Responsibility: By accessing this repository and the associated project, you acknowledge that you are at least 18 years of age. We prioritize responsible viewing and expect users to adhere to all age-appropriate guidelines.
+
+
+
 # earthlingofficial.com
 Earthling official The wildlife archive for Deanus Politicus Carnivorus Paradoxus 
 # Project Title: Tiktok WildLIVE & Go Dean!
-
+# Official page for missing person Sally Grace Contarino please see https://earthlingofficial.com/find-sally-contarino.html and contact Las Vegas Metro Police if you have any information
 ## Mission Statement
 
 This repository serves as a **non-profit, independent archival project**. Its primary purpose is the documentation and analysis of public discourse, internet culture, and digital accountability.

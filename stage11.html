@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>THE BACKROOMS</title>
+<style>
+  :root{
+    --sick-yellow:#c2b280;
+    --sick-yellow-dim:#8a7f52;
+    --bg:#0a0a08;
+    --panel:#14130d;
+  }
+  *{ box-sizing:border-box; }
+  html,body{
+    margin:0; padding:0; width:100%; height:100%;
+    background:#000; overflow:hidden;
+    font-family:"Courier New", Courier, monospace;
+    color:var(--sick-yellow);
+  }
+  canvas{ display:block; }
+
+  /* ---------- LOADING SCREEN ---------- */
+  #loading-screen{
+    position:fixed; inset:0; z-index:50;
+    background:radial-gradient(ellipse at center, #16150d 0%, #000 78%);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:28px;
+  }
+  #loading-screen.hidden{ display:none; }
+  .flicker-title{
+    font-size:clamp(28px, 5vw, 54px);
+    letter-spacing:0.35em;
+    text-transform:uppercase;
+    color:var(--sick-yellow);
+    text-shadow:0 0 10px rgba(194,178,128,0.5), 0 0 30px rgba(194,178,128,0.15);
+    animation:flicker 3.2s infinite;
+  }
+  @keyframes flicker{
+    0%,19%,21%,23%,25%,54%,56%,100%{ opacity:1; }
+    20%,24%,55%{ opacity:0.35; }
+    50%{ opacity:0.75; }
+  }
+  .load-bar-outer{
+    width:min(480px, 70vw); height:14px;
+    border:1px solid var(--sick-yellow-dim);
+    background:#0d0c08;
+    position:relative;
+  }
+  .load-bar-inner{
+    height:100%; width:0%;
+    background:linear-gradient(90deg, #6b6340, var(--sick-yellow));
+    transition:width 0.15s ease-out;
+  }
+  .load-meta{
+    font-size:12px; letter-spacing:0.15em; color:var(--sick-yellow-dim);
+    text-transform:uppercase; text-align:center; min-height:1.4em;
+  }
+  .load-sub{
+    font-size:11px; letter-spacing:0.1em; color:#4a4630; text-align:center; max-width:480px;
+  }
+
+  /* ---------- START / GATE SCREEN ---------- */
+  #start-screen{
+    position:fixed; inset:0; z-index:40;
+    background:rgba(0,0,0,0.72);
+    display:none;
+    flex-direction:column; align-items:center; justify-content:center; gap:22px;
+    text-align:center; padding:20px;
+  }
+  #start-screen.visible{ display:flex; }
+  #start-screen h1{
+    margin:0; font-size:clamp(22px,4vw,38px); letter-spacing:0.3em;
+    text-transform:uppercase; color:var(--sick-yellow);
+    text-shadow:0 0 12px rgba(194,178,128,0.4);
+  }
+  .enter-btn{
+    padding:14px 38px; font-size:14px; letter-spacing:0.25em; text-transform:uppercase;
+    background:transparent; color:var(--sick-yellow); border:1px solid var(--sick-yellow-dim);
+    cursor:pointer; font-family:inherit;
+    transition:background 0.2s, color 0.2s;
+  }
+  .enter-btn:hover{ background:var(--sick-yellow); color:#0a0a08; }
+  .controls-list{
+    display:flex; flex-wrap:wrap; gap:10px 26px; justify-content:center;
+    font-size:12px; letter-spacing:0.08em; color:#8a8360; max-width:520px;
+  }
+  .controls-list kbd{
+    display:inline-block; padding:2px 7px; margin-right:6px;
+    border:1px solid var(--sick-yellow-dim); border-radius:3px;
+    font-size:11px; color:var(--sick-yellow);
+  }
+
+  /* ---------- HUD ---------- */
+  #hud{
+    position:fixed; inset:0; z-index:30; pointer-events:none; display:none;
+  }
+  #hud.visible{ display:block; }
+  #crosshair{
+    position:absolute; top:50%; left:50%; width:6px; height:6px;
+    transform:translate(-50%,-50%);
+    border:1px solid rgba(194,178,128,0.85);
+    border-radius:50%;
+  }
+  #hint{
+    position:absolute; bottom:22px; left:50%; transform:translateX(-50%);
+    font-size:11px; letter-spacing:0.12em; color:rgba(194,178,128,0.55);
+    text-transform:uppercase; text-align:center;
+    transition:opacity 1.2s ease;
+  }
+  #stats{
+    position:absolute; top:14px; left:16px;
+    font-size:11px; letter-spacing:0.08em; color:rgba(194,178,128,0.5);
+    line-height:1.6;
+  }
+
+  /* ---------- ERROR ---------- */
+  #error-box{
+    position:fixed; inset:0; z-index:60; display:none;
+    background:#0a0a08; color:#c28080;
+    align-items:center; justify-content:center; text-align:center; padding:40px;
+    font-size:13px; letter-spacing:0.05em; line-height:1.7;
+  }
+  #error-box.visible{ display:flex; }
+</style>
+</head>
+<body>
+
+<div id="loading-screen">
+  <div class="flicker-title">The Backrooms</div>
+  <div class="load-bar-outer"><div class="load-bar-inner" id="load-bar"></div></div>
+  <div class="load-meta" id="load-meta">Initializing…</div>
+  <div class="load-sub">Loading a 215MB 4K environment. This may take a while on first load — the file is not cached until fully downloaded.</div>
+</div>
+
+<div id="start-screen">
+  <h1>Enter</h1>
+  <button class="enter-btn" id="enter-btn">Click to Begin</button>
+  <div class="controls-list">
+    <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Move</div>
+    <div><kbd>Mouse</kbd> Look</div>
+    <div><kbd>Shift</kbd> Sprint</div>
+    <div><kbd>Space</kbd> Jump</div>
+    <div><kbd>F</kbd> Flashlight</div>
+    <div><kbd>Esc</kbd> Release cursor</div>
+  </div>
+</div>
+
+<div id="hud">
+  <div id="crosshair"></div>
+  <div id="hint">Move — WASD &nbsp;·&nbsp; Look — Mouse &nbsp;·&nbsp; Sprint — Shift &nbsp;·&nbsp; Jump — Space &nbsp;·&nbsp; Flashlight — F</div>
+  <div id="stats"></div>
+</div>
+
+<div id="error-box">
+  <div>
+    <p>THE ROOM FAILED TO LOAD.</p>
+    <p id="error-detail" style="color:#8a8360;"></p>
+    <p style="color:#4a4630; font-size:11px;">Open the browser console for the full error. If this is a CORS or network error on the GitHub release asset, the file may need to be served with explicit CORS headers or hosted via a CDN/Pages path instead of the raw release URL.</p>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { FilmPass } from "three/addons/postprocessing/FilmPass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+
+// ---------------------------------------------------------------------------
+// CONFIG
+// ---------------------------------------------------------------------------
+const GLB_URL = "https://github.com/EarthlingOfficial/dean-withers.com/releases/download/v4/backrooms_vr.glb";
+
+const EYE_HEIGHT       = 1.65;   // meters, camera height above floor hit
+const PLAYER_RADIUS    = 0.35;   // horizontal collision radius
+const WALK_SPEED       = 3.2;    // m/s
+const SPRINT_MULT      = 1.9;
+const JUMP_SPEED        = 4.5;
+const GRAVITY           = 11.5;
+const ACCEL             = 40;    // how fast velocity approaches target
+const MAX_STEP_UP       = 0.45;  // small ledges we can just walk up
+
+// ---------------------------------------------------------------------------
+// DOM
+// ---------------------------------------------------------------------------
+const loadingScreen = document.getElementById("loading-screen");
+const loadBar        = document.getElementById("load-bar");
+const loadMeta       = document.getElementById("load-meta");
+const startScreen    = document.getElementById("start-screen");
+const enterBtn       = document.getElementById("enter-btn");
+const hud             = document.getElementById("hud");
+const hint            = document.getElementById("hint");
+const statsEl         = document.getElementById("stats");
+const errorBox        = document.getElementById("error-box");
+const errorDetail     = document.getElementById("error-detail");
+
+// ---------------------------------------------------------------------------
+// RENDERER / SCENE / CAMERA
+// ---------------------------------------------------------------------------
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1608);
+scene.fog = new THREE.FogExp2(0x9c9060, 0.02); // density tuned once model bounds are known
+
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.05, 500);
+scene.add(camera);
+
+// Fluorescent-buzz ambient base so the space is never pitch black even before the flashlight
+const ambient = new THREE.AmbientLight(0xfff2cc, 0.45);
+const hemi = new THREE.HemisphereLight(0xfff6d9, 0x3a3520, 0.55);
+scene.add(ambient, hemi);
+
+// Player flashlight, toggle with F
+const flashlight = new THREE.SpotLight(0xfff3d0, 3.0, 30, Math.PI / 6.2, 0.45, 1.4);
+flashlight.castShadow = true;
+flashlight.shadow.mapSize.set(1024, 1024);
+flashlight.visible = false;
+camera.add(flashlight);
+flashlight.position.set(0, 0, 0);
+flashlight.target.position.set(0, 0, -1);
+camera.add(flashlight.target);
+
+// ---------------------------------------------------------------------------
+// POST-PROCESSING (bloom for fluorescents/emissives + subtle film grain/scanlines)
+// ---------------------------------------------------------------------------
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+
+const bloomPass = new UnrealBloomPass(
+  new THREE.Vector2(window.innerWidth, window.innerHeight),
+  0.55,  // strength
+  0.4,   // radius
+  0.86   // threshold
+);
+composer.addPass(bloomPass);
+
+const filmPass = new FilmPass(0.28, false); // subtle noise, no scanline banding artifact
+composer.addPass(filmPass);
+
+composer.addPass(new OutputPass());
+
+// ---------------------------------------------------------------------------
+// CONTROLS
+// ---------------------------------------------------------------------------
+const controls = new PointerLockControls(camera, document.body);
+
+const keys = { w:false, a:false, s:false, d:false, shift:false, space:false };
+
+document.addEventListener("keydown", (e) => {
+  switch (e.code) {
+    case "KeyW": keys.w = true; break;
+    case "KeyA": keys.a = true; break;
+    case "KeyS": keys.s = true; break;
+    case "KeyD": keys.d = true; break;
+    case "ShiftLeft":
+    case "ShiftRight": keys.shift = true; break;
+    case "Space": keys.space = true; break;
+    case "KeyF": flashlight.visible = !flashlight.visible; break;
+  }
+});
+document.addEventListener("keyup", (e) => {
+  switch (e.code) {
+    case "KeyW": keys.w = false; break;
+    case "KeyA": keys.a = false; break;
+    case "KeyS": keys.s = false; break;
+    case "KeyD": keys.d = false; break;
+    case "ShiftLeft":
+    case "ShiftRight": keys.shift = false; break;
+    case "Space": keys.space = false; break;
+  }
+});
+
+enterBtn.addEventListener("click", () => controls.lock());
+controls.addEventListener("lock", () => {
+  startScreen.classList.remove("visible");
+  hud.classList.add("visible");
+});
+controls.addEventListener("unlock", () => {
+  startScreen.classList.add("visible");
+});
+
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ---------------------------------------------------------------------------
+// LOAD MODEL
+// ---------------------------------------------------------------------------
+const collidables = [];
+let modelLoaded = false;
+let spawnPoint = new THREE.Vector3(0, EYE_HEIGHT, 0);
+
+const loader = new GLTFLoader();
+
+loader.load(
+  GLB_URL,
+  (gltf) => {
+    const model = gltf.scene;
+
+    model.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+        collidables.push(child);
+
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach((mat) => {
+          if (!mat) return;
+          if (mat.map) {
+            mat.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            mat.map.colorSpace = THREE.SRGBColorSpace;
+          }
+          mat.needsUpdate = true;
+        });
+      }
+    });
+
+    scene.add(model);
+
+    // Derive spawn + fog scale from the model's actual bounding box
+    const box = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+
+    spawnPoint.set(center.x, box.min.y + EYE_HEIGHT, center.z);
+    camera.position.copy(spawnPoint);
+
+    const maxDim = Math.max(size.x, size.y, size.z);
+    scene.fog.density = THREE.MathUtils.clamp(2.5 / maxDim, 0.006, 0.05);
+    camera.far = Math.max(200, maxDim * 3);
+    camera.updateProjectionMatrix();
+
+    modelLoaded = true;
+    loadingScreen.classList.add("hidden");
+    startScreen.classList.add("visible");
+  },
+  (event) => {
+    if (event.lengthComputable && event.total > 0) {
+      const pct = (event.loaded / event.total) * 100;
+      loadBar.style.width = pct.toFixed(1) + "%";
+      loadMeta.textContent =
+        `${(event.loaded / 1048576).toFixed(1)}MB / ${(event.total / 1048576).toFixed(1)}MB — ${pct.toFixed(0)}%`;
+    } else {
+      loadMeta.textContent = `${(event.loaded / 1048576).toFixed(1)}MB loaded…`;
+    }
+  },
+  (err) => {
+    console.error("GLB load failed:", err);
+    loadingScreen.classList.add("hidden");
+    errorDetail.textContent = String(err && err.message ? err.message : err);
+    errorBox.classList.add("visible");
+  }
+);
+
+// ---------------------------------------------------------------------------
+// MOVEMENT / COLLISION
+// ---------------------------------------------------------------------------
+const velocity = new THREE.Vector3();
+const raycaster = new THREE.Raycaster();
+let grounded = false;
+
+const clock = new THREE.Clock();
+let frameCount = 0;
+let fpsAccum = 0;
+let fps = 0;
+
+function tryMoveAxis(currentPos, dirVec, distance) {
+  if (distance === 0 || collidables.length === 0) return distance;
+  raycaster.set(
+    new THREE.Vector3(currentPos.x, currentPos.y - EYE_HEIGHT * 0.35, currentPos.z),
+    dirVec
+  );
+  raycaster.far = PLAYER_RADIUS + Math.abs(distance);
+  const hits = raycaster.intersectObjects(collidables, true);
+  if (hits.length > 0 && hits[0].distance < PLAYER_RADIUS + Math.abs(distance)) {
+    const allowed = Math.max(hits[0].distance - PLAYER_RADIUS, 0);
+    return Math.sign(distance) * allowed;
+  }
+  return distance;
+}
+
+function updateMovement(delta) {
+  if (!modelLoaded || !controls.isLocked) return;
+
+  const forward = new THREE.Vector3();
+  camera.getWorldDirection(forward);
+  forward.y = 0;
+  forward.normalize();
+  const right = new THREE.Vector3(forward.z, 0, -forward.x);
+
+  const inputDir = new THREE.Vector3();
+  if (keys.w) inputDir.add(forward);
+  if (keys.s) inputDir.sub(forward);
+  if (keys.d) inputDir.add(right);
+  if (keys.a) inputDir.sub(right);
+  if (inputDir.lengthSq() > 0) inputDir.normalize();
+
+  const speed = WALK_SPEED * (keys.shift ? SPRINT_MULT : 1);
+  const targetVX = inputDir.x * speed;
+  const targetVZ = inputDir.z * speed;
+
+  velocity.x += (targetVX - velocity.x) * Math.min(1, ACCEL * delta);
+  velocity.z += (targetVZ - velocity.z) * Math.min(1, ACCEL * delta);
+
+  // Horizontal collision, axis-separated for wall sliding
+  const pos = camera.position;
+  const moveX = tryMoveAxis(pos, new THREE.Vector3(Math.sign(velocity.x) || 1, 0, 0), velocity.x * delta);
+  const moveZ = tryMoveAxis(pos, new THREE.Vector3(0, 0, Math.sign(velocity.z) || 1), velocity.z * delta);
+  pos.x += moveX;
+  pos.z += moveZ;
+
+  // Ground raycast
+  raycaster.set(new THREE.Vector3(pos.x, pos.y + 1.0, pos.z), new THREE.Vector3(0, -1, 0));
+  raycaster.far = 1.0 + EYE_HEIGHT + MAX_STEP_UP + 2.0;
+  const groundHits = collidables.length ? raycaster.intersectObjects(collidables, true) : [];
+
+  if (groundHits.length > 0) {
+    const floorY = groundHits[0].point.y;
+    const targetY = floorY + EYE_HEIGHT;
+    if (velocity.y <= 0 && pos.y - targetY < MAX_STEP_UP + 0.05) {
+      pos.y = targetY;
+      velocity.y = 0;
+      grounded = true;
+    } else {
+      grounded = false;
+    }
+  } else {
+    grounded = false;
+  }
+
+  if (!grounded) {
+    velocity.y -= GRAVITY * delta;
+    pos.y += velocity.y * delta;
+  } else if (keys.space) {
+    velocity.y = JUMP_SPEED;
+    grounded = false;
+  }
+
+  // Safety floor so you never fall through into the void on sparse geometry
+  if (pos.y < spawnPoint.y - 30) {
+    pos.copy(spawnPoint);
+    velocity.set(0, 0, 0);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// HINT FADE
+// ---------------------------------------------------------------------------
+setTimeout(() => { hint.style.opacity = "0"; }, 9000);
+
+// ---------------------------------------------------------------------------
+// RENDER LOOP
+// ---------------------------------------------------------------------------
+function animate() {
+  requestAnimationFrame(animate);
+  const delta = Math.min(clock.getDelta(), 0.1);
+
+  updateMovement(delta);
+  composer.render();
+
+  frameCount++;
+  fpsAccum += delta;
+  if (fpsAccum >= 0.5) {
+    fps = Math.round(frameCount / fpsAccum);
+    frameCount = 0;
+    fpsAccum = 0;
+    statsEl.textContent = `${fps} fps  ·  ${collidables.length} meshes`;
+  }
+}
+animate();
+</script>
+</body>
+</html>

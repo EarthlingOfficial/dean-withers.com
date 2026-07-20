@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Backrooms</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; overflow: hidden; font-family: 'Courier New', monospace; }
+  #c { display: block; width: 100vw; height: 100vh; }
+  #loading { position: fixed; inset: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #c8b97a; z-index: 20; }
+  #loading-label { font-size: 11px; letter-spacing: 6px; opacity: .55; margin-bottom: 28px; text-transform: uppercase; }
+  #bar-wrap { width: 260px; height: 3px; background: #222; border-radius: 2px; overflow: hidden; }
+  #bar { height: 100%; background: #c8b97a; width: 0%; transition: width .3s; }
+  #pct { margin-top: 12px; font-size: 12px; opacity: .35; }
+  #overlay { position: fixed; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,.75); cursor: pointer; z-index: 10; color: #c8b97a; }
+  #overlay h1 { font-size: 22px; letter-spacing: 4px; margin-bottom: 16px; }
+  #overlay p { font-size: 12px; opacity: .5; line-height: 2.2; text-align: center; }
+  #xhair { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); pointer-events: none; display: none; z-index: 5; }
+  #xh { width: 16px; height: 1px; background: rgba(255,255,255,.6); position: absolute; top: 0; left: -8px; }
+  #xv { width: 1px; height: 16px; background: rgba(255,255,255,.6); position: absolute; top: -8px; left: 0; }
+  #tv-popup { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.82); z-index: 15; color: #c8b97a; }
+  #tv-inner { border: 1px solid rgba(200,185,122,.2); padding: 32px 44px; text-align: center; max-width: 480px; }
+  #tv-inner .tag { font-size: 11px; letter-spacing: 3px; opacity: .45; margin-bottom: 6px; }
+  #tv-inner .tv-id { font-size: 18px; letter-spacing: 6px; margin-bottom: 14px; color: #c8b97a; }
+  #tv-inner a { color: #c8b97a; font-size: 14px; text-decoration: underline; }
+  #tv-inner .esc { margin-top: 24px; font-size: 11px; opacity: .3; }
+  #hint { position: fixed; bottom: 16px; left: 20px; color: rgba(200,185,122,.28); font-size: 11px; letter-spacing: 1px; display: none; pointer-events: none; }
+  #coords { position: fixed; top: 12px; right: 12px; color: rgba(200,185,122,.5); font-size: 10px; letter-spacing: 1px; z-index: 50; pointer-events: none; display: none; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="loading">
+  <div id="loading-label">Entering the Backrooms</div>
+  <div id="bar-wrap"><div id="bar"></div></div>
+  <div id="pct">0%</div>
+</div>
+<div id="overlay">
+  <h1>CLICK TO ENTER</h1>
+  <p>WASD — Move &nbsp;|&nbsp; Mouse — Look &nbsp;|&nbsp; Shift — Sprint<br>Click a TV — Interact &nbsp;|&nbsp; ESC — Pause &nbsp;|&nbsp; ~ — Coords</p>
+</div>
+<div id="xhair"><div id="xh"></div><div id="xv"></div></div>
+<div id="tv-popup">
+  <div id="tv-inner">
+    <div class="tag">TV SIGNAL</div>
+    <div class="tv-id" id="tv-id-label"></div>
+    <div id="tv-link"></div>
+    <div class="esc">ESC to close</div>
+  </div>
+</div>
+<div id="hint">WASD &nbsp;·&nbsp; SHIFT &nbsp;·&nbsp; CLICK TV &nbsp;·&nbsp; ~ COORDS</div>
+<div id="coords"></div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+// ── YOUTUBE IDs — swap PLACEHOLDER_X with real IDs when ready ──────────────
+// T1–T10 = wall TVs (inside content)
+// W1a, W1b = first window pair (left partition wall, facing inward)
+// W2a, W2b = second window pair (right partition wall, facing inward)
+const TV_IDS = {
+  T1:'PLACEHOLDER_T1', T2:'PLACEHOLDER_T2', T3:'PLACEHOLDER_T3',
+  T4:'PLACEHOLDER_T4', T5:'PLACEHOLDER_T5', T6:'PLACEHOLDER_T6',
+  T7:'PLACEHOLDER_T7', T8:'PLACEHOLDER_T8', T9:'PLACEHOLDER_T9',
+  T10:'PLACEHOLDER_T10',
+  W1a:'PLACEHOLDER_W1a', W1b:'PLACEHOLDER_W1b',
+  W2a:'PLACEHOLDER_W2a', W2b:'PLACEHOLDER_W2b',
+};
+
+const GLB_URL = 'https://cors.archive.org/cors/backrooms_vr/backrooms_vr.glb';
+
+// ── WALL TVs (T1–T10): estimated from wireframe ──────────────────────────────
+// Building runs roughly along Z axis, ~120 units long, ~30 wide
+// Interior corridors and rooms from wireframe — adjust after coord walk
+const WALL_TVS = [
+  // Long corridor — south wall
+  { id:'T1',  pos:[ 0,   1.7, -8],   ry: 0          },
+  { id:'T2',  pos:[ 0,   1.7, -18],  ry: 0          },
+  { id:'T3',  pos:[ 0,   1.7, -30],  ry: 0          },
+  // Long corridor — north wall
+  { id:'T4',  pos:[ 0,   1.7, -12],  ry: Math.PI    },
+  { id:'T5',  pos:[ 0,   1.7, -24],  ry: Math.PI    },
+  // Main open room — east wall
+  { id:'T6',  pos:[ 12,  1.7, -5],   ry:-Math.PI/2  },
+  { id:'T7',  pos:[ 12,  1.7,  5],   ry:-Math.PI/2  },
+  // Main open room — west wall
+  { id:'T8',  pos:[-12,  1.7, -5],   ry: Math.PI/2  },
+  // Side room near armchair
+  { id:'T9',  pos:[ 18,  1.7,  14],  ry:-Math.PI/2  },
+  // End of building
+  { id:'T10', pos:[ 0,   1.7, -44],  ry: 0          },
+];
+
+// ── WINDOW TVs (W1a/b, W2a/b): pairs on outer face of partition walls ───────
+// Two partition walls visible in wireframe at roughly z=-10 and z=-28
+// TVs placed on OUTSIDE face, facing inward, landscape orientation (wider+shorter)
+// Pair side by side with small gap between them
+const WINDOW_TVS = [
+  // Window 1 — partition wall around z=-10, outer face (positive Z side of wall)
+  { id:'W1a', pos:[-1.1, 1.55, -9.85],  ry: 0, wide:true },
+  { id:'W1b', pos:[ 1.1, 1.55, -9.85],  ry: 0, wide:true },
+  // Window 2 — partition wall around z=-28
+  { id:'W2a', pos:[-1.1, 1.55, -27.85], ry: 0, wide:true },
+  { id:'W2b', pos:[ 1.1, 1.55, -27.85], ry: 0, wide:true },
+];
+
+const GLB_URL_FINAL = GLB_URL;
+
+const loadingEl = document.getElementById('loading');
+const barEl     = document.getElementById('bar');
+const pctEl     = document.getElementById('pct');
+const overlayEl = document.getElementById('overlay');
+const xhairEl   = document.getElementById('xhair');
+const popupEl   = document.getElementById('tv-popup');
+const tvLinkEl  = document.getElementById('tv-link');
+const tvIdLabel = document.getElementById('tv-id-label');
+const hintEl    = document.getElementById('hint');
+const coordsEl  = document.getElementById('coords');
+
+let showCoords = false;
+
+const canvas   = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
+renderer.toneMapping       = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.9;
+renderer.outputColorSpace  = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+scene.fog = new THREE.FogExp2(0x1a1208, 0.035);
+
+const camera = new THREE.PerspectiveCamera(80, innerWidth/innerHeight, 0.05, 500);
+camera.position.set(0, 1.7, 0);
+
+scene.add(new THREE.AmbientLight(0xfff5cc, 0.4));
+const flickerLights = [];
+[[0,2.8,0],[10,2.8,-5],[-10,2.8,8],[20,2.8,5],[-20,2.8,-12],[5,2.8,25],
+ [0,2.8,-15],[0,2.8,-30],[0,2.8,-45]].forEach(([x,y,z])=>{
+  const l = new THREE.PointLight(0xfff5aa, 1.2, 18);
+  l.position.set(x,y,z); scene.add(l); flickerLights.push(l);
+});
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight), 0.4, 0.5, 0.85));
+composer.addPass(new OutputPass());
+
+const controls = new PointerLockControls(camera, document.body);
+controls.addEventListener('lock',   ()=>{ overlayEl.style.display='none'; xhairEl.style.display='block'; hintEl.style.display='block'; });
+controls.addEventListener('unlock', ()=>{ overlayEl.style.display='flex'; xhairEl.style.display='none';  hintEl.style.display='none';  popupEl.style.display='none'; });
+overlayEl.addEventListener('click', ()=>controls.lock());
+
+// ── FUZZ CANVAS (shared, updated every 3 frames) ─────────────────────────────
+const fuzzCanvas = document.createElement('canvas');
+fuzzCanvas.width = 128; fuzzCanvas.height = 72;
+const fuzzCtx = fuzzCanvas.getContext('2d');
+function drawFuzz(){
+  const d = fuzzCtx.createImageData(128,72);
+  for(let i=0;i<d.data.length;i+=4){
+    const v = Math.random()*255|0;
+    d.data[i]=v; d.data[i+1]=v; d.data[i+2]=v+20|0; d.data[i+3]=255;
+  }
+  fuzzCtx.putImageData(d,0,0);
+}
+drawFuzz();
+const sharedFuzzTex = new THREE.CanvasTexture(fuzzCanvas);
+sharedFuzzTex.minFilter = THREE.LinearFilter;
+
+// ── TV LABEL TEXTURE ─────────────────────────────────────────────────────────
+function makeLabelTex(id){
+  const c = document.createElement('canvas'); c.width=256; c.height=48;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = 'rgba(0,0,0,0)';
+  ctx.fillRect(0,0,256,48);
+  ctx.fillStyle = '#8a8060';
+  ctx.font = 'bold 22px Courier New';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(id, 128, 24);
+  const t = new THREE.CanvasTexture(c);
+  return t;
+}
+
+// ── BUILD A STANDARD WALL TV ─────────────────────────────────────────────────
+function buildWallTV(id, pos, ry){
+  const g = new THREE.Group();
+
+  // Frame
+  const frame = new THREE.Mesh(
+    new THREE.BoxGeometry(2.5, 1.7, 0.14),
+    new THREE.MeshStandardMaterial({color:0x111111, roughness:.9, metalness:.2})
+  );
+  frame.castShadow = true;
+  g.add(frame);
+
+  // Screen — standard fuzz, each TV gets its own canvas so fuzz is independent
+  const nc = document.createElement('canvas'); nc.width=128; nc.height=72;
+  const nctx = nc.getContext('2d'); drawFuzz();
+  const ntex = new THREE.CanvasTexture(nc); ntex.minFilter = THREE.LinearFilter;
+  const screen = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.2, 1.4),
+    new THREE.MeshBasicMaterial({map: ntex})
+  );
+  screen.position.set(0, 0, 0.075);
+  frame.add(screen);
+
+  // Glow
+  const glow = new THREE.PointLight(0xaaccff, 0.55, 5);
+  glow.position.set(0, 0, 0.6);
+  frame.add(glow);
+
+  // Label above
+  const labelMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.0, 0.28),
+    new THREE.MeshBasicMaterial({map: makeLabelTex(id), transparent:true, depthWrite:false})
+  );
+  labelMesh.position.set(0, -1.06, 0.08);
+  frame.add(labelMesh);
+
+  g.position.set(...pos);
+  g.rotation.y = ry;
+  scene.add(g);
+
+  return { g, screen, ntex, nctx, id };
+}
+
+// ── BUILD A WINDOW TV (landscape, wider, thinner) ────────────────────────────
+function buildWindowTV(id, pos, ry){
+  const g = new THREE.Group();
+
+  // Wider landscape frame to fill window opening
+  const frame = new THREE.Mesh(
+    new THREE.BoxGeometry(2.8, 1.2, 0.10),
+    new THREE.MeshStandardMaterial({color:0x0a0a0a, roughness:.95, metalness:.1})
+  );
+  frame.castShadow = true;
+  g.add(frame);
+
+  // Screen
+  const nc = document.createElement('canvas'); nc.width=128; nc.height=72;
+  const nctx = nc.getContext('2d'); drawFuzz();
+  const ntex = new THREE.CanvasTexture(nc); ntex.minFilter = THREE.LinearFilter;
+  const screen = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.55, 1.0),
+    new THREE.MeshBasicMaterial({map: ntex})
+  );
+  screen.position.set(0, 0, 0.055);
+  frame.add(screen);
+
+  // Subtle exterior glow (cool blue-white like daylight coming through)
+  const glow = new THREE.PointLight(0xc8e8ff, 0.8, 6);
+  glow.position.set(0, 0, 0.7);
+  frame.add(glow);
+
+  // Label
+  const labelMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.8, 0.22),
+    new THREE.MeshBasicMaterial({map: makeLabelTex(id), transparent:true, depthWrite:false})
+  );
+  labelMesh.position.set(0, -0.72, 0.06);
+  frame.add(labelMesh);
+
+  g.position.set(...pos);
+  g.rotation.y = ry;
+  scene.add(g);
+
+  return { g, screen, ntex, nctx, id };
+}
+
+// ── SPAWN ALL TVs ─────────────────────────────────────────────────────────────
+const allTVs = [];
+
+WALL_TVS.forEach(t => {
+  allTVs.push(buildWallTV(t.id, t.pos, t.ry));
+});
+
+WINDOW_TVS.forEach(t => {
+  allTVs.push(buildWindowTV(t.id, t.pos, t.ry));
+});
+
+// ── LOAD GLB ─────────────────────────────────────────────────────────────────
+const draco = new DRACOLoader();
+draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+const loader = new GLTFLoader(); loader.setDRACOLoader(draco);
+loader.load(GLB_URL_FINAL,
+  gltf => {
+    gltf.scene.traverse(c => { if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; } });
+    scene.add(gltf.scene);
+    // After GLB loads, auto-detect bounding box and log it to console for coord reference
+    const box = new THREE.Box3().setFromObject(gltf.scene);
+    const size = new THREE.Vector3(); box.getSize(size);
+    const center = new THREE.Vector3(); box.getCenter(center);
+    console.log('GLB bounds — min:', box.min, 'max:', box.max, 'size:', size, 'center:', center);
+    // Spawn player near center of the GLB at floor level
+    camera.position.set(center.x, box.min.y + 1.7, center.z);
+    loadingEl.style.display = 'none';
+    overlayEl.style.display = 'flex';
+  },
+  ev => { if(ev.total){ const p=Math.round(ev.loaded/ev.total*100); barEl.style.width=p+'%'; pctEl.textContent=p+'%'; } },
+  () => { loadingEl.style.display='none'; overlayEl.style.display='flex'; }
+);
+
+// ── INPUT ────────────────────────────────────────────────────────────────────
+const keys = new Set();
+document.addEventListener('keydown', e => {
+  keys.add(e.code);
+  if(e.code === 'Escape') popupEl.style.display = 'none';
+  // ~ key toggles coordinate display
+  if(e.code === 'Backquote'){
+    showCoords = !showCoords;
+    coordsEl.style.display = showCoords ? 'block' : 'none';
+  }
+});
+document.addEventListener('keyup', e => keys.delete(e.code));
+
+// ── TV CLICK ─────────────────────────────────────────────────────────────────
+const ray = new THREE.Raycaster();
+document.addEventListener('click', ()=>{
+  if(!controls.isLocked) return;
+  ray.setFromCamera(new THREE.Vector2(0,0), camera);
+  const meshes = [];
+  allTVs.forEach(tv => tv.g.traverse(c => { if(c.isMesh) meshes.push(c); }));
+  const hits = ray.intersectObjects(meshes, true);
+  if(hits.length && hits[0].distance < 7){
+    for(const tv of allTVs){
+      let found = false;
+      tv.g.traverse(c => { if(c === hits[0].object) found = true; });
+      if(found){
+        const ytId = TV_IDS[tv.id] || 'PLACEHOLDER';
+        tvIdLabel.textContent = tv.id;
+        tvLinkEl.innerHTML = ytId.startsWith('PLACEHOLDER')
+          ? `<span style="opacity:.6;font-size:13px">YouTube link not set yet — ${tv.id}</span>`
+          : `<a href="https://www.youtube.com/watch?v=${ytId}" target="_blank">▶ Open Video</a>`;
+        popupEl.style.display = 'flex';
+        break;
+      }
+    }
+  }
+});
+
+window.addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  composer.setSize(innerWidth, innerHeight);
+});
+
+// ── ANIMATE ──────────────────────────────────────────────────────────────────
+let nf=0, ft=0, prevT=performance.now();
+
+function animate(t){
+  requestAnimationFrame(animate);
+  const dt = Math.min((t-prevT)/1000, .05); prevT=t;
+
+  if(controls.isLocked){
+    const spd = keys.has('ShiftLeft')||keys.has('ShiftRight') ? 10 : 4;
+    if(keys.has('KeyW')||keys.has('ArrowUp'))    controls.moveForward( spd*dt);
+    if(keys.has('KeyS')||keys.has('ArrowDown'))  controls.moveForward(-spd*dt);
+    if(keys.has('KeyA')||keys.has('ArrowLeft'))  controls.moveRight(  -spd*dt);
+    if(keys.has('KeyD')||keys.has('ArrowRight')) controls.moveRight(   spd*dt);
+    if(keys.has('KeyW')||keys.has('KeyS')||keys.has('KeyA')||keys.has('KeyD'))
+      camera.position.y = 1.7 + Math.sin(t*.01)*0.03;
+  }
+
+  // Update fuzz every 3 frames — stagger across TVs so they look independent
+  if(++nf % 3 === 0){
+    allTVs.forEach((tv, i) => {
+      if(nf % (3 + (i%3)) === 0){
+        const d = tv.nctx.createImageData(128,72);
+        for(let j=0;j<d.data.length;j+=4){
+          const v=Math.random()*255|0;
+          d.data[j]=v; d.data[j+1]=v; d.data[j+2]=v+20|0; d.data[j+3]=255;
+        }
+        tv.nctx.putImageData(d,0,0);
+        tv.ntex.needsUpdate=true;
+      }
+    });
+  }
+
+  // Flicker lights
+  ft += dt;
+  if(ft > .08+Math.random()*.12){
+    ft=0;
+    flickerLights.forEach(l=>{
+      if(Math.random()<.08){
+        l.intensity=0;
+        setTimeout(()=>{ l.intensity=.8+Math.random()*.8; }, 60+Math.random()*80);
+      }
+    });
+  }
+
+  // Coords overlay
+  if(showCoords){
+    coordsEl.textContent =
+      `X: ${camera.position.x.toFixed(2)}  Y: ${camera.position.y.toFixed(2)}  Z: ${camera.position.z.toFixed(2)}`;
+  }
+
+  composer.render();
+}
+animate(0);
+
+// Expose camera to console for manual coord logging
+window._cam = camera;
+console.log('Tip: window._cam.position gives your coords. Press ~ in-game to show overlay.');
+</script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Backrooms</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; overflow: hidden; font-family: 'Courier New', monospace; }
+  #c { display: block; width: 100vw; height: 100vh; }
+  #loading { position: fixed; inset: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #c8b97a; z-index: 20; }
+  #loading-label { font-size: 11px; letter-spacing: 6px; opacity: .55; margin-bottom: 28px; text-transform: uppercase; }
+  #bar-wrap { width: 260px; height: 3px; background: #222; border-radius: 2px; overflow: hidden; }
+  #bar { height: 100%; background: #c8b97a; width: 0%; transition: width .3s; }
+  #pct { margin-top: 12px; font-size: 12px; opacity: .35; }
+  #overlay { position: fixed; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,.75); cursor: pointer; z-index: 10; color: #c8b97a; }
+  #overlay h1 { font-size: 22px; letter-spacing: 4px; margin-bottom: 16px; }
+  #overlay p { font-size: 12px; opacity: .5; line-height: 2.2; text-align: center; }
+  #xhair { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); pointer-events: none; display: none; z-index: 5; }
+  #xh { width: 16px; height: 1px; background: rgba(255,255,255,.6); position: absolute; top: 0; left: -8px; }
+  #xv { width: 1px; height: 16px; background: rgba(255,255,255,.6); position: absolute; top: -8px; left: 0; }
+  #tv-popup { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.82); z-index: 15; color: #c8b97a; }
+  #tv-inner { border: 1px solid rgba(200,185,122,.2); padding: 32px 44px; text-align: center; max-width: 420px; }
+  #tv-inner .tag { font-size: 11px; letter-spacing: 3px; opacity: .45; margin-bottom: 14px; }
+  #tv-inner a { color: #c8b97a; font-size: 14px; text-decoration: underline; }
+  #tv-inner .esc { margin-top: 24px; font-size: 11px; opacity: .3; }
+  #hint { position: fixed; bottom: 16px; left: 20px; color: rgba(200,185,122,.28); font-size: 11px; letter-spacing: 1px; display: none; pointer-events: none; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="loading">
+  <div id="loading-label">Entering the Backrooms</div>
+  <div id="bar-wrap"><div id="bar"></div></div>
+  <div id="pct">0%</div>
+</div>
+<div id="overlay">
+  <h1>CLICK TO ENTER</h1>
+  <p>WASD — Move &nbsp;|&nbsp; Mouse — Look &nbsp;|&nbsp; Shift — Sprint<br>Click a TV — Interact &nbsp;|&nbsp; ESC — Pause</p>
+</div>
+<div id="xhair"><div id="xh"></div><div id="xv"></div></div>
+<div id="tv-popup">
+  <div id="tv-inner">
+    <div class="tag">TV SIGNAL</div>
+    <div id="tv-link"></div>
+    <div class="esc">ESC to close</div>
+  </div>
+</div>
+<div id="hint">WASD &nbsp;·&nbsp; SHIFT &nbsp;·&nbsp; CLICK TV</div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const TV_YOUTUBE_IDS = [
+  'PLACEHOLDER_1','PLACEHOLDER_2','PLACEHOLDER_3','PLACEHOLDER_4','PLACEHOLDER_5',
+  'PLACEHOLDER_6','PLACEHOLDER_7','PLACEHOLDER_8','PLACEHOLDER_9','PLACEHOLDER_10',
+];
+
+const GLB_URL = 'https://cors.archive.org/cors/backrooms_vr/backrooms_vr.glb';
+
+const TV_PLACEMENTS = [
+  {pos:[6,1.8,-4],   ry:-Math.PI/2,  rx:0,         rz:0},
+  {pos:[-8,1.6,12],  ry:Math.PI,     rx:0,         rz:0},
+  {pos:[0,2.0,-22],  ry:Math.PI/2,   rx:0,         rz:0},
+  {pos:[20,1.5,5],   ry:-Math.PI/2,  rx:0,         rz:0},
+  {pos:[-14,1.8,-10],ry:Math.PI/4,   rx:0,         rz:0},
+  {pos:[5,2.85,4],   ry:0,           rx:Math.PI/2, rz:0},
+  {pos:[-9,2.85,-7], ry:Math.PI/3,   rx:Math.PI/2, rz:0},
+  {pos:[17,0.4,-14], ry:Math.PI/3,   rx:0,         rz:Math.PI/5},
+  {pos:[-18,1.2,18], ry:-Math.PI/6,  rx:Math.PI/7, rz:0},
+  {pos:[3,2.4,28],   ry:Math.PI*.7,  rx:0,         rz:-Math.PI/8},
+];
+
+const loadingEl=document.getElementById('loading');
+const barEl=document.getElementById('bar');
+const pctEl=document.getElementById('pct');
+const overlayEl=document.getElementById('overlay');
+const xhairEl=document.getElementById('xhair');
+const popupEl=document.getElementById('tv-popup');
+const tvLinkEl=document.getElementById('tv-link');
+const hintEl=document.getElementById('hint');
+
+const canvas=document.getElementById('c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=0.9;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x000000);
+scene.fog=new THREE.FogExp2(0x1a1208,0.035);
+
+const camera=new THREE.PerspectiveCamera(80,innerWidth/innerHeight,0.05,500);
+camera.position.set(0,1.7,0);
+
+scene.add(new THREE.AmbientLight(0xfff5cc,0.4));
+const flickerLights=[];
+[[0,2.8,0],[10,2.8,-5],[-10,2.8,8],[20,2.8,5],[-20,2.8,-12],[5,2.8,25]].forEach(([x,y,z])=>{
+  const l=new THREE.PointLight(0xfff5aa,1.2,18);
+  l.position.set(x,y,z); scene.add(l); flickerLights.push(l);
+});
+
+const composer=new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene,camera));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.4,0.5,0.85));
+composer.addPass(new OutputPass());
+
+const controls=new PointerLockControls(camera,document.body);
+controls.addEventListener('lock',()=>{overlayEl.style.display='none';xhairEl.style.display='block';hintEl.style.display='block';});
+controls.addEventListener('unlock',()=>{overlayEl.style.display='flex';xhairEl.style.display='none';hintEl.style.display='none';popupEl.style.display='none';});
+overlayEl.addEventListener('click',()=>controls.lock());
+
+function makeNoise(){const c=document.createElement('canvas');c.width=128;c.height=72;return c;}
+function drawNoise(ctx){const d=ctx.createImageData(128,72);for(let i=0;i<d.data.length;i+=4){const v=Math.random()*255|0;d.data[i]=v;d.data[i+1]=v;d.data[i+2]=v+20|0;d.data[i+3]=255;}ctx.putImageData(d,0,0);}
+
+const tvGroups=[],noiseCtxs=[],noiseTex=[],tvYtIds=[];
+TV_PLACEMENTS.forEach((p,i)=>{
+  const nc=makeNoise(),ctx=nc.getContext('2d');drawNoise(ctx);noiseCtxs.push(ctx);
+  const tex=new THREE.CanvasTexture(nc);tex.minFilter=THREE.LinearFilter;noiseTex.push(tex);
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.BoxGeometry(1.85,1.12,0.18),new THREE.MeshStandardMaterial({color:0x111111,roughness:.9,metalness:.2}));
+  body.castShadow=true;g.add(body);
+  const screen=new THREE.Mesh(new THREE.PlaneGeometry(1.6,.9),new THREE.MeshBasicMaterial({map:tex}));
+  screen.position.z=0.10;g.add(screen);
+  const glow=new THREE.PointLight(0xaaccff,.6,4);glow.position.z=0.5;g.add(glow);
+  g.position.set(...p.pos);g.rotation.set(p.rx,p.ry,p.rz);
+  scene.add(g);tvGroups.push(g);tvYtIds.push(TV_YOUTUBE_IDS[i]||'PLACEHOLDER');
+});
+
+const draco=new DRACOLoader();
+draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+const loader=new GLTFLoader();loader.setDRACOLoader(draco);
+loader.load(GLB_URL,
+  gltf=>{gltf.scene.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});scene.add(gltf.scene);loadingEl.style.display='none';overlayEl.style.display='flex';},
+  ev=>{if(ev.total){const p=Math.round(ev.loaded/ev.total*100);barEl.style.width=p+'%';pctEl.textContent=p+'%';}},
+  ()=>{loadingEl.style.display='none';overlayEl.style.display='flex';}
+);
+
+const keys=new Set();
+document.addEventListener('keydown',e=>{keys.add(e.code);if(e.code==='Escape')popupEl.style.display='none';});
+document.addEventListener('keyup',e=>keys.delete(e.code));
+
+const ray=new THREE.Raycaster();
+document.addEventListener('click',()=>{
+  if(!controls.isLocked)return;
+  ray.setFromCamera(new THREE.Vector2(0,0),camera);
+  const meshes=[];tvGroups.forEach(g=>g.traverse(c=>{if(c.isMesh)meshes.push(c);}));
+  const hits=ray.intersectObjects(meshes,true);
+  if(hits.length&&hits[0].distance<6){
+    for(let i=0;i<tvGroups.length;i++){
+      let found=false;tvGroups[i].traverse(c=>{if(c===hits[0].object)found=true;});
+      if(found){
+        const id=tvYtIds[i];
+        tvLinkEl.innerHTML=id.startsWith('PLACEHOLDER')?'<span style="opacity:.6;font-size:13px">YouTube link not set yet.</span>':`<a href="https://www.youtube.com/watch?v=${id}" target="_blank">▶ Open Video</a>`;
+        popupEl.style.display='flex';break;
+      }
+    }
+  }
+});
+
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);});
+
+let nf=0,ft=0,prevT=performance.now();
+function animate(t){
+  requestAnimationFrame(animate);
+  const dt=Math.min((t-prevT)/1000,.05);prevT=t;
+  if(controls.isLocked){
+    const spd=keys.has('ShiftLeft')||keys.has('ShiftRight')?8:4;
+    if(keys.has('KeyW')||keys.has('ArrowUp'))controls.moveForward(spd*dt);
+    if(keys.has('KeyS')||keys.has('ArrowDown'))controls.moveForward(-spd*dt);
+    if(keys.has('KeyA')||keys.has('ArrowLeft'))controls.moveRight(-spd*dt);
+    if(keys.has('KeyD')||keys.has('ArrowRight'))controls.moveRight(spd*dt);
+    if(keys.has('KeyW')||keys.has('KeyS')||keys.has('KeyA')||keys.has('KeyD'))camera.position.y=1.7+Math.sin(t*.01)*0.03;
+  }
+  if(++nf%3===0)noiseCtxs.forEach((ctx,i)=>{drawNoise(ctx);noiseTex[i].needsUpdate=true;});
+  ft+=dt;if(ft>.08+Math.random()*.12){ft=0;flickerLights.forEach(l=>{if(Math.random()<.08){l.intensity=0;setTimeout(()=>{l.intensity=.8+Math.random()*.8;},60+Math.random()*80);}});}
+  composer.render();
+}
+animate(0);
+</script>
+</body>
+</html>
