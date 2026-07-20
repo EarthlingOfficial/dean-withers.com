@@ -474,6 +474,203 @@ const roomLightRefs=[];
 const stickerLights=[];
 const tvList=[];
 const doorList=[];
+
+// ── BLACK VOID DOOR + YOUTUBE BUTTON SYSTEM ──
+// After each corridor run, a pure black void plane (like the door video screen)
+// appears in the room, with a YouTube button hovering in front and text above.
+const YT_WATCH_URLS=[
+  'https://www.youtube.com/watch?v=zprJXFASoNs',
+  'https://www.youtube.com/watch?v=H724ZGObr4g',
+  'https://www.youtube.com/watch?v=fkoWAO_CdWA',
+  'https://www.youtube.com/watch?v=jDQ9zZ0IGFw',
+  'https://www.youtube.com/watch?v=RNWmEeJLGnI',
+];
+const VOID_DOOR_LABELS=[
+  "dean's lost",
+  "who are you",
+  "press me gently",
+  "don't",
+  "this way plz",
+];
+// Shuffle labels once at startup
+const _voidLabels=(()=>{const a=[...VOID_DOOR_LABELS];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;})();
+
+// Positions for void doors — one per room, on a wall that isn't the TV wall
+// These are set in each buildR* call
+const VOID_DOOR_POSITIONS=[
+  // vidIdx 0 — R1 (ox=0,oz=0): west wall
+  {x:2,y:0,z:20,ry:Math.PI/2},
+  // vidIdx 1 — R2 (ox=48,oz=0): north wall
+  {x:72,y:0,z:2,ry:0},
+  // vidIdx 2 — R3 (ox=0,oz=48): east wall
+  {x:46,y:0,z:66,ry:-Math.PI/2},
+  // vidIdx 3 — R4 (ox=-48,oz=0): south wall
+  {x:-38,y:0,z:46,ry:Math.PI},
+  // vidIdx 4 — R5a (ox=48,oz=48): north wall
+  {x:66,y:0,z:50,ry:0},
+];
+
+const voidDoorObjects={}; // vidIdx -> group
+
+function buildVoidDoor(vidIdx){
+  if(voidDoorObjects[vidIdx])return;
+  const pos=VOID_DOOR_POSITIONS[vidIdx];
+  if(!pos)return;
+  const tok=TOKENS[vidIdx];
+  const tokenColor=tok?tok.color:'#c8b86a';
+  const tokenColorHex=tok?parseInt(tok.color.replace('#',''),16):0xc8b86a;
+  const ytUrl=YT_WATCH_URLS[vidIdx]||'https://www.youtube.com/@earthling_official';
+  const label=_voidLabels[vidIdx%_voidLabels.length];
+
+  const grp=new THREE.Group();
+  grp.position.set(pos.x,pos.y,pos.z);
+  grp.rotation.y=pos.ry;
+
+  // ── PURE BLACK VOID PLANE — same geometry as door video screen ──
+  const voidMesh=new THREE.Mesh(
+    new THREE.PlaneGeometry(1.45,3.3),
+    new THREE.MeshBasicMaterial({color:0x000000,side:THREE.DoubleSide})
+  );
+  voidMesh.position.set(0,1.65,0);
+  grp.add(voidMesh);
+
+  // ── YOUTUBE BUTTON — hovering in front, eye height ──
+  const ytCanvas=document.createElement('canvas');
+  ytCanvas.width=320;ytCanvas.height=224;
+  const yc=ytCanvas.getContext('2d');
+  yc.clearRect(0,0,320,224);
+  // Token colour glow halo
+  yc.shadowColor=tokenColor;yc.shadowBlur=44;
+  yc.fillStyle=tokenColor+'33';
+  yc.beginPath();if(yc.roundRect){yc.roundRect(6,6,308,212,32);}else{yc.rect(6,6,308,212);}
+  yc.fill();yc.shadowBlur=0;
+  // YouTube red body
+  yc.fillStyle='#ff0000';
+  yc.beginPath();if(yc.roundRect){yc.roundRect(18,18,284,188,28);}else{yc.rect(18,18,284,188);}
+  yc.fill();
+  // Gradient gloss
+  const ytGrad=yc.createLinearGradient(18,18,18,206);
+  ytGrad.addColorStop(0,'rgba(255,100,100,0.32)');ytGrad.addColorStop(1,'rgba(0,0,0,0.22)');
+  yc.fillStyle=ytGrad;
+  yc.beginPath();if(yc.roundRect){yc.roundRect(18,18,284,188,28);}else{yc.rect(18,18,284,188);}
+  yc.fill();
+  // White play triangle
+  yc.fillStyle='#ffffff';
+  yc.beginPath();yc.moveTo(112,68);yc.lineTo(112,156);yc.lineTo(208,112);yc.closePath();yc.fill();
+  // Token colour ring
+  yc.strokeStyle=tokenColor;yc.lineWidth=7;
+  yc.shadowColor=tokenColor;yc.shadowBlur=28;
+  yc.beginPath();if(yc.roundRect){yc.roundRect(18,18,284,188,28);}else{yc.rect(18,18,284,188);}
+  yc.stroke();yc.shadowBlur=0;
+  const ytTex=new THREE.CanvasTexture(ytCanvas);
+  const ytMesh=new THREE.Mesh(
+    new THREE.PlaneGeometry(0.42,0.295),
+    new THREE.MeshBasicMaterial({map:ytTex,transparent:true,side:THREE.DoubleSide,depthWrite:false})
+  );
+  // Hover in front of the void at centre height, clearly off the ground
+  ytMesh.position.set(0,1.65,0.22);
+  grp.add(ytMesh);
+
+  // ── TEXT LABEL — hovering above and to one side, no background ──
+  const txtCanvas=document.createElement('canvas');
+  txtCanvas.width=512;txtCanvas.height=96;
+  const tc=txtCanvas.getContext('2d');
+  tc.clearRect(0,0,512,96);
+  tc.font='bold 42px "Courier New",monospace';
+  tc.textAlign='center';tc.textBaseline='middle';
+  tc.shadowColor='rgba(200,180,100,0.9)';tc.shadowBlur=22;
+  tc.fillStyle='#c8b86a';
+  tc.fillText(label,256,48);
+  const txtTex=new THREE.CanvasTexture(txtCanvas);
+  const txtMesh=new THREE.Mesh(
+    new THREE.PlaneGeometry(1.6,0.3),
+    new THREE.MeshBasicMaterial({map:txtTex,transparent:true,side:THREE.DoubleSide,depthWrite:false})
+  );
+  // Float above the void door, slightly to one side
+  txtMesh.position.set(0.3,3.55,0.18);
+  grp.add(txtMesh);
+
+  // Subtle glow (token colour) — PC only
+  if(!isMobile){
+    const gl=new THREE.PointLight(tokenColorHex,0.5,5);
+    gl.position.set(0,1.65,0.6);
+    grp.add(gl);
+  }
+
+  grp.visible=false;
+  scene.add(grp);
+  voidDoorObjects[vidIdx]={group:grp,ytUrl,wp:new THREE.Vector3(pos.x,1.65,pos.z)};
+}
+
+function showVoidDoor(vidIdx){
+  if(!voidDoorObjects[vidIdx])buildVoidDoor(vidIdx);
+  const v=voidDoorObjects[vidIdx];
+  if(v)v.group.visible=true;
+}
+
+// ── HIEROGLYPH BUTTON — R5b south wall, cycles 14 colours ──
+let hieroglyphGlowLight=null,hieroglyphGlowT=0,hieroglyphColorIdx=0,hieroglyphColorTimer=0;
+const HIEROGLYPH_COLORS=[0xff0000,0xff6600,0xffcc00,0x00ff44,0x00ffcc,0x0088ff,0x8800ff,0xff00cc,0xffffff,0xff4444,0x44ffaa,0xffaa00,0x00ccff,0xcc44ff];
+const HIEROGLYPH_INTERVAL=0.45;
+
+function buildHieroglyphButton(ox,oz){
+  const cx=ox+24;
+  // South wall of R5b, a few metres left of centre — same side as TV faces
+  const hx=cx-9, hz=oz+47.2, hry=Math.PI;
+
+  const hCanvas=document.createElement('canvas');
+  hCanvas.width=256;hCanvas.height=320;
+  const hc=hCanvas.getContext('2d');
+  hc.clearRect(0,0,256,320);
+  hc.strokeStyle='rgba(220,200,140,0.92)';
+  hc.lineWidth=7;hc.lineCap='round';hc.lineJoin='round';
+  // Ankh loop
+  hc.beginPath();hc.ellipse(128,78,34,44,0,0,Math.PI*2);hc.stroke();
+  // Vertical shaft
+  hc.beginPath();hc.moveTo(128,120);hc.lineTo(128,228);hc.stroke();
+  // Horizontal bar
+  hc.beginPath();hc.moveTo(74,158);hc.lineTo(182,158);hc.stroke();
+  // Outstretched arms — connection
+  hc.beginPath();hc.moveTo(74,158);hc.quadraticCurveTo(42,142,26,118);hc.stroke();
+  hc.beginPath();hc.moveTo(182,158);hc.quadraticCurveTo(214,142,230,118);hc.stroke();
+  // Hand circles
+  hc.beginPath();hc.arc(26,118,9,0,Math.PI*2);hc.stroke();
+  hc.beginPath();hc.arc(230,118,9,0,Math.PI*2);hc.stroke();
+  // Feet
+  hc.beginPath();hc.moveTo(128,228);hc.lineTo(90,292);hc.stroke();
+  hc.beginPath();hc.moveTo(128,228);hc.lineTo(166,292);hc.stroke();
+  // Eye above
+  hc.lineWidth=4;
+  hc.beginPath();hc.moveTo(100,28);hc.quadraticCurveTo(128,12,156,28);hc.stroke();
+  hc.beginPath();hc.moveTo(100,28);hc.quadraticCurveTo(128,44,156,28);hc.stroke();
+  hc.fillStyle='rgba(220,200,140,0.92)';
+  hc.beginPath();hc.arc(128,28,5,0,Math.PI*2);hc.fill();
+
+  const hTex=new THREE.CanvasTexture(hCanvas);
+  const hMesh=new THREE.Mesh(
+    new THREE.PlaneGeometry(0.55,0.69),
+    new THREE.MeshBasicMaterial({map:hTex,transparent:true,side:THREE.DoubleSide,depthWrite:false})
+  );
+  hMesh.position.set(hx,1.9,hz);
+  hMesh.rotation.y=hry;
+  scene.add(hMesh);
+
+  hieroglyphGlowLight=new THREE.PointLight(HIEROGLYPH_COLORS[0],0.8,9);
+  hieroglyphGlowLight.position.set(hx,1.9,hz-0.7);
+  scene.add(hieroglyphGlowLight);
+
+  if(!window._hieroglyphLinks)window._hieroglyphLinks=[];
+  window._hieroglyphLinks.push({url:'https://www.youtube.com/@earthling_official',wp:new THREE.Vector3(hx,1.9,hz)});
+}
+
+function updateHieroglyphGlow(dt){
+  if(!hieroglyphGlowLight)return;
+  hieroglyphColorTimer+=dt;
+  if(hieroglyphColorTimer>=HIEROGLYPH_INTERVAL){hieroglyphColorTimer=0;hieroglyphColorIdx=(hieroglyphColorIdx+1)%HIEROGLYPH_COLORS.length;hieroglyphGlowLight.color.setHex(HIEROGLYPH_COLORS[hieroglyphColorIdx]);}
+  hieroglyphGlowT+=dt;
+  hieroglyphGlowLight.intensity=0.6+Math.abs(Math.sin(hieroglyphGlowT*1.9))*1.0;
+}
+
 let started=false,ending=false;
 let sanity=100;
 const archived=new Set();
@@ -942,6 +1139,7 @@ function exitCorridor(){
     if(door.corridorTV){const ti=tvList.indexOf(door.corridorTV);if(ti!==-1)tvList.splice(ti,1);door.corridorTV=null;}
     corridorActive=false;corridorDoor=null;corridorState='idle';corridorCloseWallAdded=false;doorVideoState='closed';door.corridorBuilt=false;
     teleportPlayer(corridorEntryPos.x,corridorEntryPos.z);
+    showVoidDoor(door.vidIdx);
     setObjective(archived.size>=GATE_TOTAL?'All archived. Find the end room. Match the shape to the YouTube video — find the clue in the comments.':'Find every screen. Press right trigger to watch. Archive all five.');return;
   }
   const fadeEl=$('fade');fadeEl.classList.add('on');
@@ -952,6 +1150,7 @@ function exitCorridor(){
     if(door.corridorTV){const ti=tvList.indexOf(door.corridorTV);if(ti!==-1)tvList.splice(ti,1);door.corridorTV=null;}
     corridorActive=false;corridorDoor=null;corridorState='idle';corridorCloseWallAdded=false;doorVideoState='closed';door.corridorBuilt=false;
     playerRig.position.set(corridorEntryPos.x,0,corridorEntryPos.z);camera.position.set(0,2,0);camera.rotation.y=corridorEntryRot+Math.PI;camera.rotation.x=0;
+    showVoidDoor(door.vidIdx);
     setObjective(archived.size>=GATE_TOTAL?'All archived. Find the end room. Match the shape to the YouTube video — find the clue in the comments.':(isMobile?'Find every screen. Tap WATCH. Archive all five.':'Find every screen. Press [E] to watch. Archive all five.'));
     setTimeout(()=>fadeEl.classList.remove('on'),300);
   },1200);
@@ -1399,6 +1598,7 @@ function buildR5b(ox,oz){
   T(['the paradox remains unresolved.'],4.5,1.2,'#c8b86a',null,10,cx,0.9,cz,0);
   T(['DEAN WITHERS'],3.5,1.4,'#555',null,10,ox+47.4,2.4,cz,-Math.PI/2);
   floorSign(['11:40'],cx,oz+32,2.4);floorSign(['CONVENIENCE'],cx-14,oz+14,2.6);ceilSign(['THE ADMISSION'],cx+10,oz+22,2.8);ceilSign(['always convenience'],cx-8,oz+40,2.4);
+  buildHieroglyphButton(ox,oz);
 }
 
 function buildEnd(ox,oz){
@@ -1490,6 +1690,8 @@ function applyCheckpoint(){
   if(endSolved){endTVs.forEach(t=>{t.activated=true;t.screenMat.color.setHex(0xffffff);t.screenMat.map=null;t.screenMat.needsUpdate=true;t.backMat.emissiveIntensity=0.55;t.backMat.needsUpdate=true;t.glow.intensity=3.5;t.glow.color.setHex(t.col.hex);});}
   if(endVideoActive&&endWall)dropEndWall();
   if(slideOpen&&slideMat){slideMat.emissive.setHex(0x0f7a3a);slideMat.emissiveIntensity=1.0;if(slideLight)slideLight.intensity=1.8;}
+  // Restore void doors for already-collected tokens
+  collectedTokens.forEach(vidIdx=>{showVoidDoor(vidIdx);});
   updateArch();
 }
 
@@ -1727,6 +1929,20 @@ function updateInteract(){
     }
   }
   updateVRHint(label,nearTV,nearDoor);
+  // ── VOID DOOR YOUTUBE BUTTONS ──
+  if(!nearTV&&!nearDoor){
+    for(const vi in voidDoorObjects){
+      const vd=voidDoorObjects[vi];
+      if(!vd.group.visible)continue;
+      if(_getPlayerWP().distanceTo(vd.wp)<2.6){nearTV={isYTLink:true,url:vd.ytUrl};label='YOUTUBE';$('xh').classList.add('lock');break;}
+    }
+  }
+  // ── HIEROGLYPH ──
+  if(!nearTV&&!nearDoor&&window._hieroglyphLinks){
+    for(const hl of window._hieroglyphLinks){
+      if(_getPlayerWP().distanceTo(hl.wp)<2.6){nearTV={isYTLink:true,url:hl.url};label='EARTHLING';$('xh').classList.add('lock');break;}
+    }
+  }
   if(label&&isMobile&&!vrMode){hint.style.display='none';ib.textContent=label;ib.style.display='flex';}else if(label&&!vrMode){hint.style.display='block';hint.textContent='[ E ] '+label;ib.style.display='none';}else if(!vrMode){hint.style.display='none';ib.style.display='none';}
 }
 
@@ -1745,7 +1961,9 @@ function interact(){
   if(exitVideoActive){if(exitVideoCanSkip)finishExitVideo();return;}
   const tvVid2=document.getElementById('tvvideo-mp4');if(tvVid2&&tvVid2.style.display!=='none'){tvVid2.pause();tvVid2.style.display='none';tvVid2.removeAttribute('src');tvVid2.load();setObjective('');tvDuckEnd();return;}
   if(corridorActive){if(corridorState==='door_video'){_revealCorridor();return;}if(corridorState==='corridor_tv'){exitCorridor();return;}if(corridorState==='locked'&&corridorDoor){const ctv=corridorDoor.corridorTV;if(ctv&&_getPlayerWP().distanceTo(ctv.wp)<4.5){playCorridorTV(ctv);return;}}return;}
-  if(nearTV&&nearTV.isEndTV){pressEndTV(nearTV.tv);return;}if(nearTV==='SLIDE'){startExitVideo();return;}if(nearDoor){enterCorridor(nearDoor);return;}if(nearTV)playTV(nearTV);
+  if(nearTV&&nearTV.isEndTV){pressEndTV(nearTV.tv);return;}
+  if(nearTV&&nearTV.isYTLink){window.open(nearTV.url,'_blank','noopener,noreferrer');return;}
+  if(nearTV==='SLIDE'){startExitVideo();return;}if(nearDoor){enterCorridor(nearDoor);return;}if(nearTV)playTV(nearTV);
 }
 
 function playCorridorTV(tv){
@@ -1794,6 +2012,7 @@ function animate(){
   updateEntity(dt);updateInteract();updateVideoVisibility();updateSanityHUD();
   if(vrMode){updateVRHUD(dt);updateVRSanityEffect(dt,t);}
   if(shadowFig.sprite.material.opacity<0.1&&blackFig.sprite.material.opacity<0.1&&crowd.length===0)sanity=Math.min(100,sanity+3*dt);
+  updateHieroglyphGlow(dt);
   factTimer-=dt;if(factTimer<=0){flashFact(FACTS[factIdx++%FACTS.length]);factTimer=18+Math.random()*22;}
   whisperTimer--;if(whisperTimer<=0){whisper(WHISPERS[Math.floor(Math.random()*WHISPERS.length)]);whisperTimer=600+Math.floor(Math.random()*600);}
   if(doorVideoTex&&doorVideoState==='playing'&&doorVideo.readyState>=2)doorVideoTex.needsUpdate=true;
