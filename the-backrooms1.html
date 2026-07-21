@@ -24,7 +24,7 @@
   #tv-inner a { color: #c8b97a; font-size: 14px; text-decoration: underline; }
   #tv-inner .esc { margin-top: 24px; font-size: 11px; opacity: .3; }
   #hint { position: fixed; bottom: 16px; left: 20px; color: rgba(200,185,122,.28); font-size: 11px; letter-spacing: 1px; display: none; pointer-events: none; }
-  #coords { position: fixed; top: 12px; right: 12px; color: #fff; background: rgba(0,0,0,0.75); font-size: 11px; letter-spacing: 1px; z-index: 50; pointer-events: none; display: none; padding: 4px 10px; border-radius: 3px; font-family: 'Courier New', monospace; }
+  #coords { position: fixed; top: 12px; right: 12px; color: rgba(200,185,122,.5); font-size: 10px; letter-spacing: 1px; z-index: 50; pointer-events: none; display: none; }
   #loading { position: fixed; inset: 0; background: #000; overflow: hidden; z-index: 20; }
   @keyframes vhsRollAnim { from { transform: translateY(0); } to { transform: translateY(-100%); } }
   @keyframes vhsRollAnim2 { from { transform: translateY(100%); } to { transform: translateY(0); } }
@@ -76,7 +76,6 @@
 </div>
 <div id="hint">WASD &nbsp;·&nbsp; SHIFT &nbsp;·&nbsp; CLICK TV &nbsp;·&nbsp; ~ COORDS</div>
 <div id="coords"></div>
-<div id="fall-fade" style="position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:8;transition:none;"></div>
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -143,11 +142,9 @@ const WINDOW_TVS = [
 // Each level is a clone of the same GLB, stacked 30 units below the previous.
 // Level 0 = starting level (no fall-in animation, no crosses visible yet).
 // Levels 1+ = player falls in, starts crouched, wobbles upright.
-const LEVEL_DEPTH   = 60;   // vertical gap between each GLB clone
+const LEVEL_DEPTH   = 30;   // vertical gap between each GLB clone
 const NOCLIP_RADIUS = 0.6;  // how close to cross centre triggers the fall
-const CROSS_SIZE    = 0.45; // visual arm length of the floor cross
-const PLAYER_RADIUS = 0.32; // collision push-out radius
-const EYE_HEIGHT    = 1.55; // camera height above floor
+const CROSS_SIZE    = 0.5;  // visual arm length of the floor cross
 
 let currentLevel    = 0;
 let levelFloorY     = 0;    // updated after GLB loads — box.min.y of level 0
@@ -155,121 +152,99 @@ let isFalling       = false;
 let isRecovering    = false;
 let recoverStart    = 0;
 let recoverFrom     = 0;
-let fallVel         = 0;
-let fallTarget      = 0;
-let fallMidY        = 0;
-let nextLevelClone  = null;
-let nextRevealed    = false;
-let bobT            = 0;    // head bob time accumulator
-const wallBoxes     = [];   // Box3 list for collision
 
 // Parsed GLB template — cloned for each new level, no re-download needed
 let glbTemplate     = null;
-let glbBuildingBox  = null; // bounding box of level 0 used for cross placement
 
 // Active no-clip zones [ { x, z, levelIndex, mesh } ]
 const noclipZones   = [];
 
-// ── PICK 2 RANDOM NOCLIP POSITIONS FOR A GIVEN LEVEL ─────────────────────────
-// We spread them across the floor — avoid edges, avoid each other
-// ── WALL COLLISION ────────────────────────────────────────────────────────────
-function collectWallBoxes(root, yOffset){
-  root.traverse(c => {
-    if(!c.isMesh) return;
-    const b = new THREE.Box3().setFromObject(c);
-    if((b.max.y - b.min.y) > 0.6){ // tall enough to be a wall
-      wallBoxes.push(b.clone().translate(new THREE.Vector3(0, yOffset, 0)));
-    }
-  });
-}
+// ── FIXED NOCLIP POSITIONS FOR LEVEL 0 ───────────────────────────────────────
+// Two fixed crosses on the starting floor. Adjust X/Z after walking with ~ coords.
+const LEVEL0_CROSSES = [
+  [ 2.5,  -8.0],   // Cross A — near centre corridor
+  [-3.0, -16.0],   // Cross B — further down corridor
+];
 
-function pushOutWalls(pos){
-  for(const b of wallBoxes){
-    const cx = (b.min.x + b.max.x) * 0.5;
-    const cz = (b.min.z + b.max.z) * 0.5;
-    const hw = (b.max.x - b.min.x) * 0.5 + PLAYER_RADIUS;
-    const hd = (b.max.z - b.min.z) * 0.5 + PLAYER_RADIUS;
-    const dx = pos.x - cx, dz = pos.z - cz;
-    if(Math.abs(dx) < hw && Math.abs(dz) < hd){
-      const ox = hw - Math.abs(dx), oz = hd - Math.abs(dz);
-      if(ox < oz) pos.x += ox * Math.sign(dx);
-      else        pos.z += oz * Math.sign(dz);
-    }
+// ── PICK 2 RANDOM NOCLIP POSITIONS FOR SUBSEQUENT LEVELS ──────────────────────
+function randomNoclipPositions(){
+  const candidates = [
+    [ 3,  -6], [-4, -10], [ 6, -18], [-5, -22],
+    [ 2, -30], [-6, -35], [ 8,  -4], [-8,  -8],
+    [ 4, -14], [-3, -26],
+  ];
+  for(let i=candidates.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [candidates[i],candidates[j]]=[candidates[j],candidates[i]];
   }
-}
-
-// ── VALID FLOOR CROSS POSITIONS ───────────────────────────────────────────────
-function isInWall(x, z){
-  for(const b of wallBoxes){
-    if(x > b.min.x - PLAYER_RADIUS && x < b.max.x + PLAYER_RADIUS &&
-       z > b.min.z - PLAYER_RADIUS && z < b.max.z + PLAYER_RADIUS) return true;
-  }
-  return false;
-}
-
-function findValidCrossPositions(count, box){
-  const out = []; let tries = 0;
-  while(out.length < count && tries++ < 3000){
-    const x = box.min.x + 1.5 + Math.random() * (box.max.x - box.min.x - 3);
-    const z = box.min.z + 1.5 + Math.random() * (box.max.z - box.min.z - 3);
-    if(!isInWall(x, z)) out.push([x, z]);
-  }
-  return out;
+  return candidates.slice(0,2);
 }
 
 // ── SPAWN NOCLIP CROSSES FOR A LEVEL ─────────────────────────────────────────
 function spawnNoclipCrosses(levelIndex){
-  if(!glbBuildingBox) return;
-  const crossY    = levelFloorY - levelIndex * LEVEL_DEPTH + 0.015;
-  // Shift the building box to this level's offset for in-wall checks
-  const levelBox  = new THREE.Box3(
-    new THREE.Vector3(glbBuildingBox.min.x, glbBuildingBox.min.y - levelIndex*LEVEL_DEPTH, glbBuildingBox.min.z),
-    new THREE.Vector3(glbBuildingBox.max.x, glbBuildingBox.max.y - levelIndex*LEVEL_DEPTH, glbBuildingBox.max.z)
-  );
-  const positions = findValidCrossPositions(2, levelBox);
-  const mat = new THREE.MeshStandardMaterial({ color:0xffffff, emissive:new THREE.Color(0xffffff), emissiveIntensity:1.6 });
+  const floorY = levelFloorY - levelIndex * LEVEL_DEPTH + 0.015;
+  // Level 0 uses fixed positions; all other levels use random
+  const positions = (levelIndex === 0) ? LEVEL0_CROSSES : randomNoclipPositions();
+
   positions.forEach(([x, z]) => {
+    // Bright white emissive cross — visible on the yellow carpet
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      emissive: new THREE.Color(0xffffff),
+      emissiveIntensity: 1.8,
+      roughness: 0.5,
+      metalness: 0,
+    });
     const g = new THREE.Group();
-    g.add(new THREE.Mesh(new THREE.BoxGeometry(CROSS_SIZE*2, 0.025, 0.06), mat));
-    g.add(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.025, CROSS_SIZE*2), mat));
-    g.position.set(x, crossY, z);
+    // Horizontal arm
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(CROSS_SIZE*2, 0.025, 0.07), mat));
+    // Vertical arm
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.025, CROSS_SIZE*2), mat));
+    g.position.set(x, floorY, z);
     scene.add(g);
-    noclipZones.push({ x, z, levelIndex });
+    noclipZones.push({ x, z, levelIndex, mesh: g });
   });
 }
 
 // ── ADD A NEW LEVEL (clone GLB, offset downward, spawn crosses on prev) ───────
 function addLevel(levelIndex){
-  if(!glbTemplate) return null;
+  if(!glbTemplate) return;
   const clone = glbTemplate.clone(true);
   clone.traverse(c => { if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; } });
   clone.position.y = -levelIndex * LEVEL_DEPTH;
-  clone.visible = false; // stays hidden until halfway through fall
   scene.add(clone);
+
+  // Offset flicker lights for this level
   [[0,2.8,0],[10,2.8,-5],[-10,2.8,8],[20,2.8,5],[-20,2.8,-12],
    [5,2.8,25],[0,2.8,-15],[0,2.8,-30],[0,2.8,-45]].forEach(([x,y,z])=>{
     const l = new THREE.PointLight(0xfff5aa, 1.2, 18);
     l.position.set(x, y - levelIndex * LEVEL_DEPTH, z);
     scene.add(l); flickerLights.push(l);
   });
+
+  // Spawn crosses for THIS new level (so player can fall again)
   spawnNoclipCrosses(levelIndex);
-  return clone;
+
+  console.log(`Level ${levelIndex} added at Y offset ${-levelIndex * LEVEL_DEPTH}`);
 }
 
 // ── TRIGGER FALL ─────────────────────────────────────────────────────────────
 function triggerFall(){
   if(isFalling || isRecovering) return;
   isFalling = true;
-  fallVel   = 0;
-  const nextLvl  = currentLevel + 1;
-  const tFloorY  = levelFloorY - nextLvl * LEVEL_DEPTH;
-  fallTarget     = tFloorY + EYE_HEIGHT;
-  fallMidY       = (camera.position.y + fallTarget) / 2;
-  nextRevealed   = false;
-  nextLevelClone = addLevel(nextLvl);
-  currentLevel   = nextLvl;
-  // Pre-clone the one after silently
-  setTimeout(()=> addLevel(nextLvl + 1), 1500);
+
+  const targetLevelIndex = currentLevel + 1;
+  const targetFloorY = levelFloorY - targetLevelIndex * LEVEL_DEPTH;
+
+  // Gravity-style drop using animation loop flag — handled in animate()
+  window._fallTarget = targetFloorY + EYE_HEIGHT;
+  window._fallVelocity = 0;
+
+  // Pre-load next level geometry now (it's a clone, instant)
+  // and start loading level after that in background
+  addLevel(targetLevelIndex + 1);
+
+  currentLevel = targetLevelIndex;
 }
 
 const loadingEl = document.getElementById('loading');
@@ -299,6 +274,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
 scene.fog = new THREE.FogExp2(0x1a1208, 0.035);
 
+const EYE_HEIGHT = 1.4; // medium height — consistent across all states
 const camera = new THREE.PerspectiveCamera(80, innerWidth/innerHeight, 0.05, 500);
 camera.position.set(0, EYE_HEIGHT, 0);
 
@@ -456,27 +432,23 @@ loader.load(GLB_URL,
   gltf => {
     gltf.scene.traverse(c => { if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; } });
     scene.add(gltf.scene);
-    glbTemplate = gltf.scene.clone(true); // template for cloning levels
 
-    const box    = new THREE.Box3().setFromObject(gltf.scene);
-    const size   = new THREE.Vector3(); box.getSize(size);
+    // Save as template for level cloning — no re-download ever needed
+    glbTemplate = gltf.scene;
+
+    const box = new THREE.Box3().setFromObject(gltf.scene);
+    const size = new THREE.Vector3(); box.getSize(size);
     const center = new THREE.Vector3(); box.getCenter(center);
     console.log('GLB bounds — min:', box.min, 'max:', box.max, 'size:', size, 'center:', center);
 
-    glbBuildingBox = box.clone();
-    levelFloorY    = box.min.y;
+    levelFloorY = box.min.y;
     camera.position.set(center.x, levelFloorY + EYE_HEIGHT, center.z);
-    console.log('Camera Y:', camera.position.y, '  floorY:', levelFloorY);
 
-    // Collect wall collision boxes from loaded scene
-    collectWallBoxes(gltf.scene, 0);
-    console.log('Wall boxes:', wallBoxes.length);
-
-    // Spawn crosses for level 0 — placed only in open floor areas
+    // Spawn crosses for level 0 (player's starting level)
     spawnNoclipCrosses(0);
 
-    // Pre-clone level 1 hidden in background
-    setTimeout(() => addLevel(1), 2000);
+    // Pre-load level 1 geometry silently in background (instant clone)
+    setTimeout(() => addLevel(1), 3000);
 
     barEl.style.width='100%'; pctEl.textContent='100%';
     onGLBReady();
@@ -539,37 +511,40 @@ function animate(t){
 
   // ── FALL PHYSICS ──────────────────────────────────────────────────────────
   if(isFalling){
-    fallVel += 30 * dt;
-    camera.position.y -= fallVel * dt;
+    window._fallVelocity = (window._fallVelocity || 0) + 28 * dt; // gravity
+    camera.position.y -= window._fallVelocity * dt;
 
-    // Reveal next level when halfway through the drop
-    if(!nextRevealed && camera.position.y <= fallMidY){
-      nextRevealed = true;
-      if(nextLevelClone) nextLevelClone.visible = true;
-    }
-
-    if(camera.position.y <= fallTarget){
-      // Land crouched then stand up
-      recoverFrom  = fallTarget - EYE_HEIGHT * 0.4;
-      camera.position.y = recoverFrom;
+    if(camera.position.y <= window._fallTarget){
+      camera.position.y = window._fallTarget - (EYE_HEIGHT - 0.45); // land crouched
       isFalling    = false;
       isRecovering = true;
       recoverStart = t;
-      fallVel      = 0;
-      nextLevelClone = null;
+      recoverFrom  = camera.position.y;
+      window._fallVelocity = 0;
     }
     composer.render();
     return;
   }
 
-  // ── RECOVERY (stand up after landing) ─────────────────────────────────────
+  // ── RECOVERY WOBBLE (stand up after landing) ──────────────────────────────
   if(isRecovering){
-    const prog    = Math.min((t - recoverStart) / 2200, 1);
-    const targetY = levelFloorY - currentLevel * LEVEL_DEPTH + EYE_HEIGHT;
-    camera.position.y = recoverFrom + (targetY - recoverFrom) * (1 - Math.pow(1 - prog, 3));
-    const fade = 1 - prog;
-    camera.rotation.z = Math.sin(t * 0.012) * 0.07 * fade;
-    if(prog >= 1){ isRecovering = false; camera.rotation.z = 0; }
+    const elapsed  = (t - recoverStart) / 1000;
+    const duration = 2.5;
+    const progress = Math.min(elapsed / duration, 1);
+    const targetY  = levelFloorY - currentLevel * LEVEL_DEPTH + EYE_HEIGHT;
+
+    // Rise from crouched to full height
+    camera.position.y = recoverFrom + (targetY - recoverFrom) * (1 - Math.pow(1 - progress, 3));
+
+    // Wobble: tilts on Z and X axes, fades as they recover
+    const wobbleFade = 1 - progress;
+    camera.rotation.z = Math.sin(t * 0.012) * 0.08 * wobbleFade;
+    camera.rotation.x += Math.sin(t * 0.009) * 0.003 * wobbleFade;
+
+    if(progress >= 1){
+      isRecovering     = false;
+      camera.rotation.z = 0;
+    }
     composer.render();
     return;
   }
@@ -577,31 +552,26 @@ function animate(t){
   // ── NORMAL MOVEMENT ───────────────────────────────────────────────────────
   if(controls.isLocked){
     const spd = keys.has('ShiftLeft')||keys.has('ShiftRight') ? 10 : 4;
-    const moving = keys.has('KeyW')||keys.has('ArrowUp')||keys.has('KeyS')||keys.has('ArrowDown')||
-                   keys.has('KeyA')||keys.has('ArrowLeft')||keys.has('KeyD')||keys.has('ArrowRight');
     if(keys.has('KeyW')||keys.has('ArrowUp'))    controls.moveForward( spd*dt);
     if(keys.has('KeyS')||keys.has('ArrowDown'))  controls.moveForward(-spd*dt);
     if(keys.has('KeyA')||keys.has('ArrowLeft'))  controls.moveRight(  -spd*dt);
     if(keys.has('KeyD')||keys.has('ArrowRight')) controls.moveRight(   spd*dt);
-
-    // Wall collision push-back
-    pushOutWalls(camera.position);
-
-    // Head bob — only while moving
-    const floorBase = levelFloorY - currentLevel * LEVEL_DEPTH + EYE_HEIGHT;
-    if(moving){
-      bobT += dt * (spd > 5 ? 8 : 5);
-      camera.position.y = floorBase + Math.sin(bobT) * 0.022;
-    } else {
-      camera.position.y += (floorBase - camera.position.y) * Math.min(dt * 10, 1);
-    }
+    // Smoothly hold camera at correct eye height (no hard snap each frame)
+    const targetY = levelFloorY - currentLevel * LEVEL_DEPTH + EYE_HEIGHT;
+    camera.position.y += (targetY - camera.position.y) * Math.min(dt * 12, 1);
 
     // ── NOCLIP ZONE CHECK ─────────────────────────────────────────────────
+    const px = camera.position.x;
+    const pz = camera.position.z;
     for(const zone of noclipZones){
-      if(zone.levelIndex !== currentLevel) continue;
-      const dx = camera.position.x - zone.x;
-      const dz = camera.position.z - zone.z;
-      if(Math.sqrt(dx*dx + dz*dz) < NOCLIP_RADIUS){ triggerFall(); break; }
+      if(zone.levelIndex === currentLevel){
+        const dx = px - zone.x;
+        const dz = pz - zone.z;
+        if(Math.sqrt(dx*dx + dz*dz) < NOCLIP_RADIUS){
+          triggerFall();
+          break;
+        }
+      }
     }
   }
 
