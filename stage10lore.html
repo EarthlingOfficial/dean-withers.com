@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Stage 10 — Lore File</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --gold:#c8b97a;
+  --gold-dim:rgba(200,185,122,0.45);
+  --gold-faint:rgba(200,185,122,0.12);
+  --bg:#000;
+  --text:rgba(200,185,122,0.82);
+}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Courier New',monospace;
+  font-size:13px;
+  line-height:1.9;
+  overflow-x:hidden;
+}
+
+/* scanlines */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background:repeating-linear-gradient(
+    0deg,
+    transparent,transparent 2px,
+    rgba(0,0,0,0.18) 2px,rgba(0,0,0,0.18) 4px
+  );
+  pointer-events:none;z-index:100;
+}
+
+/* vignette */
+body::after{
+  content:'';
+  position:fixed;inset:0;
+  background:radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.75) 100%);
+  pointer-events:none;z-index:99;
+}
+
+/* noise overlay */
+#noise{
+  position:fixed;inset:0;opacity:0.025;z-index:98;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.wrap{
+  max-width:720px;
+  margin:0 auto;
+  padding:60px 28px 120px;
+}
+
+/* ── TOP STAMP ── */
+.stamp{
+  text-align:center;
+  margin-bottom:64px;
+}
+.stamp .classified{
+  display:inline-block;
+  border:1px solid rgba(200,185,122,0.3);
+  padding:5px 22px;
+  font-size:10px;
+  letter-spacing:6px;
+  color:var(--gold-dim);
+  margin-bottom:20px;
+}
+.stamp h1{
+  font-size:clamp(22px,5vw,36px);
+  letter-spacing:8px;
+  color:var(--gold);
+  text-shadow:0 0 24px rgba(200,185,122,0.4);
+  margin-bottom:8px;
+}
+.stamp .sub{
+  font-size:11px;
+  letter-spacing:4px;
+  color:var(--gold-dim);
+}
+.stamp .divider{
+  margin:28px auto 0;
+  width:160px;
+  height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold-dim),transparent);
+}
+
+/* ── SECTIONS ── */
+.section{
+  margin-bottom:64px;
+  opacity:0;
+  transform:translateY(18px);
+  transition:opacity 0.7s ease, transform 0.7s ease;
+}
+.section.visible{
+  opacity:1;
+  transform:translateY(0);
+}
+
+.section-label{
+  font-size:9px;
+  letter-spacing:5px;
+  color:var(--gold-dim);
+  margin-bottom:10px;
+  text-transform:uppercase;
+}
+.section-title{
+  font-size:16px;
+  letter-spacing:4px;
+  color:var(--gold);
+  margin-bottom:20px;
+  text-shadow:0 0 12px rgba(200,185,122,0.25);
+}
+.section p{
+  margin-bottom:14px;
+  color:rgba(200,185,122,0.7);
+  font-size:13px;
+  line-height:2;
+}
+.section p.highlight{
+  color:var(--gold);
+  border-left:2px solid rgba(200,185,122,0.4);
+  padding-left:16px;
+  margin-left:4px;
+}
+
+/* ── GLITCH TEXT ── */
+.glitch{
+  position:relative;
+  display:inline-block;
+}
+.glitch::before,.glitch::after{
+  content:attr(data-text);
+  position:absolute;top:0;left:0;
+  color:var(--gold);
+}
+.glitch::before{
+  animation:glitch1 4.5s infinite;
+  clip-path:polygon(0 30%,100% 30%,100% 50%,0 50%);
+  color:#fe2c55;
+  opacity:0.6;
+}
+.glitch::after{
+  animation:glitch2 4.5s infinite;
+  clip-path:polygon(0 65%,100% 65%,100% 80%,0 80%);
+  color:#00f2ea;
+  opacity:0.5;
+}
+@keyframes glitch1{
+  0%,90%,100%{transform:translate(0);}
+  92%{transform:translate(-2px,1px);}
+  94%{transform:translate(2px,-1px);}
+  96%{transform:translate(-1px,0);}
+}
+@keyframes glitch2{
+  0%,88%,100%{transform:translate(0);}
+  90%{transform:translate(2px,1px);}
+  93%{transform:translate(-2px,0);}
+}
+
+/* ── TIMELINE ── */
+.timeline{margin:8px 0 0;}
+.tl-item{
+  display:grid;
+  grid-template-columns:80px 1fr;
+  gap:0 20px;
+  margin-bottom:22px;
+  align-items:start;
+}
+.tl-stage{
+  font-size:10px;
+  letter-spacing:3px;
+  color:var(--gold-dim);
+  padding-top:3px;
+  text-align:right;
+  border-right:1px solid rgba(200,185,122,0.2);
+  padding-right:16px;
+}
+.tl-text{
+  color:rgba(200,185,122,0.65);
+  font-size:12px;
+  line-height:1.8;
+}
+.tl-text strong{
+  color:var(--gold);
+  font-weight:normal;
+  display:block;
+  margin-bottom:2px;
+}
+
+/* ── QUOTE BLOCK ── */
+.quote-block{
+  border:1px solid rgba(200,185,122,0.15);
+  padding:24px 28px;
+  margin:28px 0;
+  position:relative;
+  background:rgba(200,185,122,0.02);
+}
+.quote-block::before{
+  content:'"';
+  position:absolute;top:-14px;left:20px;
+  font-size:48px;
+  color:rgba(200,185,122,0.2);
+  line-height:1;
+  font-family:Georgia,serif;
+}
+.quote-block p{
+  color:rgba(200,185,122,0.75) !important;
+  font-style:italic;
+  margin:0 !important;
+}
+.quote-block .attribution{
+  margin-top:12px;
+  font-size:10px;
+  letter-spacing:3px;
+  color:var(--gold-dim);
+  font-style:normal;
+}
+
+/* ── STAT GRID ── */
+.stat-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:16px;
+  margin:24px 0;
+}
+.stat-card{
+  border:1px solid rgba(200,185,122,0.15);
+  padding:18px 16px;
+  background:rgba(200,185,122,0.02);
+  text-align:center;
+}
+.stat-card .num{
+  font-size:26px;
+  color:var(--gold);
+  letter-spacing:2px;
+  display:block;
+  text-shadow:0 0 16px rgba(200,185,122,0.4);
+}
+.stat-card .label{
+  font-size:9px;
+  letter-spacing:3px;
+  color:var(--gold-dim);
+  margin-top:4px;
+  display:block;
+}
+
+/* ── TERMINAL BLOCK ── */
+.terminal{
+  background:rgba(200,185,122,0.04);
+  border:1px solid rgba(200,185,122,0.12);
+  border-left:2px solid var(--gold-dim);
+  padding:18px 20px;
+  margin:20px 0;
+  font-size:11px;
+  line-height:2;
+  color:rgba(200,185,122,0.55);
+}
+.terminal .t-line::before{content:'> ';}
+.terminal .t-line.active{color:var(--gold);}
+
+/* ── FLICKER ANIM ── */
+@keyframes flicker{
+  0%,95%,100%{opacity:1;}
+  96%{opacity:0.6;}
+  97%{opacity:1;}
+  98%{opacity:0.4;}
+  99%{opacity:0.9;}
+}
+.flicker{animation:flicker 6s infinite;}
+
+/* ── LINKS OUT ── */
+.links-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+  margin-top:24px;
+}
+@media(max-width:480px){.links-grid{grid-template-columns:1fr;}}
+.link-card{
+  display:block;
+  border:1px solid rgba(200,185,122,0.2);
+  padding:20px;
+  text-decoration:none;
+  color:var(--gold);
+  transition:background 0.25s, border-color 0.25s;
+  background:rgba(200,185,122,0.02);
+}
+.link-card:hover{
+  background:rgba(200,185,122,0.06);
+  border-color:rgba(200,185,122,0.5);
+}
+.link-card .lc-label{
+  font-size:9px;
+  letter-spacing:4px;
+  color:var(--gold-dim);
+  display:block;
+  margin-bottom:8px;
+}
+.link-card .lc-title{
+  font-size:14px;
+  letter-spacing:2px;
+  display:block;
+}
+.link-card .lc-arrow{
+  float:right;
+  margin-top:-2px;
+  opacity:0.4;
+}
+
+/* ── BOTTOM NAV ── */
+.back-nav{
+  text-align:center;
+  margin-top:80px;
+  padding-top:36px;
+  border-top:1px solid rgba(200,185,122,0.1);
+}
+.back-nav a{
+  color:var(--gold-dim);
+  text-decoration:none;
+  font-size:11px;
+  letter-spacing:4px;
+  transition:color 0.2s;
+}
+.back-nav a:hover{color:var(--gold);}
+
+/* ── FOOTER STAMP ── */
+.footer-stamp{
+  text-align:center;
+  margin-top:36px;
+  font-size:9px;
+  letter-spacing:3px;
+  color:rgba(200,185,122,0.18);
+}
+
+/* ── TICKER ── */
+.ticker-wrap{
+  overflow:hidden;
+  border-top:1px solid rgba(200,185,122,0.1);
+  border-bottom:1px solid rgba(200,185,122,0.1);
+  padding:8px 0;
+  margin:40px 0;
+}
+.ticker{
+  display:inline-flex;
+  white-space:nowrap;
+  animation:ticker 35s linear infinite;
+  font-size:10px;
+  letter-spacing:3px;
+  color:rgba(200,185,122,0.3);
+}
+.ticker span{margin-right:60px;}
+@keyframes ticker{
+  0%{transform:translateX(0);}
+  100%{transform:translateX(-50%);}
+}
+
+/* mobile */
+@media(max-width:520px){
+  .wrap{padding:40px 18px 80px;}
+  .tl-item{grid-template-columns:60px 1fr;}
+}
+</style>
+</head>
+<body>
+<div id="noise"></div>
+
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="stamp">
+    <div class="classified">EARTHLING OFFICIAL — RESTRICTED ACCESS</div>
+    <h1 class="flicker"><span class="glitch" data-text="STAGE 10">STAGE 10</span></h1>
+    <div class="sub">THE BACKROOMS &nbsp;/&nbsp; LORE FILE &nbsp;/&nbsp; LEVEL 0 ORIENTATION</div>
+    <div class="divider"></div>
+  </div>
+
+  <!-- SECTION 1 — WHAT IS THIS PLACE -->
+  <div class="section">
+    <div class="section-label">File 01 — Location</div>
+    <div class="section-title">WHAT IS THIS PLACE</div>
+    <p>You have noclipped out of reality.</p>
+    <p>
+      The Backrooms. Level 0. Mono-yellow wallpaper, fluorescent hum, 
+      the smell of wet carpet and something you can't name. 
+      You've seen this before — not here, but somewhere in the architecture 
+      of every bad-faith argument you've ever tried to walk through.
+    </p>
+    <p class="highlight">
+      The TVs are not decoration. They are the debate.
+      Every screen is a moment where a real argument was made — 
+      and ignored, deflected, or buried under noise.
+    </p>
+    <p>
+      The further you fall, the deeper you go. Each level down 
+      is another layer of the same conversation — the same 
+      cognitive loops, the same bad logic, echoing down 
+      through an infinite office that never ends and never changes.
+    </p>
+    <p>
+      The window shows you what they don't want to talk about.
+    </p>
+  </div>
+
+  <!-- TICKER -->
+  <div class="ticker-wrap">
+    <div class="ticker">
+      <span>THE DEBATE IS ONGOING</span>
+      <span>YOU ARE NOT CRAZY</span>
+      <span>THEY KNOW WHAT THEY'RE DOING</span>
+      <span>LOOK THROUGH THE WINDOW</span>
+      <span>THE DEBATE IS ONGOING</span>
+      <span>YOU ARE NOT CRAZY</span>
+      <span>THEY KNOW WHAT THEY'RE DOING</span>
+      <span>LOOK THROUGH THE WINDOW</span>
+    </div>
+  </div>
+
+  <!-- SECTION 2 — THE REAL DEBATE -->
+  <div class="section">
+    <div class="section-label">File 02 — Origin</div>
+    <div class="section-title">THE REAL DEBATE</div>
+    <p>
+      Everything in this game series is real. 
+      The debates that built each stage happened — in comment sections, 
+      in livestreams, in the DMs nobody was supposed to see.
+    </p>
+    <p>
+      Dean Withers is a real person. His arguments are real arguments — 
+      the kind made by millions of people every day to justify 
+      the unjustifiable. He is not a villain. He is a mirror.
+    </p>
+
+    <div class="quote-block">
+      <p>
+        When someone argues against animal rights, they're not really 
+        arguing against animals. They're arguing against the part of themselves 
+        that knows.
+      </p>
+      <div class="attribution">— Earthling Official, Stage 8 Wall Text</div>
+    </div>
+
+    <p>
+      The game series does not mock Dean Withers. It maps him. 
+      Every stage is a different corridor in the same building — 
+      the one where people get lost trying not to think about 
+      what they already know.
+    </p>
+    <p class="highlight">
+      The backrooms are what it feels like to debate someone who will never engage. 
+      You walk the same halls. You find the same TVs. The lights flicker. 
+      There is no exit — only a deeper level.
+    </p>
+  </div>
+
+  <!-- SECTION 3 — BY THE NUMBERS -->
+  <div class="section">
+    <div class="section-label">File 03 — Scale</div>
+    <div class="section-title">THE NUMBERS THEY DON'T DEBATE</div>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <span class="num">80B</span>
+        <span class="label">LAND ANIMALS KILLED ANNUALLY</span>
+      </div>
+      <div class="stat-card">
+        <span class="num">2T</span>
+        <span class="label">MARINE ANIMALS KILLED ANNUALLY</span>
+      </div>
+      <div class="stat-card">
+        <span class="num">10</span>
+        <span class="label">STAGES IN THIS SERIES</span>
+      </div>
+      <div class="stat-card">
+        <span class="num">1</span>
+        <span class="label">ARGUMENT THAT MATTERS</span>
+      </div>
+    </div>
+    <p>
+      The argument that matters: they feel pain, they want to live, 
+      and we don't need to do this. 
+      Everything else — tradition, taste, protein, nature — 
+      is the maze. The backrooms. The endless yellow hall.
+    </p>
+  </div>
+
+  <!-- SECTION 4 — THE LINK -->
+  <div class="section">
+    <div class="section-label">File 04 — The Connection</div>
+    <div class="section-title">THE LINK</div>
+    <p>
+      Animal abuse and interpersonal violence share a documented relationship. 
+      Research consistently shows those who harm animals are more likely to harm people — 
+      and communities built around the normalisation of cruelty 
+      have always paid a broader social cost.
+    </p>
+    <p>
+      The legal system knows this too. In most countries, 
+      you can be prosecuted for torturing a dog but not a pig — 
+      despite identical neurological capacity for suffering.
+    </p>
+    <p class="highlight">
+      The law draws a line between companion animals and farmed animals 
+      that has nothing to do with science and everything to do with money. 
+      That line is where the debate lives.
+    </p>
+
+    <div class="terminal">
+      <div class="t-line">SEARCHING: "animal cruelty laws AU"</div>
+      <div class="t-line">RESULT: Companion animals — protected</div>
+      <div class="t-line">RESULT: Farmed animals — industry exemptions apply</div>
+      <div class="t-line">RESULT: Same act. Different animal. Different law.</div>
+      <div class="t-line active">QUERY: Why?</div>
+    </div>
+  </div>
+
+  <!-- SECTION 5 — STAGE HISTORY -->
+  <div class="section">
+    <div class="section-label">File 05 — Archive</div>
+    <div class="section-title">THE STAGES SO FAR</div>
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-stage">STAGES<br>1–5</div>
+        <div class="tl-text"><strong>The Endless Runner / Side Scroller</strong>Where it started. Mario-style. Dean Withers' arguments as level obstacles. Vegan facts as power-ups. Absurd, funny, and built with intent.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-stage">STAGE 6</div>
+        <div class="tl-text"><strong>The FPS</strong>Wolfenstein-style. Cheap and brutal. The debate as a first-person shooter because sometimes it feels exactly like that.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-stage">STAGE 7</div>
+        <div class="tl-text"><strong>The Dark Mirror</strong>Short. Messages from Isaac Bashevis Singer on the walls. The writer who refused to wait for humanity to be ready.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-stage">STAGE 8</div>
+        <div class="tl-text"><strong>The Pyramid</strong>Tomb → Abattoir → Backrooms. Collect messages and flames. Hieroglyphics room. A locked TV. A rising blood sea. A fake scrolling comment section that mirrors real debate dynamics — randomised for accidental comedy and horror. The TV at the end shows an AI render of the game looking over your own shoulder.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-stage">STAGE 9</div>
+        <div class="tl-text"><strong>The Hypogeum</strong>First-person horror. CSS3D YouTube screens embedded in backrooms corridors. Shadow entities. Procedural audio. Dense sticker arrays of animal agriculture facts. Five corridor layouts. No safe room.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-stage">STAGE 10</div>
+        <div class="tl-text"><strong>The Backrooms — You Are Here</strong>The outside world brought inside. A living build. As the real-life discourse evolves, so does the game. The TVs are the debate. The window shows what the debate is about. The door leads to the real thing.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 6 — WHAT TO DO -->
+  <div class="section">
+    <div class="section-label">File 06 — Your Move</div>
+    <div class="section-title">ENTER THE REAL DEBATE</div>
+    <p>
+      The game is not the debate. The game is a map of the debate. 
+      The real thing happens on TikTok, in comment sections, 
+      in the conversations people are afraid to start.
+    </p>
+    <p>
+      Earthling Official exists to make those conversations unavoidable — 
+      through satire, through art, through games nobody expected, 
+      through arguments nobody can honestly dismiss.
+    </p>
+    <p class="highlight">
+      If you found this page, you found the rabbit hole. 
+      The question now is whether you go further or walk back 
+      through the door you came in.
+    </p>
+
+    <div class="links-grid">
+      <a class="link-card" href="https://www.tiktok.com/@earthling_official" target="_blank">
+        <span class="lc-label">FOLLOW</span>
+        <span class="lc-title">@earthling_official <span class="lc-arrow">↗</span></span>
+      </a>
+      <a class="link-card" href="https://earthlingofficial.com" target="_blank">
+        <span class="lc-label">MAIN SITE</span>
+        <span class="lc-title">earthlingofficial.com <span class="lc-arrow">↗</span></span>
+      </a>
+      <a class="link-card" href="the-backrooms.html">
+        <span class="lc-label">RETURN</span>
+        <span class="lc-title">Back to Level 0 <span class="lc-arrow">↩</span></span>
+      </a>
+      <a class="link-card" href="https://earthlingofficial.com/sally-contarino" target="_blank">
+        <span class="lc-label">AWARENESS</span>
+        <span class="lc-title">Sally Contarino Case <span class="lc-arrow">↗</span></span>
+      </a>
+    </div>
+  </div>
+
+  <!-- BOTTOM -->
+  <div class="back-nav">
+    <a href="the-backrooms.html">← RETURN TO THE BACKROOMS</a>
+  </div>
+
+  <div class="footer-stamp">
+    EARTHLING OFFICIAL &nbsp;·&nbsp; GO DEAN! SERIES &nbsp;·&nbsp; STAGE 10 &nbsp;·&nbsp; LIVING BUILD
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+// Scroll-reveal sections
+const sections = document.querySelectorAll('.section');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if(e.isIntersecting) e.target.classList.add('visible');
+  });
+}, { threshold: 0.08 });
+sections.forEach(s => observer.observe(s));
+
+// Flicker effect on stat numbers occasionally
+const nums = document.querySelectorAll('.stat-card .num');
+setInterval(() => {
+  const n = nums[Math.floor(Math.random() * nums.length)];
+  n.style.opacity = '0.3';
+  setTimeout(() => n.style.opacity = '1', 80);
+}, 3200);
+
+// Terminal typewriter for active line
+const activeLine = document.querySelector('.t-line.active');
+if(activeLine){
+  const text = activeLine.textContent;
+  activeLine.textContent = '> ';
+  let i = 2;
+  const type = () => {
+    if(i < text.length + 2){
+      activeLine.textContent = '> ' + text.slice(2, i);
+      i++;
+      setTimeout(type, 65 + Math.random() * 40);
+    }
+  };
+  // Start when visible
+  const tObs = new IntersectionObserver(entries => {
+    if(entries[0].isIntersecting){ type(); tObs.disconnect(); }
+  });
+  tObs.observe(activeLine);
+}
+</script>
+</body>
+</html>
+
+
