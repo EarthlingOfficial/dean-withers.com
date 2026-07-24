@@ -155,6 +155,7 @@
 </head>
 <body>
 <canvas id="c"></canvas>
+<div id="css3d" style="position:fixed;inset:0;z-index:1;pointer-events:none;"></div>
 
 <!-- Mobile joysticks -->
 <div id="joystick-left"><div class="joy-knob" id="knob-left"></div></div>
@@ -243,11 +244,78 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
 
-// ── ARCHIVE.ORG VIDEO POOL FOR WALL TVS ──────────────────────────────────────
-// Archive.org blocks CORS on video — T1-T9 get animated canvas static
-// T10 uses an iframe overlay for actual video playback
-const WALL_TV_VIDEO_MAP = {}; // no archive videos via video element — CORS blocked
+// ── WALL TV VIDEO DEFINITIONS ─────────────────────────────────────────────────
+// Each wall TV gets an archive.org embed identifier — plays via CSS3DObject iframe ON screen
+const WALL_TV_EMBEDS = {
+  T1:  'WolfBlood1925',
+  T2:  'the-cabinet-of-dr.-caligari',
+  T3:  'NosferatuASymphonyOfHorror',
+  T4:  'ATripToTheMoon',
+  T5:  'duck-and-cover-1951',
+  T6:  'prelinger_BehindtheM1956',
+  T7:  'WolfBlood1925',
+  T8:  'the-cabinet-of-dr.-caligari',
+  T9:  'NosferatuASymphonyOfHorror',
+  T10: 'WolfBlood1925',
+};
+
+// CSS3D renderer + active iframe object
+let css3dRenderer = null;
+let tvIframeEl = null;
+let tvIframeObj = null;  // CSS3DObject
+let activeTVObj = null;  // the TV object currently playing
+
+function initCSS3DRenderer(){
+  css3dRenderer = new CSS3DRenderer();
+  css3dRenderer.setSize(innerWidth, innerHeight);
+  const el = css3dRenderer.domElement;
+  el.style.position = 'fixed';
+  el.style.top = '0'; el.style.left = '0';
+  el.style.pointerEvents = 'none';
+  document.getElementById('css3d').appendChild(el);
+}
+
+function buildTVIframe(){
+  tvIframeEl = document.createElement('iframe');
+  tvIframeEl.width = '640';
+  tvIframeEl.height = '360';
+  tvIframeEl.style.cssText = 'border:0;background:#000;display:block;pointer-events:auto;';
+  tvIframeEl.allow = 'autoplay; encrypted-media; picture-in-picture';
+  tvIframeEl.setAttribute('allowfullscreen','');
+  tvIframeObj = new CSS3DObject(tvIframeEl);
+  // scale: TV screen is 2.2 wide in world units, iframe is 640px wide
+  const s = 2.2 / 640;
+  tvIframeObj.scale.set(s, s, s);
+  tvIframeObj.visible = false;
+  scene.add(tvIframeObj);
+}
+
+function playTVEmbed(tv, embedId){
+  if(!tvIframeObj) return;
+  // Position iframe flush on TV screen face
+  // tv.g is the Group; we need world position + forward direction
+  const worldPos = new THREE.Vector3();
+  tv.g.getWorldPosition(worldPos);
+  // offset slightly forward from screen face
+  const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(tv.g.quaternion);
+  tvIframeObj.position.copy(worldPos).addScaledVector(fwd, 0.09);
+  tvIframeObj.position.y = worldPos.y;
+  tvIframeObj.rotation.copy(tv.g.rotation);
+  tvIframeObj.visible = true;
+  tvIframeEl.src = `https://archive.org/embed/${embedId}?autoplay=1&start=0`;
+  activeTVObj = tv;
+  playClickSound();
+}
+
+function stopTVEmbed(){
+  if(!tvIframeObj) return;
+  tvIframeObj.visible = false;
+  tvIframeEl.src = 'about:blank';
+  activeTVObj = null;
+  playClickSound();
+}
 
 // ── DEVICE & GLB ─────────────────────────────────────────────────────────────
 const isMobile = /Mobi|Android|iPhone|iPad|iPod|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
@@ -489,9 +557,6 @@ function playClickSound(){
 let totalFalls = 0;
 let windowTVsUnlocked = false;
 let w1aPlaying = false;
-let w1bPlaying = false;
-
-
 
 // ── W1a VIDEO TEXTURE ─────────────────────────────────────────────────────────
 let w1aVideoEl = null;
@@ -502,7 +567,7 @@ function createW1aVideoTex(){
   vid.src = 'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/slaughter.mp4';
   vid.crossOrigin = 'anonymous';
   vid.loop = true;
-  vid.muted = true; // start muted for autoplay policy
+  vid.muted = true;
   vid.volume = 0.65;
   vid.playsInline = true;
   vid.setAttribute('playsinline','');
@@ -517,84 +582,8 @@ function createW1aVideoTex(){
   return tex;
 }
 
-// ── T10 IFRAME OVERLAY (WolfBlood 1925) ──────────────────────────────────────
-let t10VideoEl = null;
-let t10VideoTex = null;
-let t10IframeEl = null;
-let t10IframeVisible = false;
-
-function createT10VideoTex(){
-  // Use a canvas texture that shows "PRESS E TO PLAY" — actual video plays in iframe overlay
-  const nc = document.createElement('canvas'); nc.width=256; nc.height=144;
-  const ctx = nc.getContext('2d');
-  ctx.fillStyle = '#0a0a0a';
-  ctx.fillRect(0,0,256,144);
-  ctx.fillStyle = 'rgba(200,185,122,0.7)';
-  ctx.font = 'bold 14px Courier New';
-  ctx.textAlign = 'center';
-  ctx.fillText('WOLF BLOOD', 128, 58);
-  ctx.fillText('1925', 128, 80);
-  ctx.font = '10px Courier New';
-  ctx.fillStyle = 'rgba(200,185,122,0.35)';
-  ctx.fillText('[ E ] PLAY', 128, 110);
-  // animate static around the text
-  const tex = new THREE.CanvasTexture(nc);
-  tex.minFilter = THREE.LinearFilter;
-  tex.magFilter = THREE.LinearFilter;
-  // store canvas for animation
-  t10VideoEl = { canvas: nc, ctx, tex, isPlaying: false };
-  t10VideoTex = tex;
-
-  // Create the iframe element (hidden until player presses E)
-  const iframe = document.createElement('iframe');
-  iframe.src = 'https://archive.org/embed/WolfBlood1925?autoplay=0&start=0';
-  iframe.allow = 'autoplay; fullscreen';
-  iframe.setAttribute('allowfullscreen','');
-  iframe.setAttribute('frameborder','0');
-  Object.assign(iframe.style, {
-    position: 'fixed',
-    top: '50%', left: '50%',
-    transform: 'translate(-50%,-50%)',
-    width: '70vw', height: '40vw',
-    maxWidth: '900px', maxHeight: '520px',
-    border: '2px solid rgba(200,185,122,0.4)',
-    background: '#000',
-    zIndex: '20',
-    display: 'none',
-  });
-  document.body.appendChild(iframe);
-  t10IframeEl = iframe;
-
-  // Close iframe on ESC
-  document.addEventListener('keydown', e => {
-    if(e.code === 'Escape' && t10IframeVisible){
-      hideT10Iframe();
-    }
-  });
-
-  return tex;
-}
-
-function showT10Iframe(){
-  if(!t10IframeEl) return;
-  // Reload with autoplay
-  t10IframeEl.src = 'https://archive.org/embed/WolfBlood1925?autoplay=1&start=0';
-  t10IframeEl.style.display = 'block';
-  t10IframeVisible = true;
-  controls.unlock();
-  playClickSound();
-}
-
-function hideT10Iframe(){
-  if(!t10IframeEl) return;
-  t10IframeEl.style.display = 'none';
-  t10IframeEl.src = 'https://archive.org/embed/WolfBlood1925?autoplay=0';
-  t10IframeVisible = false;
-  playClickSound();
-}
-
 // ── WALL TV VIDEO ELEMENTS MAP ────────────────────────────────────────────────
-const wallTVVideoEls = {}; // unused — kept for compatibility
+const wallTVVideoEls = {}; // unused placeholder
 
 // ── TV INTERACTION ────────────────────────────────────────────────────────────
 // Returns the nearest wall TV (T1–T10) within interact range, or null
@@ -626,31 +615,30 @@ function interactWithTV(tv){
   // Window TVs — only unlocked after 10 falls
   if(tv.id === 'W1a' || tv.id === 'W1b'){
     if(!windowTVsUnlocked){
-      // Show taunting message
       showWindowTVLockedMsg();
       return;
     }
-    // W1a
-    if(tv.id === 'W1a' && w1aVideoEl){
-      toggleVideoEl(w1aVideoEl);
+    if(w1aVideoEl){
+      if(w1aVideoEl.paused){ w1aVideoEl.muted=false; w1aVideoEl.play().catch(()=>{ w1aVideoEl.muted=true; w1aVideoEl.play().catch(()=>{}); }); }
+      else { w1aVideoEl.pause(); }
       w1aPlaying = !w1aVideoEl.paused;
-    }
-    // W1b shares W1a video (same stream)
-    if(tv.id === 'W1b' && w1aVideoEl){
-      toggleVideoEl(w1aVideoEl);
-      w1aPlaying = !w1aVideoEl.paused;
+      playClickSound();
     }
     return;
   }
 
-  // T10 — WolfBlood iframe
-  if(tv.id === 'T10'){
-    if(t10IframeVisible){ hideT10Iframe(); } else { showT10Iframe(); }
-    return;
-  }
+  // T1–T10 — CSS3D iframe on screen
+  const embedId = WALL_TV_EMBEDS[tv.id];
+  if(!embedId){ playClickSound(); return; }
 
-  // T1–T9 — animated static, just click sound
-  playClickSound();
+  // Toggle: if this TV is already playing, stop it
+  if(activeTVObj === tv){
+    stopTVEmbed();
+  } else {
+    // Stop any currently playing TV first
+    if(activeTVObj) stopTVEmbed();
+    playTVEmbed(tv, embedId);
+  }
 }
 
 function showWindowTVLockedMsg(){
@@ -680,10 +668,8 @@ function buildWallTV(id, pos, ry, levelYOffset=0){
   if(id === 'W1a'){
     const vtex = createW1aVideoTex();
     screenMat = new THREE.MeshBasicMaterial({map: vtex});
-  } else if(id === 'T10'){
-    const vtex = createT10VideoTex();
-    screenMat = new THREE.MeshBasicMaterial({map: vtex});
   } else {
+    // All wall TVs (T1-T10) show animated static; CSS3DObject iframe plays on top when E pressed
     screenMat = new THREE.MeshBasicMaterial({map: ntex});
   }
 
@@ -1310,10 +1296,10 @@ function animate(t){
     }
   }
 
-  // Fuzz TVs — animate static on all wall TVs except video screens
+  // Fuzz TVs — all except W1a/W1b which have video textures
   if(++nf%3===0){
     allTVs.forEach((tv,i)=>{
-      if(tv.id==='W1a' || tv.id==='W1b' || tv.id==='T10') return;
+      if(tv.id==='W1a' || tv.id==='W1b') return;
       if(nf%(3+(i%3))===0){
         const d=tv.nctx.createImageData(128,72);
         for(let j=0;j<d.data.length;j+=4){
@@ -1369,6 +1355,7 @@ function animate(t){
   }
 
   composer.render();
+  if(css3dRenderer) css3dRenderer.render(scene, camera);
 }
 animate(0);
 
