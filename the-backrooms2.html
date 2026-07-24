@@ -495,6 +495,7 @@ function makeLabelTex(id){
 const clickSoundCtx = new (window.AudioContext || window.webkitAudioContext)();
 function playClickSound(){
   try {
+    if(clickSoundCtx.state === 'suspended') clickSoundCtx.resume();
     const osc = clickSoundCtx.createOscillator();
     const gain = clickSoundCtx.createGain();
     osc.connect(gain); gain.connect(clickSoundCtx.destination);
@@ -562,7 +563,7 @@ let t10VideoEl = null;
 let t10VideoTex = null;
 
 function createT10VideoTex(){
-  const vid = createArchiveVideo('https://archive.org/download/WolfBlood1925/WolfBlood1925.mp4', false, true, 0.6);
+  const vid = createArchiveVideo('https://archive.org/download/WolfBlood1925/Wolf%20Blood%20(1925)%20%5BFull%20Classic%20Horror%20Movie%20HQ%5D%20(480p_30fps_H264-128kbit_AAC).ia.mp4', false, true, 0.6);
   t10VideoEl = vid;
   const tex = new THREE.VideoTexture(vid);
   tex.minFilter = THREE.LinearFilter;
