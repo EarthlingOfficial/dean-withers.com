@@ -51,6 +51,48 @@
     #overlay p .kb { display: none; }
   }
 
+  /* ── AMBIENT HUD TEXT ── */
+  #ambient-text {
+    position: fixed; pointer-events: none; z-index: 6;
+    color: rgba(200,185,122,0.55); font-family: 'Courier New', monospace;
+    font-size: 11px; letter-spacing: 2px; line-height: 1.8;
+    max-width: 320px; text-align: left;
+    opacity: 0; transition: opacity 1.4s;
+    display: none; text-shadow: 0 0 8px rgba(200,185,122,0.3);
+  }
+  #ambient-text.fall-msg {
+    color: rgba(200,100,80,0.8);
+    font-size: 13px; letter-spacing: 3px;
+    text-shadow: 0 0 12px rgba(200,80,60,0.5);
+  }
+
+  /* ── FALL LANDING MESSAGE ── */
+  #fall-msg {
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: rgba(200,100,80,0.88);
+    font-family: 'Courier New', monospace;
+    font-size: 13px; letter-spacing: 2px; line-height: 2.2;
+    text-align: center; white-space: pre-line;
+    text-shadow: 0 0 16px rgba(200,60,40,0.55);
+    pointer-events: none; z-index: 6;
+    display: none; opacity: 0;
+    transition: opacity 1.1s;
+    max-width: 480px;
+  }
+
+  /* ── TV PROXIMITY PROMPT ── */
+  #tv-prompt {
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, 26px);
+    color: rgba(200,185,122,0.78);
+    font-family: 'Courier New', monospace;
+    font-size: 11px; letter-spacing: 3px;
+    text-align: center; pointer-events: none;
+    display: none; z-index: 5;
+    text-shadow: 0 0 8px rgba(200,185,122,0.4);
+  }
+
   /* ── AGE GATE ── */
   #age-gate {
     position: fixed; inset: 0; z-index: 25;
@@ -185,6 +227,11 @@
   </div>
 </div>
 <div id="hint">WASD &nbsp;·&nbsp; SHIFT &nbsp;·&nbsp; CLICK TV &nbsp;·&nbsp; ~ COORDS</div>
+<div id="ambient-text"></div>
+<!-- Fall landing message -->
+<div id="fall-msg"></div>
+<!-- TV proximity interaction prompt -->
+<div id="tv-prompt">[ E ] &nbsp; PLAY / STOP</div>
 <div id="door-hint" style="position:fixed;top:50%;left:50%;transform:translate(-50%,55px);color:#c8b97a;font-size:13px;letter-spacing:3px;text-align:center;pointer-events:none;display:none;z-index:5;text-shadow:0 0 14px rgba(200,185,122,0.9);font-family:'Courier New',monospace;">ENTER THE REAL DEBATE<br><span style="font-size:10px;opacity:0.45;letter-spacing:2px;">[E] &nbsp;·&nbsp; TAP</span></div>
 <div id="coords"></div>
 <script type="module">
@@ -204,7 +251,6 @@ const TV_IDS = {
   T7:'PLACEHOLDER_T7', T8:'PLACEHOLDER_T8', T9:'PLACEHOLDER_T9',
   T10:'PLACEHOLDER_T10',
   W1a:'PLACEHOLDER_W1a', W1b:'PLACEHOLDER_W1b',
-  W2a:'PLACEHOLDER_W2a', W2b:'PLACEHOLDER_W2b',
 };
 
 // ── DEVICE & GLB ─────────────────────────────────────────────────────────────
@@ -214,9 +260,7 @@ const GLB_URL = isMobile
   : 'https://cors.archive.org/cors/backrooms_vr/backrooms_vr.glb';
 
 // ── WALL TV DEFINITIONS ───────────────────────────────────────────────────────
-// These are DIRECTIONS we shoot rays from the building interior.
-// After GLB loads, snapTVsToWalls() fires rays and places each TV flush on the wall it hits.
-// ry = rotation of the TV face (faces opposite to the ray direction)
+// T7: moved to z=-25, dir=-X so it hits the far interior west wall
 const WALL_TV_RAYS = [
   { id:'T1',  from:[ 0,  1.9,  0],     dir:[ 0, 0,  1], ry: Math.PI    },
   { id:'T2',  from:[ 0,  1.9,  0],     dir:[ 0, 0, -1], ry: 0          },
@@ -224,7 +268,6 @@ const WALL_TV_RAYS = [
   { id:'T4',  from:[ 0,  1.9,  8.60],  dir:[-1, 0,  0], ry: Math.PI/2  },
   { id:'T5',  from:[ 0,  1.9, -8],     dir:[ 0, 0,  1], ry: Math.PI    },
   { id:'T6',  from:[ 0,  1.9,  8],     dir:[ 0, 0, -1], ry: 0          },
-  { id:'T7',  from:[ 0,  1.9, -4],     dir:[ 1, 0,  0], ry:-Math.PI/2  },
   { id:'T8',  from:[ 0,  1.9, 14.57],  dir:[-1, 0,  0], ry: Math.PI/2  },
   { id:'T9',  from:[ 0,  1.9,  6.34],  dir:[ 1, 0,  0], ry:-Math.PI/2  },
   { id:'T10', from:[ 0,  1.6,  4],     dir:[-1, 0,  0], ry: Math.PI/2  },
@@ -238,27 +281,21 @@ function snapTVsToWalls(yOffset){
   WALL_TVS = [];
   const ray = new THREE.Raycaster();
   WALL_TV_RAYS.forEach(def => {
-    const origin = new THREE.Vector3(def.from[0], def.from[1] + yOffset, def.from[2] + yOffset * 0);
-    // correct: origin y stays at TV height in world space (yOffset is 0 for level 0)
-    origin.set(def.from[0], def.from[1] + yOffset, def.from[2]);
+    const origin = new THREE.Vector3(def.from[0], def.from[1] + yOffset, def.from[2]);
     const dir = new THREE.Vector3(def.dir[0], def.dir[1], def.dir[2]).normalize();
     ray.set(origin, dir);
     ray.far = 40;
     const hits = ray.intersectObjects(collisionMeshes, true);
     let pos;
     if(hits.length > 0){
-      // Place TV 0.08 units off the wall surface so it sits flush
       pos = hits[0].point.clone().addScaledVector(dir, -0.08);
     } else {
-      // Fallback: use a sensible default if ray misses
       pos = origin.clone().addScaledVector(dir, 6);
     }
     WALL_TVS.push({ id: def.id, pos: [pos.x, def.from[1], pos.z], ry: def.ry });
   });
 }
 
-// W1a: slide left = decrease X (keeping same rotation)
-// Was at X:-3.59, sliding left to X:-5.5
 const WINDOW_TVS = [
   { id:'W1a', pos:[-3.59, 2.65, 0.18],  ry: Math.PI/2, wide:true },
   { id:'W1b', pos:[-69.44, 2.50, 11.25], ry: Math.PI/2, wide:true },
@@ -270,8 +307,6 @@ const LEVEL_DEPTH   = 30;
 const NOCLIP_RADIUS = 0.6;
 const CROSS_SIZE    = 0.5;
 
-// Building bounds — raycasting handles actual walls but these keep
-// noclip crosses and TV spawns inside the building footprint
 const BUILD_BOUNDS = { minX:-22, maxX:25, minZ:-52, maxZ:12 };
 
 let currentLevel    = 0;
@@ -280,10 +315,8 @@ let isFalling       = false;
 let isRecovering    = false;
 let recoverStart    = 0;
 let recoverFrom     = 0;
-let tumblePhase     = 0;   // tracks tumble rotation during fall
 
-// Per-level scene groups (for show/hide)
-const levelGroups   = [];  // levelGroups[i] = { group, lights }
+const levelGroups   = [];
 let glbTemplate     = null;
 const noclipZones   = [];
 
@@ -291,7 +324,44 @@ const noclipZones   = [];
 const screamAudio = new Audio('https://archive.org/download/ScreamSounds/SCREAM_4.mp3');
 screamAudio.volume = 0.85;
 
-// ── FIXED NOCLIP POSITIONS FOR LEVEL 0 (must be inside BUILD_BOUNDS) ─────────
+// ── FALL LANDING MESSAGES ─────────────────────────────────────────────────────
+const FALL_MESSAGES = [
+  "you broke your neck...\nthe poor male chicks feel this every day",
+  "everything went dark...\nthis is how they die in the farms",
+  "you can't move...\nnor could she, for her entire life",
+  "the pain is temporary for you...\nfor them, it never ends",
+  "you survived the fall...\nthey don't survive the farm",
+  "you felt what fear feels like...\nthey feel it every second",
+  "you hit the floor hard...\nso do they. and no one comes.",
+  "the lights went out...\nthey've never seen daylight",
+  "your body remembered what pain is...\ntheirs never forget",
+];
+let fallMsgIdx = 0;
+let fallMsgTimeout = null;
+let fallMsgShowing = false;
+const fallMsgEl = document.getElementById('fall-msg');
+
+function showFallMessage(){
+  if(!fallMsgEl) return;
+  const msg = FALL_MESSAGES[fallMsgIdx % FALL_MESSAGES.length];
+  fallMsgIdx++;
+  fallMsgEl.textContent = msg;
+  fallMsgEl.style.display = 'block';
+  fallMsgEl.style.opacity = '0';
+  // slight delay so the player "lands" before text appears
+  setTimeout(()=>{ fallMsgEl.style.opacity = '1'; fallMsgShowing = true; }, 300);
+  if(fallMsgTimeout) clearTimeout(fallMsgTimeout);
+  fallMsgTimeout = setTimeout(hideFallMessage, 5500);
+}
+
+function hideFallMessage(){
+  if(!fallMsgEl) return;
+  fallMsgEl.style.opacity = '0';
+  fallMsgShowing = false;
+  setTimeout(()=>{ fallMsgEl.style.display = 'none'; }, 1200);
+}
+
+// ── FIXED NOCLIP POSITIONS FOR LEVEL 0 ───────────────────────────────────────
 const LEVEL0_CROSSES = [
   [-1.29, 0.52],
   [ 1.5,  -2.0],
@@ -352,24 +422,24 @@ const tvLinkEl  = document.getElementById('tv-link');
 const tvIdLabel = document.getElementById('tv-id-label');
 const coordsEl  = document.getElementById('coords');
 const doorHintEl = document.getElementById('door-hint');
+const tvPromptEl = document.getElementById('tv-prompt');
 const barEl     = document.getElementById('bar');
 const pctEl     = document.getElementById('pct');
 let showCoords  = false;
 
 controls.addEventListener('lock',   ()=>{ overlayEl.style.display='none'; xhairEl.style.display='block'; hintEl.style.display='block'; });
-controls.addEventListener('unlock', ()=>{ overlayEl.style.display='flex'; xhairEl.style.display='none';  hintEl.style.display='none';  popupEl.style.display='none'; });
+controls.addEventListener('unlock', ()=>{ overlayEl.style.display='flex'; xhairEl.style.display='none';  hintEl.style.display='none';  popupEl.style.display='none'; tvPromptEl.style.display='none'; });
 overlayEl.addEventListener('click', ()=>controls.lock());
 
 // ── WALL RAYCASTING COLLISION ──────────────────────────────────────────────────
-// 8 horizontal rays per step, checks if movement would penetrate geometry
 const wallRaycaster = new THREE.Raycaster();
 const wallDirs = [];
 for(let i=0;i<8;i++){
   const a = (i/8)*Math.PI*2;
   wallDirs.push(new THREE.Vector3(Math.sin(a), 0, Math.cos(a)));
 }
-let collisionMeshes = []; // filled after GLB loads
-const WALL_SKIN = 0.35;   // minimum distance to keep from walls
+let collisionMeshes = [];
+const WALL_SKIN = 0.35;
 
 function canMoveTo(newPos){
   for(const dir of wallDirs){
@@ -415,6 +485,54 @@ function createW1aVideoTex(){
   return tex;
 }
 
+// ── T10 VIDEO TEXTURE (WolfBlood 1925) ───────────────────────────────────────
+let t10VideoEl = null;
+let t10VideoTex = null;
+
+function createT10VideoTex(){
+  const vid = document.createElement('video');
+  vid.src = 'https://archive.org/download/WolfBlood1925/WolfBlood1925.mp4';
+  vid.crossOrigin = 'anonymous';
+  vid.loop = true;
+  vid.muted = true;
+  vid.volume = 0.6;
+  vid.playsInline = true;
+  vid.autoplay = false;
+  t10VideoEl = vid;
+  const tex = new THREE.VideoTexture(vid);
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  t10VideoTex = tex;
+  return tex;
+}
+
+// ── TV INTERACTION ────────────────────────────────────────────────────────────
+// Returns the nearest wall TV (T1–T10) within interact range, or null
+function getNearestWallTV(){
+  let best = null, bestDist = Infinity;
+  allTVs.forEach(tv => {
+    if(!tv.id.startsWith('T')) return; // skip W1a, W1b
+    if(!tv.g.visible) return;
+    const d = camera.position.distanceTo(tv.g.position);
+    if(d < bestDist){ bestDist = d; best = tv; }
+  });
+  return bestDist < 5 ? best : null;
+}
+
+function interactWithTV(tv){
+  if(!tv) return;
+  if(tv.id === 'T10'){
+    if(!t10VideoEl) return;
+    if(t10VideoEl.paused){
+      t10VideoEl.muted = false;
+      t10VideoEl.play().catch(()=>{ t10VideoEl.muted=true; t10VideoEl.play(); });
+    } else {
+      t10VideoEl.pause();
+    }
+  }
+  // All other wall TVs: no popup — placeholders only for now
+}
+
 // ── BUILD A WALL TV ───────────────────────────────────────────────────────────
 function buildWallTV(id, pos, ry, levelYOffset=0){
   const g = new THREE.Group();
@@ -429,8 +547,11 @@ function buildWallTV(id, pos, ry, levelYOffset=0){
   const ntex=new THREE.CanvasTexture(nc); ntex.minFilter=THREE.LinearFilter;
 
   let screenMat;
-  if(id==='W1a'){
+  if(id === 'W1a'){
     const vtex = createW1aVideoTex();
+    screenMat = new THREE.MeshBasicMaterial({map: vtex});
+  } else if(id === 'T10'){
+    const vtex = createT10VideoTex();
     screenMat = new THREE.MeshBasicMaterial({map: vtex});
   } else {
     screenMat = new THREE.MeshBasicMaterial({map: ntex});
@@ -492,11 +613,10 @@ function buildWindowTV(id, pos, ry, levelYOffset=0){
 }
 
 // ── IN-GAME WALL BUTTONS ─────────────────────────────────────────────────────
-// Lore button — snapped to wall at given coords after GLB loads
 const LORE_BUTTON_DEF = {
   id: 'btn-lore',
   pos: [-43.15, 1.7, -3.99],
-  ry: 0,  // set by snapButtonToWall()
+  ry: 0,
   label: 'STAGE 10\nLORE',
   url: 'stage10lore.html',
   color: 0x0a0a0a,
@@ -504,11 +624,9 @@ const LORE_BUTTON_DEF = {
   isTikTok: false,
 };
 
-// TikTok door — clickable door at this location, floating icon nearby
 const TIKTOK_DOOR_POS = [-49.74, 1.5, -4.14];
 const TIKTOK_URL = 'https://www.tiktok.com/@earthling_official';
 
-// Snap a button/object to the nearest wall from a given position
 function snapButtonToWall(pos){
   const ray = new THREE.Raycaster();
   const candidates = [
@@ -531,13 +649,10 @@ function snapButtonToWall(pos){
   return best || { pos, ry: 0 };
 }
 
-// Build TikTok door: floating icon + label + invisible clickable hitbox
 function buildTikTokDoor(){
-  // Determine which way the door faces by finding nearest wall
   const snap = snapButtonToWall(TIKTOK_DOOR_POS);
   const rx = snap.pos[0], rz = snap.pos[2], faceRy = snap.ry;
 
-  // Floating TikTok icon (no link)
   const iconC = document.createElement('canvas'); iconC.width=128; iconC.height=128;
   const ic = iconC.getContext('2d');
   ic.fillStyle='#fe2c55';
@@ -552,13 +667,12 @@ function buildTikTokDoor(){
   const iconTex = new THREE.CanvasTexture(iconC);
   const iconMesh = new THREE.Mesh(
     new THREE.PlaneGeometry(0.55, 0.55),
-    new THREE.MeshBasicMaterial({ map: iconTex, transparent: true })
+    new THREE.MeshBasicMaterial({ map: iconTex, transparent: true, side: THREE.DoubleSide })
   );
   iconMesh.position.set(rx, TIKTOK_DOOR_POS[1] + 1.2, rz);
   iconMesh.rotation.y = faceRy;
   scene.add(iconMesh);
 
-  // "ENTER THE REAL DEBATE" label above icon
   const lc = document.createElement('canvas'); lc.width=512; lc.height=64;
   const lctx = lc.getContext('2d');
   lctx.fillStyle='rgba(0,0,0,0)'; lctx.fillRect(0,0,512,64);
@@ -569,18 +683,16 @@ function buildTikTokDoor(){
   const lTex = new THREE.CanvasTexture(lc);
   const labelMesh = new THREE.Mesh(
     new THREE.PlaneGeometry(1.9, 0.24),
-    new THREE.MeshBasicMaterial({ map: lTex, transparent: true })
+    new THREE.MeshBasicMaterial({ map: lTex, transparent: true, side: THREE.DoubleSide })
   );
   labelMesh.position.set(rx, TIKTOK_DOOR_POS[1] + 1.75, rz);
   labelMesh.rotation.y = faceRy;
   scene.add(labelMesh);
 
-  // Glow
   const glow = new THREE.PointLight(0xfe2c55, 0.4, 3);
   glow.position.set(rx, TIKTOK_DOOR_POS[1] + 1.0, rz);
   scene.add(glow);
 
-  // Invisible hitbox covering door opening — clickable & E-interactable
   const hitbox = new THREE.Mesh(
     new THREE.BoxGeometry(2.2, 3.0, 0.12),
     new THREE.MeshBasicMaterial({ visible: false })
@@ -591,19 +703,17 @@ function buildTikTokDoor(){
   wallButtonMeshes.push({ mesh: hitbox, url: TIKTOK_URL });
 }
 
-const wallButtonMeshes = []; // { mesh, url }
+const wallButtonMeshes = [];
 
 function buildWallButton(def){
   const g = new THREE.Group();
 
-  // Outer dark frame
   const outerFrame = new THREE.Mesh(
     new THREE.BoxGeometry(1.3, 0.75, 0.04),
     new THREE.MeshStandardMaterial({ color: 0x141008, roughness: 0.6, metalness: 0.4 })
   );
   g.add(outerFrame);
 
-  // Inset panel
   const panel = new THREE.Mesh(
     new THREE.BoxGeometry(1.2, 0.64, 0.055),
     new THREE.MeshStandardMaterial({ color: 0x080601, roughness: 0.95, metalness: 0.05 })
@@ -611,7 +721,6 @@ function buildWallButton(def){
   panel.position.set(0, 0, 0.008);
   g.add(panel);
 
-  // Top + bottom gold bars
   [0.375, -0.375].forEach(y => {
     const bar = new THREE.Mesh(
       new THREE.BoxGeometry(1.3, 0.022, 0.065),
@@ -621,7 +730,6 @@ function buildWallButton(def){
     g.add(bar);
   });
 
-  // Left + right gold bars
   [-0.65, 0.65].forEach(x => {
     const bar = new THREE.Mesh(
       new THREE.BoxGeometry(0.022, 0.75, 0.065),
@@ -631,7 +739,6 @@ function buildWallButton(def){
     g.add(bar);
   });
 
-  // Corner studs
   [[-0.58, 0.31], [0.58, 0.31], [-0.58, -0.31], [0.58, -0.31]].forEach(([x, y]) => {
     const stud = new THREE.Mesh(
       new THREE.BoxGeometry(0.06, 0.06, 0.08),
@@ -641,29 +748,24 @@ function buildWallButton(def){
     g.add(stud);
   });
 
-  // Text canvas: "STAGE 10" small / thin divider / "LORE" large
   const lc = document.createElement('canvas'); lc.width=512; lc.height=256;
   const lctx = lc.getContext('2d');
   lctx.clearRect(0,0,512,256);
 
-  // Subtle gradient bg
   const grad = lctx.createLinearGradient(0,0,0,256);
   grad.addColorStop(0,'rgba(30,22,5,0.0)');
   grad.addColorStop(1,'rgba(10,8,0,0.0)');
   lctx.fillStyle=grad; lctx.fillRect(0,0,512,256);
 
   lctx.textAlign='center';
-  // "STAGE 10"
   lctx.font='500 26px Courier New';
   lctx.fillStyle='rgba(200,185,122,0.5)';
   lctx.letterSpacing='6px';
   lctx.fillText('STAGE  10', 256, 76);
 
-  // Thin divider
   lctx.fillStyle='rgba(200,185,122,0.25)';
   lctx.fillRect(140, 106, 232, 1);
 
-  // "LORE"
   lctx.font='bold 96px Courier New';
   lctx.fillStyle='#c8b97a';
   lctx.shadowColor='rgba(200,185,122,0.6)';
@@ -679,7 +781,6 @@ function buildWallButton(def){
   labelM.position.set(0, 0, 0.045);
   g.add(labelM);
 
-  // Warm gold glow
   const glow = new THREE.PointLight(0xd4a830, 0.65, 4);
   glow.position.set(0, 0, 0.7);
   g.add(glow);
@@ -695,20 +796,17 @@ function buildWallButton(def){
 // ── ALL TVS FLAT ARRAY (updated per level) ────────────────────────────────────
 let allTVs = [];
 
-// ── CREATE ONE LEVEL (group + lights + TVs) ───────────────────────────────────
+// ── CREATE ONE LEVEL ──────────────────────────────────────────────────────────
 function createLevelGroup(levelIndex){
   const yOff = -levelIndex * LEVEL_DEPTH;
   const group = new THREE.Group();
-  group.visible = false; // hidden until needed
+  group.visible = false;
 
   if(glbTemplate){
     const clone = glbTemplate.clone(true);
     clone.traverse(c => {
       if(c.isMesh){
         c.castShadow=true; c.receiveShadow=true;
-        // Add cloned meshes to collision — offset their world position by yOff
-        const shifted = c.clone(false);
-        shifted.position.y += yOff;
         collisionMeshes.push(c);
       }
     });
@@ -726,8 +824,6 @@ function createLevelGroup(levelIndex){
   group.position.y = yOff;
   scene.add(group);
 
-  // TVs for this level — added to scene directly (not inside group)
-  // so we can control them separately if needed
   const levelTVs = [];
   WALL_TVS.forEach(t => {
     const tv = buildWallTV(t.id, t.pos, t.ry, yOff);
@@ -742,17 +838,13 @@ function createLevelGroup(levelIndex){
     levelTVs.push(tv);
   });
 
-  // Noclip crosses
   const floorY = levelFloorY + yOff + 0.04;
 
-  // For levels > 0: snap TVs to walls for this level's yOffset, then place
-  // the fall cross 2 units in front of a randomly chosen wall TV
   function randomTVCross(){
-    // Re-snap for this level so we get correct world positions
     const ray = new THREE.Raycaster();
     const candidates = [];
     WALL_TV_RAYS.forEach(def => {
-      const origin = new THREE.Vector3(def.from[0], def.from[1] + yOff, def.from[2]);
+      const origin = new THREE.Vector3(def.from[0], def.from[1], def.from[2]);
       const dir = new THREE.Vector3(def.dir[0], 0, def.dir[2]).normalize();
       ray.set(origin, dir);
       ray.far = 40;
@@ -765,9 +857,8 @@ function createLevelGroup(levelIndex){
         px = def.from[0] + def.dir[0]*6;
         pz = def.from[2] + def.dir[2]*6;
       }
-      // 2 units in front = in direction the TV faces (opposite of wall normal)
-      const fx = px - Math.sin(def.ry) * 2;
-      const fz = pz - Math.cos(def.ry) * 2;
+      const fx = px - def.dir[0] * 1;
+      const fz = pz - def.dir[2] * 1;
       candidates.push([fx, fz]);
     });
     const pick = candidates[Math.floor(Math.random()*candidates.length)];
@@ -802,7 +893,6 @@ function showLevel(idx){
   group.visible = true;
   tvs.forEach(tv => { tv.g.visible = true; });
   (group.userData.crosses||[]).forEach(c => { c.visible = true; });
-  // Add this level's TVs to the allTVs pool for raycasting/fuzz
   tvs.forEach(tv => { if(!allTVs.find(t=>t===tv)) allTVs.push(tv); });
 }
 
@@ -819,7 +909,6 @@ function triggerFall(){
   if(isFalling || isRecovering) return;
   isFalling = true;
 
-  // Play scream
   try { screamAudio.currentTime=0; screamAudio.play().catch(()=>{}); } catch(e){}
 
   const nextIdx = currentLevel + 1;
@@ -830,7 +919,6 @@ function triggerFall(){
   window._fallPrevIdx  = currentLevel;
   window._fallNextIdx  = nextIdx;
 
-  // Pre-create next level and the one after — keep both visible during fall
   if(!levelGroups[nextIdx]) createLevelGroup(nextIdx);
   showLevel(nextIdx);
   if(!levelGroups[nextIdx+1]) createLevelGroup(nextIdx+1);
@@ -852,28 +940,21 @@ loader.load(GLB_URL,
     levelFloorY = box.min.y;
     camera.position.set(center.x, levelFloorY + EYE_HEIGHT, center.z);
 
-    // Collect collision meshes from template
     glbTemplate.traverse(c => { if(c.isMesh) collisionMeshes.push(c); });
 
-    // Snap wall TVs onto actual geometry
     snapTVsToWalls(0);
 
-    // Snap lore button to nearest wall then build it
     const loreSnap = snapButtonToWall(LORE_BUTTON_DEF.pos);
     LORE_BUTTON_DEF.pos = loreSnap.pos;
     LORE_BUTTON_DEF.ry  = loreSnap.ry;
     buildWallButton(LORE_BUTTON_DEF);
 
-    // Build TikTok door (floating icon + hitbox)
     buildTikTokDoor();
 
-    // Create & show level 0
     createLevelGroup(0);
-    // Also add the raw GLB to level 0 group (the actual original, not clone)
     levelGroups[0].group.add(glbTemplate);
     showLevel(0);
 
-    // Pre-create level 1 hidden (instant clone, no download)
     setTimeout(()=>{ if(!levelGroups[1]) createLevelGroup(1); }, 3000);
 
     barEl.style.width='100%'; pctEl.textContent='100%';
@@ -893,13 +974,17 @@ document.addEventListener('keydown', e => {
   if(e.code==='Escape') popupEl.style.display='none';
   if(e.code==='Backquote'){ showCoords=!showCoords; coordsEl.style.display=showCoords?'block':'none'; }
   if(e.code==='KeyE' && controls.isLocked){
+    // Check wall buttons (lore, tiktok)
     btnRaycaster.setFromCamera(new THREE.Vector2(0,0), camera);
-    const meshes = wallButtonMeshes.map(b => b.mesh);
-    const hits = btnRaycaster.intersectObjects(meshes, false);
-    if(hits.length > 0 && hits[0].distance < 6){
-      const hit = wallButtonMeshes.find(b => b.mesh === hits[0].object);
-      if(hit) window.open(hit.url, '_blank');
+    const btnMeshes = wallButtonMeshes.map(b => b.mesh);
+    const btnHits = btnRaycaster.intersectObjects(btnMeshes, false);
+    if(btnHits.length > 0 && btnHits[0].distance < 6){
+      const hit = wallButtonMeshes.find(b => b.mesh === btnHits[0].object);
+      if(hit){ window.open(hit.url, '_blank'); return; }
     }
+    // Check nearest wall TV
+    const nearTV = getNearestWallTV();
+    if(nearTV) interactWithTV(nearTV);
   }
 });
 document.addEventListener('keyup', e => keys.delete(e.code));
@@ -910,7 +995,7 @@ const joyR  = { dx:0, dy:0 };
 
 function setupJoystick(el, knob, isRight){
   let active=false, startX=0, startY=0, id=-1;
-  const R=55; // max radius
+  const R=55;
 
   function onStart(e){
     e.preventDefault();
@@ -946,31 +1031,33 @@ function setupJoystick(el, knob, isRight){
 setupJoystick(document.getElementById('joystick-left'),  document.getElementById('knob-left'),  false);
 setupJoystick(document.getElementById('joystick-right'), document.getElementById('knob-right'), true);
 
-// Right joystick applies to camera yaw/pitch when pointer NOT locked
 let lastJoyRUpdate = 0;
 function applyRightJoystick(dt){
   if(Math.abs(joyR.dx)<0.05 && Math.abs(joyR.dy)<0.05) return;
-  // Rotate camera euler directly
   camera.rotation.order='YXZ';
   camera.rotation.y -= joyR.dx * dt * 2.2;
   camera.rotation.x -= joyR.dy * dt * 1.6;
   camera.rotation.x = Math.max(-Math.PI/2+0.05, Math.min(Math.PI/2-0.05, camera.rotation.x));
 }
 
-// ── BUTTON CLICK RAYCASTING ───────────────────────────────────────────────────
+// ── BUTTON / TV CLICK ─────────────────────────────────────────────────────────
 const btnRaycaster = new THREE.Raycaster();
 window.addEventListener('click', () => {
   if(!controls.isLocked) return;
   btnRaycaster.setFromCamera(new THREE.Vector2(0,0), camera);
-  const meshes = wallButtonMeshes.map(b => b.mesh);
-  const hits = btnRaycaster.intersectObjects(meshes, false);
-  if(hits.length > 0 && hits[0].distance < 5){
-    const hit = wallButtonMeshes.find(b => b.mesh === hits[0].object);
-    if(hit) window.open(hit.url, '_blank');
-  }
-});
 
-// ── TV CLICK — removed, free roam always ─────────────────────────────────────
+  // Wall buttons (lore panel, TikTok door)
+  const btnMeshes = wallButtonMeshes.map(b => b.mesh);
+  const btnHits = btnRaycaster.intersectObjects(btnMeshes, false);
+  if(btnHits.length > 0 && btnHits[0].distance < 5){
+    const hit = wallButtonMeshes.find(b => b.mesh === btnHits[0].object);
+    if(hit){ window.open(hit.url, '_blank'); return; }
+  }
+
+  // Wall TV click — interact with nearest T1–T10 within range
+  const nearTV = getNearestWallTV();
+  if(nearTV) interactWithTV(nearTV);
+});
 
 window.addEventListener('resize',()=>{
   camera.aspect=innerWidth/innerHeight;
@@ -991,14 +1078,14 @@ function animate(t){
     window._fallVelocity=(window._fallVelocity||0)+28*dt;
     camera.position.y-=window._fallVelocity*dt;
 
-    // Land
     if(camera.position.y<=window._fallTarget){
       camera.position.y=window._fallTarget-(EYE_HEIGHT-0.45);
       isFalling=false; isRecovering=true;
       recoverStart=t; recoverFrom=camera.position.y;
       window._fallVelocity=0;
-      // Now hide the level we fell from
       hideLevel(window._fallPrevIdx);
+      // Show landing message
+      showFallMessage();
     }
     composer.render(); return;
   }
@@ -1009,9 +1096,7 @@ function animate(t){
     const duration=2.5;
     const progress=Math.min(elapsed/duration,1);
     const targetY=levelFloorY-currentLevel*LEVEL_DEPTH+EYE_HEIGHT;
-    // Rise from crouched to full height
     camera.position.y=recoverFrom+(targetY-recoverFrom)*(1-Math.pow(1-progress,3));
-    // Wobble fades as you recover
     const wobbleFade=1-progress;
     camera.rotation.z=Math.sin(t*0.012)*0.08*wobbleFade;
     camera.rotation.x+=Math.sin(t*0.009)*0.003*wobbleFade;
@@ -1023,17 +1108,14 @@ function animate(t){
   if(controls.isLocked || (Math.abs(joyL.dx)>0.05 || Math.abs(joyL.dz)>0.05)){
     const spd=(keys.has('ShiftLeft')||keys.has('ShiftRight'))?10:4;
 
-    // Build desired move vector
     const fwd=new THREE.Vector3();
     camera.getWorldDirection(fwd); fwd.y=0; fwd.normalize();
     const right=new THREE.Vector3();
     right.crossVectors(fwd, new THREE.Vector3(0,1,0)).normalize();
 
-    // WASD
     const dFwd = ((keys.has('KeyW')||keys.has('ArrowUp'))?1:0) - ((keys.has('KeyS')||keys.has('ArrowDown'))?1:0);
     const dRight= ((keys.has('KeyD')||keys.has('ArrowRight'))?1:0) - ((keys.has('KeyA')||keys.has('ArrowLeft'))?1:0);
 
-    // Joystick left
     const jFwd = -joyL.dz;
     const jRight= joyL.dx;
 
@@ -1041,34 +1123,34 @@ function animate(t){
     const totalRight= dRight+ jRight;
 
     if(Math.abs(totalFwd)>0.01 || Math.abs(totalRight)>0.01){
+      // Dismiss fall message when player starts moving
+      if(fallMsgShowing){
+        hideFallMessage();
+      }
+
       const move=new THREE.Vector3();
       move.addScaledVector(fwd,   totalFwd  * spd * dt);
       move.addScaledVector(right, totalRight* spd * dt);
 
       const newPos=camera.position.clone().add(move);
-      newPos.y = camera.position.y; // keep at eye height for collision check
+      newPos.y = camera.position.y;
 
       if(canMoveTo(newPos)){
         camera.position.x=newPos.x;
         camera.position.z=newPos.z;
       } else {
-        // Try sliding: X only
         const posX=camera.position.clone(); posX.x=newPos.x;
         if(canMoveTo(posX)) camera.position.x=newPos.x;
-        // Try sliding: Z only
         const posZ=camera.position.clone(); posZ.z=newPos.z;
         if(canMoveTo(posZ)) camera.position.z=newPos.z;
       }
     }
 
-    // Right joystick look (mobile)
     applyRightJoystick(dt);
 
-    // Smooth vertical to floor
     const targetY=levelFloorY-currentLevel*LEVEL_DEPTH+EYE_HEIGHT;
     camera.position.y+=(targetY-camera.position.y)*Math.min(dt*12,1);
 
-    // Noclip check
     const px=camera.position.x, pz=camera.position.z;
     for(const zone of noclipZones){
       if(zone.levelIndex===currentLevel){
@@ -1078,10 +1160,10 @@ function animate(t){
     }
   }
 
-  // Fuzz TVs
+  // Fuzz TVs — skip W1a (slaughter video) and T7 (WolfBlood video)
   if(++nf%3===0){
     allTVs.forEach((tv,i)=>{
-      if(tv.id==='W1a') return; // video texture — skip fuzz
+      if(tv.id==='W1a' || tv.id==='T10') return;
       if(nf%(3+(i%3))===0){
         const d=tv.nctx.createImageData(128,72);
         for(let j=0;j<d.data.length;j+=4){
@@ -1114,9 +1196,17 @@ function animate(t){
   if(controls.isLocked){
     const dp = TIKTOK_DOOR_POS;
     const dx2 = camera.position.x - dp[0], dz2 = camera.position.z - dp[2];
-    doorHintEl.style.display = (Math.sqrt(dx2*dx2+dz2*dz2) < 5) ? 'block' : 'none';
+    doorHintEl.style.display = (Math.sqrt(dx2*dx2+dz2*dz2) < 9) ? 'block' : 'none';
   } else {
     doorHintEl.style.display = 'none';
+  }
+
+  // TV proximity prompt — show when near a wall TV (T1–T10), hide near W TVs
+  if(controls.isLocked){
+    const nearTV = getNearestWallTV();
+    tvPromptEl.style.display = nearTV ? 'block' : 'none';
+  } else {
+    tvPromptEl.style.display = 'none';
   }
 
   composer.render();
@@ -1156,7 +1246,6 @@ const introVideo=document.getElementById('intro-video');
 let glbLoaded=false;
 let ageConfirmed=false;
 
-// Age gate wiring
 document.getElementById('age-gate-confirm').addEventListener('click',()=>{
   ageConfirmed=true;
   const gate=document.getElementById('age-gate');
@@ -1217,7 +1306,6 @@ function showCard(l1,l2,rolls,delay){
 
 async function runTitleSequence(){
   await new Promise(r=>setTimeout(r,600));
-  // Welcome message — shown before VHS sequence
   line1El.style.fontSize='13px';
   line1El.style.letterSpacing='3px';
   line2El.style.fontSize='11px';
@@ -1230,7 +1318,6 @@ async function runTitleSequence(){
   line1El.style.opacity='0'; line2El.style.opacity='0';
   await new Promise(r=>setTimeout(r,900));
 
-  // Sub-message
   line1El.style.fontSize='10px';
   line1El.style.letterSpacing='2px';
   line2El.style.fontSize='9px';
@@ -1248,7 +1335,6 @@ async function runTitleSequence(){
   line1El.style.opacity='0'; line2El.style.opacity='0';
   await new Promise(r=>setTimeout(r,800));
 
-  // Reset font sizes for standard cards
   line1El.style.fontSize='15px'; line1El.style.letterSpacing='5px';
   line2El.style.fontSize='13px'; line2El.style.letterSpacing='4px';
 
