@@ -51,6 +51,21 @@
     #overlay p .kb { display: none; }
   }
 
+  /* ── AMBIENT HUD TEXT ── */
+  #ambient-text {
+    position: fixed; pointer-events: none; z-index: 6;
+    color: rgba(200,185,122,0.55); font-family: 'Courier New', monospace;
+    font-size: 11px; letter-spacing: 2px; line-height: 1.8;
+    max-width: 320px; text-align: left;
+    opacity: 0; transition: opacity 1.4s;
+    display: none; text-shadow: 0 0 8px rgba(200,185,122,0.3);
+  }
+  #ambient-text.fall-msg {
+    color: rgba(200,100,80,0.8);
+    font-size: 13px; letter-spacing: 3px;
+    text-shadow: 0 0 12px rgba(200,80,60,0.5);
+  }
+
   /* ── AGE GATE ── */
   #age-gate {
     position: fixed; inset: 0; z-index: 25;
@@ -185,6 +200,7 @@
   </div>
 </div>
 <div id="hint">WASD &nbsp;·&nbsp; SHIFT &nbsp;·&nbsp; CLICK TV &nbsp;·&nbsp; ~ COORDS</div>
+<div id="ambient-text"></div>
 <div id="door-hint" style="position:fixed;top:50%;left:50%;transform:translate(-50%,55px);color:#c8b97a;font-size:13px;letter-spacing:3px;text-align:center;pointer-events:none;display:none;z-index:5;text-shadow:0 0 14px rgba(200,185,122,0.9);font-family:'Courier New',monospace;">ENTER THE REAL DEBATE<br><span style="font-size:10px;opacity:0.45;letter-spacing:2px;">[E] &nbsp;·&nbsp; TAP</span></div>
 <div id="coords"></div>
 <script type="module">
@@ -552,7 +568,7 @@ function buildTikTokDoor(){
   const iconTex = new THREE.CanvasTexture(iconC);
   const iconMesh = new THREE.Mesh(
     new THREE.PlaneGeometry(0.55, 0.55),
-    new THREE.MeshBasicMaterial({ map: iconTex, transparent: true })
+    new THREE.MeshBasicMaterial({ map: iconTex, transparent: true, side: THREE.DoubleSide })
   );
   iconMesh.position.set(rx, TIKTOK_DOOR_POS[1] + 1.2, rz);
   iconMesh.rotation.y = faceRy;
@@ -569,7 +585,7 @@ function buildTikTokDoor(){
   const lTex = new THREE.CanvasTexture(lc);
   const labelMesh = new THREE.Mesh(
     new THREE.PlaneGeometry(1.9, 0.24),
-    new THREE.MeshBasicMaterial({ map: lTex, transparent: true })
+    new THREE.MeshBasicMaterial({ map: lTex, transparent: true, side: THREE.DoubleSide })
   );
   labelMesh.position.set(rx, TIKTOK_DOOR_POS[1] + 1.75, rz);
   labelMesh.rotation.y = faceRy;
@@ -748,11 +764,11 @@ function createLevelGroup(levelIndex){
   // For levels > 0: snap TVs to walls for this level's yOffset, then place
   // the fall cross 2 units in front of a randomly chosen wall TV
   function randomTVCross(){
-    // Re-snap for this level so we get correct world positions
+    // Ray at template y height — collision meshes live at y=0 coords regardless of level
     const ray = new THREE.Raycaster();
     const candidates = [];
     WALL_TV_RAYS.forEach(def => {
-      const origin = new THREE.Vector3(def.from[0], def.from[1] + yOff, def.from[2]);
+      const origin = new THREE.Vector3(def.from[0], def.from[1], def.from[2]);
       const dir = new THREE.Vector3(def.dir[0], 0, def.dir[2]).normalize();
       ray.set(origin, dir);
       ray.far = 40;
@@ -765,9 +781,9 @@ function createLevelGroup(levelIndex){
         px = def.from[0] + def.dir[0]*6;
         pz = def.from[2] + def.dir[2]*6;
       }
-      // 2 units in front = in direction the TV faces (opposite of wall normal)
-      const fx = px - Math.sin(def.ry) * 2;
-      const fz = pz - Math.cos(def.ry) * 2;
+      // 1 metre in front = opposite of ray direction (toward room interior)
+      const fx = px - def.dir[0] * 1;
+      const fz = pz - def.dir[2] * 1;
       candidates.push([fx, fz]);
     });
     const pick = candidates[Math.floor(Math.random()*candidates.length)];
@@ -1114,7 +1130,7 @@ function animate(t){
   if(controls.isLocked){
     const dp = TIKTOK_DOOR_POS;
     const dx2 = camera.position.x - dp[0], dz2 = camera.position.z - dp[2];
-    doorHintEl.style.display = (Math.sqrt(dx2*dx2+dz2*dz2) < 5) ? 'block' : 'none';
+    doorHintEl.style.display = (Math.sqrt(dx2*dx2+dz2*dz2) < 9) ? 'block' : 'none';
   } else {
     doorHintEl.style.display = 'none';
   }
