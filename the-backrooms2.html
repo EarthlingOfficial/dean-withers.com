@@ -50,6 +50,62 @@
     #joystick-left, #joystick-right { display: block; }
     #overlay p .kb { display: none; }
   }
+
+  /* ── AGE GATE ── */
+  #age-gate {
+    position: fixed; inset: 0; z-index: 25;
+    background: rgba(0,0,0,0.92);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #age-gate-panel {
+    width: min(90vw, 620px);
+    max-height: 90vh;
+    overflow-y: auto;
+    border: 1px solid rgba(200,185,122,0.25);
+    padding: 48px 44px;
+    text-align: center;
+    color: #c8b97a;
+    font-family: 'Courier New', monospace;
+    background: rgba(0,0,0,0.6);
+    display: flex; flex-direction: column; align-items: center; gap: 22px;
+  }
+  #age-gate-panel .ag-warn {
+    font-size: 10px; letter-spacing: 4px; opacity: 0.45; text-transform: uppercase;
+  }
+  #age-gate-panel .ag-title {
+    font-size: 18px; letter-spacing: 6px; text-transform: uppercase;
+    text-shadow: 0 0 18px rgba(200,185,122,0.5);
+  }
+  #age-gate-panel .ag-rule {
+    width: 60px; height: 1px; background: rgba(200,185,122,0.25);
+  }
+  #age-gate-panel .ag-body {
+    font-size: 12px; line-height: 2.1; opacity: 0.7; letter-spacing: 1px;
+  }
+  #age-gate-panel .ag-sting {
+    font-size: 13px; letter-spacing: 2px; opacity: 0.9; font-style: italic;
+    border-left: 2px solid rgba(200,185,122,0.4); padding-left: 14px;
+    text-align: left; line-height: 1.9;
+  }
+  #age-gate-panel .ag-btns {
+    display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-top: 8px;
+  }
+  #age-gate-confirm {
+    padding: 12px 32px; border: 1px solid rgba(200,185,122,0.65);
+    background: transparent; color: #c8b97a;
+    font-family: 'Courier New', monospace; font-size: 12px;
+    letter-spacing: 3px; text-transform: uppercase; cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  #age-gate-confirm:hover { background: rgba(200,185,122,0.12); }
+  #age-gate-leave {
+    padding: 12px 32px; border: 1px solid rgba(200,185,122,0.2);
+    background: transparent; color: rgba(200,185,122,0.4);
+    font-family: 'Courier New', monospace; font-size: 12px;
+    letter-spacing: 3px; text-transform: uppercase; cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  #age-gate-leave:hover { opacity: 0.7; }
 </style>
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
@@ -61,6 +117,33 @@
 <!-- Mobile joysticks -->
 <div id="joystick-left"><div class="joy-knob" id="knob-left"></div></div>
 <div id="joystick-right"><div class="joy-knob" id="knob-right"></div></div>
+
+<div id="age-gate">
+  <div id="age-gate-panel">
+    <div class="ag-warn">&#9888;&nbsp; Content Warning &nbsp;&#9888;</div>
+    <div class="ag-title">This Contains Real Footage</div>
+    <div class="ag-rule"></div>
+    <div class="ag-body">
+      This experience contains <strong>graphic real-world footage</strong> from inside<br>
+      the animal agricultural industry — slaughterhouses, factory farms,<br>
+      and the realities that are hidden behind every meal.<br><br>
+      It is disturbing. It is the truth.
+    </div>
+    <div class="ag-sting">
+      "If you can't stomach it,<br>
+      then maybe you shouldn't stomach it."
+    </div>
+    <div class="ag-body" style="font-size:11px;opacity:0.45;">
+      You must be 18 years or older to enter.<br>
+      By continuing you confirm you are of legal age<br>
+      and consent to viewing graphic content.
+    </div>
+    <div class="ag-btns">
+      <button id="age-gate-confirm">I AM 18+ &mdash; ENTER</button>
+      <button id="age-gate-leave">LEAVE</button>
+    </div>
+  </div>
+</div>
 
 <div id="loading">
   <video id="intro-video" muted playsinline
@@ -102,6 +185,7 @@
   </div>
 </div>
 <div id="hint">WASD &nbsp;·&nbsp; SHIFT &nbsp;·&nbsp; CLICK TV &nbsp;·&nbsp; ~ COORDS</div>
+<div id="door-hint" style="position:fixed;top:50%;left:50%;transform:translate(-50%,55px);color:#c8b97a;font-size:13px;letter-spacing:3px;text-align:center;pointer-events:none;display:none;z-index:5;text-shadow:0 0 14px rgba(200,185,122,0.9);font-family:'Courier New',monospace;">ENTER THE REAL DEBATE<br><span style="font-size:10px;opacity:0.45;letter-spacing:2px;">[E] &nbsp;·&nbsp; TAP</span></div>
 <div id="coords"></div>
 <script type="module">
 import * as THREE from 'three';
@@ -130,27 +214,58 @@ const GLB_URL = isMobile
   : 'https://cors.archive.org/cors/backrooms_vr/backrooms_vr.glb';
 
 // ── WALL TV DEFINITIONS ───────────────────────────────────────────────────────
-const WALL_TVS = [
-  { id:'T1',  pos:[ 0,   1.9, -8],   ry: 0          },
-  { id:'T2',  pos:[ 0,   1.9, -18],  ry: 0          },
-  { id:'T3',  pos:[ 0,   1.9, -30],  ry: 0          },
-  { id:'T4',  pos:[ 0,   1.9, -12],  ry: Math.PI    },
-  { id:'T5',  pos:[ 0,   1.9, -24],  ry: Math.PI    },
-  { id:'T6',  pos:[ 12,  1.9, -5],   ry:-Math.PI/2  },
-  { id:'T7',  pos:[ 12,  1.9,  5],   ry:-Math.PI/2  },
-  { id:'T8',  pos:[-12,  1.9, -5],   ry: Math.PI/2  },
-  { id:'T9',  pos:[ 18,  1.9,  14],  ry:-Math.PI/2  },
-  { id:'T10', pos:[ 0,   1.9, -44],  ry: 0          },
+// These are DIRECTIONS we shoot rays from the building interior.
+// After GLB loads, snapTVsToWalls() fires rays and places each TV flush on the wall it hits.
+// ry = rotation of the TV face (faces opposite to the ray direction)
+const WALL_TV_RAYS = [
+  { id:'T1',  from:[ 0,  1.9,  0],     dir:[ 0, 0,  1], ry: Math.PI    },
+  { id:'T2',  from:[ 0,  1.9,  0],     dir:[ 0, 0, -1], ry: 0          },
+  { id:'T3',  from:[ 0,  1.9,  0],     dir:[ 1, 0,  0], ry:-Math.PI/2  },
+  { id:'T4',  from:[ 0,  1.9,  8.60],  dir:[-1, 0,  0], ry: Math.PI/2  },
+  { id:'T5',  from:[ 0,  1.9, -8],     dir:[ 0, 0,  1], ry: Math.PI    },
+  { id:'T6',  from:[ 0,  1.9,  8],     dir:[ 0, 0, -1], ry: 0          },
+  { id:'T7',  from:[ 0,  1.9, -4],     dir:[ 1, 0,  0], ry:-Math.PI/2  },
+  { id:'T8',  from:[ 0,  1.9, 14.57],  dir:[-1, 0,  0], ry: Math.PI/2  },
+  { id:'T9',  from:[ 0,  1.9,  6.34],  dir:[ 1, 0,  0], ry:-Math.PI/2  },
+  { id:'T10', from:[ 0,  1.6,  4],     dir:[-1, 0,  0], ry: Math.PI/2  },
 ];
+
+// Filled after snapTVsToWalls() runs — used by fall logic
+let WALL_TVS = [];
+
+// Snap all wall TVs onto real geometry using raycasting
+function snapTVsToWalls(yOffset){
+  WALL_TVS = [];
+  const ray = new THREE.Raycaster();
+  WALL_TV_RAYS.forEach(def => {
+    const origin = new THREE.Vector3(def.from[0], def.from[1] + yOffset, def.from[2] + yOffset * 0);
+    // correct: origin y stays at TV height in world space (yOffset is 0 for level 0)
+    origin.set(def.from[0], def.from[1] + yOffset, def.from[2]);
+    const dir = new THREE.Vector3(def.dir[0], def.dir[1], def.dir[2]).normalize();
+    ray.set(origin, dir);
+    ray.far = 40;
+    const hits = ray.intersectObjects(collisionMeshes, true);
+    let pos;
+    if(hits.length > 0){
+      // Place TV 0.08 units off the wall surface so it sits flush
+      pos = hits[0].point.clone().addScaledVector(dir, -0.08);
+    } else {
+      // Fallback: use a sensible default if ray misses
+      pos = origin.clone().addScaledVector(dir, 6);
+    }
+    WALL_TVS.push({ id: def.id, pos: [pos.x, def.from[1], pos.z], ry: def.ry });
+  });
+}
 
 // W1a: slide left = decrease X (keeping same rotation)
 // Was at X:-3.59, sliding left to X:-5.5
 const WINDOW_TVS = [
-  { id:'W1a', pos:[-5.5, 2.65, 0.18], ry: Math.PI/2, wide:true },
+  { id:'W1a', pos:[-3.59, 2.65, 0.18],  ry: Math.PI/2, wide:true },
+  { id:'W1b', pos:[-69.44, 2.50, 11.25], ry: Math.PI/2, wide:true },
 ];
 
 // ── LEVEL SYSTEM ─────────────────────────────────────────────────────────────
-const EYE_HEIGHT    = 1.72;
+const EYE_HEIGHT    = 2.36;
 const LEVEL_DEPTH   = 30;
 const NOCLIP_RADIUS = 0.6;
 const CROSS_SIZE    = 0.5;
@@ -178,8 +293,8 @@ screamAudio.volume = 0.85;
 
 // ── FIXED NOCLIP POSITIONS FOR LEVEL 0 (must be inside BUILD_BOUNDS) ─────────
 const LEVEL0_CROSSES = [
-  [ 2.5,  -8.0],
-  [-3.0, -16.0],
+  [-1.29, 0.52],
+  [ 1.5,  -2.0],
 ];
 
 function clampToBounds(x, z) {
@@ -236,6 +351,7 @@ const popupEl   = document.getElementById('tv-popup');
 const tvLinkEl  = document.getElementById('tv-link');
 const tvIdLabel = document.getElementById('tv-id-label');
 const coordsEl  = document.getElementById('coords');
+const doorHintEl = document.getElementById('door-hint');
 const barEl     = document.getElementById('bar');
 const pctEl     = document.getElementById('pct');
 let showCoords  = false;
@@ -283,10 +399,11 @@ let w1aVideoTex = null;
 
 function createW1aVideoTex(){
   const vid = document.createElement('video');
-  vid.src = 'https://archive.org/download/05.-backrooms-found-footage-4/05.Backrooms%20Found%20Footage%20%234.ia.mp4';
+  vid.src = 'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/slaughter.mp4';
   vid.crossOrigin = 'anonymous';
   vid.loop = true;
-  vid.muted = true;
+  vid.muted = false;
+  vid.volume = 0.65;
   vid.playsInline = true;
   vid.autoplay = true;
   vid.play().catch(()=>{});
@@ -374,6 +491,207 @@ function buildWindowTV(id, pos, ry, levelYOffset=0){
   return { g, screen, ntex, nctx, id };
 }
 
+// ── IN-GAME WALL BUTTONS ─────────────────────────────────────────────────────
+// Lore button — snapped to wall at given coords after GLB loads
+const LORE_BUTTON_DEF = {
+  id: 'btn-lore',
+  pos: [-43.15, 1.7, -3.99],
+  ry: 0,  // set by snapButtonToWall()
+  label: 'STAGE 10\nLORE',
+  url: 'stage10lore.html',
+  color: 0x0a0a0a,
+  accent: 0xc8b97a,
+  isTikTok: false,
+};
+
+// TikTok door — clickable door at this location, floating icon nearby
+const TIKTOK_DOOR_POS = [-49.74, 1.5, -4.14];
+const TIKTOK_URL = 'https://www.tiktok.com/@earthling_official';
+
+// Snap a button/object to the nearest wall from a given position
+function snapButtonToWall(pos){
+  const ray = new THREE.Raycaster();
+  const candidates = [
+    { dir: new THREE.Vector3( 1,0,0), ry: -Math.PI/2 },
+    { dir: new THREE.Vector3(-1,0,0), ry:  Math.PI/2 },
+    { dir: new THREE.Vector3(0,0, 1), ry:  Math.PI   },
+    { dir: new THREE.Vector3(0,0,-1), ry:  0         },
+  ];
+  let best = null, bestDist = Infinity;
+  candidates.forEach(c => {
+    ray.set(new THREE.Vector3(pos[0], pos[1], pos[2]), c.dir);
+    ray.far = 10;
+    const hits = ray.intersectObjects(collisionMeshes, true);
+    if(hits.length > 0 && hits[0].distance < bestDist){
+      bestDist = hits[0].distance;
+      const p = hits[0].point.clone().addScaledVector(c.dir, -0.05);
+      best = { pos: [p.x, pos[1], p.z], ry: c.ry };
+    }
+  });
+  return best || { pos, ry: 0 };
+}
+
+// Build TikTok door: floating icon + label + invisible clickable hitbox
+function buildTikTokDoor(){
+  // Determine which way the door faces by finding nearest wall
+  const snap = snapButtonToWall(TIKTOK_DOOR_POS);
+  const rx = snap.pos[0], rz = snap.pos[2], faceRy = snap.ry;
+
+  // Floating TikTok icon (no link)
+  const iconC = document.createElement('canvas'); iconC.width=128; iconC.height=128;
+  const ic = iconC.getContext('2d');
+  ic.fillStyle='#fe2c55';
+  ic.beginPath(); ic.arc(76,52,28,0,Math.PI*2); ic.fill();
+  ic.fillStyle='#00f2ea';
+  ic.beginPath(); ic.arc(56,52,28,0,Math.PI*2); ic.fill();
+  ic.fillStyle='#fff';
+  ic.beginPath(); ic.arc(66,52,24,0,Math.PI*2); ic.fill();
+  ic.fillStyle='#000';
+  ic.font='bold 48px sans-serif'; ic.textAlign='center'; ic.textBaseline='middle';
+  ic.fillText('♪',66,56);
+  const iconTex = new THREE.CanvasTexture(iconC);
+  const iconMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.55, 0.55),
+    new THREE.MeshBasicMaterial({ map: iconTex, transparent: true })
+  );
+  iconMesh.position.set(rx, TIKTOK_DOOR_POS[1] + 1.2, rz);
+  iconMesh.rotation.y = faceRy;
+  scene.add(iconMesh);
+
+  // "ENTER THE REAL DEBATE" label above icon
+  const lc = document.createElement('canvas'); lc.width=512; lc.height=64;
+  const lctx = lc.getContext('2d');
+  lctx.fillStyle='rgba(0,0,0,0)'; lctx.fillRect(0,0,512,64);
+  lctx.fillStyle='#c8b97a';
+  lctx.font='bold 22px Courier New';
+  lctx.textAlign='center'; lctx.textBaseline='middle';
+  lctx.fillText('ENTER THE REAL DEBATE', 256, 32);
+  const lTex = new THREE.CanvasTexture(lc);
+  const labelMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.9, 0.24),
+    new THREE.MeshBasicMaterial({ map: lTex, transparent: true })
+  );
+  labelMesh.position.set(rx, TIKTOK_DOOR_POS[1] + 1.75, rz);
+  labelMesh.rotation.y = faceRy;
+  scene.add(labelMesh);
+
+  // Glow
+  const glow = new THREE.PointLight(0xfe2c55, 0.4, 3);
+  glow.position.set(rx, TIKTOK_DOOR_POS[1] + 1.0, rz);
+  scene.add(glow);
+
+  // Invisible hitbox covering door opening — clickable & E-interactable
+  const hitbox = new THREE.Mesh(
+    new THREE.BoxGeometry(2.2, 3.0, 0.12),
+    new THREE.MeshBasicMaterial({ visible: false })
+  );
+  hitbox.position.set(rx, TIKTOK_DOOR_POS[1] + 0.5, rz);
+  hitbox.rotation.y = faceRy;
+  scene.add(hitbox);
+  wallButtonMeshes.push({ mesh: hitbox, url: TIKTOK_URL });
+}
+
+const wallButtonMeshes = []; // { mesh, url }
+
+function buildWallButton(def){
+  const g = new THREE.Group();
+
+  // Outer dark frame
+  const outerFrame = new THREE.Mesh(
+    new THREE.BoxGeometry(1.3, 0.75, 0.04),
+    new THREE.MeshStandardMaterial({ color: 0x141008, roughness: 0.6, metalness: 0.4 })
+  );
+  g.add(outerFrame);
+
+  // Inset panel
+  const panel = new THREE.Mesh(
+    new THREE.BoxGeometry(1.2, 0.64, 0.055),
+    new THREE.MeshStandardMaterial({ color: 0x080601, roughness: 0.95, metalness: 0.05 })
+  );
+  panel.position.set(0, 0, 0.008);
+  g.add(panel);
+
+  // Top + bottom gold bars
+  [0.375, -0.375].forEach(y => {
+    const bar = new THREE.Mesh(
+      new THREE.BoxGeometry(1.3, 0.022, 0.065),
+      new THREE.MeshBasicMaterial({ color: 0xc8b97a })
+    );
+    bar.position.set(0, y, 0);
+    g.add(bar);
+  });
+
+  // Left + right gold bars
+  [-0.65, 0.65].forEach(x => {
+    const bar = new THREE.Mesh(
+      new THREE.BoxGeometry(0.022, 0.75, 0.065),
+      new THREE.MeshBasicMaterial({ color: 0xc8b97a })
+    );
+    bar.position.set(x, 0, 0);
+    g.add(bar);
+  });
+
+  // Corner studs
+  [[-0.58, 0.31], [0.58, 0.31], [-0.58, -0.31], [0.58, -0.31]].forEach(([x, y]) => {
+    const stud = new THREE.Mesh(
+      new THREE.BoxGeometry(0.06, 0.06, 0.08),
+      new THREE.MeshBasicMaterial({ color: 0xe0d090 })
+    );
+    stud.position.set(x, y, 0);
+    g.add(stud);
+  });
+
+  // Text canvas: "STAGE 10" small / thin divider / "LORE" large
+  const lc = document.createElement('canvas'); lc.width=512; lc.height=256;
+  const lctx = lc.getContext('2d');
+  lctx.clearRect(0,0,512,256);
+
+  // Subtle gradient bg
+  const grad = lctx.createLinearGradient(0,0,0,256);
+  grad.addColorStop(0,'rgba(30,22,5,0.0)');
+  grad.addColorStop(1,'rgba(10,8,0,0.0)');
+  lctx.fillStyle=grad; lctx.fillRect(0,0,512,256);
+
+  lctx.textAlign='center';
+  // "STAGE 10"
+  lctx.font='500 26px Courier New';
+  lctx.fillStyle='rgba(200,185,122,0.5)';
+  lctx.letterSpacing='6px';
+  lctx.fillText('STAGE  10', 256, 76);
+
+  // Thin divider
+  lctx.fillStyle='rgba(200,185,122,0.25)';
+  lctx.fillRect(140, 106, 232, 1);
+
+  // "LORE"
+  lctx.font='bold 96px Courier New';
+  lctx.fillStyle='#c8b97a';
+  lctx.shadowColor='rgba(200,185,122,0.6)';
+  lctx.shadowBlur=18;
+  lctx.fillText('LORE', 256, 200);
+  lctx.shadowBlur=0;
+
+  const lTex = new THREE.CanvasTexture(lc);
+  const labelM = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.05, 0.52),
+    new THREE.MeshBasicMaterial({ map: lTex, transparent: true })
+  );
+  labelM.position.set(0, 0, 0.045);
+  g.add(labelM);
+
+  // Warm gold glow
+  const glow = new THREE.PointLight(0xd4a830, 0.65, 4);
+  glow.position.set(0, 0, 0.7);
+  g.add(glow);
+
+  g.position.set(def.pos[0], def.pos[1], def.pos[2]);
+  g.rotation.y = def.ry;
+  scene.add(g);
+
+  wallButtonMeshes.push({ mesh: panel, url: def.url });
+  return g;
+}
+
 // ── ALL TVS FLAT ARRAY (updated per level) ────────────────────────────────────
 let allTVs = [];
 
@@ -385,7 +703,15 @@ function createLevelGroup(levelIndex){
 
   if(glbTemplate){
     const clone = glbTemplate.clone(true);
-    clone.traverse(c => { if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; } });
+    clone.traverse(c => {
+      if(c.isMesh){
+        c.castShadow=true; c.receiveShadow=true;
+        // Add cloned meshes to collision — offset their world position by yOff
+        const shifted = c.clone(false);
+        shifted.position.y += yOff;
+        collisionMeshes.push(c);
+      }
+    });
     group.add(clone);
   }
 
@@ -417,12 +743,42 @@ function createLevelGroup(levelIndex){
   });
 
   // Noclip crosses
-  const floorY = levelFloorY + yOff + 0.015;
-  const positions = (levelIndex === 0) ? LEVEL0_CROSSES : randomNoclipPositions();
+  const floorY = levelFloorY + yOff + 0.04;
+
+  // For levels > 0: snap TVs to walls for this level's yOffset, then place
+  // the fall cross 2 units in front of a randomly chosen wall TV
+  function randomTVCross(){
+    // Re-snap for this level so we get correct world positions
+    const ray = new THREE.Raycaster();
+    const candidates = [];
+    WALL_TV_RAYS.forEach(def => {
+      const origin = new THREE.Vector3(def.from[0], def.from[1] + yOff, def.from[2]);
+      const dir = new THREE.Vector3(def.dir[0], 0, def.dir[2]).normalize();
+      ray.set(origin, dir);
+      ray.far = 40;
+      const hits = ray.intersectObjects(collisionMeshes, true);
+      let px, pz;
+      if(hits.length > 0){
+        const p = hits[0].point.clone().addScaledVector(dir, -0.08);
+        px = p.x; pz = p.z;
+      } else {
+        px = def.from[0] + def.dir[0]*6;
+        pz = def.from[2] + def.dir[2]*6;
+      }
+      // 2 units in front = in direction the TV faces (opposite of wall normal)
+      const fx = px - Math.sin(def.ry) * 2;
+      const fz = pz - Math.cos(def.ry) * 2;
+      candidates.push([fx, fz]);
+    });
+    const pick = candidates[Math.floor(Math.random()*candidates.length)];
+    return [pick];
+  }
+
+  const positions = (levelIndex === 0) ? LEVEL0_CROSSES : randomTVCross();
   positions.forEach(([x, z]) => {
     const mat = new THREE.MeshStandardMaterial({
-      color:0xffffff, emissive:new THREE.Color(0xffffff),
-      emissiveIntensity:1.8, roughness:0.5, metalness:0,
+      color:0x000000, emissive:new THREE.Color(0x000000),
+      emissiveIntensity:0, roughness:0.9, metalness:0,
     });
     const g2 = new THREE.Group();
     g2.add(new THREE.Mesh(new THREE.BoxGeometry(CROSS_SIZE*2,0.025,0.07), mat));
@@ -461,8 +817,7 @@ function hideLevel(idx){
 // ── TRIGGER FALL ─────────────────────────────────────────────────────────────
 function triggerFall(){
   if(isFalling || isRecovering) return;
-  isFalling    = true;
-  tumblePhase  = 0;
+  isFalling = true;
 
   // Play scream
   try { screamAudio.currentTime=0; screamAudio.play().catch(()=>{}); } catch(e){}
@@ -472,17 +827,13 @@ function triggerFall(){
 
   window._fallTarget   = targetFloorY + EYE_HEIGHT;
   window._fallVelocity = 0;
+  window._fallPrevIdx  = currentLevel;
+  window._fallNextIdx  = nextIdx;
 
-  // Hide current level immediately (we're falling away from it)
-  hideLevel(currentLevel);
-
-  // Pre-create next level hidden, and the one after silently
+  // Pre-create next level and the one after — keep both visible during fall
   if(!levelGroups[nextIdx]) createLevelGroup(nextIdx);
+  showLevel(nextIdx);
   if(!levelGroups[nextIdx+1]) createLevelGroup(nextIdx+1);
-
-  // Show destination mid-fall — scheduled
-  window._fallNextIdx = nextIdx;
-  window._fallShowScheduled = false;
 
   currentLevel = nextIdx;
 }
@@ -503,6 +854,18 @@ loader.load(GLB_URL,
 
     // Collect collision meshes from template
     glbTemplate.traverse(c => { if(c.isMesh) collisionMeshes.push(c); });
+
+    // Snap wall TVs onto actual geometry
+    snapTVsToWalls(0);
+
+    // Snap lore button to nearest wall then build it
+    const loreSnap = snapButtonToWall(LORE_BUTTON_DEF.pos);
+    LORE_BUTTON_DEF.pos = loreSnap.pos;
+    LORE_BUTTON_DEF.ry  = loreSnap.ry;
+    buildWallButton(LORE_BUTTON_DEF);
+
+    // Build TikTok door (floating icon + hitbox)
+    buildTikTokDoor();
 
     // Create & show level 0
     createLevelGroup(0);
@@ -529,6 +892,15 @@ document.addEventListener('keydown', e => {
   keys.add(e.code);
   if(e.code==='Escape') popupEl.style.display='none';
   if(e.code==='Backquote'){ showCoords=!showCoords; coordsEl.style.display=showCoords?'block':'none'; }
+  if(e.code==='KeyE' && controls.isLocked){
+    btnRaycaster.setFromCamera(new THREE.Vector2(0,0), camera);
+    const meshes = wallButtonMeshes.map(b => b.mesh);
+    const hits = btnRaycaster.intersectObjects(meshes, false);
+    if(hits.length > 0 && hits[0].distance < 6){
+      const hit = wallButtonMeshes.find(b => b.mesh === hits[0].object);
+      if(hit) window.open(hit.url, '_blank');
+    }
+  }
 });
 document.addEventListener('keyup', e => keys.delete(e.code));
 
@@ -585,30 +957,20 @@ function applyRightJoystick(dt){
   camera.rotation.x = Math.max(-Math.PI/2+0.05, Math.min(Math.PI/2-0.05, camera.rotation.x));
 }
 
-// ── TV CLICK ─────────────────────────────────────────────────────────────────
-const ray=new THREE.Raycaster();
-document.addEventListener('click',()=>{
+// ── BUTTON CLICK RAYCASTING ───────────────────────────────────────────────────
+const btnRaycaster = new THREE.Raycaster();
+window.addEventListener('click', () => {
   if(!controls.isLocked) return;
-  ray.setFromCamera(new THREE.Vector2(0,0), camera);
-  const meshes=[];
-  allTVs.forEach(tv=>tv.g.traverse(c=>{ if(c.isMesh) meshes.push(c); }));
-  const hits=ray.intersectObjects(meshes,true);
-  if(hits.length && hits[0].distance<7){
-    for(const tv of allTVs){
-      let found=false;
-      tv.g.traverse(c=>{ if(c===hits[0].object) found=true; });
-      if(found){
-        const ytId=TV_IDS[tv.id]||'PLACEHOLDER';
-        tvIdLabel.textContent=tv.id;
-        tvLinkEl.innerHTML=ytId.startsWith('PLACEHOLDER')
-          ? `<span style="opacity:.6;font-size:13px">YouTube link not set yet — ${tv.id}</span>`
-          : `<a href="https://www.youtube.com/watch?v=${ytId}" target="_blank">▶ Open Video</a>`;
-        popupEl.style.display='flex';
-        break;
-      }
-    }
+  btnRaycaster.setFromCamera(new THREE.Vector2(0,0), camera);
+  const meshes = wallButtonMeshes.map(b => b.mesh);
+  const hits = btnRaycaster.intersectObjects(meshes, false);
+  if(hits.length > 0 && hits[0].distance < 5){
+    const hit = wallButtonMeshes.find(b => b.mesh === hits[0].object);
+    if(hit) window.open(hit.url, '_blank');
   }
 });
+
+// ── TV CLICK — removed, free roam always ─────────────────────────────────────
 
 window.addEventListener('resize',()=>{
   camera.aspect=innerWidth/innerHeight;
@@ -629,27 +991,14 @@ function animate(t){
     window._fallVelocity=(window._fallVelocity||0)+28*dt;
     camera.position.y-=window._fallVelocity*dt;
 
-    // Tumble: pitch and roll so player catches glimpses of building
-    tumblePhase+=dt;
-    camera.rotation.order='YXZ';
-    // Pitch forward (see above → see below over ~1.5 sec)
-    camera.rotation.x=Math.sin(tumblePhase*1.2)*0.9;
-    // Slight roll wobble
-    camera.rotation.z=Math.sin(tumblePhase*2.3)*0.25;
-
-    // Show destination level mid-fall (after ~0.5s)
-    if(!window._fallShowScheduled && tumblePhase > 0.5){
-      window._fallShowScheduled=true;
-      showLevel(window._fallNextIdx);
-    }
-
     // Land
     if(camera.position.y<=window._fallTarget){
       camera.position.y=window._fallTarget-(EYE_HEIGHT-0.45);
       isFalling=false; isRecovering=true;
       recoverStart=t; recoverFrom=camera.position.y;
       window._fallVelocity=0;
-      camera.rotation.x=0; camera.rotation.z=0;
+      // Now hide the level we fell from
+      hideLevel(window._fallPrevIdx);
     }
     composer.render(); return;
   }
@@ -657,9 +1006,12 @@ function animate(t){
   // ── RECOVERY ──────────────────────────────────────────────────────────────
   if(isRecovering){
     const elapsed=(t-recoverStart)/1000;
-    const progress=Math.min(elapsed/2.5,1);
+    const duration=2.5;
+    const progress=Math.min(elapsed/duration,1);
     const targetY=levelFloorY-currentLevel*LEVEL_DEPTH+EYE_HEIGHT;
+    // Rise from crouched to full height
     camera.position.y=recoverFrom+(targetY-recoverFrom)*(1-Math.pow(1-progress,3));
+    // Wobble fades as you recover
     const wobbleFade=1-progress;
     camera.rotation.z=Math.sin(t*0.012)*0.08*wobbleFade;
     camera.rotation.x+=Math.sin(t*0.009)*0.003*wobbleFade;
@@ -758,6 +1110,15 @@ function animate(t){
     coordsEl.textContent=`X: ${camera.position.x.toFixed(2)}  Y: ${camera.position.y.toFixed(2)}  Z: ${camera.position.z.toFixed(2)}  LVL: ${currentLevel}`;
   }
 
+  // Door proximity hint
+  if(controls.isLocked){
+    const dp = TIKTOK_DOOR_POS;
+    const dx2 = camera.position.x - dp[0], dz2 = camera.position.z - dp[2];
+    doorHintEl.style.display = (Math.sqrt(dx2*dx2+dz2*dz2) < 5) ? 'block' : 'none';
+  } else {
+    doorHintEl.style.display = 'none';
+  }
+
   composer.render();
 }
 animate(0);
@@ -793,6 +1154,27 @@ const listenBtn=document.getElementById('listen-btn');
 const playBtn=document.getElementById('play-btn');
 const introVideo=document.getElementById('intro-video');
 let glbLoaded=false;
+let ageConfirmed=false;
+
+// Age gate wiring
+document.getElementById('age-gate-confirm').addEventListener('click',()=>{
+  ageConfirmed=true;
+  const gate=document.getElementById('age-gate');
+  gate.style.transition='opacity 0.4s';
+  gate.style.opacity='0';
+  setTimeout(()=>{ gate.style.display='none'; },400);
+  tryShowSkip();
+});
+document.getElementById('age-gate-leave').addEventListener('click',()=>{
+  window.location.href='https://www.earthlingofficial.com';
+});
+
+function tryShowSkip(){
+  if(ageConfirmed && glbLoaded){
+    skipBtn.style.display='block';
+    setTimeout(()=>{ skipBtn.style.opacity='1'; },50);
+  }
+}
 
 function enterGame(){
   const loadEl=document.getElementById('loading');
@@ -803,8 +1185,7 @@ function enterGame(){
 
 function onGLBReady(){
   glbLoaded=true;
-  skipBtn.style.display='block';
-  setTimeout(()=>{ skipBtn.style.opacity='1'; },50);
+  tryShowSkip();
 }
 
 skipBtn.addEventListener('click',enterGame);
@@ -835,7 +1216,43 @@ function showCard(l1,l2,rolls,delay){
 }
 
 async function runTitleSequence(){
-  await new Promise(r=>setTimeout(r,1200));
+  await new Promise(r=>setTimeout(r,600));
+  // Welcome message — shown before VHS sequence
+  line1El.style.fontSize='13px';
+  line1El.style.letterSpacing='3px';
+  line2El.style.fontSize='11px';
+  line2El.style.letterSpacing='2px';
+  line2El.style.opacity='1';
+  line1El.textContent='Welcome to Stage 10 — First Build';
+  line2El.textContent='A Work In Progress';
+  line1El.style.opacity='1'; line2El.style.opacity='1';
+  await new Promise(r=>setTimeout(r,2200));
+  line1El.style.opacity='0'; line2El.style.opacity='0';
+  await new Promise(r=>setTimeout(r,900));
+
+  // Sub-message
+  line1El.style.fontSize='10px';
+  line1El.style.letterSpacing='2px';
+  line2El.style.fontSize='9px';
+  line1El.textContent='This stage is, and always will be, a living build.';
+  line2El.textContent='As the real life discourse evolves, so does the game.';
+  line1El.style.opacity='1'; line2El.style.opacity='1';
+  await new Promise(r=>setTimeout(r,2800));
+  line1El.style.opacity='0'; line2El.style.opacity='0';
+  await new Promise(r=>setTimeout(r,700));
+
+  line1El.textContent='Jump into the conversation,';
+  line2El.textContent='then jump into the backrooms.';
+  line1El.style.opacity='1'; line2El.style.opacity='1';
+  await new Promise(r=>setTimeout(r,2200));
+  line1El.style.opacity='0'; line2El.style.opacity='0';
+  await new Promise(r=>setTimeout(r,800));
+
+  // Reset font sizes for standard cards
+  line1El.style.fontSize='15px'; line1El.style.letterSpacing='5px';
+  line2El.style.fontSize='13px'; line2El.style.letterSpacing='4px';
+
+  await new Promise(r=>setTimeout(r,400));
   startVHS();
   await showCard('Brought to you by','Kaeso Heius Totus',1,0);
   await showCard('and Earthling Official','',0,400);
