@@ -244,14 +244,33 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
-// ── YOUTUBE IDs ───────────────────────────────────────────────────────────────
-const TV_IDS = {
-  T1:'PLACEHOLDER_T1', T2:'PLACEHOLDER_T2', T3:'PLACEHOLDER_T3',
-  T4:'PLACEHOLDER_T4', T5:'PLACEHOLDER_T5', T6:'PLACEHOLDER_T6',
-  T7:'PLACEHOLDER_T7', T8:'PLACEHOLDER_T8', T9:'PLACEHOLDER_T9',
-  T10:'PLACEHOLDER_T10',
-  W1a:'PLACEHOLDER_W1a', W1b:'PLACEHOLDER_W1b',
-};
+// ── ARCHIVE.ORG VIDEO POOL FOR WALL TVS ──────────────────────────────────────
+// Each entry: direct .mp4 URL playable via archive.org cors proxy
+const ARCHIVE_TV_VIDEOS = [
+  'https://archive.org/download/WolfBlood1925/WolfBlood1925.mp4',
+  'https://archive.org/download/the-cabinet-of-dr.-caligari/The%20Cabinet%20of%20Dr.%20Caligari.mp4',
+  'https://archive.org/download/NosferatuASymphonyOfHorror/Nosferatu%2C%20a%20Symphony%20of%20Horror%20%281922%29.mp4',
+  'https://archive.org/download/vintage_static_tv/vintage_static_tv.mp4',
+  'https://archive.org/download/ATripToTheMoon/A%20Trip%20to%20the%20Moon%20%281902%29.mp4',
+  'https://archive.org/download/duck-and-cover-1951/duck-and-cover-1951.mp4',
+  'https://archive.org/download/prelinger_BehindtheM1956/BehindtheM1956.mp4',
+  'https://archive.org/download/CGI_Effect_-_TV_Static/CGI_Effect_-_TV_Static.mp4',
+  'https://archive.org/download/haunted-house-ambience/haunted-house-ambience.mp4',
+];
+
+// Assign a random video from the pool to each wall TV (T1–T9, T10 keeps its own)
+function pickArchiveVideo(seed){
+  return ARCHIVE_TV_VIDEOS[seed % ARCHIVE_TV_VIDEOS.length];
+}
+
+// Map wall TV id -> archive video URL (assigned once at runtime, not window TVs)
+const WALL_TV_VIDEO_MAP = {};
+['T1','T2','T3','T4','T5','T6','T7','T8','T9'].forEach((id, i) => {
+  // Shuffle using id hash for variety
+  const idx = (i * 3 + 2) % ARCHIVE_TV_VIDEOS.length;
+  WALL_TV_VIDEO_MAP[id] = ARCHIVE_TV_VIDEOS[idx];
+});
+// T10 keeps WolfBlood (handled separately)
 
 // ── DEVICE & GLB ─────────────────────────────────────────────────────────────
 const isMobile = /Mobi|Android|iPhone|iPad|iPod|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
@@ -326,15 +345,24 @@ screamAudio.volume = 0.85;
 
 // ── FALL LANDING MESSAGES ─────────────────────────────────────────────────────
 const FALL_MESSAGES = [
-  "you broke your neck...\nthe poor male chicks feel this every day",
-  "everything went dark...\nthis is how they die in the farms",
-  "you can't move...\nnor could she, for her entire life",
-  "the pain is temporary for you...\nfor them, it never ends",
-  "you survived the fall...\nthey don't survive the farm",
-  "you felt what fear feels like...\nthey feel it every second",
-  "you hit the floor hard...\nso do they. and no one comes.",
-  "the lights went out...\nthey've never seen daylight",
-  "your body remembered what pain is...\ntheirs never forget",
+  "you broke your neck...\nthe poor male chicks feel this every day\nthey're ground up alive — for your omelette",
+  "everything went dark...\nthis is how they die in the farms\ndisoriented. terrified. alone.",
+  "you can't move...\nnor could she, for her entire life\ngestation crates. concrete. no room to turn.",
+  "the pain is temporary for you...\nfor them, it never ends\nthat's the difference between you and livestock",
+  "you survived the fall...\nthey don't survive the farm\nthey were born into it and never leave",
+  "you felt what fear feels like...\nthey feel it every second\nnose in the air, smelling the blood ahead",
+  "you hit the floor hard...\nso do they. and no one comes.\nyou had a chance to get up. they don't.",
+  "the lights went out...\nthey've never seen daylight\nborn under fluorescents. die under fluorescents.",
+  "your body remembered what pain is...\ntheirs never forget\nbecause the pain never stops — not until the bolt",
+  "you're lost and hurting...\nwelcome to their whole life\ncrates so small they can't turn around — for years",
+  "disoriented? good.\nthat's how a cow feels in a chute\nsmelling death. hearing screams. unable to run.",
+  "you fell and you're confused...\na fish on a hook is more confused\nit has no idea why its world is ending",
+  "your heart is racing right now...\na pig's heart races the same way in the truck\nfor hours. no water. no explanation.",
+  "you're recovering slowly...\nbroiler chickens can't recover from anything\ntheir legs break under their own engineered weight",
+  "your body hit something real...\ntheirs hit the stun gun\nsometimes it doesn't work. they feel everything.",
+  "lost in here, aren't you?\nso are the calves taken from their mothers at birth\nthey cry for days. no one answers.",
+  "you're hurt and alone...\nso was every animal in every factory farm tonight\nright now. while you're reading this.",
+  "you wanted out of this room...\nthey want out of their cages their entire lives\nyou'll leave. they won't.",
 ];
 let fallMsgIdx = 0;
 let fallMsgTimeout = null;
@@ -463,6 +491,49 @@ function makeLabelTex(id){
   return new THREE.CanvasTexture(c);
 }
 
+// ── CLICK SOUND (play/stop) ───────────────────────────────────────────────────
+const clickSoundCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playClickSound(){
+  try {
+    if(clickSoundCtx.state === 'suspended') clickSoundCtx.resume();
+    const osc = clickSoundCtx.createOscillator();
+    const gain = clickSoundCtx.createGain();
+    osc.connect(gain); gain.connect(clickSoundCtx.destination);
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(220, clickSoundCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(80, clickSoundCtx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.18, clickSoundCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, clickSoundCtx.currentTime + 0.12);
+    osc.start(); osc.stop(clickSoundCtx.currentTime + 0.13);
+  } catch(e){}
+}
+
+// ── FALL COUNTER & WINDOW TV STATE ────────────────────────────────────────────
+let totalFalls = 0;
+let windowTVsUnlocked = false;
+let w1aPlaying = false;
+let w1bPlaying = false;
+
+// ── HELPER: CREATE ARCHIVE.ORG VIDEO ELEMENT ─────────────────────────────────
+function createArchiveVideo(url, autoplay=false, muted=true, volume=0.6){
+  const vid = document.createElement('video');
+  // Use archive.org cors proxy to fix playback
+  const proxyUrl = url.replace('https://archive.org/download/', 'https://cors.archive.org/cors/');
+  vid.src = proxyUrl;
+  vid.crossOrigin = 'anonymous';
+  vid.loop = true;
+  vid.muted = muted;
+  vid.volume = volume;
+  vid.playsInline = true;
+  vid.setAttribute('playsinline', '');
+  vid.setAttribute('webkit-playsinline', '');
+  if(autoplay){
+    vid.autoplay = true;
+    vid.play().catch(()=>{ vid.muted=true; vid.play().catch(()=>{}); });
+  }
+  return vid;
+}
+
 // ── W1a VIDEO TEXTURE ─────────────────────────────────────────────────────────
 let w1aVideoEl = null;
 let w1aVideoTex = null;
@@ -472,12 +543,14 @@ function createW1aVideoTex(){
   vid.src = 'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/slaughter.mp4';
   vid.crossOrigin = 'anonymous';
   vid.loop = true;
-  vid.muted = false;
+  vid.muted = true; // start muted for autoplay policy
   vid.volume = 0.65;
   vid.playsInline = true;
+  vid.setAttribute('playsinline','');
   vid.autoplay = true;
   vid.play().catch(()=>{});
   w1aVideoEl = vid;
+  w1aPlaying = true;
   const tex = new THREE.VideoTexture(vid);
   tex.minFilter = THREE.LinearFilter;
   tex.magFilter = THREE.LinearFilter;
@@ -490,14 +563,7 @@ let t10VideoEl = null;
 let t10VideoTex = null;
 
 function createT10VideoTex(){
-  const vid = document.createElement('video');
-  vid.src = 'https://cors.archive.org/cors/WolfBlood1925/WolfBlood1925.mp4';
-  vid.crossOrigin = 'anonymous';
-  vid.loop = true;
-  vid.muted = true;
-  vid.volume = 0.6;
-  vid.playsInline = true;
-  vid.autoplay = false;
+  const vid = createArchiveVideo('https://archive.org/download/WolfBlood1925/WolfBlood1925.mp4', false, true, 0.6);
   t10VideoEl = vid;
   const tex = new THREE.VideoTexture(vid);
   tex.minFilter = THREE.LinearFilter;
@@ -506,31 +572,90 @@ function createT10VideoTex(){
   return tex;
 }
 
+// ── WALL TV VIDEO ELEMENTS MAP ────────────────────────────────────────────────
+const wallTVVideoEls = {}; // id -> HTMLVideoElement
+
+function createWallTVVideoTex(id){
+  const url = WALL_TV_VIDEO_MAP[id];
+  if(!url) return null;
+  const vid = createArchiveVideo(url, true, true, 0.5);
+  wallTVVideoEls[id] = vid;
+  const tex = new THREE.VideoTexture(vid);
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  return tex;
+}
+
 // ── TV INTERACTION ────────────────────────────────────────────────────────────
 // Returns the nearest wall TV (T1–T10) within interact range, or null
 function getNearestWallTV(){
   let best = null, bestDist = Infinity;
   allTVs.forEach(tv => {
-    if(!tv.id.startsWith('T')) return; // skip W1a, W1b
     if(!tv.g.visible) return;
+    // Always include wall TVs (T prefix); include window TVs always (show locked msg if needed)
     const d = camera.position.distanceTo(tv.g.position);
     if(d < bestDist){ bestDist = d; best = tv; }
   });
   return bestDist < 5 ? best : null;
 }
 
+function toggleVideoEl(vid){
+  if(!vid) return;
+  if(vid.paused){
+    vid.muted = false;
+    vid.play().catch(()=>{ vid.muted=true; vid.play().catch(()=>{}); });
+  } else {
+    vid.pause();
+  }
+  playClickSound();
+}
+
 function interactWithTV(tv){
   if(!tv) return;
-  if(tv.id === 'T10'){
-    if(!t10VideoEl) return;
-    if(t10VideoEl.paused){
-      t10VideoEl.muted = false;
-      t10VideoEl.play().catch(()=>{ t10VideoEl.muted=true; t10VideoEl.play(); });
-    } else {
-      t10VideoEl.pause();
+
+  // Window TVs — only unlocked after 10 falls
+  if(tv.id === 'W1a' || tv.id === 'W1b'){
+    if(!windowTVsUnlocked){
+      // Show taunting message
+      showWindowTVLockedMsg();
+      return;
     }
+    // W1a
+    if(tv.id === 'W1a' && w1aVideoEl){
+      toggleVideoEl(w1aVideoEl);
+      w1aPlaying = !w1aVideoEl.paused;
+    }
+    // W1b shares W1a video (same stream)
+    if(tv.id === 'W1b' && w1aVideoEl){
+      toggleVideoEl(w1aVideoEl);
+      w1aPlaying = !w1aVideoEl.paused;
+    }
+    return;
   }
-  // All other wall TVs: no popup — placeholders only for now
+
+  // T10 — WolfBlood video
+  if(tv.id === 'T10'){
+    toggleVideoEl(t10VideoEl);
+    return;
+  }
+
+  // T1–T9 — archive.org videos
+  const vid = wallTVVideoEls[tv.id];
+  if(vid){
+    toggleVideoEl(vid);
+  } else {
+    playClickSound();
+  }
+}
+
+function showWindowTVLockedMsg(){
+  const el = document.getElementById('fall-msg');
+  if(!el) return;
+  el.textContent = `fall ${totalFalls} of 10 times to unlock these screens\nyou think you're trapped?\ntry being born in a cage`;
+  el.style.display = 'block';
+  el.style.opacity = '0';
+  setTimeout(()=>{ el.style.opacity='1'; }, 50);
+  setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>{ el.style.display='none'; }, 1200); }, 4000);
 }
 
 // ── BUILD A WALL TV ───────────────────────────────────────────────────────────
@@ -553,6 +678,11 @@ function buildWallTV(id, pos, ry, levelYOffset=0){
   } else if(id === 'T10'){
     const vtex = createT10VideoTex();
     screenMat = new THREE.MeshBasicMaterial({map: vtex});
+  } else if(WALL_TV_VIDEO_MAP[id]){
+    const vtex = createWallTVVideoTex(id);
+    screenMat = vtex
+      ? new THREE.MeshBasicMaterial({map: vtex})
+      : new THREE.MeshBasicMaterial({map: ntex});
   } else {
     screenMat = new THREE.MeshBasicMaterial({map: ntex});
   }
@@ -908,6 +1038,26 @@ function hideLevel(idx){
 function triggerFall(){
   if(isFalling || isRecovering) return;
   isFalling = true;
+  totalFalls++;
+  if(totalFalls >= 10 && !windowTVsUnlocked){
+    windowTVsUnlocked = true;
+    // Auto-start W1a when unlocked
+    if(w1aVideoEl && w1aVideoEl.paused){
+      w1aVideoEl.muted = false;
+      w1aVideoEl.play().catch(()=>{ w1aVideoEl.muted=true; w1aVideoEl.play().catch(()=>{}); });
+      w1aPlaying = true;
+    }
+    // Show unlock message after landing
+    setTimeout(()=>{
+      const el = document.getElementById('fall-msg');
+      if(el){
+        el.textContent = "the screens in the walls are awake now\nyou finally fell enough times to see\nwelcome to their permanent state";
+        el.style.display='block'; el.style.opacity='0';
+        setTimeout(()=>{ el.style.opacity='1'; },100);
+        setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>{ el.style.display='none'; },1200); },6000);
+      }
+    }, 2800);
+  }
 
   try { screamAudio.currentTime=0; screamAudio.play().catch(()=>{}); } catch(e){}
 
@@ -1160,10 +1310,11 @@ function animate(t){
     }
   }
 
-  // Fuzz TVs — skip W1a (slaughter video) and T7 (WolfBlood video)
+  // Fuzz TVs — skip TVs that have live video feeds
   if(++nf%3===0){
     allTVs.forEach((tv,i)=>{
-      if(tv.id==='W1a' || tv.id==='T10') return;
+      // Skip all video TVs
+      if(tv.id==='W1a' || tv.id==='W1b' || tv.id==='T10' || WALL_TV_VIDEO_MAP[tv.id]) return;
       if(nf%(3+(i%3))===0){
         const d=tv.nctx.createImageData(128,72);
         for(let j=0;j<d.data.length;j+=4){
@@ -1201,10 +1352,19 @@ function animate(t){
     doorHintEl.style.display = 'none';
   }
 
-  // TV proximity prompt — show when near a wall TV (T1–T10), hide near W TVs
+  // TV proximity prompt
   if(controls.isLocked){
     const nearTV = getNearestWallTV();
-    tvPromptEl.style.display = nearTV ? 'block' : 'none';
+    if(nearTV){
+      tvPromptEl.style.display = 'block';
+      if((nearTV.id==='W1a'||nearTV.id==='W1b') && !windowTVsUnlocked){
+        tvPromptEl.textContent = `[ E ]  LOCKED — FALL ${totalFalls}/10`;
+      } else {
+        tvPromptEl.textContent = '[ E ]  PLAY / STOP';
+      }
+    } else {
+      tvPromptEl.style.display = 'none';
+    }
   } else {
     tvPromptEl.style.display = 'none';
   }
