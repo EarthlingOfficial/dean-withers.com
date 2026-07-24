@@ -245,32 +245,9 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 // ── ARCHIVE.ORG VIDEO POOL FOR WALL TVS ──────────────────────────────────────
-// Each entry: direct .mp4 URL playable via archive.org cors proxy
-const ARCHIVE_TV_VIDEOS = [
-  'https://archive.org/download/WolfBlood1925/WolfBlood1925.mp4',
-  'https://archive.org/download/the-cabinet-of-dr.-caligari/The%20Cabinet%20of%20Dr.%20Caligari.mp4',
-  'https://archive.org/download/NosferatuASymphonyOfHorror/Nosferatu%2C%20a%20Symphony%20of%20Horror%20%281922%29.mp4',
-  'https://archive.org/download/vintage_static_tv/vintage_static_tv.mp4',
-  'https://archive.org/download/ATripToTheMoon/A%20Trip%20to%20the%20Moon%20%281902%29.mp4',
-  'https://archive.org/download/duck-and-cover-1951/duck-and-cover-1951.mp4',
-  'https://archive.org/download/prelinger_BehindtheM1956/BehindtheM1956.mp4',
-  'https://archive.org/download/CGI_Effect_-_TV_Static/CGI_Effect_-_TV_Static.mp4',
-  'https://archive.org/download/haunted-house-ambience/haunted-house-ambience.mp4',
-];
-
-// Assign a random video from the pool to each wall TV (T1–T9, T10 keeps its own)
-function pickArchiveVideo(seed){
-  return ARCHIVE_TV_VIDEOS[seed % ARCHIVE_TV_VIDEOS.length];
-}
-
-// Map wall TV id -> archive video URL (assigned once at runtime, not window TVs)
-const WALL_TV_VIDEO_MAP = {};
-['T1','T2','T3','T4','T5','T6','T7','T8','T9'].forEach((id, i) => {
-  // Shuffle using id hash for variety
-  const idx = (i * 3 + 2) % ARCHIVE_TV_VIDEOS.length;
-  WALL_TV_VIDEO_MAP[id] = ARCHIVE_TV_VIDEOS[idx];
-});
-// T10 keeps WolfBlood (handled separately)
+// Archive.org blocks CORS on video — T1-T9 get animated canvas static
+// T10 uses an iframe overlay for actual video playback
+const WALL_TV_VIDEO_MAP = {}; // no archive videos via video element — CORS blocked
 
 // ── DEVICE & GLB ─────────────────────────────────────────────────────────────
 const isMobile = /Mobi|Android|iPhone|iPad|iPod|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
@@ -514,25 +491,7 @@ let windowTVsUnlocked = false;
 let w1aPlaying = false;
 let w1bPlaying = false;
 
-// ── HELPER: CREATE ARCHIVE.ORG VIDEO ELEMENT ─────────────────────────────────
-function createArchiveVideo(url, autoplay=false, muted=true, volume=0.6){
-  const vid = document.createElement('video');
-  // Use archive.org cors proxy to fix playback
-  const proxyUrl = url.replace('https://archive.org/download/', 'https://cors.archive.org/cors/');
-  vid.src = proxyUrl;
-  vid.crossOrigin = 'anonymous';
-  vid.loop = true;
-  vid.muted = muted;
-  vid.volume = volume;
-  vid.playsInline = true;
-  vid.setAttribute('playsinline', '');
-  vid.setAttribute('webkit-playsinline', '');
-  if(autoplay){
-    vid.autoplay = true;
-    vid.play().catch(()=>{ vid.muted=true; vid.play().catch(()=>{}); });
-  }
-  return vid;
-}
+
 
 // ── W1a VIDEO TEXTURE ─────────────────────────────────────────────────────────
 let w1aVideoEl = null;
@@ -558,33 +517,84 @@ function createW1aVideoTex(){
   return tex;
 }
 
-// ── T10 VIDEO TEXTURE (WolfBlood 1925) ───────────────────────────────────────
+// ── T10 IFRAME OVERLAY (WolfBlood 1925) ──────────────────────────────────────
 let t10VideoEl = null;
 let t10VideoTex = null;
+let t10IframeEl = null;
+let t10IframeVisible = false;
 
 function createT10VideoTex(){
-  const vid = createArchiveVideo('https://archive.org/download/WolfBlood1925/Wolf%20Blood%20(1925)%20%5BFull%20Classic%20Horror%20Movie%20HQ%5D%20(480p_30fps_H264-128kbit_AAC).ia.mp4', false, true, 0.6);
-  t10VideoEl = vid;
-  const tex = new THREE.VideoTexture(vid);
+  // Use a canvas texture that shows "PRESS E TO PLAY" — actual video plays in iframe overlay
+  const nc = document.createElement('canvas'); nc.width=256; nc.height=144;
+  const ctx = nc.getContext('2d');
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0,0,256,144);
+  ctx.fillStyle = 'rgba(200,185,122,0.7)';
+  ctx.font = 'bold 14px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText('WOLF BLOOD', 128, 58);
+  ctx.fillText('1925', 128, 80);
+  ctx.font = '10px Courier New';
+  ctx.fillStyle = 'rgba(200,185,122,0.35)';
+  ctx.fillText('[ E ] PLAY', 128, 110);
+  // animate static around the text
+  const tex = new THREE.CanvasTexture(nc);
   tex.minFilter = THREE.LinearFilter;
   tex.magFilter = THREE.LinearFilter;
+  // store canvas for animation
+  t10VideoEl = { canvas: nc, ctx, tex, isPlaying: false };
   t10VideoTex = tex;
+
+  // Create the iframe element (hidden until player presses E)
+  const iframe = document.createElement('iframe');
+  iframe.src = 'https://archive.org/embed/WolfBlood1925?autoplay=0&start=0';
+  iframe.allow = 'autoplay; fullscreen';
+  iframe.setAttribute('allowfullscreen','');
+  iframe.setAttribute('frameborder','0');
+  Object.assign(iframe.style, {
+    position: 'fixed',
+    top: '50%', left: '50%',
+    transform: 'translate(-50%,-50%)',
+    width: '70vw', height: '40vw',
+    maxWidth: '900px', maxHeight: '520px',
+    border: '2px solid rgba(200,185,122,0.4)',
+    background: '#000',
+    zIndex: '20',
+    display: 'none',
+  });
+  document.body.appendChild(iframe);
+  t10IframeEl = iframe;
+
+  // Close iframe on ESC
+  document.addEventListener('keydown', e => {
+    if(e.code === 'Escape' && t10IframeVisible){
+      hideT10Iframe();
+    }
+  });
+
   return tex;
+}
+
+function showT10Iframe(){
+  if(!t10IframeEl) return;
+  // Reload with autoplay
+  t10IframeEl.src = 'https://archive.org/embed/WolfBlood1925?autoplay=1&start=0';
+  t10IframeEl.style.display = 'block';
+  t10IframeVisible = true;
+  controls.unlock();
+  playClickSound();
+}
+
+function hideT10Iframe(){
+  if(!t10IframeEl) return;
+  t10IframeEl.style.display = 'none';
+  t10IframeEl.src = 'https://archive.org/embed/WolfBlood1925?autoplay=0';
+  t10IframeVisible = false;
+  playClickSound();
 }
 
 // ── WALL TV VIDEO ELEMENTS MAP ────────────────────────────────────────────────
-const wallTVVideoEls = {}; // id -> HTMLVideoElement
-
-function createWallTVVideoTex(id){
-  const url = WALL_TV_VIDEO_MAP[id];
-  if(!url) return null;
-  const vid = createArchiveVideo(url, true, true, 0.5);
-  wallTVVideoEls[id] = vid;
-  const tex = new THREE.VideoTexture(vid);
-  tex.minFilter = THREE.LinearFilter;
-  tex.magFilter = THREE.LinearFilter;
-  return tex;
-}
+const wallTVVideoEls = {}; // unused — kept for compatibility
 
 // ── TV INTERACTION ────────────────────────────────────────────────────────────
 // Returns the nearest wall TV (T1–T10) within interact range, or null
@@ -633,19 +643,14 @@ function interactWithTV(tv){
     return;
   }
 
-  // T10 — WolfBlood video
+  // T10 — WolfBlood iframe
   if(tv.id === 'T10'){
-    toggleVideoEl(t10VideoEl);
+    if(t10IframeVisible){ hideT10Iframe(); } else { showT10Iframe(); }
     return;
   }
 
-  // T1–T9 — archive.org videos
-  const vid = wallTVVideoEls[tv.id];
-  if(vid){
-    toggleVideoEl(vid);
-  } else {
-    playClickSound();
-  }
+  // T1–T9 — animated static, just click sound
+  playClickSound();
 }
 
 function showWindowTVLockedMsg(){
@@ -678,11 +683,6 @@ function buildWallTV(id, pos, ry, levelYOffset=0){
   } else if(id === 'T10'){
     const vtex = createT10VideoTex();
     screenMat = new THREE.MeshBasicMaterial({map: vtex});
-  } else if(WALL_TV_VIDEO_MAP[id]){
-    const vtex = createWallTVVideoTex(id);
-    screenMat = vtex
-      ? new THREE.MeshBasicMaterial({map: vtex})
-      : new THREE.MeshBasicMaterial({map: ntex});
   } else {
     screenMat = new THREE.MeshBasicMaterial({map: ntex});
   }
@@ -1310,11 +1310,10 @@ function animate(t){
     }
   }
 
-  // Fuzz TVs — skip TVs that have live video feeds
+  // Fuzz TVs — animate static on all wall TVs except video screens
   if(++nf%3===0){
     allTVs.forEach((tv,i)=>{
-      // Skip all video TVs
-      if(tv.id==='W1a' || tv.id==='W1b' || tv.id==='T10' || WALL_TV_VIDEO_MAP[tv.id]) return;
+      if(tv.id==='W1a' || tv.id==='W1b' || tv.id==='T10') return;
       if(nf%(3+(i%3))===0){
         const d=tv.nctx.createImageData(128,72);
         for(let j=0;j<d.data.length;j+=4){
