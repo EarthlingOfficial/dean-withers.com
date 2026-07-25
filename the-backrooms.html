@@ -245,8 +245,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 // ── ARCHIVE.ORG VIDEO POOL FOR WALL TVS ──────────────────────────────────────
-// Archive.org blocks CORS on video — T1-T9 get animated canvas static
-// T10 uses an iframe overlay for actual video playback
+// T1-T9 use animated canvas static. T10 uses a real in-world video texture.
 const WALL_TV_VIDEO_MAP = {}; // no archive videos via video element — CORS blocked
 
 // ── DEVICE & GLB ─────────────────────────────────────────────────────────────
@@ -432,7 +431,14 @@ const barEl     = document.getElementById('bar');
 const pctEl     = document.getElementById('pct');
 let showCoords  = false;
 
-controls.addEventListener('lock',   ()=>{ overlayEl.style.display='none'; xhairEl.style.display='block'; hintEl.style.display='block'; });
+controls.addEventListener('lock',   ()=>{
+  // This is the user's explicit "CLICK TO ENTER" gesture. Use it to restore
+  // W1a's sound after the browser has allowed the game to begin.
+  startW1aAudio();
+  overlayEl.style.display='none';
+  xhairEl.style.display='block';
+  hintEl.style.display='block';
+});
 controls.addEventListener('unlock', ()=>{ overlayEl.style.display='flex'; xhairEl.style.display='none';  hintEl.style.display='none';  popupEl.style.display='none'; tvPromptEl.style.display='none'; });
 overlayEl.addEventListener('click', ()=>controls.lock());
 
@@ -493,104 +499,92 @@ let w1bPlaying = false;
 
 
 
-// ── W1a VIDEO TEXTURE ─────────────────────────────────────────────────────────
+// ── VIDEO TEXTURES ───────────────────────────────────────────────────────────
+// These are real in-world video textures. They never create an overlay, so
+// pointer lock and movement stay active while a TV is playing.
 let w1aVideoEl = null;
 let w1aVideoTex = null;
+let w1bVideoEl = null;
+let w1bVideoTex = null;
+let t10VideoEl = null;
+let t10VideoTex = null;
 
-function createW1aVideoTex(){
+function createVideoTexture(src, { autoplay = false, volume = 0.65 } = {}){
   const vid = document.createElement('video');
-  vid.src = 'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/slaughter.mp4';
+  vid.src = src;
   vid.crossOrigin = 'anonymous';
   vid.loop = true;
-  vid.muted = true; // start muted for autoplay policy
-  vid.volume = 0.65;
+  vid.muted = true;
+  vid.volume = volume;
   vid.playsInline = true;
+  vid.preload = 'auto';
   vid.setAttribute('playsinline','');
-  vid.autoplay = true;
-  vid.play().catch(()=>{});
-  w1aVideoEl = vid;
-  w1aPlaying = true;
+  vid.setAttribute('webkit-playsinline','');
+  vid.autoplay = autoplay;
+
   const tex = new THREE.VideoTexture(vid);
   tex.minFilter = THREE.LinearFilter;
   tex.magFilter = THREE.LinearFilter;
-  w1aVideoTex = tex;
-  return tex;
+  tex.colorSpace = THREE.SRGBColorSpace;
+
+  if(autoplay) vid.play().catch(()=>{});
+  return { vid, tex };
 }
 
-// ── T10 IFRAME OVERLAY (WolfBlood 1925) ──────────────────────────────────────
-let t10VideoEl = null;
-let t10VideoTex = null;
-let t10IframeEl = null;
-let t10IframeVisible = false;
+function createW1aVideoTex(){
+  const result = createVideoTexture(
+    'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/slaughter.mp4',
+    { autoplay: true, volume: 0.65 }
+  );
+  w1aVideoEl = result.vid;
+  w1aVideoTex = result.tex;
+  w1aPlaying = true;
+  return result.tex;
+}
+
+function createW1bVideoTex(){
+  // Haxan (1922), the film shown in the supplied Archive.org screenshot.
+  // It is deliberately muted and stopped until the player interacts with W1b.
+  const result = createVideoTexture(
+    'https://archive.org/download/Haxan1922/Haxan%20%281922%29.mp4',
+    { autoplay: false, volume: 0.65 }
+  );
+  w1bVideoEl = result.vid;
+  w1bVideoTex = result.tex;
+  w1bPlaying = false;
+  return result.tex;
+}
 
 function createT10VideoTex(){
-  // Use a canvas texture that shows "PRESS E TO PLAY" — actual video plays in iframe overlay
-  const nc = document.createElement('canvas'); nc.width=256; nc.height=144;
-  const ctx = nc.getContext('2d');
-  ctx.fillStyle = '#0a0a0a';
-  ctx.fillRect(0,0,256,144);
-  ctx.fillStyle = 'rgba(200,185,122,0.7)';
-  ctx.font = 'bold 14px Courier New';
-  ctx.textAlign = 'center';
-  ctx.fillText('WOLF BLOOD', 128, 58);
-  ctx.fillText('1925', 128, 80);
-  ctx.font = '10px Courier New';
-  ctx.fillStyle = 'rgba(200,185,122,0.35)';
-  ctx.fillText('[ E ] PLAY', 128, 110);
-  // animate static around the text
-  const tex = new THREE.CanvasTexture(nc);
-  tex.minFilter = THREE.LinearFilter;
-  tex.magFilter = THREE.LinearFilter;
-  // store canvas for animation
-  t10VideoEl = { canvas: nc, ctx, tex, isPlaying: false };
-  t10VideoTex = tex;
-
-  // Create the iframe element (hidden until player presses E)
-  const iframe = document.createElement('iframe');
-  iframe.src = 'https://archive.org/embed/WolfBlood1925?autoplay=0&start=0';
-  iframe.allow = 'autoplay; fullscreen';
-  iframe.setAttribute('allowfullscreen','');
-  iframe.setAttribute('frameborder','0');
-  Object.assign(iframe.style, {
-    position: 'fixed',
-    top: '50%', left: '50%',
-    transform: 'translate(-50%,-50%)',
-    width: '70vw', height: '40vw',
-    maxWidth: '900px', maxHeight: '520px',
-    border: '2px solid rgba(200,185,122,0.4)',
-    background: '#000',
-    zIndex: '20',
-    display: 'none',
-  });
-  document.body.appendChild(iframe);
-  t10IframeEl = iframe;
-
-  // Close iframe on ESC
-  document.addEventListener('keydown', e => {
-    if(e.code === 'Escape' && t10IframeVisible){
-      hideT10Iframe();
-    }
-  });
-
-  return tex;
+  // Wolf Blood (1925) plays directly on the T10 screen, not in a modal iframe.
+  // Keeping this stopped initially is important: T10 should only start on E/click.
+  const result = createVideoTexture(
+    'https://archive.org/download/WolfBlood1925/WolfBlood.ogv',
+    { autoplay: false, volume: 0.65 }
+  );
+  t10VideoEl = result.vid;
+  t10VideoTex = result.tex;
+  return result.tex;
 }
 
-function showT10Iframe(){
-  if(!t10IframeEl) return;
-  // Reload with autoplay
-  t10IframeEl.src = 'https://archive.org/embed/WolfBlood1925?autoplay=1&start=0';
-  t10IframeEl.style.display = 'block';
-  t10IframeVisible = true;
-  controls.unlock();
-  playClickSound();
+function getVisibleTVVideo(id){
+  const tv = allTVs.find(candidate => candidate.id === id && candidate.g.visible);
+  return tv && tv.videoEl ? tv.videoEl : null;
 }
 
-function hideT10Iframe(){
-  if(!t10IframeEl) return;
-  t10IframeEl.style.display = 'none';
-  t10IframeEl.src = 'https://archive.org/embed/WolfBlood1925?autoplay=0';
-  t10IframeVisible = false;
-  playClickSound();
+function startW1aAudio(){
+  const vid = getVisibleTVVideo('W1a') || w1aVideoEl;
+  if(!vid) return;
+  w1aVideoEl = vid;
+  vid.muted = false;
+  vid.volume = 0.65;
+  vid.play().catch(()=>{
+    // A browser may still require the original Play/Enter gesture.
+    // Keep the visual running rather than interrupting the game.
+    vid.muted = true;
+    vid.play().catch(()=>{});
+  });
+  w1aPlaying = true;
 }
 
 // ── WALL TV VIDEO ELEMENTS MAP ────────────────────────────────────────────────
@@ -623,29 +617,34 @@ function toggleVideoEl(vid){
 function interactWithTV(tv){
   if(!tv) return;
 
-  // Window TVs — only unlocked after 10 falls
-  if(tv.id === 'W1a' || tv.id === 'W1b'){
+  // W1a keeps its original ten-fall unlock behavior. W1b is independently
+  // interactive from the first Backrooms floor.
+  if(tv.id === 'W1a'){
     if(!windowTVsUnlocked){
       // Show taunting message
       showWindowTVLockedMsg();
       return;
     }
-    // W1a
-    if(tv.id === 'W1a' && w1aVideoEl){
-      toggleVideoEl(w1aVideoEl);
-      w1aPlaying = !w1aVideoEl.paused;
-    }
-    // W1b shares W1a video (same stream)
-    if(tv.id === 'W1b' && w1aVideoEl){
-      toggleVideoEl(w1aVideoEl);
-      w1aPlaying = !w1aVideoEl.paused;
+    if(tv.videoEl){
+      toggleVideoEl(tv.videoEl);
+      w1aVideoEl = tv.videoEl;
+      w1aPlaying = !tv.videoEl.paused;
     }
     return;
   }
 
-  // T10 — WolfBlood iframe
-  if(tv.id === 'T10'){
-    if(t10IframeVisible){ hideT10Iframe(); } else { showT10Iframe(); }
+  // W1b is its own screen and is playable/stoppable from level one.
+  if(tv.id === 'W1b' && tv.videoEl){
+    toggleVideoEl(tv.videoEl);
+    w1bVideoEl = tv.videoEl;
+    w1bPlaying = !tv.videoEl.paused;
+    return;
+  }
+
+  // T10 — Wolf Blood plays on the physical screen in the level.
+  if(tv.id === 'T10' && tv.videoEl){
+    toggleVideoEl(tv.videoEl);
+    t10VideoEl = tv.videoEl;
     return;
   }
 
@@ -680,6 +679,9 @@ function buildWallTV(id, pos, ry, levelYOffset=0){
   if(id === 'W1a'){
     const vtex = createW1aVideoTex();
     screenMat = new THREE.MeshBasicMaterial({map: vtex});
+  } else if(id === 'W1b'){
+    const vtex = createW1bVideoTex();
+    screenMat = new THREE.MeshBasicMaterial({map: vtex});
   } else if(id === 'T10'){
     const vtex = createT10VideoTex();
     screenMat = new THREE.MeshBasicMaterial({map: vtex});
@@ -701,7 +703,10 @@ function buildWallTV(id, pos, ry, levelYOffset=0){
 
   g.position.set(pos[0], pos[1]+levelYOffset, pos[2]);
   g.rotation.y=ry;
-  return { g, screen, ntex, nctx, id };
+  return {
+    g, screen, ntex, nctx, id,
+    videoEl: id === 'W1a' ? w1aVideoEl : id === 'T10' ? t10VideoEl : null,
+  };
 }
 
 // ── BUILD A WINDOW TV ─────────────────────────────────────────────────────────
@@ -721,6 +726,9 @@ function buildWindowTV(id, pos, ry, levelYOffset=0){
   if(id==='W1a'){
     const vtex = createW1aVideoTex();
     screenMat = new THREE.MeshBasicMaterial({map: vtex});
+  } else if(id==='W1b'){
+    const vtex = createW1bVideoTex();
+    screenMat = new THREE.MeshBasicMaterial({map: vtex});
   } else {
     screenMat = new THREE.MeshBasicMaterial({map: ntex});
   }
@@ -739,7 +747,10 @@ function buildWindowTV(id, pos, ry, levelYOffset=0){
 
   g.position.set(pos[0], pos[1]+levelYOffset, pos[2]);
   g.rotation.y=ry;
-  return { g, screen, ntex, nctx, id };
+  return {
+    g, screen, ntex, nctx, id,
+    videoEl: id === 'W1a' ? w1aVideoEl : id === 'W1b' ? w1bVideoEl : null,
+  };
 }
 
 // ── IN-GAME WALL BUTTONS ─────────────────────────────────────────────────────
@@ -1041,12 +1052,8 @@ function triggerFall(){
   totalFalls++;
   if(totalFalls >= 10 && !windowTVsUnlocked){
     windowTVsUnlocked = true;
-    // Auto-start W1a when unlocked
-    if(w1aVideoEl && w1aVideoEl.paused){
-      w1aVideoEl.muted = false;
-      w1aVideoEl.play().catch(()=>{ w1aVideoEl.muted=true; w1aVideoEl.play().catch(()=>{}); });
-      w1aPlaying = true;
-    }
+    // W1a already starts when the player enters the Backrooms. Do not
+    // restart it here; reaching ten falls only unlocks interaction with it.
     // Show unlock message after landing
     setTimeout(()=>{
       const el = document.getElementById('fall-msg');
@@ -1356,7 +1363,7 @@ function animate(t){
     const nearTV = getNearestWallTV();
     if(nearTV){
       tvPromptEl.style.display = 'block';
-      if((nearTV.id==='W1a'||nearTV.id==='W1b') && !windowTVsUnlocked){
+      if(nearTV.id==='W1a' && !windowTVsUnlocked){
         tvPromptEl.textContent = `[ E ]  LOCKED — FALL ${totalFalls}/10`;
       } else {
         tvPromptEl.textContent = '[ E ]  PLAY / STOP';
@@ -1420,6 +1427,9 @@ document.getElementById('age-gate-leave').addEventListener('click',()=>{
 function tryShowSkip(){
   if(ageConfirmed && glbLoaded){
     skipBtn.style.display='block';
+    // This is the original entrance cue: W1a starts with sound as soon as
+    // the lower-right Start/Skip button appears.
+    startW1aAudio();
     setTimeout(()=>{ skipBtn.style.opacity='1'; },50);
   }
 }
@@ -1436,7 +1446,12 @@ function onGLBReady(){
   tryShowSkip();
 }
 
-skipBtn.addEventListener('click',enterGame);
+skipBtn.addEventListener('click',()=>{
+  // Fallback for browsers that block sound from the async button-appearance
+  // callback. In normal cases W1a is already audible before this click.
+  startW1aAudio();
+  enterGame();
+});
 
 function toggleMute(){ introVideo.muted=!introVideo.muted; listenBtn.textContent=introVideo.muted?'\ud83d\udd07 LISTEN IN':'\ud83d\udd0a MUTE'; }
 listenBtn.addEventListener('click',toggleMute);
