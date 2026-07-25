@@ -511,8 +511,10 @@ let t10VideoTex = null;
 
 function createVideoTexture(src, { autoplay = false, volume = 0.65 } = {}){
   const vid = document.createElement('video');
-  vid.src = src;
+  // crossOrigin must be set before src/load. If it is set afterward, the
+  // browser may still play audio but refuse to upload video frames to WebGL.
   vid.crossOrigin = 'anonymous';
+  vid.src = src;
   vid.loop = true;
   vid.muted = true;
   vid.volume = volume;
@@ -521,6 +523,7 @@ function createVideoTexture(src, { autoplay = false, volume = 0.65 } = {}){
   vid.setAttribute('playsinline','');
   vid.setAttribute('webkit-playsinline','');
   vid.autoplay = autoplay;
+  vid.load();
 
   const tex = new THREE.VideoTexture(vid);
   tex.minFilter = THREE.LinearFilter;
@@ -557,9 +560,10 @@ function createW1bVideoTex(){
 
 function createT10VideoTex(){
   // Wolf Blood (1925) plays directly on the T10 screen, not in a modal iframe.
-  // Keeping this stopped initially is important: T10 should only start on E/click.
+  // Use the browser-compatible MP4 derivative rather than the OGV file:
+  // some browsers decode OGV audio but never provide video frames to WebGL.
   const result = createVideoTexture(
-    'https://archive.org/download/WolfBlood1925/WolfBlood.ogv',
+    'https://archive.org/download/WolfBlood1925/WolfBlood_512kb.mp4',
     { autoplay: false, volume: 0.65 }
   );
   t10VideoEl = result.vid;
