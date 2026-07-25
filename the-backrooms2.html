@@ -81,35 +81,114 @@
     max-width: 480px;
   }
 
+  /* ── BROADCAST SYSTEM ── */
+  #player-taunt {
+    position: fixed; top: 58%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(560px, 86vw);
+    color: rgba(214,105,82,0.92);
+    font-family: 'Courier New', monospace;
+    text-align: center;
+    pointer-events: none; z-index: 6;
+    display: none; opacity: 0;
+    transition: opacity 0.8s, transform 0.8s;
+    text-shadow: 0 0 18px rgba(200,60,40,0.6);
+  }
+  #player-taunt.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  #player-taunt .broadcast-tag {
+    display: block;
+    margin-bottom: 12px;
+    color: rgba(200,185,122,0.5);
+    font-size: 9px;
+    letter-spacing: 4px;
+  }
+  #player-taunt .broadcast-copy {
+    font-size: clamp(12px, 1.6vw, 16px);
+    letter-spacing: 2px;
+    line-height: 1.9;
+    white-space: pre-line;
+  }
+
+  #ag-fact-feed {
+    position: fixed; top: 22px; left: 20px;
+    width: min(360px, 42vw);
+    color: rgba(200,185,122,0.72);
+    font-family: 'Courier New', monospace;
+    pointer-events: none; z-index: 6;
+    display: none; opacity: 0;
+    transition: opacity 1.1s;
+    text-shadow: 0 0 10px rgba(200,185,122,0.35);
+  }
+  #ag-fact-feed.show { opacity: 1; }
+  #ag-fact-feed .fact-tag {
+    margin-bottom: 7px;
+    color: rgba(200,185,122,0.38);
+    font-size: 9px;
+    letter-spacing: 3px;
+  }
+  #ag-fact-feed .fact-copy {
+    font-size: 10px;
+    letter-spacing: 1px;
+    line-height: 1.75;
+  }
+  #ag-fact-feed .fact-note {
+    margin-top: 7px;
+    color: rgba(200,185,122,0.3);
+    font-size: 8px;
+    letter-spacing: 1px;
+  }
+
+  #fake-chat {
+    position: fixed; left: 20px; bottom: 42px;
+    width: min(390px, 44vw);
+    height: 142px;
+    overflow: hidden;
+    color: rgba(220,215,190,0.7);
+    font-family: 'Courier New', monospace;
+    pointer-events: none; z-index: 6;
+    display: none;
+    text-shadow: 0 0 7px rgba(0,0,0,0.95);
+    mask-image: linear-gradient(to bottom, transparent 0%, black 14%, black 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 14%, black 100%);
+  }
+  #fake-chat .chat-header {
+    margin-bottom: 5px;
+    color: rgba(200,185,122,0.38);
+    font-size: 8px;
+    letter-spacing: 2px;
+  }
+  #fake-chat .chat-line {
+    margin: 4px 0;
+    font-size: 9px;
+    line-height: 1.35;
+    transform: translateY(0);
+    animation: chat-in 0.35s ease-out;
+  }
+  #fake-chat .chat-name { color: rgba(200,185,122,0.62); }
+  #fake-chat .chat-line:nth-child(3n) { color: rgba(220,130,110,0.72); }
+  #fake-chat .chat-line:nth-child(4n) { color: rgba(170,205,180,0.7); }
+  @keyframes chat-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @media (max-width: 700px) {
+    #ag-fact-feed { width: 72vw; top: 12px; left: 14px; }
+    #fake-chat { left: 14px; bottom: 18px; width: 72vw; }
+  }
+
   /* ── TV PROXIMITY PROMPT ── */
   #tv-prompt {
     position: fixed; top: 50%; left: 50%;
-    transform: translate(-50%, 20px);
-    color: rgba(200,185,122,0.6);
+    transform: translate(-50%, 26px);
+    color: rgba(200,185,122,0.78);
     font-family: 'Courier New', monospace;
-    font-size: 9px; letter-spacing: 1px;
+    font-size: 11px; letter-spacing: 3px;
     text-align: center; pointer-events: none;
     display: none; z-index: 5;
-    text-shadow: 0 0 6px rgba(200,185,122,0.3);
-  }
-
-  /* ── WALK / TAUNT MESSAGES ── */
-  #walk-msg {
-    position: fixed; bottom: 60px; left: 50%;
-    transform: translateX(-50%);
-    color: rgba(200,185,122,0.72);
-    font-family: 'Courier New', monospace;
-    font-size: 11px; letter-spacing: 2px; line-height: 2;
-    text-align: center; white-space: pre-line;
-    text-shadow: 0 0 10px rgba(200,185,122,0.3);
-    pointer-events: none; z-index: 6;
-    display: none; opacity: 0;
-    transition: opacity 1.2s;
-    max-width: 520px;
-  }
-  #walk-msg.taunt {
-    color: rgba(180,120,80,0.82);
-    text-shadow: 0 0 12px rgba(180,100,60,0.4);
+    text-shadow: 0 0 8px rgba(200,185,122,0.4);
   }
 
   /* ── AGE GATE ── */
@@ -249,10 +328,22 @@
 <div id="ambient-text"></div>
 <!-- Fall landing message -->
 <div id="fall-msg"></div>
+<!-- Timed in-game broadcast layers -->
+<div id="player-taunt">
+  <span class="broadcast-tag">FIELD NOTE // YOU ARE THE ANIMAL NOW</span>
+  <span class="broadcast-copy" id="player-taunt-copy"></span>
+</div>
+<div id="ag-fact-feed">
+  <div class="fact-tag">RESEARCH FEED // ANIMAL AGRICULTURE</div>
+  <div class="fact-copy" id="ag-fact-copy"></div>
+  <div class="fact-note">GENERAL CONTEXT — LAWS AND STANDARDS VARY BY JURISDICTION</div>
+</div>
+<div id="fake-chat">
+  <div class="chat-header">FICTIONAL SIGNAL // DEAN CHAT // LIVE-ish</div>
+  <div id="fake-chat-lines"></div>
+</div>
 <!-- TV proximity interaction prompt -->
 <div id="tv-prompt">[ E ] &nbsp; PLAY / STOP</div>
-<!-- Walk / taunt messages -->
-<div id="walk-msg"></div>
 <div id="door-hint" style="position:fixed;top:50%;left:50%;transform:translate(-50%,55px);color:#c8b97a;font-size:13px;letter-spacing:3px;text-align:center;pointer-events:none;display:none;z-index:5;text-shadow:0 0 14px rgba(200,185,122,0.9);font-family:'Courier New',monospace;">ENTER THE REAL DEBATE<br><span style="font-size:10px;opacity:0.45;letter-spacing:2px;">[E] &nbsp;·&nbsp; TAP</span></div>
 <div id="coords"></div>
 <script type="module">
@@ -266,8 +357,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 // ── ARCHIVE.ORG VIDEO POOL FOR WALL TVS ──────────────────────────────────────
-// Archive.org blocks CORS on video — T1-T9 get animated canvas static
-// T10 uses an iframe overlay for actual video playback
+// T1-T9 use animated canvas static. T10 uses a real in-world video texture.
 const WALL_TV_VIDEO_MAP = {}; // no archive videos via video element — CORS blocked
 
 // ── DEVICE & GLB ─────────────────────────────────────────────────────────────
@@ -387,88 +477,226 @@ function hideFallMessage(){
   setTimeout(()=>{ fallMsgEl.style.display = 'none'; }, 1200);
 }
 
-// ── WALKING MESSAGES — animal facts (40s) & taunts (2m) ──────────────────────
-const WALK_FACTS = [
-  "over 70 billion land animals are killed for food every year.\nevery single year. billions.",
-  "a pig is as intelligent as a 3-year-old child.\nwe slaughter them at 6 months old.",
-  "male chicks can't lay eggs.\n7 billion are ground up alive or gassed annually — as industry standard.",
-  "dairy cows are forcibly impregnated every year.\ntheir calves are removed within hours of birth. she cries for days.",
-  "fish feel pain. neuroscience confirmed it.\nwe kill over 1 trillion of them annually — with zero welfare legislation.",
-  "broiler chickens are bred to grow so fast their legs collapse.\n9 billion per year in the US alone.",
-  "a cow can recognise over 100 individual cows by face.\nthey form friendships. they grieve. then they're bolt-gunned.",
-  "the 'humane slaughter' act doesn't cover chickens or fish.\nthat's 99% of all animals killed for food — completely unprotected.",
-  "oceans could be fishless by 2048 at current extraction rates.\nwe are eating an ecosystem out of existence.",
-  "footage from inside factory farms is so disturbing\nthat ag-gag laws were passed to make filming it illegal.",
-  "the global livestock industry produces more greenhouse gases\nthan all planes, trains, ships and cars combined.",
-  "a hen has a vocabulary of over 30 distinct calls.\nshe talks to her chicks through the shell before they hatch.\nthen the egg industry separates them and grinds the males alive.",
-  "the average person eats 7,000 animals in their lifetime.\nmost were never told this number exists.",
-  "slaughterhouse workers have some of the highest rates\nof PTSD, depression and substance abuse of any profession.\nthe industry calls it 'moral injury'. they call it tuesday.",
-  "antibiotics given to factory farmed animals account for\nover 70% of all antibiotic use globally.\nwe are engineering superbugs — to grow cheap meat faster.",
+// ── IN-GAME BROADCAST SYSTEM ─────────────────────────────────────────────────
+// These are presentation-only overlays. They deliberately have no connection
+// to TV playback state, movement, or the entrance audio sequence.
+const PLAYER_TAUNTS = [
+  "you seem lost.\nimagine how a male chick feels on the death conveyor belt.",
+  "you got to walk into this place by choice.\nthey were born into it.",
+  "you are looking for an exit.\na broiler chicken is looking for one leg that will hold.",
+  "you can turn around whenever you want.\na sow in a farrowing crate cannot.",
+  "you call this a maze?\nthey call a lifetime in a cage a normal Tuesday.",
+  "you are frightened by the dark.\nthey are frightened by the machinery, and the machinery never sleeps.",
+  "you have a name, a future, and a way out.\ntheirs are often reduced to a number before they can stand.",
+  "you heard one scream and started searching.\nslaughter lines run on the fact that nobody has to listen.",
+  "you are being watched.\nthey are watched, handled, graded, and moved like inventory.",
+  "you can stop reading this.\nthey cannot stop the truck.",
+  "you want someone to find you.\ncalves want their mothers. the system has paperwork instead.",
+  "your cage is imaginary.\ntheirs has a lock, a latch, and a production target.",
+  "you are confused because the rules keep changing.\nthat is a familiar feeling in a hatchery.",
+  "you get a pause screen.\nthey get a stun, a stamp, or the next conveyor.",
+  "you are searching for comfort in a hostile environment.\nthat is the product being sold to animals as welfare.",
+  "you can sprint when the fear arrives.\nmost farmed animals are bred too heavy to run.",
+  "you have already fallen several floors.\nthat is still fewer than the times a transport truck ignores the weather.",
+  "you think the walls are closing in.\ntry being bred for a body that cannot support itself.",
+  "you are asking why this is happening.\nthe answer is usually demand, distance, and a legal definition.",
+  "your panic has an audience.\ntheirs has a supply chain.",
+  "you can leave this screen and call it fiction.\nthey cannot leave the footage and call it a life.",
+  "you are allowed to be uncomfortable here.\nthat is more freedom than a cage gives.",
+  "you want the humane version.\nask who gets to define humane when the endpoint is still a killing floor.",
+  "you are one person in a building.\nthey are millions of individuals hidden behind one ingredient list.",
+  "your body is tired after minutes.\nselectively bred farmed bodies can spend a lifetime carrying more than they can bear.",
+  "you are waiting for the next jump scare.\nthey are waiting for the next hand, hook, gate, or truck.",
+  "the game calls you a player.\nthe industry calls them units, yield, and throughput.",
+  "you can close the tab.\nthey cannot close the barn door from the inside.",
+  "you thought getting lost was the worst part.\ntry being born where every road leads to production.",
+  "you are looking for a safe room.\nthere is no safe room in a system built around speed.",
+  "you made it this far by choice.\nmost animals in the system never get a choice at all.",
+  "if this feels unfair, good.\nthat feeling is doing more work than the label on the package."
 ];
 
-const WALK_TAUNTS = [
-  "oh you're lost?\nimagine how a baby male chick feels\non the conveyor belt to the grinder.",
-  "still wandering?\nat least you chose to enter this room.\nthey never had that option.",
-  "you can leave any time.\nthe cow in the kill chute\nwas also looking for a way out.",
-  "getting tired of these halls?\na factory farmed pig walks on concrete\nits entire life. never soil. never sun. never sky.",
-  "looking for a door?\nthe gestation crate is 2 feet wide.\nshe's been inside it for 4 years.",
-  "lost in here, aren't you.\nso was the calf dragged from its mother at birth.\nit searched for her for days. she searched too.",
-  "how does it feel to be trapped?\nshe's been asking that question\nsince the day she was born.",
-  "you thought this was just a game.\nthe chicken on your plate thought the farm\nwas her whole world. it was.",
-  "feeling disoriented?\na salmon thrashing on a hook\nhas no idea why its world is ending.",
-  "you'll find the exit eventually.\nthey never get one.\nbut you already knew that.",
+const ANIMAL_AG_FACTS = [
+  "In egg production, male chicks are often considered economically unprofitable and may be killed shortly after hatching. Practices and rules vary by jurisdiction.",
+  "Broiler chickens are selectively bred for rapid growth. That can create serious welfare problems, including leg disorders and difficulty walking.",
+  "Gestation crates restrict a pregnant sow's movement. Some jurisdictions restrict or ban them; others still permit them under conditions.",
+  "Animal-welfare laws often contain exemptions or different standards for customary agricultural practices. The exact legal text depends on location.",
+  "Ag-gag laws exist in some jurisdictions and can restrict recording or whistleblowing around agricultural facilities. Their scope and status vary.",
+  "Transport protections differ by species, country, and state. A legal minimum is not the same thing as a life without fear, injury, or exhaustion.",
+  "Terms such as cage-free, free-range, natural, and humane are not interchangeable. Their definitions and enforcement depend on the label and jurisdiction.",
+  "In many legal systems, animals are property rather than legal persons. That shapes who can sue, what remedies exist, and whose interests get priority.",
+  "Slaughter inspection usually focuses on food safety and process compliance. It does not mean every welfare concern has disappeared.",
+  "Dairy calves may be separated from their mothers soon after birth in many production systems. The timing and rules vary across farms and regions.",
+  "Selective breeding can increase production while also increasing the risk of chronic pain or disability. Efficiency is not a welfare metric.",
+  "A welfare certification can set a higher standard than baseline law, but the actual meaning depends on the certifier's published rules and audits.",
+  "Most farmed animals are excluded from the everyday legal protections people assume apply to companion animals. Definitions matter.",
+  "Environmental law and animal-welfare law are separate tools. A facility can comply with one while still raising serious questions under the other.",
+  "The word humane is often marketing language unless a specific standard, audit, or statute defines what it requires.",
+  "Pigs are highly social and cognitively complex animals. Housing systems can prevent behaviors such as rooting, nesting, and exploration.",
+  "Chickens recognize individuals and form social hierarchies. A production label does not erase individual perception or pain.",
+  "Fish are sentient vertebrates, yet they are frequently absent from public welfare conversations and legal protections.",
+  "In many places, undercover footage is legally contested even when it reveals conditions the public would never see otherwise.",
+  "A facility can be clean and still be stressful. Hygiene, crowding, freedom of movement, pain, and fear are different welfare questions.",
+  "Animal agriculture is not one single practice. Species, housing, transport, slaughter, and local law can differ dramatically.",
+  "A certification logo is not a universal guarantee. Check the standard, the audit model, and what the label explicitly excludes.",
+  "Legal permission is a floor, not a moral ceiling.",
+  "The fact that a practice is common does not tell you whether it is necessary, humane, or ethically defensible.",
+  "The absence of visible injury does not prove the absence of fear, frustration, chronic pain, or deprivation.",
+  "Public records, inspection reports, court filings, and worker testimony can reveal different parts of the same supply chain.",
+  "Animal welfare, worker safety, environmental damage, and consumer transparency overlap, but they are not the same claim.",
+  "If a law varies by jurisdiction, that is not a loophole in the fact. It is part of the fact."
 ];
 
-const walkMsgEl = document.getElementById('walk-msg');
-let walkMsgVisible = false;
-let walkMsgTimer = null;
-let walkFactIdx = 0;
-let walkTauntIdx = 0;
+const FICTIONAL_CHAT_LINES = [
+  ["@floor_10_mod", "Earthling is lost again. somebody give them a map and a moral compass."],
+  ["@dean_defender", "Dean Withers would have found the exit in thirty seconds."],
+  ["@bean_counter", "veganism mentioned. chat has entered its emergency broadcast era."],
+  ["@plantbasedpanic", "I saw one lentil and now the government is coming for my barbecue."],
+  ["@earthling_official", "please stop comparing the player to livestock. the player is doing that themselves."],
+  ["@dean_chat", "Dean said read the label. Earthling read the ceiling instead."],
+  ["@meat_logic", "if the chicken wanted to leave it should have learned WASD."],
+  ["@mod_team", "that argument has been timed out for low nutritional value."],
+  ["@withers_watch", "Dean Withers: calm, clear, devastating. Earthling: walking into a wall."],
+  ["@soy_skeptic", "I am not owned by Big Tofu. I can quit whenever I want. probably."],
+  ["@the_actual_cow", "moo means please stop using me as a metaphor for your ethics."],
+  ["@chat_lurker", "the screen is black because the discourse has become too bright."],
+  ["@dean_defender", "another clean point from Dean. another dirty dodge from the chat."],
+  ["@vegan_speedrun", "any percent route: read one welfare report, become annoying at dinner."],
+  ["@comment_section", "Earthling just discovered consequences and called them a jump scare."],
+  ["@free_range_facts", "free-range is not a magic spell, folks. read the standard."],
+  ["@meat_logic", "plants have feelings too. okay, then eat the thing with the nervous system."],
+  ["@mod_team", "please stop yelling LAW at the screen. name the jurisdiction or sit down."],
+  ["@dean_chat", "Dean Withers is cooking. ironically, the chat is not."],
+  ["@cage_free_ish", "cage-free and joy-free are not the same thing, but let's keep reading."],
+  ["@earthling_official", "the player has found the moral basement. there are more floors below."],
+  ["@plantbasedpanic", "I came here to own vegans and accidentally learned what a hatchery is."],
+  ["@withers_watch", "someone clip that Dean answer before the chat invents a new straw man."],
+  ["@night_shift", "why is the animal rights account funnier than the comedy accounts."],
+  ["@mod_team", "new rule: no claiming a label means whatever you wish it meant."],
+  ["@dean_defender", "Dean asked one question and six commenters became smoke."],
+  ["@omnivore_arc", "I support personal choice, especially the choice to read the facts first."],
+  ["@chat_lurker", "Earthling is speedrunning denial with excellent footwork."],
+  ["@supply_chain", "the farm is not the whole story. neither is the supermarket."],
+  ["@vegan_speedrun", "today's boss fight: 'but bacon tho'."],
+  ["@the_actual_cow", "you keep saying freedom while holding a sandwich. fascinating."],
+  ["@dean_chat", "praise Dean, mute the bad-faith detour, continue."],
+  ["@meat_logic", "I have three tabs open and all of them disagree with me. suspicious."],
+  ["@mod_team", "facts are not an attack. unless your argument is made of vibes."],
+  ["@earthling_official", "the backrooms have better accountability than this comment section."],
+  ["@withers_watch", "Dean Withers has entered the chat. please secure your definitions."],
+  ["@plantbasedpanic", "fine, I will watch the documentary. but I reserve the right to be dramatic."],
+  ["@floor_10_mod", "the player is still lost. the chat is still loud. excellent television."],
+  ["@cage_free_ish", "if the label needs a footnote, the footnote is part of the label."],
+  ["@night_shift", "someone tell Earthling the exit is past the last bad argument."],
+  ["@dean_defender", "that was not a debate, that was Dean filing a conversational tax return."],
+  ["@mod_team", "chat behaving badly. animals still deserve better. continue."]
+];
 
-function showWalkMsg(text, isTaunt){
-  if(!walkMsgEl) return;
-  if(walkMsgVisible){
-    walkMsgEl.style.opacity = '0';
-    setTimeout(()=>_displayWalkMsg(text, isTaunt), 1300);
-  } else {
-    _displayWalkMsg(text, isTaunt);
-  }
+const tauntEl = document.getElementById('player-taunt');
+const tauntCopyEl = document.getElementById('player-taunt-copy');
+const factFeedEl = document.getElementById('ag-fact-feed');
+const factCopyEl = document.getElementById('ag-fact-copy');
+const chatEl = document.getElementById('fake-chat');
+const chatLinesEl = document.getElementById('fake-chat-lines');
+let tauntIdx = 0;
+let factIdx = 0;
+let chatIdx = 0;
+let tauntTimer = null;
+let factTimer = null;
+let chatTimer = null;
+let tauntHideTimer = null;
+let factHideTimer = null;
+let broadcastsRunning = false;
+
+function showPlayerTaunt(){
+  if(!broadcastsRunning || !tauntEl || !tauntCopyEl) return;
+  tauntCopyEl.textContent = PLAYER_TAUNTS[tauntIdx++ % PLAYER_TAUNTS.length];
+  tauntEl.style.display = 'block';
+  tauntEl.classList.remove('show');
+  requestAnimationFrame(()=>tauntEl.classList.add('show'));
+  if(tauntHideTimer) clearTimeout(tauntHideTimer);
+  tauntHideTimer = setTimeout(()=>{
+    tauntEl.classList.remove('show');
+    setTimeout(()=>{ if(!tauntEl.classList.contains('show')) tauntEl.style.display='none'; }, 850);
+  }, 9000);
 }
 
-function _displayWalkMsg(text, isTaunt){
-  walkMsgEl.textContent = text;
-  walkMsgEl.className = isTaunt ? 'taunt' : '';
-  walkMsgEl.style.display = 'block';
-  walkMsgEl.style.opacity = '0';
-  setTimeout(()=>{ walkMsgEl.style.opacity='1'; walkMsgVisible=true; }, 40);
-  if(walkMsgTimer) clearTimeout(walkMsgTimer);
-  walkMsgTimer = setTimeout(()=>{
-    walkMsgEl.style.opacity='0';
-    setTimeout(()=>{ walkMsgEl.style.display='none'; walkMsgVisible=false; }, 1300);
-  }, 6000);
+function scheduleTaunt(delay){
+  if(!broadcastsRunning) return;
+  if(tauntTimer) clearTimeout(tauntTimer);
+  tauntTimer = setTimeout(()=>{
+    showPlayerTaunt();
+    scheduleTaunt(108000 + Math.random()*24000);
+  }, delay);
 }
 
-// Fact every 40 seconds
-let factInterval = null;
-function startWalkIntervals(){
-  if(factInterval) return;
-  // stagger so they don't both fire at the same moment
-  factInterval = setInterval(()=>{
-    if(!controls.isLocked || isFalling || isRecovering) return;
-    const msg = WALK_FACTS[walkFactIdx % WALK_FACTS.length];
-    walkFactIdx++;
-    showWalkMsg(msg, false);
-  }, 40000);
+function showAnimalAgFact(){
+  if(!broadcastsRunning || !factFeedEl || !factCopyEl) return;
+  factCopyEl.textContent = ANIMAL_AG_FACTS[factIdx++ % ANIMAL_AG_FACTS.length];
+  factFeedEl.style.display = 'block';
+  factFeedEl.classList.remove('show');
+  requestAnimationFrame(()=>factFeedEl.classList.add('show'));
+  if(factHideTimer) clearTimeout(factHideTimer);
+  factHideTimer = setTimeout(()=>{
+    factFeedEl.classList.remove('show');
+    setTimeout(()=>{ if(!factFeedEl.classList.contains('show')) factFeedEl.style.display='none'; }, 1100);
+  }, 17000);
+}
 
-  // Taunt every 2 minutes
-  setTimeout(()=>{
-    setInterval(()=>{
-      if(!controls.isLocked || isFalling || isRecovering) return;
-      const msg = WALK_TAUNTS[walkTauntIdx % WALK_TAUNTS.length];
-      walkTauntIdx++;
-      showWalkMsg(msg, true);
-    }, 120000);
-  }, 15000); // first taunt at 15s after first fact fires, avoid instant pile-up
+function scheduleFact(delay){
+  if(!broadcastsRunning) return;
+  if(factTimer) clearTimeout(factTimer);
+  factTimer = setTimeout(()=>{
+    showAnimalAgFact();
+    scheduleFact(36000 + Math.random()*12000);
+  }, delay);
+}
+
+function pushChatLine(){
+  if(!broadcastsRunning || !chatLinesEl) return;
+  const [name, message] = FICTIONAL_CHAT_LINES[chatIdx++ % FICTIONAL_CHAT_LINES.length];
+  const line = document.createElement('div');
+  line.className = 'chat-line';
+  const nameEl = document.createElement('span');
+  nameEl.className = 'chat-name';
+  nameEl.textContent = name + ': ';
+  line.append(nameEl, document.createTextNode(message));
+  chatLinesEl.appendChild(line);
+  while(chatLinesEl.children.length > 8) chatLinesEl.removeChild(chatLinesEl.firstChild);
+}
+
+function scheduleChat(){
+  if(!broadcastsRunning) return;
+  if(chatTimer) clearTimeout(chatTimer);
+  chatTimer = setTimeout(()=>{
+    pushChatLine();
+    scheduleChat(5200 + Math.random()*2600);
+  }, 5200 + Math.random()*2600);
+}
+
+function startBroadcasts(){
+  if(broadcastsRunning) return;
+  broadcastsRunning = true;
+  if(factFeedEl) factFeedEl.style.display = 'block';
+  if(chatEl) chatEl.style.display = 'block';
+  showAnimalAgFact();
+  pushChatLine();
+  pushChatLine();
+  scheduleFact(38000);
+  scheduleChat();
+  // First taunt arrives after the player has had time to orient; later
+  // taunts repeat roughly every two minutes.
+  scheduleTaunt(70000);
+}
+
+function stopBroadcasts(){
+  broadcastsRunning = false;
+  [tauntTimer, factTimer, chatTimer, tauntHideTimer, factHideTimer].forEach(timer=>{
+    if(timer) clearTimeout(timer);
+  });
+  tauntTimer = factTimer = chatTimer = tauntHideTimer = factHideTimer = null;
+  if(tauntEl){ tauntEl.classList.remove('show'); tauntEl.style.display='none'; }
+  if(factFeedEl){ factFeedEl.classList.remove('show'); factFeedEl.style.display='none'; }
+  if(chatEl) chatEl.style.display='none';
 }
 
 // ── FIXED NOCLIP POSITIONS FOR LEVEL 0 ───────────────────────────────────────
@@ -537,7 +765,15 @@ const barEl     = document.getElementById('bar');
 const pctEl     = document.getElementById('pct');
 let showCoords  = false;
 
-controls.addEventListener('lock',   ()=>{ overlayEl.style.display='none'; xhairEl.style.display='block'; hintEl.style.display='block'; startWalkIntervals(); });
+controls.addEventListener('lock',   ()=>{
+  // This is the user's explicit "CLICK TO ENTER" gesture. Use it to restore
+  // W1a's sound after the browser has allowed the game to begin.
+  startW1aAudio();
+  startBroadcasts();
+  overlayEl.style.display='none';
+  xhairEl.style.display='block';
+  hintEl.style.display='block';
+});
 controls.addEventListener('unlock', ()=>{ overlayEl.style.display='flex'; xhairEl.style.display='none';  hintEl.style.display='none';  popupEl.style.display='none'; tvPromptEl.style.display='none'; });
 overlayEl.addEventListener('click', ()=>controls.lock());
 
@@ -598,76 +834,96 @@ let w1bPlaying = false;
 
 
 
-// ── W1a VIDEO TEXTURE (slaughter footage) ────────────────────────────────────
+// ── VIDEO TEXTURES ───────────────────────────────────────────────────────────
+// These are real in-world video textures. They never create an overlay, so
+// pointer lock and movement stay active while a TV is playing.
 let w1aVideoEl = null;
 let w1aVideoTex = null;
-
-function createW1aVideoTex(){
-  const vid = document.createElement('video');
-  vid.src = 'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/slaughter.mp4';
-  vid.crossOrigin = 'anonymous';
-  vid.loop = true;
-  vid.muted = true;
-  vid.volume = 0.65;
-  vid.playsInline = true;
-  vid.setAttribute('playsinline','');
-  vid.autoplay = true;
-  vid.play().catch(()=>{});
-  w1aVideoEl = vid;
-  w1aPlaying = true;
-  const tex = new THREE.VideoTexture(vid);
-  tex.minFilter = THREE.LinearFilter;
-  tex.magFilter = THREE.LinearFilter;
-  w1aVideoTex = tex;
-  return tex;
-}
-
-// ── W1b VIDEO TEXTURE (Haxan 1922) ───────────────────────────────────────────
 let w1bVideoEl = null;
 let w1bVideoTex = null;
-
-function createW1bVideoTex(){
-  const vid = document.createElement('video');
-  vid.src = 'https://cors.archive.org/cors/haxan-1922_202312/H%C3%A4xan%20%281922%29.mp4';
-  vid.crossOrigin = 'anonymous';
-  vid.loop = true;
-  vid.muted = true;
-  vid.volume = 0.7;
-  vid.playsInline = true;
-  vid.setAttribute('playsinline','');
-  w1bVideoEl = vid;
-  w1bPlaying = false;
-  const tex = new THREE.VideoTexture(vid);
-  tex.minFilter = THREE.LinearFilter;
-  tex.magFilter = THREE.LinearFilter;
-  w1bVideoTex = tex;
-  return tex;
-}
-
-// ── T10 VIDEO TEXTURE (WolfBlood 1925 — plays ON the screen) ─────────────────
 let t10VideoEl = null;
 let t10VideoTex = null;
-let t10Playing = false;
 
-function createT10VideoTex(){
+function createVideoTexture(src, { autoplay = false, volume = 0.65 } = {}){
   const vid = document.createElement('video');
-  // cors.archive.org proxy mirrors archive.org with CORS headers
-  vid.src = 'https://cors.archive.org/cors/a-boy-and-his-dog-1975/A%20Boy%20and%20His%20Dog%20%281975%29.mp4';
+  // crossOrigin must be set before src/load. If it is set afterward, the
+  // browser may still play audio but refuse to upload video frames to WebGL.
   vid.crossOrigin = 'anonymous';
+  vid.src = src;
   vid.loop = true;
   vid.muted = true;
-  vid.volume = 0.7;
+  vid.volume = volume;
   vid.playsInline = true;
+  vid.preload = 'auto';
   vid.setAttribute('playsinline','');
-  // start paused — player must press E
-  t10VideoEl = vid;
-  t10Playing = false;
+  vid.setAttribute('webkit-playsinline','');
+  vid.autoplay = autoplay;
+  vid.load();
 
   const tex = new THREE.VideoTexture(vid);
   tex.minFilter = THREE.LinearFilter;
   tex.magFilter = THREE.LinearFilter;
-  t10VideoTex = tex;
-  return tex;
+  tex.colorSpace = THREE.SRGBColorSpace;
+
+  if(autoplay) vid.play().catch(()=>{});
+  return { vid, tex };
+}
+
+function createW1aVideoTex(){
+  const result = createVideoTexture(
+    'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/slaughter.mp4',
+    { autoplay: true, volume: 0.65 }
+  );
+  w1aVideoEl = result.vid;
+  w1aVideoTex = result.tex;
+  w1aPlaying = true;
+  return result.tex;
+}
+
+function createW1bVideoTex(){
+  // Haxan (1922), the film shown in the supplied Archive.org screenshot.
+  // It is deliberately muted and stopped until the player interacts with W1b.
+  const result = createVideoTexture(
+    'https://archive.org/download/Haxan1922/Haxan%20%281922%29.mp4',
+    { autoplay: false, volume: 0.65 }
+  );
+  w1bVideoEl = result.vid;
+  w1bVideoTex = result.tex;
+  w1bPlaying = false;
+  return result.tex;
+}
+
+function createT10VideoTex(){
+  // Wolf Blood (1925) plays directly on the T10 screen, not in a modal iframe.
+  // Use the browser-compatible MP4 derivative rather than the OGV file:
+  // some browsers decode OGV audio but never provide video frames to WebGL.
+  const result = createVideoTexture(
+    'https://archive.org/download/WolfBlood1925/WolfBlood_512kb.mp4',
+    { autoplay: false, volume: 0.65 }
+  );
+  t10VideoEl = result.vid;
+  t10VideoTex = result.tex;
+  return result.tex;
+}
+
+function getVisibleTVVideo(id){
+  const tv = allTVs.find(candidate => candidate.id === id && candidate.g.visible);
+  return tv && tv.videoEl ? tv.videoEl : null;
+}
+
+function startW1aAudio(){
+  const vid = getVisibleTVVideo('W1a') || w1aVideoEl;
+  if(!vid) return;
+  w1aVideoEl = vid;
+  vid.muted = false;
+  vid.volume = 0.65;
+  vid.play().catch(()=>{
+    // A browser may still require the original Play/Enter gesture.
+    // Keep the visual running rather than interrupting the game.
+    vid.muted = true;
+    vid.play().catch(()=>{});
+  });
+  w1aPlaying = true;
 }
 
 // ── WALL TV VIDEO ELEMENTS MAP ────────────────────────────────────────────────
@@ -700,38 +956,34 @@ function toggleVideoEl(vid){
 function interactWithTV(tv){
   if(!tv) return;
 
-  // Window TVs — only unlocked after 10 falls
-  if(tv.id === 'W1a' || tv.id === 'W1b'){
+  // W1a keeps its original ten-fall unlock behavior. W1b is independently
+  // interactive from the first Backrooms floor.
+  if(tv.id === 'W1a'){
     if(!windowTVsUnlocked){
       // Show taunting message
       showWindowTVLockedMsg();
       return;
     }
-    // W1a — slaughter footage
-    if(tv.id === 'W1a' && w1aVideoEl){
-      toggleVideoEl(w1aVideoEl);
-      w1aPlaying = !w1aVideoEl.paused;
-    }
-    // W1b — Haxan 1922
-    if(tv.id === 'W1b' && w1bVideoEl){
-      toggleVideoEl(w1bVideoEl);
-      w1bPlaying = !w1bVideoEl.paused;
+    if(tv.videoEl){
+      toggleVideoEl(tv.videoEl);
+      w1aVideoEl = tv.videoEl;
+      w1aPlaying = !tv.videoEl.paused;
     }
     return;
   }
 
-  // T10 — WolfBlood 1925 plays on the screen directly
-  if(tv.id === 'T10'){
-    if(!t10VideoEl){ playClickSound(); return; }
-    if(t10Playing){
-      t10VideoEl.pause();
-      t10Playing = false;
-    } else {
-      t10VideoEl.muted = false;
-      t10VideoEl.play().catch(()=>{ t10VideoEl.muted=true; t10VideoEl.play().catch(()=>{}); });
-      t10Playing = true;
-    }
-    playClickSound();
+  // W1b is its own screen and is playable/stoppable from level one.
+  if(tv.id === 'W1b' && tv.videoEl){
+    toggleVideoEl(tv.videoEl);
+    w1bVideoEl = tv.videoEl;
+    w1bPlaying = !tv.videoEl.paused;
+    return;
+  }
+
+  // T10 — Wolf Blood plays on the physical screen in the level.
+  if(tv.id === 'T10' && tv.videoEl){
+    toggleVideoEl(tv.videoEl);
+    t10VideoEl = tv.videoEl;
     return;
   }
 
@@ -766,6 +1018,9 @@ function buildWallTV(id, pos, ry, levelYOffset=0){
   if(id === 'W1a'){
     const vtex = createW1aVideoTex();
     screenMat = new THREE.MeshBasicMaterial({map: vtex});
+  } else if(id === 'W1b'){
+    const vtex = createW1bVideoTex();
+    screenMat = new THREE.MeshBasicMaterial({map: vtex});
   } else if(id === 'T10'){
     const vtex = createT10VideoTex();
     screenMat = new THREE.MeshBasicMaterial({map: vtex});
@@ -787,7 +1042,10 @@ function buildWallTV(id, pos, ry, levelYOffset=0){
 
   g.position.set(pos[0], pos[1]+levelYOffset, pos[2]);
   g.rotation.y=ry;
-  return { g, screen, ntex, nctx, id };
+  return {
+    g, screen, ntex, nctx, id,
+    videoEl: id === 'W1a' ? w1aVideoEl : id === 'T10' ? t10VideoEl : null,
+  };
 }
 
 // ── BUILD A WINDOW TV ─────────────────────────────────────────────────────────
@@ -828,7 +1086,10 @@ function buildWindowTV(id, pos, ry, levelYOffset=0){
 
   g.position.set(pos[0], pos[1]+levelYOffset, pos[2]);
   g.rotation.y=ry;
-  return { g, screen, ntex, nctx, id };
+  return {
+    g, screen, ntex, nctx, id,
+    videoEl: id === 'W1a' ? w1aVideoEl : id === 'W1b' ? w1bVideoEl : null,
+  };
 }
 
 // ── IN-GAME WALL BUTTONS ─────────────────────────────────────────────────────
@@ -1130,12 +1391,8 @@ function triggerFall(){
   totalFalls++;
   if(totalFalls >= 10 && !windowTVsUnlocked){
     windowTVsUnlocked = true;
-    // Auto-start W1a when unlocked
-    if(w1aVideoEl && w1aVideoEl.paused){
-      w1aVideoEl.muted = false;
-      w1aVideoEl.play().catch(()=>{ w1aVideoEl.muted=true; w1aVideoEl.play().catch(()=>{}); });
-      w1aPlaying = true;
-    }
+    // W1a already starts when the player enters the Backrooms. Do not
+    // restart it here; reaching ten falls only unlocks interaction with it.
     // Show unlock message after landing
     setTimeout(()=>{
       const el = document.getElementById('fall-msg');
@@ -1402,7 +1659,7 @@ function animate(t){
   // Fuzz TVs — animate static on all wall TVs except video screens
   if(++nf%3===0){
     allTVs.forEach((tv,i)=>{
-      if(tv.id==='W1a' || tv.id==='W1b' || tv.id==='T10') return; // video screens — no static
+      if(tv.id==='W1a' || tv.id==='W1b' || tv.id==='T10') return;
       if(nf%(3+(i%3))===0){
         const d=tv.nctx.createImageData(128,72);
         for(let j=0;j<d.data.length;j+=4){
@@ -1445,7 +1702,7 @@ function animate(t){
     const nearTV = getNearestWallTV();
     if(nearTV){
       tvPromptEl.style.display = 'block';
-      if((nearTV.id==='W1a'||nearTV.id==='W1b') && !windowTVsUnlocked){
+      if(nearTV.id==='W1a' && !windowTVsUnlocked){
         tvPromptEl.textContent = `[ E ]  LOCKED — FALL ${totalFalls}/10`;
       } else {
         tvPromptEl.textContent = '[ E ]  PLAY / STOP';
@@ -1509,6 +1766,9 @@ document.getElementById('age-gate-leave').addEventListener('click',()=>{
 function tryShowSkip(){
   if(ageConfirmed && glbLoaded){
     skipBtn.style.display='block';
+    // This is the original entrance cue: W1a starts with sound as soon as
+    // the lower-right Start/Skip button appears.
+    startW1aAudio();
     setTimeout(()=>{ skipBtn.style.opacity='1'; },50);
   }
 }
@@ -1525,7 +1785,12 @@ function onGLBReady(){
   tryShowSkip();
 }
 
-skipBtn.addEventListener('click',enterGame);
+skipBtn.addEventListener('click',()=>{
+  // Fallback for browsers that block sound from the async button-appearance
+  // callback. In normal cases W1a is already audible before this click.
+  startW1aAudio();
+  enterGame();
+});
 
 function toggleMute(){ introVideo.muted=!introVideo.muted; listenBtn.textContent=introVideo.muted?'\ud83d\udd07 LISTEN IN':'\ud83d\udd0a MUTE'; }
 listenBtn.addEventListener('click',toggleMute);
