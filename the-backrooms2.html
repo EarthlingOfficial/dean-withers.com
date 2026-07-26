@@ -83,16 +83,19 @@
 
   /* ── BROADCAST SYSTEM ── */
   #player-taunt {
-    position: fixed; top: 58%; left: 50%;
+    position: fixed; top: 52%; left: 50%;
     transform: translate(-50%, -50%);
-    width: min(560px, 86vw);
-    color: rgba(214,105,82,0.92);
+    width: min(760px, 88vw);
+    padding: 24px 32px 28px;
+    border: 1px solid rgba(220,70,52,0.62);
+    background: linear-gradient(90deg, rgba(12,3,2,0.08), rgba(35,5,3,0.82), rgba(12,3,2,0.08));
+    color: #ff735d;
     font-family: 'Courier New', monospace;
     text-align: center;
     pointer-events: none; z-index: 6;
     display: none; opacity: 0;
     transition: opacity 0.8s, transform 0.8s;
-    text-shadow: 0 0 18px rgba(200,60,40,0.6);
+    text-shadow: 0 0 18px rgba(220,45,25,0.85);
   }
   #player-taunt.show {
     opacity: 1;
@@ -100,22 +103,26 @@
   }
   #player-taunt .broadcast-tag {
     display: block;
-    margin-bottom: 12px;
-    color: rgba(200,185,122,0.5);
-    font-size: 9px;
-    letter-spacing: 4px;
+    margin-bottom: 14px;
+    color: rgba(255,220,190,0.82);
+    font-size: 11px;
+    letter-spacing: 5px;
   }
   #player-taunt .broadcast-copy {
-    font-size: clamp(12px, 1.6vw, 16px);
+    font-size: clamp(17px, 2.2vw, 25px);
+    font-weight: bold;
     letter-spacing: 2px;
-    line-height: 1.9;
+    line-height: 1.65;
     white-space: pre-line;
   }
 
   #ag-fact-feed {
     position: fixed; top: 22px; left: 20px;
-    width: min(360px, 42vw);
-    color: rgba(200,185,122,0.72);
+    width: min(480px, 46vw);
+    padding: 14px 16px;
+    border-left: 3px solid rgba(200,185,122,0.65);
+    background: rgba(8,6,2,0.42);
+    color: rgba(240,230,190,0.86);
     font-family: 'Courier New', monospace;
     pointer-events: none; z-index: 6;
     display: none; opacity: 0;
@@ -126,27 +133,30 @@
   #ag-fact-feed .fact-tag {
     margin-bottom: 7px;
     color: rgba(200,185,122,0.38);
-    font-size: 9px;
+    font-size: 11px;
     letter-spacing: 3px;
   }
   #ag-fact-feed .fact-copy {
-    font-size: 10px;
+    font-size: 13px;
     letter-spacing: 1px;
-    line-height: 1.75;
+    line-height: 1.6;
   }
   #ag-fact-feed .fact-note {
     margin-top: 7px;
-    color: rgba(200,185,122,0.3);
-    font-size: 8px;
+    color: rgba(240,220,170,0.48);
+    font-size: 9px;
     letter-spacing: 1px;
   }
 
   #fake-chat {
-    position: fixed; left: 20px; bottom: 42px;
-    width: min(390px, 44vw);
-    height: 142px;
+    position: fixed; left: 20px; bottom: 48px;
+    width: min(560px, 48vw);
+    height: 250px;
+    padding: 12px 16px;
+    border: 1px solid rgba(200,185,122,0.28);
+    background: linear-gradient(180deg, rgba(3,3,2,0.12), rgba(3,3,2,0.78));
     overflow: hidden;
-    color: rgba(220,215,190,0.7);
+    color: rgba(245,240,220,0.88);
     font-family: 'Courier New', monospace;
     pointer-events: none; z-index: 6;
     display: none;
@@ -157,26 +167,28 @@
   #fake-chat .chat-header {
     margin-bottom: 5px;
     color: rgba(200,185,122,0.38);
-    font-size: 8px;
+    font-size: 11px;
     letter-spacing: 2px;
   }
   #fake-chat .chat-line {
-    margin: 4px 0;
-    font-size: 9px;
+    margin: 7px 0;
+    font-size: 13px;
     line-height: 1.35;
     transform: translateY(0);
     animation: chat-in 0.35s ease-out;
   }
-  #fake-chat .chat-name { color: rgba(200,185,122,0.62); }
-  #fake-chat .chat-line:nth-child(3n) { color: rgba(220,130,110,0.72); }
-  #fake-chat .chat-line:nth-child(4n) { color: rgba(170,205,180,0.7); }
+  #fake-chat .chat-name { color: #e5c878; font-weight: bold; }
+  #fake-chat .chat-line:nth-child(3n) { color: #ff9c83; }
+  #fake-chat .chat-line:nth-child(4n) { color: #b9e3c8; }
   @keyframes chat-in {
     from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }
   }
   @media (max-width: 700px) {
-    #ag-fact-feed { width: 72vw; top: 12px; left: 14px; }
-    #fake-chat { left: 14px; bottom: 18px; width: 72vw; }
+    #player-taunt { width: 84vw; padding: 18px 16px 21px; }
+    #ag-fact-feed { width: 84vw; top: 12px; left: 14px; }
+    #fake-chat { left: 14px; bottom: 18px; width: 84vw; height: 210px; }
+    #fake-chat .chat-line { font-size: 11px; }
   }
 
   /* ── TV PROXIMITY PROMPT ── */
@@ -859,6 +871,9 @@ function createVideoTexture(src, { autoplay = false, volume = 0.65 } = {}){
   vid.setAttribute('webkit-playsinline','');
   vid.autoplay = autoplay;
   vid.load();
+  vid.addEventListener('error', ()=>{
+    console.warn('TV media failed to load:', src, vid.error ? vid.error.code : 'unknown');
+  });
 
   const tex = new THREE.VideoTexture(vid);
   tex.minFilter = THREE.LinearFilter;
@@ -867,6 +882,48 @@ function createVideoTexture(src, { autoplay = false, volume = 0.65 } = {}){
 
   if(autoplay) vid.play().catch(()=>{});
   return { vid, tex };
+}
+
+function drawTVStandby(nctx, id, title){
+  nctx.clearRect(0, 0, 128, 72);
+  nctx.fillStyle = '#080706';
+  nctx.fillRect(0, 0, 128, 72);
+  nctx.strokeStyle = 'rgba(200,185,122,0.42)';
+  nctx.strokeRect(3, 3, 122, 66);
+  nctx.textAlign = 'center';
+  nctx.textBaseline = 'middle';
+  nctx.fillStyle = '#c8b97a';
+  nctx.font = 'bold 11px Courier New';
+  nctx.fillText(id + ' // ' + title, 64, 27);
+  nctx.fillStyle = 'rgba(240,225,180,0.7)';
+  nctx.font = '9px Courier New';
+  nctx.fillText('[ E ]  PLAY', 64, 48);
+}
+
+function attachVideoToScreen(videoEl, videoTex, screen, standbyTex){
+  if(!videoEl || !videoTex || !screen) return;
+  const material = screen.material;
+  videoEl._tvScreen = screen;
+  videoEl._tvTexture = videoTex;
+  videoEl._tvStandbyTexture = standbyTex;
+  const showVideoFrame = ()=>{
+    if(videoEl.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+    material.map = videoTex;
+    material.needsUpdate = true;
+    screen.userData.videoReady = true;
+    videoTex.needsUpdate = true;
+  };
+  const showStandby = ()=>{
+    material.map = standbyTex;
+    material.needsUpdate = true;
+    screen.userData.videoReady = false;
+  };
+  videoEl.addEventListener('loadeddata', showVideoFrame);
+  videoEl.addEventListener('canplay', showVideoFrame);
+  videoEl.addEventListener('playing', showVideoFrame);
+  videoEl.addEventListener('error', showStandby);
+  if(videoEl.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) showVideoFrame();
+  else showStandby();
 }
 
 function createW1aVideoTex(){
@@ -946,9 +1003,20 @@ function toggleVideoEl(vid){
   if(!vid) return;
   if(vid.paused){
     vid.muted = false;
-    vid.play().catch(()=>{ vid.muted=true; vid.play().catch(()=>{}); });
+    const playAttempt = vid.play();
+    playAttempt.catch(()=>{
+      // Preserve a usable visual even when the browser rejects unprompted
+      // audio; the next explicit interaction can retry with muted playback.
+      vid.muted = true;
+      vid.play().catch(()=>{});
+    });
   } else {
     vid.pause();
+    if(vid._tvScreen && vid._tvStandbyTexture){
+      vid._tvScreen.material.map = vid._tvStandbyTexture;
+      vid._tvScreen.material.needsUpdate = true;
+      vid._tvScreen.userData.videoReady = false;
+    }
   }
   playClickSound();
 }
@@ -1013,23 +1081,38 @@ function buildWallTV(id, pos, ry, levelYOffset=0){
   const nc=document.createElement('canvas'); nc.width=128; nc.height=72;
   const nctx=nc.getContext('2d');
   const ntex=new THREE.CanvasTexture(nc); ntex.minFilter=THREE.LinearFilter;
+  let videoEl = null;
+  let videoTex = null;
 
   let screenMat;
   if(id === 'W1a'){
     const vtex = createW1aVideoTex();
-    screenMat = new THREE.MeshBasicMaterial({map: vtex});
+    videoEl = w1aVideoEl;
+    videoTex = vtex;
+    screenMat = new THREE.MeshBasicMaterial({map: vtex, side: THREE.DoubleSide});
   } else if(id === 'W1b'){
     const vtex = createW1bVideoTex();
-    screenMat = new THREE.MeshBasicMaterial({map: vtex});
+    videoEl = w1bVideoEl;
+    videoTex = vtex;
+    drawTVStandby(nctx, id, 'HAXAN 1922');
+    ntex.needsUpdate = true;
+    screenMat = new THREE.MeshBasicMaterial({map: ntex, side: THREE.DoubleSide});
   } else if(id === 'T10'){
     const vtex = createT10VideoTex();
-    screenMat = new THREE.MeshBasicMaterial({map: vtex});
+    videoEl = t10VideoEl;
+    videoTex = vtex;
+    drawTVStandby(nctx, id, 'WOLF BLOOD 1925');
+    ntex.needsUpdate = true;
+    screenMat = new THREE.MeshBasicMaterial({map: ntex, side: THREE.DoubleSide});
   } else {
     screenMat = new THREE.MeshBasicMaterial({map: ntex});
   }
 
   const screen=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.4), screenMat);
   screen.position.set(0,0,0.075); frame.add(screen);
+  if(id === 'W1b' || id === 'T10'){
+    attachVideoToScreen(videoEl, videoTex, screen, ntex);
+  }
 
   const glow=new THREE.PointLight(0xaaccff,0.55,5);
   glow.position.set(0,0,0.6); frame.add(glow);
@@ -1044,7 +1127,8 @@ function buildWallTV(id, pos, ry, levelYOffset=0){
   g.rotation.y=ry;
   return {
     g, screen, ntex, nctx, id,
-    videoEl: id === 'W1a' ? w1aVideoEl : id === 'T10' ? t10VideoEl : null,
+    videoEl,
+    videoTex,
   };
 }
 
@@ -1060,20 +1144,31 @@ function buildWindowTV(id, pos, ry, levelYOffset=0){
   const nc=document.createElement('canvas'); nc.width=128; nc.height=72;
   const nctx=nc.getContext('2d');
   const ntex=new THREE.CanvasTexture(nc); ntex.minFilter=THREE.LinearFilter;
+  let videoEl = null;
+  let videoTex = null;
 
   let screenMat;
   if(id==='W1a'){
     const vtex = createW1aVideoTex();
-    screenMat = new THREE.MeshBasicMaterial({map: vtex});
+    videoEl = w1aVideoEl;
+    videoTex = vtex;
+    screenMat = new THREE.MeshBasicMaterial({map: vtex, side: THREE.DoubleSide});
   } else if(id==='W1b'){
     const vtex = createW1bVideoTex();
-    screenMat = new THREE.MeshBasicMaterial({map: vtex});
+    videoEl = w1bVideoEl;
+    videoTex = vtex;
+    drawTVStandby(nctx, id, 'HAXAN 1922');
+    ntex.needsUpdate = true;
+    screenMat = new THREE.MeshBasicMaterial({map: ntex, side: THREE.DoubleSide});
   } else {
     screenMat = new THREE.MeshBasicMaterial({map: ntex});
   }
 
   const screen=new THREE.Mesh(new THREE.PlaneGeometry(2.55,1.0), screenMat);
   screen.position.set(0,0,0.055); frame.add(screen);
+  if(id === 'W1b'){
+    attachVideoToScreen(videoEl, videoTex, screen, ntex);
+  }
 
   const glow=new THREE.PointLight(0xc8e8ff,0.8,6);
   glow.position.set(0,0,0.7); frame.add(glow);
@@ -1088,7 +1183,8 @@ function buildWindowTV(id, pos, ry, levelYOffset=0){
   g.rotation.y=ry;
   return {
     g, screen, ntex, nctx, id,
-    videoEl: id === 'W1a' ? w1aVideoEl : id === 'W1b' ? w1bVideoEl : null,
+    videoEl,
+    videoTex,
   };
 }
 
