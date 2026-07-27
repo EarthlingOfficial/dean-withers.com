@@ -589,17 +589,30 @@
     var waUrl   = 'https://wa.me/?text=' + encodeURIComponent(shareText + ' ' + pageUrl);
     var thUrl   = 'https://www.threads.net/intent/post?text=' + encodeURIComponent(shareText + ' ' + pageUrl);
 
-    document.getElementById('shareFacebook').href = fbUrl;
-    document.getElementById('shareX').href        = xUrl;
-    document.getElementById('shareWhatsapp').href = waUrl;
-    document.getElementById('shareThreads').href  = thUrl;
+    function trackShare(platform, position) {
+      if(typeof gtag === 'function') {
+        gtag('event', 'share', { method: platform, position: position, content_type: 'missing_person', item_id: 'find-sally-contarino' });
+      }
+    }
 
-    document.getElementById('shareFacebookTop').href = fbUrl;
-    document.getElementById('shareXTop').href        = xUrl;
-    document.getElementById('shareWhatsappTop').href = waUrl;
-    document.getElementById('shareThreadsTop').href  = thUrl;
+    var buttons = [
+      { id: 'shareFacebook',    url: fbUrl,  platform: 'facebook', pos: 'bottom' },
+      { id: 'shareX',           url: xUrl,   platform: 'x',        pos: 'bottom' },
+      { id: 'shareWhatsapp',    url: waUrl,  platform: 'whatsapp', pos: 'bottom' },
+      { id: 'shareThreads',     url: thUrl,  platform: 'threads',  pos: 'bottom' },
+      { id: 'shareFacebookTop', url: fbUrl,  platform: 'facebook', pos: 'top'    },
+      { id: 'shareXTop',        url: xUrl,   platform: 'x',        pos: 'top'    },
+      { id: 'shareWhatsappTop', url: waUrl,  platform: 'whatsapp', pos: 'top'    },
+      { id: 'shareThreadsTop',  url: thUrl,  platform: 'threads',  pos: 'top'    }
+    ];
+    buttons.forEach(function(b) {
+      var el = document.getElementById(b.id);
+      el.href = b.url;
+      el.addEventListener('click', function(){ trackShare(b.platform, b.pos); });
+    });
 
     window.copyShareLinkTop = function(){
+      trackShare('copy_link', 'top');
       var feedback = document.getElementById('copyFeedbackTop');
       function showCopied(){ feedback.textContent = '✓ Link copied!'; setTimeout(function(){ feedback.textContent=''; },3000); }
       if(navigator.clipboard && navigator.clipboard.writeText){
@@ -615,6 +628,7 @@
     };
 
     window.copyShareLink = function(){
+      trackShare('copy_link', 'bottom');
       var feedback = document.getElementById('copyFeedback');
       function showCopied(){ feedback.textContent = 'Link copied — thank you for sharing!'; setTimeout(function(){ feedback.textContent=''; },3000); }
       if(navigator.clipboard && navigator.clipboard.writeText){
