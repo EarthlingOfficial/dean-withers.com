@@ -415,6 +415,10 @@
   <div class="carousel" id="mainCarousel">
     <div class="carousel-track" id="carouselTrack">
       <div class="carousel-slide">
+        <img src="https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/sallyclear.webp" alt="Sally Grace Contarino — clear photo">
+        <div class="carousel-caption">Sally Grace Contarino — have you seen her?</div>
+      </div>
+      <div class="carousel-slide">
         <img src="https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/chain.jpg" alt="John Hardy citrine pendant — key lead in Sally Contarino case">
         <div class="carousel-caption">John Hardy citrine pendant — not found among Sally's belongings, suggesting she was wearing it</div>
       </div>
@@ -438,6 +442,7 @@
       <span onclick="carouselGo(1)"></span>
       <span onclick="carouselGo(2)"></span>
       <span onclick="carouselGo(3)"></span>
+      <span onclick="carouselGo(4)"></span>
     </div>
   </div>
 
@@ -645,7 +650,7 @@
   })();
 
   // ── Carousel ──
-  var current=0, total=4;
+  var current=0, total=5;
   function carouselUpdate(){
     document.getElementById('carouselTrack').style.transform='translateX(-'+(current*100)+'%)';
     document.querySelectorAll('#carouselDots span').forEach(function(d,i){ d.classList.toggle('active',i===current); });
