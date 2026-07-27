@@ -950,7 +950,7 @@ function createW1bVideoTex(){
   // Haxan (1922), the film shown in the supplied Archive.org screenshot.
   // It is deliberately muted and stopped until the player interacts with W1b.
   const result = createVideoTexture(
-    'https://archive.org/download/Haxan1922/Haxan%20%281922%29.mp4',
+    'https://cors.archive.org/cors/Haxan1922/Haxan%20%281922%29.mp4',
     { autoplay: false, volume: 0.65 }
   );
   w1bVideoEl = result.vid;
@@ -960,12 +960,11 @@ function createW1bVideoTex(){
 }
 
 function createT10VideoTex(){
-  // Wolf Blood (1925) plays directly on the T10 screen, not in a modal iframe.
-  // Use the browser-compatible MP4 derivative rather than the OGV file:
-  // some browsers decode OGV audio but never provide video frames to WebGL.
+  // cors.archive.org proxy provides the CORS headers WebGL needs to upload frames.
+  // Direct archive.org download links are CORS-blocked for video textures.
   const result = createVideoTexture(
-    'https://archive.org/download/WolfBlood1925/WolfBlood_512kb.mp4',
-    { autoplay: false, volume: 0.65 }
+    'https://cors.archive.org/cors/WolfBlood1925/WolfBlood_512kb.mp4',
+    { autoplay: true, volume: 0.65 }
   );
   t10VideoEl = result.vid;
   t10VideoTex = result.tex;
@@ -1111,9 +1110,7 @@ function buildWallTV(id, pos, ry, levelYOffset=0){
     const vtex = createT10VideoTex();
     videoEl = t10VideoEl;
     videoTex = vtex;
-    drawTVStandby(nctx, id, 'WOLF BLOOD 1925');
-    ntex.needsUpdate = true;
-    screenMat = new THREE.MeshBasicMaterial({map: ntex, side: THREE.DoubleSide});
+    screenMat = new THREE.MeshBasicMaterial({map: vtex, side: THREE.DoubleSide});
   } else {
     screenMat = new THREE.MeshBasicMaterial({map: ntex});
   }
@@ -1121,6 +1118,9 @@ function buildWallTV(id, pos, ry, levelYOffset=0){
   const screen=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.4), screenMat);
   screen.position.set(0,0,0.075); frame.add(screen);
   if(id === 'W1b' || id === 'T10'){
+    // Draw a minimal standby for the paused state; video texture shows when playing
+    drawTVStandby(nctx, id, id === 'T10' ? 'WOLF BLOOD 1925' : 'HAXAN 1922');
+    ntex.needsUpdate = true;
     attachVideoToScreen(videoEl, videoTex, screen, ntex);
   }
 
