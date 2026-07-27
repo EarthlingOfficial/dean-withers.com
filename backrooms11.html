@@ -185,10 +185,19 @@
     to { opacity: 1; transform: translateY(0); }
   }
   @media (max-width: 700px) {
-    #player-taunt { width: 84vw; padding: 18px 16px 21px; }
-    #ag-fact-feed { width: 84vw; top: 12px; left: 14px; }
-    #fake-chat { left: 14px; bottom: 18px; width: 84vw; height: 210px; }
-    #fake-chat .chat-line { font-size: 11px; }
+    #player-taunt {
+      width: 74vw; padding: 10px 12px 12px;
+      top: 36%; font-size: 12px;
+    }
+    #player-taunt .broadcast-tag { font-size: 9px; letter-spacing: 3px; margin-bottom: 6px; }
+    #player-taunt .broadcast-copy { font-size: 12px !important; letter-spacing: 1px; line-height: 1.5; }
+    #ag-fact-feed { width: 74vw; top: 10px; left: 10px; padding: 8px 10px; }
+    #ag-fact-feed .fact-tag { font-size: 9px; margin-bottom: 4px; }
+    #ag-fact-feed .fact-copy { font-size: 11px; line-height: 1.5; }
+    #ag-fact-feed .fact-note { font-size: 8px; }
+    #fake-chat { left: 10px; bottom: 170px; width: 70vw; height: 150px; }
+    #fake-chat .chat-header { font-size: 9px; }
+    #fake-chat .chat-line { font-size: 10px; margin: 4px 0; }
   }
 
   /* ── TV PROXIMITY PROMPT ── */
@@ -304,8 +313,8 @@
   </video>
   <canvas id="vhs-roll" style="position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;"></canvas>
   <div id="title-card" style="position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;flex-direction:column;pointer-events:none;">
-    <div id="title-line1" style="font-size:15px;letter-spacing:5px;color:#d4c98a;text-transform:uppercase;opacity:0;transition:opacity 1s;text-align:center;text-shadow:0 0 18px rgba(200,185,100,0.7);"></div>
-    <div id="title-line2" style="font-size:13px;letter-spacing:4px;color:#a09060;text-transform:uppercase;opacity:0;transition:opacity 1s;text-align:center;margin-top:10px;text-shadow:0 0 12px rgba(160,144,80,0.5);"></div>
+    <div id="title-line1" style="font-size:15px;letter-spacing:5px;color:#ede080;text-transform:uppercase;opacity:0;transition:opacity 1s;text-align:center;text-shadow:0 0 24px rgba(230,210,100,0.95),0 0 48px rgba(200,180,70,0.6);"></div>
+    <div id="title-line2" style="font-size:13px;letter-spacing:4px;color:#d4c060;text-transform:uppercase;opacity:0;transition:opacity 1s;text-align:center;margin-top:10px;text-shadow:0 0 18px rgba(210,190,80,0.9),0 0 32px rgba(180,160,60,0.5);"></div>
   </div>
   <div id="play-btn" style="position:absolute;inset:0;z-index:7;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:rgba(0,0,0,0.55);">
     <div style="width:72px;height:72px;border:2px solid rgba(200,185,122,0.7);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:18px;">
@@ -370,7 +379,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 // ── ARCHIVE.ORG VIDEO POOL FOR WALL TVS ──────────────────────────────────────
 // T1-T9 use animated canvas static. T10 uses a real in-world video texture.
-const WALL_TV_VIDEO_MAP = {}; // retained for compatibility with older level data
+const WALL_TV_VIDEO_MAP = {}; // no archive videos via video element — CORS blocked
 
 // ── DEVICE & GLB ─────────────────────────────────────────────────────────────
 const isMobile = /Mobi|Android|iPhone|iPad|iPod|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
@@ -379,7 +388,6 @@ const GLB_URL = isMobile
   : 'https://cors.archive.org/cors/backrooms_vr/backrooms_vr.glb';
 
 // ── WALL TV DEFINITIONS ───────────────────────────────────────────────────────
-// T7: moved to z=-25, dir=-X so it hits the far interior west wall
 const WALL_TV_RAYS = [
   { id:'T1',  from:[ 0,  1.9,  0],     dir:[ 0, 0,  1], ry: Math.PI    },
   { id:'T2',  from:[ 0,  1.9,  0],     dir:[ 0, 0, -1], ry: 0          },
@@ -387,6 +395,7 @@ const WALL_TV_RAYS = [
   { id:'T4',  from:[ 0,  1.9,  8.60],  dir:[-1, 0,  0], ry: Math.PI/2  },
   { id:'T5',  from:[ 0,  1.9, -8],     dir:[ 0, 0,  1], ry: Math.PI    },
   { id:'T6',  from:[ 0,  1.9,  8],     dir:[ 0, 0, -1], ry: 0          },
+  { id:'T7',  from:[ 0,  1.9, -25],    dir:[-1, 0,  0], ry: Math.PI/2  },
   { id:'T8',  from:[ 0,  1.9, 14.57],  dir:[-1, 0,  0], ry: Math.PI/2  },
   { id:'T9',  from:[ 0,  1.9,  6.34],  dir:[ 1, 0,  0], ry:-Math.PI/2  },
   { id:'T10', from:[ 0,  1.6,  4],     dir:[-1, 0,  0], ry: Math.PI/2  },
@@ -493,7 +502,7 @@ function hideFallMessage(){
 // These are presentation-only overlays. They deliberately have no connection
 // to TV playback state, movement, or the entrance audio sequence.
 const PLAYER_TAUNTS = [
-  "you seem lost.\nimagine how a male chick feels on the death conveyor belt.",
+  "you seem lost.\nmale chicks in egg production are ground alive or gassed at birth.\nyou have a door. they have a shredder.",
   "you got to walk into this place by choice.\nthey were born into it.",
   "you are looking for an exit.\na broiler chicken is looking for one leg that will hold.",
   "you can turn around whenever you want.\na sow in a farrowing crate cannot.",
@@ -559,7 +568,7 @@ const ANIMAL_AG_FACTS = [
 ];
 
 const FICTIONAL_CHAT_LINES = [
-  ["@floor_10_mod", "Earthling is lost again. somebody give them a map and a moral compass."],
+  ["@floor_10_mod", "wait, this backrooms game is actually about factory farming. it is. it genuinely is."],
   ["@dean_defender", "Dean Withers would have found the exit in thirty seconds."],
   ["@bean_counter", "veganism mentioned. chat has entered its emergency broadcast era."],
   ["@plantbasedpanic", "I saw one lentil and now the government is coming for my barbecue."],
@@ -573,7 +582,7 @@ const FICTIONAL_CHAT_LINES = [
   ["@chat_lurker", "the screen is black because the discourse has become too bright."],
   ["@dean_defender", "another clean point from Dean. another dirty dodge from the chat."],
   ["@vegan_speedrun", "any percent route: read one welfare report, become annoying at dinner."],
-  ["@comment_section", "Earthling just discovered consequences and called them a jump scare."],
+  ["@comment_section", "the fall mechanic as a loss-of-ground design is genuinely clever. I hate that I respect it."],
   ["@free_range_facts", "free-range is not a magic spell, folks. read the standard."],
   ["@meat_logic", "plants have feelings too. okay, then eat the thing with the nervous system."],
   ["@mod_team", "please stop yelling LAW at the screen. name the jurisdiction or sit down."],
@@ -586,7 +595,7 @@ const FICTIONAL_CHAT_LINES = [
   ["@mod_team", "new rule: no claiming a label means whatever you wish it meant."],
   ["@dean_defender", "Dean asked one question and six commenters became smoke."],
   ["@omnivore_arc", "I support personal choice, especially the choice to read the facts first."],
-  ["@chat_lurker", "Earthling is speedrunning denial with excellent footwork."],
+  ["@chat_lurker", "whoever built this has been in too many comment sections. you can feel it in the walls."],
   ["@supply_chain", "the farm is not the whole story. neither is the supermarket."],
   ["@vegan_speedrun", "today's boss fight: 'but bacon tho'."],
   ["@the_actual_cow", "you keep saying freedom while holding a sandwich. fascinating."],
@@ -598,7 +607,7 @@ const FICTIONAL_CHAT_LINES = [
   ["@plantbasedpanic", "fine, I will watch the documentary. but I reserve the right to be dramatic."],
   ["@floor_10_mod", "the player is still lost. the chat is still loud. excellent television."],
   ["@cage_free_ish", "if the label needs a footnote, the footnote is part of the label."],
-  ["@night_shift", "someone tell Earthling the exit is past the last bad argument."],
+  ["@night_shift", "the fake chat inside the game about a real debate is extremely unhinged and correct."],
   ["@dean_defender", "that was not a debate, that was Dean filing a conversational tax return."],
   ["@mod_team", "chat behaving badly. animals still deserve better. continue."]
 ];
@@ -840,7 +849,8 @@ function playClickSound(){
 
 // ── FALL COUNTER & WINDOW TV STATE ────────────────────────────────────────────
 let totalFalls = 0;
-let windowTVsUnlocked = false;
+let windowTVsUnlocked = false;   // fall 10: W1a toggle unlocked
+let backroomsVideoUnlocked = false; // fall 20: T7 + intro-video stops
 let w1aPlaying = false;
 let w1bPlaying = false;
 
@@ -855,6 +865,8 @@ let w1bVideoEl = null;
 let w1bVideoTex = null;
 let t10VideoEl = null;
 let t10VideoTex = null;
+let t7VideoEl = null;
+let t7VideoTex = null;
 
 function createVideoTexture(src, { autoplay = false, volume = 0.65 } = {}){
   const vid = document.createElement('video');
@@ -900,23 +912,6 @@ function drawTVStandby(nctx, id, title){
   nctx.fillText('[ E ]  PLAY', 64, 48);
 }
 
-function drawTVStatus(nctx, id, title, status, color='#c8b97a'){
-  nctx.clearRect(0, 0, 128, 72);
-  nctx.fillStyle = '#080706';
-  nctx.fillRect(0, 0, 128, 72);
-  nctx.strokeStyle = color;
-  nctx.globalAlpha = 0.62;
-  nctx.strokeRect(3, 3, 122, 66);
-  nctx.globalAlpha = 1;
-  nctx.textAlign = 'center';
-  nctx.textBaseline = 'middle';
-  nctx.fillStyle = color;
-  nctx.font = 'bold 10px Courier New';
-  nctx.fillText(id + ' // ' + title, 64, 24);
-  nctx.font = 'bold 9px Courier New';
-  nctx.fillText(status, 64, 47);
-}
-
 function attachVideoToScreen(videoEl, videoTex, screen, standbyTex){
   if(!videoEl || !videoTex || !screen) return;
   const material = screen.material;
@@ -935,23 +930,12 @@ function attachVideoToScreen(videoEl, videoTex, screen, standbyTex){
     material.needsUpdate = true;
     screen.userData.videoReady = false;
   };
-  const showLoading = ()=>{
-    drawTVStatus(standbyTex.image.getContext('2d'), screen.userData.tvId, screen.userData.tvTitle, '[ LOADING ]');
-    standbyTex.needsUpdate = true;
-    showStandby();
-  };
-  const showError = ()=>{
-    drawTVStatus(standbyTex.image.getContext('2d'), screen.userData.tvId, screen.userData.tvTitle, '[ MEDIA ERROR ]', '#d66b55');
-    standbyTex.needsUpdate = true;
-    showStandby();
-  };
   videoEl.addEventListener('loadeddata', showVideoFrame);
   videoEl.addEventListener('canplay', showVideoFrame);
   videoEl.addEventListener('playing', showVideoFrame);
-  videoEl.addEventListener('loadstart', showLoading);
-  videoEl.addEventListener('error', showError);
+  videoEl.addEventListener('error', showStandby);
   if(videoEl.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) showVideoFrame();
-  else showLoading();
+  else showStandby();
 }
 
 function createW1aVideoTex(){
@@ -969,7 +953,7 @@ function createW1bVideoTex(){
   // Haxan (1922), the film shown in the supplied Archive.org screenshot.
   // It is deliberately muted and stopped until the player interacts with W1b.
   const result = createVideoTexture(
-    'https://archive.org/download/Haxan1922/Haxan%20%281922%29.mp4',
+    'https://cors.archive.org/cors/Haxan1922/Haxan%20%281922%29.mp4',
     { autoplay: false, volume: 0.65 }
   );
   w1bVideoEl = result.vid;
@@ -979,15 +963,26 @@ function createW1bVideoTex(){
 }
 
 function createT10VideoTex(){
-  // Wolf Blood (1925) plays directly on the T10 screen, not in a modal iframe.
-  // Use the browser-compatible MP4 derivative rather than the OGV file:
-  // some browsers decode OGV audio but never provide video frames to WebGL.
+  // cors.archive.org proxy provides the CORS headers WebGL needs to upload frames.
+  // Direct archive.org download links are CORS-blocked for video textures.
   const result = createVideoTexture(
     'https://cors.archive.org/cors/WolfBlood1925/WolfBlood_512kb.mp4',
-    { autoplay: false, volume: 0.65 }
+    { autoplay: true, volume: 0.65 }
   );
   t10VideoEl = result.vid;
   t10VideoTex = result.tex;
+  return result.tex;
+}
+
+function createT7VideoTex(){
+  // Same backrooms found footage as the intro video, served via cors proxy.
+  // Stays silent/paused until fall 20; intro-video element is stopped at that point.
+  const result = createVideoTexture(
+    'https://cors.archive.org/cors/1-year-in-the-backrooms-found-footage-compilation/SnapSave.io-1%20Year%20in%20The%20Backrooms%20%28Found%20Footage%20Compilation%29.mp4',
+    { autoplay: false, volume: 0.65 }
+  );
+  t7VideoEl = result.vid;
+  t7VideoTex = result.tex;
   return result.tex;
 }
 
@@ -999,12 +994,13 @@ function getVisibleTVVideo(id){
 function startW1aAudio(){
   const vid = getVisibleTVVideo('W1a') || w1aVideoEl;
   if(!vid) return;
+  // If the player manually paused W1a (w1aPlaying===false), don't override it.
+  // Only auto-start on initial game entry when w1aVideoEl hasn't been set yet.
+  if(w1aVideoEl && !w1aPlaying) return;
   w1aVideoEl = vid;
   vid.muted = false;
   vid.volume = 0.65;
   vid.play().catch(()=>{
-    // A browser may still require the original Play/Enter gesture.
-    // Keep the visual running rather than interrupting the game.
     vid.muted = true;
     vid.play().catch(()=>{});
   });
@@ -1056,7 +1052,6 @@ function interactWithTV(tv){
   // interactive from the first Backrooms floor.
   if(tv.id === 'W1a'){
     if(!windowTVsUnlocked){
-      // Show taunting message
       showWindowTVLockedMsg();
       return;
     }
@@ -1083,14 +1078,27 @@ function interactWithTV(tv){
     return;
   }
 
+  // T7 — Backrooms found footage, unlocked at fall 20.
+  if(tv.id === 'T7'){
+    if(!backroomsVideoUnlocked){
+      showWindowTVLockedMsg(`fall ${totalFalls} of 20 times to unlock this signal\nthe footage is in the walls\nyou just can't see it yet`);
+      return;
+    }
+    if(tv.videoEl){
+      toggleVideoEl(tv.videoEl);
+      t7VideoEl = tv.videoEl;
+    }
+    return;
+  }
+
   // T1–T9 — animated static, just click sound
   playClickSound();
 }
 
-function showWindowTVLockedMsg(){
+function showWindowTVLockedMsg(msg){
   const el = document.getElementById('fall-msg');
   if(!el) return;
-  el.textContent = `fall ${totalFalls} of 10 times to unlock these screens\nyou think you're trapped?\ntry being born in a cage`;
+  el.textContent = msg || `fall ${totalFalls} of 10 times to unlock these screens\nyou think you're trapped?\ntry being born in a cage`;
   el.style.display = 'block';
   el.style.opacity = '0';
   setTimeout(()=>{ el.style.opacity='1'; }, 50);
@@ -1129,7 +1137,16 @@ function buildWallTV(id, pos, ry, levelYOffset=0){
     const vtex = createT10VideoTex();
     videoEl = t10VideoEl;
     videoTex = vtex;
-    drawTVStandby(nctx, id, 'WOLF BLOOD 1925');
+    // Black standby — no label text shown before video loads
+    nctx.fillStyle = '#000'; nctx.fillRect(0,0,128,72);
+    ntex.needsUpdate = true;
+    screenMat = new THREE.MeshBasicMaterial({map: vtex, side: THREE.DoubleSide});
+  } else if(id === 'T7'){
+    const vtex = createT7VideoTex();
+    videoEl = t7VideoEl;
+    videoTex = vtex;
+    // Black standby until fall 20 unlock
+    nctx.fillStyle = '#000'; nctx.fillRect(0,0,128,72);
     ntex.needsUpdate = true;
     screenMat = new THREE.MeshBasicMaterial({map: ntex, side: THREE.DoubleSide});
   } else {
@@ -1138,9 +1155,8 @@ function buildWallTV(id, pos, ry, levelYOffset=0){
 
   const screen=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.4), screenMat);
   screen.position.set(0,0,0.075); frame.add(screen);
-  if(id === 'W1b' || id === 'T10'){
-    screen.userData.tvId = id;
-    screen.userData.tvTitle = id === 'T10' ? 'WOLF BLOOD 1925' : 'HAXAN 1922';
+  if(id === 'W1b' || id === 'T10' || id === 'T7'){
+    // ntex is already drawn (black or labelled above); attach so toggle can swap textures
     attachVideoToScreen(videoEl, videoTex, screen, ntex);
   }
 
@@ -1196,9 +1212,11 @@ function buildWindowTV(id, pos, ry, levelYOffset=0){
 
   const screen=new THREE.Mesh(new THREE.PlaneGeometry(2.55,1.0), screenMat);
   screen.position.set(0,0,0.055); frame.add(screen);
-  if(id === 'W1b'){
-    screen.userData.tvId = id;
-    screen.userData.tvTitle = 'HAXAN 1922';
+  if(id === 'W1a'){
+    drawTVStandby(nctx, id, 'SLAUGHTER FOOTAGE');
+    ntex.needsUpdate = true;
+    attachVideoToScreen(videoEl, videoTex, screen, ntex);
+  } else if(id === 'W1b'){
     attachVideoToScreen(videoEl, videoTex, screen, ntex);
   }
 
@@ -1519,9 +1537,6 @@ function triggerFall(){
   totalFalls++;
   if(totalFalls >= 10 && !windowTVsUnlocked){
     windowTVsUnlocked = true;
-    // W1a already starts when the player enters the Backrooms. Do not
-    // restart it here; reaching ten falls only unlocks interaction with it.
-    // Show unlock message after landing
     setTimeout(()=>{
       const el = document.getElementById('fall-msg');
       if(el){
@@ -1529,6 +1544,29 @@ function triggerFall(){
         el.style.display='block'; el.style.opacity='0';
         setTimeout(()=>{ el.style.opacity='1'; },100);
         setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>{ el.style.display='none'; },1200); },6000);
+      }
+    }, 2800);
+  }
+
+  if(totalFalls >= 20 && !backroomsVideoUnlocked){
+    backroomsVideoUnlocked = true;
+    // Stop the HTML intro video element — it's still running in the hidden loading div
+    const introVid = document.getElementById('intro-video');
+    if(introVid){ introVid.pause(); introVid.src = ''; }
+    // Start T7 playing (the same footage now lives on the wall)
+    const t7 = allTVs.find(tv => tv.id === 'T7' && tv.videoEl);
+    if(t7 && t7.videoEl){
+      t7.videoEl.muted = false;
+      t7.videoEl.volume = 0.65;
+      t7.videoEl.play().catch(()=>{ t7.videoEl.muted=true; t7.videoEl.play().catch(()=>{}); });
+    }
+    setTimeout(()=>{
+      const el = document.getElementById('fall-msg');
+      if(el){
+        el.textContent = "the opening signal has moved to the walls\nfind T7 — it's playing now\nyou can stop it. they could not.";
+        el.style.display='block'; el.style.opacity='0';
+        setTimeout(()=>{ el.style.opacity='1'; },100);
+        setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>{ el.style.display='none'; },1200); },7000);
       }
     }, 2800);
   }
@@ -1667,7 +1705,7 @@ function applyRightJoystick(dt){
 // ── BUTTON / TV CLICK ─────────────────────────────────────────────────────────
 const btnRaycaster = new THREE.Raycaster();
 window.addEventListener('click', () => {
-  if(!controls.isLocked) return;
+  if(!controls.isLocked && !isMobile) return;
   btnRaycaster.setFromCamera(new THREE.Vector2(0,0), camera);
 
   // Wall buttons (lore panel, TikTok door)
@@ -1696,14 +1734,6 @@ let nf=0, ft=0, prevT=performance.now();
 function animate(t){
   requestAnimationFrame(animate);
   const dt=Math.min((t-prevT)/1000,.05); prevT=t;
-
-  // Keep the T10 screen explicitly synchronized on browsers that do not
-  // automatically flag VideoTexture frames during a cross-origin stream.
-  if(t10VideoEl && t10VideoTex &&
-     t10VideoEl.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
-     !t10VideoEl.paused){
-    t10VideoTex.needsUpdate = true;
-  }
 
   // ── FALL ──────────────────────────────────────────────────────────────────
   if(isFalling){
@@ -1795,7 +1825,7 @@ function animate(t){
   // Fuzz TVs — animate static on all wall TVs except video screens
   if(++nf%3===0){
     allTVs.forEach((tv,i)=>{
-      if(tv.id==='W1a' || tv.id==='W1b' || tv.id==='T10') return;
+      if(tv.id==='W1a' || tv.id==='W1b' || tv.id==='T10' || tv.id==='T7') return;
       if(nf%(3+(i%3))===0){
         const d=tv.nctx.createImageData(128,72);
         for(let j=0;j<d.data.length;j+=4){
@@ -1834,14 +1864,16 @@ function animate(t){
   }
 
   // TV proximity prompt
-  if(controls.isLocked){
+  if(controls.isLocked || isMobile){
     const nearTV = getNearestWallTV();
     if(nearTV){
       tvPromptEl.style.display = 'block';
       if(nearTV.id==='W1a' && !windowTVsUnlocked){
-        tvPromptEl.textContent = `[ E ]  LOCKED — FALL ${totalFalls}/10`;
+        tvPromptEl.textContent = isMobile ? `TAP  LOCKED — FALL ${totalFalls}/10` : `[ E ]  LOCKED — FALL ${totalFalls}/10`;
+      } else if(nearTV.id==='T7' && !backroomsVideoUnlocked){
+        tvPromptEl.textContent = isMobile ? `TAP  LOCKED — FALL ${totalFalls}/20` : `[ E ]  LOCKED — FALL ${totalFalls}/20`;
       } else {
-        tvPromptEl.textContent = '[ E ]  PLAY / STOP';
+        tvPromptEl.textContent = isMobile ? 'TAP  PLAY / STOP' : '[ E ]  PLAY / STOP';
       }
     } else {
       tvPromptEl.style.display = 'none';
@@ -1989,11 +2021,11 @@ async function runTitleSequence(){
 
   await new Promise(r=>setTimeout(r,400));
   startVHS();
-  await showCard('Brought to you by','Kaeso Heius Totus',1,0);
-  await showCard('and Earthling Official','',0,400);
-  await showCard('In association with','Kaeso Heius Totus Films',2,400);
+  await showCard('An Earthling Official Production','',2,0);
+  await showCard('Made for the Animals','A Non-Profit Gameumentary',1,400);
+  await showCard('Plant Based Liminal Horror','',2,400);
+  await showCard('Special Thanks','Kaeso Heius Totus',1,400);
   await showCard('and caricapu9','',1,400);
-  await showCard('An Earthling Production','',0,400);
   await showCard('GO DEAN!','',3,400);
   stopVHS();
 }
