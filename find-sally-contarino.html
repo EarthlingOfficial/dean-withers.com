@@ -300,6 +300,48 @@
     .footer { text-align: center; padding: 30px 0; color: #555; font-size: 0.85rem; border-top: 1px solid #222; }
     .footer a { color: #888; text-decoration: none; }
 
+    /* ── TOP SHARE STRIP ── */
+    .share-strip-top {
+      background: #111;
+      border-bottom: 2px solid #333;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .share-strip-top .sst-label {
+      font-size: 0.72rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #666;
+      margin-right: 4px;
+      white-space: nowrap;
+    }
+    .share-strip-top a,
+    .share-strip-top button {
+      background: #1a1a1a;
+      color: #ccc;
+      border: 1px solid #333;
+      padding: 7px 16px;
+      border-radius: 3px;
+      font-size: 0.78rem;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      text-decoration: none;
+      cursor: pointer;
+      font-family: Georgia, serif;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .share-strip-top a:hover,
+    .share-strip-top button:hover { border-color: #cc0000; color: #fff; }
+    .share-strip-top .sst-copy { background: #cc0000; color: #fff; border-color: #cc0000; }
+    .share-strip-top .sst-copy:hover { background: #ff0000; border-color: #ff0000; }
+    #copyFeedbackTop { font-size: 0.78rem; color: #2d7a2d; font-weight: bold; width: 100%; text-align: center; height: 1em; }
+    @media (max-width:600px) { .share-strip-top { padding: 10px 10px; gap: 6px; } }
+
     @media (max-width:600px) {
       .missing-label { font-size: 3rem; letter-spacing: 4px; }
       .name-block h1 { font-size: 1.8rem; }
@@ -328,6 +370,17 @@
 
 <div class="reddit-notice-bar">
   <p>⚠ Reddit suppressed hundreds of thousands of views of content about Sally's case without warning or explanation. <a href="reddit-missing-persons-suppression.html">Read the full notice →</a></p>
+</div>
+
+<!-- ── TOP SHARE STRIP ── -->
+<div class="share-strip-top">
+  <span class="sst-label">Share now:</span>
+  <button class="sst-copy" onclick="copyShareLinkTop()">🔗 Copy Link</button>
+  <a id="shareFacebookTop" href="#" target="_blank" rel="noopener">Facebook</a>
+  <a id="shareXTop" href="#" target="_blank" rel="noopener">X / Twitter</a>
+  <a id="shareWhatsappTop" href="#" target="_blank" rel="noopener">WhatsApp</a>
+  <a id="shareThreadsTop" href="#" target="_blank" rel="noopener">Threads</a>
+  <div id="copyFeedbackTop"></div>
 </div>
 
 <div class="container">
@@ -531,10 +584,35 @@
   (function(){
     var pageUrl = "https://earthlingofficial.com/find-sally-contarino.html";
     var shareText = "Sally Grace Contarino, 26, from Melbourne has been missing in Las Vegas since June 20, 2026. 4 weeks. No answers. Please share — someone out there knows something.";
-    document.getElementById('shareFacebook').href = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(pageUrl);
-    document.getElementById('shareX').href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText) + '&url=' + encodeURIComponent(pageUrl);
-    document.getElementById('shareWhatsapp').href = 'https://wa.me/?text=' + encodeURIComponent(shareText + ' ' + pageUrl);
-    document.getElementById('shareThreads').href = 'https://www.threads.net/intent/post?text=' + encodeURIComponent(shareText + ' ' + pageUrl);
+    var fbUrl   = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(pageUrl);
+    var xUrl    = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText) + '&url=' + encodeURIComponent(pageUrl);
+    var waUrl   = 'https://wa.me/?text=' + encodeURIComponent(shareText + ' ' + pageUrl);
+    var thUrl   = 'https://www.threads.net/intent/post?text=' + encodeURIComponent(shareText + ' ' + pageUrl);
+
+    document.getElementById('shareFacebook').href = fbUrl;
+    document.getElementById('shareX').href        = xUrl;
+    document.getElementById('shareWhatsapp').href = waUrl;
+    document.getElementById('shareThreads').href  = thUrl;
+
+    document.getElementById('shareFacebookTop').href = fbUrl;
+    document.getElementById('shareXTop').href        = xUrl;
+    document.getElementById('shareWhatsappTop').href = waUrl;
+    document.getElementById('shareThreadsTop').href  = thUrl;
+
+    window.copyShareLinkTop = function(){
+      var feedback = document.getElementById('copyFeedbackTop');
+      function showCopied(){ feedback.textContent = '✓ Link copied!'; setTimeout(function(){ feedback.textContent=''; },3000); }
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(pageUrl).then(showCopied).catch(fallbackTop);
+      } else { fallbackTop(); }
+      function fallbackTop(){
+        var tmp = document.createElement('textarea');
+        tmp.value = pageUrl; tmp.style.cssText='position:fixed;opacity:0';
+        document.body.appendChild(tmp); tmp.select();
+        try{ document.execCommand('copy'); showCopied(); } catch(e){ feedback.textContent='Copy failed — copy from address bar.'; }
+        document.body.removeChild(tmp);
+      }
+    };
 
     window.copyShareLink = function(){
       var feedback = document.getElementById('copyFeedback');
