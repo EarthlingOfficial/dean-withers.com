@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -388,7 +389,6 @@ const GLB_URL = isMobile
   : 'https://cors.archive.org/cors/backrooms_vr/backrooms_vr.glb';
 
 // ── WALL TV DEFINITIONS ───────────────────────────────────────────────────────
-// T7: moved to z=-25, dir=-X so it hits the far interior west wall
 const WALL_TV_RAYS = [
   { id:'T1',  from:[ 0,  1.9,  0],     dir:[ 0, 0,  1], ry: Math.PI    },
   { id:'T2',  from:[ 0,  1.9,  0],     dir:[ 0, 0, -1], ry: 0          },
@@ -396,6 +396,7 @@ const WALL_TV_RAYS = [
   { id:'T4',  from:[ 0,  1.9,  8.60],  dir:[-1, 0,  0], ry: Math.PI/2  },
   { id:'T5',  from:[ 0,  1.9, -8],     dir:[ 0, 0,  1], ry: Math.PI    },
   { id:'T6',  from:[ 0,  1.9,  8],     dir:[ 0, 0, -1], ry: 0          },
+  { id:'T7',  from:[ 0,  1.9, -25],    dir:[-1, 0,  0], ry: Math.PI/2  },
   { id:'T8',  from:[ 0,  1.9, 14.57],  dir:[-1, 0,  0], ry: Math.PI/2  },
   { id:'T9',  from:[ 0,  1.9,  6.34],  dir:[ 1, 0,  0], ry:-Math.PI/2  },
   { id:'T10', from:[ 0,  1.6,  4],     dir:[-1, 0,  0], ry: Math.PI/2  },
@@ -849,7 +850,8 @@ function playClickSound(){
 
 // ── FALL COUNTER & WINDOW TV STATE ────────────────────────────────────────────
 let totalFalls = 0;
-let windowTVsUnlocked = false;
+let windowTVsUnlocked = false;   // fall 10: W1a toggle unlocked
+let backroomsVideoUnlocked = false; // fall 20: T7 + intro-video stops
 let w1aPlaying = false;
 let w1bPlaying = false;
 
@@ -864,6 +866,8 @@ let w1bVideoEl = null;
 let w1bVideoTex = null;
 let t10VideoEl = null;
 let t10VideoTex = null;
+let t7VideoEl = null;
+let t7VideoTex = null;
 
 function createVideoTexture(src, { autoplay = false, volume = 0.65 } = {}){
   const vid = document.createElement('video');
@@ -971,6 +975,18 @@ function createT10VideoTex(){
   return result.tex;
 }
 
+function createT7VideoTex(){
+  // Same backrooms found footage as the intro video, served via cors proxy.
+  // Stays silent/paused until fall 20; intro-video element is stopped at that point.
+  const result = createVideoTexture(
+    'https://cors.archive.org/cors/1-year-in-the-backrooms-found-footage-compilation/SnapSave.io-1%20Year%20in%20The%20Backrooms%20%28Found%20Footage%20Compilation%29.mp4',
+    { autoplay: false, volume: 0.65 }
+  );
+  t7VideoEl = result.vid;
+  t7VideoTex = result.tex;
+  return result.tex;
+}
+
 function getVisibleTVVideo(id){
   const tv = allTVs.find(candidate => candidate.id === id && candidate.g.visible);
   return tv && tv.videoEl ? tv.videoEl : null;
@@ -1037,7 +1053,6 @@ function interactWithTV(tv){
   // interactive from the first Backrooms floor.
   if(tv.id === 'W1a'){
     if(!windowTVsUnlocked){
-      // Show taunting message
       showWindowTVLockedMsg();
       return;
     }
@@ -1064,14 +1079,27 @@ function interactWithTV(tv){
     return;
   }
 
+  // T7 — Backrooms found footage, unlocked at fall 20.
+  if(tv.id === 'T7'){
+    if(!backroomsVideoUnlocked){
+      showWindowTVLockedMsg(`fall ${totalFalls} of 20 times to unlock this signal\nthe footage is in the walls\nyou just can't see it yet`);
+      return;
+    }
+    if(tv.videoEl){
+      toggleVideoEl(tv.videoEl);
+      t7VideoEl = tv.videoEl;
+    }
+    return;
+  }
+
   // T1–T9 — animated static, just click sound
   playClickSound();
 }
 
-function showWindowTVLockedMsg(){
+function showWindowTVLockedMsg(msg){
   const el = document.getElementById('fall-msg');
   if(!el) return;
-  el.textContent = `fall ${totalFalls} of 10 times to unlock these screens\nyou think you're trapped?\ntry being born in a cage`;
+  el.textContent = msg || `fall ${totalFalls} of 10 times to unlock these screens\nyou think you're trapped?\ntry being born in a cage`;
   el.style.display = 'block';
   el.style.opacity = '0';
   setTimeout(()=>{ el.style.opacity='1'; }, 50);
@@ -1110,17 +1138,26 @@ function buildWallTV(id, pos, ry, levelYOffset=0){
     const vtex = createT10VideoTex();
     videoEl = t10VideoEl;
     videoTex = vtex;
+    // Black standby — no label text shown before video loads
+    nctx.fillStyle = '#000'; nctx.fillRect(0,0,128,72);
+    ntex.needsUpdate = true;
     screenMat = new THREE.MeshBasicMaterial({map: vtex, side: THREE.DoubleSide});
+  } else if(id === 'T7'){
+    const vtex = createT7VideoTex();
+    videoEl = t7VideoEl;
+    videoTex = vtex;
+    // Black standby until fall 20 unlock
+    nctx.fillStyle = '#000'; nctx.fillRect(0,0,128,72);
+    ntex.needsUpdate = true;
+    screenMat = new THREE.MeshBasicMaterial({map: ntex, side: THREE.DoubleSide});
   } else {
     screenMat = new THREE.MeshBasicMaterial({map: ntex});
   }
 
   const screen=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.4), screenMat);
   screen.position.set(0,0,0.075); frame.add(screen);
-  if(id === 'W1b' || id === 'T10'){
-    // Draw a minimal standby for the paused state; video texture shows when playing
-    drawTVStandby(nctx, id, id === 'T10' ? 'WOLF BLOOD 1925' : 'HAXAN 1922');
-    ntex.needsUpdate = true;
+  if(id === 'W1b' || id === 'T10' || id === 'T7'){
+    // ntex is already drawn (black or labelled above); attach so toggle can swap textures
     attachVideoToScreen(videoEl, videoTex, screen, ntex);
   }
 
@@ -1501,9 +1538,6 @@ function triggerFall(){
   totalFalls++;
   if(totalFalls >= 10 && !windowTVsUnlocked){
     windowTVsUnlocked = true;
-    // W1a already starts when the player enters the Backrooms. Do not
-    // restart it here; reaching ten falls only unlocks interaction with it.
-    // Show unlock message after landing
     setTimeout(()=>{
       const el = document.getElementById('fall-msg');
       if(el){
@@ -1511,6 +1545,29 @@ function triggerFall(){
         el.style.display='block'; el.style.opacity='0';
         setTimeout(()=>{ el.style.opacity='1'; },100);
         setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>{ el.style.display='none'; },1200); },6000);
+      }
+    }, 2800);
+  }
+
+  if(totalFalls >= 20 && !backroomsVideoUnlocked){
+    backroomsVideoUnlocked = true;
+    // Stop the HTML intro video element — it's still running in the hidden loading div
+    const introVid = document.getElementById('intro-video');
+    if(introVid){ introVid.pause(); introVid.src = ''; }
+    // Start T7 playing (the same footage now lives on the wall)
+    const t7 = allTVs.find(tv => tv.id === 'T7' && tv.videoEl);
+    if(t7 && t7.videoEl){
+      t7.videoEl.muted = false;
+      t7.videoEl.volume = 0.65;
+      t7.videoEl.play().catch(()=>{ t7.videoEl.muted=true; t7.videoEl.play().catch(()=>{}); });
+    }
+    setTimeout(()=>{
+      const el = document.getElementById('fall-msg');
+      if(el){
+        el.textContent = "the opening signal has moved to the walls\nfind T7 — it's playing now\nyou can stop it. they could not.";
+        el.style.display='block'; el.style.opacity='0';
+        setTimeout(()=>{ el.style.opacity='1'; },100);
+        setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>{ el.style.display='none'; },1200); },7000);
       }
     }, 2800);
   }
@@ -1769,7 +1826,7 @@ function animate(t){
   // Fuzz TVs — animate static on all wall TVs except video screens
   if(++nf%3===0){
     allTVs.forEach((tv,i)=>{
-      if(tv.id==='W1a' || tv.id==='W1b' || tv.id==='T10') return;
+      if(tv.id==='W1a' || tv.id==='W1b' || tv.id==='T10' || tv.id==='T7') return;
       if(nf%(3+(i%3))===0){
         const d=tv.nctx.createImageData(128,72);
         for(let j=0;j<d.data.length;j+=4){
@@ -1814,6 +1871,8 @@ function animate(t){
       tvPromptEl.style.display = 'block';
       if(nearTV.id==='W1a' && !windowTVsUnlocked){
         tvPromptEl.textContent = isMobile ? `TAP  LOCKED — FALL ${totalFalls}/10` : `[ E ]  LOCKED — FALL ${totalFalls}/10`;
+      } else if(nearTV.id==='T7' && !backroomsVideoUnlocked){
+        tvPromptEl.textContent = isMobile ? `TAP  LOCKED — FALL ${totalFalls}/20` : `[ E ]  LOCKED — FALL ${totalFalls}/20`;
       } else {
         tvPromptEl.textContent = isMobile ? 'TAP  PLAY / STOP' : '[ E ]  PLAY / STOP';
       }
