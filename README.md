@@ -32,7 +32,7 @@ This project aims to create a permanent, interactive historical record of public
 * **Status:** Endangered Missing Adult
 * **Jurisdiction:** Las Vegas Metropolitan Police Department (LVMPD)
 * **Case Number:** LLV260600083886
-* **Dedicated Search Page:** `https://earthlingofficial.com/find-sally-contarino.html`
+* **Dedicated Search Page:** https://earthlingofficial.com/find-sally-contarino.html
 
 If you have any information regarding Sally Grace Contarino, please contact the Las Vegas Metro Police directly at **702-828-3111** or email **missingpersons@lvmpd.com**.
 
@@ -59,13 +59,14 @@ As an independent investigator and researcher, I operate under the following pri
 
 ---
 
-## 🗂️ Archive Structure
+## Games and interactive documentaries (Go Dean! Vegan Bros. and the Hypogeum)
 
 This project is organized into distinct, modular segments. Each stage serves as a specific case study in the broader archive:
 
-* **Stages 1-6:** Foundation of the investigative framework.
-* **Stages 7-8:** Analysis of evolving digital trends.
-* **Stages 9-10+:** In-depth documentation of public debates and case studies.
+* **Stages 1-6:** Foundation of the investigative framework presented as a side-scroller.
+* **Stages 7-8:** Analysis of evolving digital trends presented as first-person exploration.
+* **Stages 9-10+:** In-depth documentation of public debates and case studies presented as a realistic first-person backrooms.
+Stage 9 The Hypogeum https://earthlingofficial.com/veganbrosstage9.html
 
 ---
 
