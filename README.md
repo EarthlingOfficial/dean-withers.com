@@ -11,7 +11,7 @@ To ensure accurate search engine indexing and clear navigation, please note the 
 * **Missing Person Advocacy Subpage:** Dedicated exclusively to the active missing person case for Sally Grace Contarino.
 
 ### 📍 Official Directory Links
-* **Main Archive & Index:** `https://earthlingofficial.com`
+* **Main Archive & Index:** https://earthlingofficial.com
 * **Missing Person Case (Sally Grace Contarino):** [https://earthlingofficial.com/find-sally-contarino.html](https://earthlingofficial.com/find-sally-contarino.html)
 
 ---
