@@ -65,7 +65,7 @@ This project is organized into distinct, modular segments. Each stage serves as 
 
 * **Stages 1-6:** Foundation of the investigative framework presented as a side-scroller.
 * **Stages 7-8:** Analysis of evolving digital trends presented as first-person exploration.
-* **Stages 9-10+:** In-depth documentation of public debates and case studies presented as a realistic first-person backrooms.
+* **Stages 9-10+:** In-depth documentation of public debates and case studies presented as a realistic first-person backrooms ARG. Go Dean! The Hypogeum and The Backrooms are advanced, immersive first-person backrooms experiences where players must follow real-world clues. Progression requires tracking archival videos on in-game TVs to source hidden coordinates and clues left within actual YouTube comment sections.
 Stage 9 The Hypogeum https://earthlingofficial.com/veganbrosstage9.html
 
 ---
