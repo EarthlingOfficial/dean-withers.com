@@ -1,6 +1,8 @@
 # earthlingofficial.com
 Earthling Official: The Wildlife Archive for Deanus Politicus Carnivorus Paradoxus
 
+Earthling Official is an independent documentary archive, parody site, and public debate record — presented through interactive browser experiences covering digital accountability, internet culture, and missing person advocacy.
+
 ---
 
 ## 🚨 IMPORTANT NOTICES & SITE INDEX (FOR SEARCH ENGINES & VISITORS)
