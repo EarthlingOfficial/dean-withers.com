@@ -434,6 +434,26 @@
         <img src="https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/bungalowhotel.jpg" alt="The Bungalows Hostel Las Vegas — where Sally Contarino was staying">
         <div class="carousel-caption">The Bungalows Hostel, Las Vegas — where Sally was staying</div>
       </div>
+      <div class="carousel-slide">
+        <img src="https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/lasvegaspolice.jpg" alt="Las Vegas Metropolitan Police Department — Sally Contarino investigation">
+        <div class="carousel-caption">Las Vegas Metropolitan Police Department — investigating Sally's disappearance</div>
+      </div>
+      <div class="carousel-slide">
+        <img src="https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/timbersbar.jpg" alt="Timbers Bar Las Vegas — connected to Sally Contarino case">
+        <div class="carousel-caption">Timbers Bar, Las Vegas — relevant location in the case</div>
+      </div>
+      <div class="carousel-slide">
+        <img src="https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/sallyssisters9.webp" alt="Sally Contarino's sisters Amy and Lauren — Channel 9 heartfelt plea">
+        <div class="carousel-caption">Amy and Lauren on Channel 9 — heartfelt plea</div>
+      </div>
+      <div class="carousel-slide">
+        <img src="https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/sallywalking.webp" alt="Sally Grace Contarino last seen on CCTV leaving Smith's Marketplace Las Vegas">
+        <div class="carousel-caption">Police said Contarino was last seen on CCTV after leaving Smith's Marketplace in Las Vegas at 1.02pm (local time) on Saturday, June 20.</div>
+      </div>
+      <div class="carousel-slide">
+        <img src="https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/sallyface.jpg" alt="Sally Grace Contarino — close up photo, please share this page">
+        <div class="carousel-caption">Please share this page</div>
+      </div>
     </div>
     <button class="carousel-btn prev" onclick="carouselMove(-1)">&#8249;</button>
     <button class="carousel-btn next" onclick="carouselMove(1)">&#8250;</button>
@@ -443,6 +463,11 @@
       <span onclick="carouselGo(2)"></span>
       <span onclick="carouselGo(3)"></span>
       <span onclick="carouselGo(4)"></span>
+      <span onclick="carouselGo(5)"></span>
+      <span onclick="carouselGo(6)"></span>
+      <span onclick="carouselGo(7)"></span>
+      <span onclick="carouselGo(8)"></span>
+      <span onclick="carouselGo(9)"></span>
     </div>
   </div>
 
@@ -651,7 +676,7 @@
   })();
 
   // ── Carousel ──
-  var current=0, total=5;
+  var current=0, total=10;
   function carouselUpdate(){
     document.getElementById('carouselTrack').style.transform='translateX(-'+(current*100)+'%)';
     document.querySelectorAll('#carouselDots span').forEach(function(d,i){ d.classList.toggle('active',i===current); });
