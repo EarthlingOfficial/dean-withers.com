@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Kept — Welcome to the Neighbourhood</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{overflow:hidden;background:#000;font-family:'Courier New',monospace;touch-action:none;-webkit-user-select:none;user-select:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+
+/* INTRO SCREEN */
+#intro{position:fixed;inset:0;z-index:999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px}
+#intro .vault-icon{margin-bottom:32px;animation:vaultPulse 3s ease-in-out infinite}
+#intro .kept-title{font-size:clamp(48px,10vw,96px);font-weight:900;letter-spacing:16px;color:#fff;margin-bottom:8px;font-family:Georgia,serif;animation:fadeUp 1.2s ease forwards;opacity:0}
+#intro .kept-sub{font-size:clamp(10px,1.8vw,14px);letter-spacing:8px;color:rgba(255,255,255,0.3);text-transform:uppercase;margin-bottom:48px;animation:fadeUp 1.2s ease 0.4s forwards;opacity:0}
+#intro .kept-tagline{font-size:clamp(13px,2vw,17px);color:rgba(255,255,255,0.55);font-style:italic;font-family:Georgia,serif;letter-spacing:2px;margin-bottom:56px;animation:fadeUp 1.2s ease 0.8s forwards;opacity:0;max-width:480px;line-height:1.8}
+#intro .enter-btn{padding:14px 52px;background:transparent;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.7);font-family:'Courier New',monospace;font-size:11px;letter-spacing:6px;text-transform:uppercase;cursor:pointer;transition:all 0.3s;animation:fadeUp 1.2s ease 1.2s forwards;opacity:0}
+#intro .enter-btn:hover{border-color:rgba(255,255,255,0.8);color:#fff;background:rgba(255,255,255,0.05)}
+@keyframes fadeUp{0%{opacity:0;transform:translateY(20px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes vaultPulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 20px rgba(255,255,255,0.2))}50%{transform:scale(1.04);filter:drop-shadow(0 0 40px rgba(255,255,255,0.5))}}
+
+/* NEIGHBOURHOOD TITLE */
+#nbhood{position:fixed;inset:0;z-index:998;background:#000;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px}
+#nbhood .nb-title{font-size:clamp(28px,6vw,64px);font-weight:900;letter-spacing:10px;color:#fff;font-family:Georgia,serif;animation:fadeUp 1s ease forwards;opacity:0;margin-bottom:10px}
+#nbhood .nb-sub{font-size:clamp(9px,1.4vw,12px);letter-spacing:6px;color:rgba(255,255,255,0.3);text-transform:uppercase;animation:fadeUp 1s ease 0.3s forwards;opacity:0}
+#nbhood .nb-street{font-size:clamp(12px,1.8vw,15px);color:rgba(255,255,255,0.45);font-style:italic;letter-spacing:2px;margin-top:18px;animation:fadeUp 1s ease 0.6s forwards;opacity:0;font-family:Georgia,serif}
+
+/* HUD */
+#hud{position:fixed;top:0;left:0;right:0;z-index:10;pointer-events:none;padding:16px 20px;display:flex;justify-content:space-between;align-items:flex-start}
+#hud-left{color:rgba(255,255,255,0.18);font-size:8px;letter-spacing:4px}
+#hud-right{color:rgba(255,255,255,0.18);font-size:8px;letter-spacing:3px;text-align:right}
+
+/* CROSSHAIR */
+#xh{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:10;width:16px;height:16px}
+#xhh,#xhv{position:absolute;background:rgba(255,255,255,0.18)}
+#xhh{width:12px;height:1px;top:50%;left:50%;transform:translate(-50%,-50%)}
+#xhv{width:1px;height:12px;top:50%;left:50%;transform:translate(-50%,-50%)}
+#xh.lock #xhh,#xh.lock #xhv{background:#a0e0ff;box-shadow:0 0 8px rgba(160,224,255,0.8)}
+
+/* HINT */
+#hint{position:fixed;bottom:24%;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.7);font-size:9px;letter-spacing:4px;padding:6px 16px;border:1px solid rgba(255,255,255,0.14);background:rgba(0,0,0,0.7);pointer-events:none;z-index:10;display:none;white-space:nowrap;text-transform:uppercase}
+
+/* TOAST */
+#toast{position:fixed;top:56px;left:50%;transform:translateX(-50%) translateY(-10px);z-index:30;pointer-events:none;opacity:0;transition:all .3s;color:rgba(255,255,255,0.8);font-size:9px;letter-spacing:4px;padding:5px 14px;border:1px solid rgba(255,255,255,0.14);background:rgba(0,0,0,0.85);text-transform:uppercase}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ROOM OVERLAY */
+#room-overlay{position:fixed;inset:0;z-index:50;display:none;background:rgba(0,0,0,0.92);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px}
+#room-overlay .ro-title{font-size:clamp(18px,4vw,32px);letter-spacing:8px;color:#fff;font-family:Georgia,serif;margin-bottom:6px;text-transform:uppercase}
+#room-overlay .ro-sub{font-size:10px;letter-spacing:4px;color:rgba(255,255,255,0.3);margin-bottom:40px;text-transform:uppercase}
+.room-grid{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;max-width:600px}
+.room-btn{padding:16px 28px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.65);font-family:'Courier New',monospace;font-size:9px;letter-spacing:4px;cursor:pointer;transition:all 0.25s;text-transform:uppercase;min-width:160px}
+.room-btn:hover{border-color:rgba(255,255,255,0.5);color:#fff;background:rgba(255,255,255,0.07)}
+#room-close{margin-top:32px;color:rgba(255,255,255,0.2);font-size:9px;letter-spacing:3px;cursor:pointer;text-transform:uppercase;padding:8px 20px;border:1px solid rgba(255,255,255,0.06)}
+#room-close:hover{color:rgba(255,255,255,0.6)}
+
+/* MEDITATION */
+#meditation{position:fixed;inset:0;z-index:60;display:none;background:#000;flex-direction:column;align-items:center;justify-content:center}
+#meditation .med-light{width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(80,60,180,0.35) 0%,rgba(0,0,0,0) 70%);margin-bottom:28px;animation:medPulse 4s ease-in-out infinite}
+#meditation .med-text{color:rgba(255,255,255,0.18);font-size:12px;letter-spacing:5px;font-family:Georgia,serif;font-style:italic;text-align:center;line-height:2;max-width:320px}
+#meditation .med-close{position:absolute;top:20px;right:20px;color:rgba(255,255,255,0.15);font-size:9px;letter-spacing:3px;cursor:pointer;padding:8px 14px;border:1px solid rgba(255,255,255,0.06);text-transform:uppercase}
+#meditation .med-close:hover{color:rgba(255,255,255,0.5)}
+@keyframes medPulse{0%,100%{transform:scale(1);opacity:0.7}50%{transform:scale(1.12);opacity:1}}
+
+/* MOBILE */
+#mob{display:none;position:fixed;bottom:0;left:0;right:0;height:180px;z-index:20;pointer-events:none}
+.jz{position:absolute;bottom:20px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);touch-action:none;pointer-events:all}
+#lj{left:16px}#rj{right:16px}
+.kn{position:absolute;top:50%;left:50%;width:28px;height:28px;margin:-14px 0 0 -14px;background:rgba(255,255,255,0.15);border-radius:50%;pointer-events:none}
+#mbtnE{position:absolute;bottom:36px;left:50%;margin-left:-22px;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;letter-spacing:1px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.7);pointer-events:all;touch-action:none;cursor:pointer}
+@media(pointer:coarse){#mob{display:block}#hint{display:none!important}}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+<!-- INTRO -->
+<div id="intro">
+  <div class="vault-icon">
+    <svg width="90" height="90" viewBox="0 0 90 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="8" y="12" width="74" height="66" rx="6" stroke="rgba(255,255,255,0.7)" stroke-width="2.5" fill="none"/>
+      <rect x="8" y="12" width="74" height="66" rx="6" fill="rgba(255,255,255,0.03)"/>
+      <circle cx="45" cy="45" r="16" stroke="rgba(255,255,255,0.6)" stroke-width="2" fill="none"/>
+      <circle cx="45" cy="45" r="8" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" fill="none"/>
+      <circle cx="45" cy="45" r="3" fill="rgba(255,255,255,0.6)"/>
+      <line x1="45" y1="29" x2="45" y2="24" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
+      <line x1="45" y1="61" x2="45" y2="66" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
+      <line x1="29" y1="45" x2="24" y2="45" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
+      <line x1="61" y1="45" x2="66" y2="45" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
+      <rect x="70" y="38" width="6" height="14" rx="2" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" fill="none"/>
+      <line x1="8" y1="72" x2="82" y2="72" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+      <rect x="14" y="76" width="8" height="4" rx="1" fill="rgba(255,255,255,0.15)"/>
+      <rect x="26" y="76" width="8" height="4" rx="1" fill="rgba(255,255,255,0.15)"/>
+    </svg>
+  </div>
+  <div class="kept-title">KEPT</div>
+  <div class="kept-sub">Your space. Your content. Kept safe.</div>
+  <div class="kept-tagline">A place you own. A vault that remembers. A neighbourhood that never forgets you.</div>
+  <button class="enter-btn" onclick="enterNeighbourhood()">ENTER</button>
+</div>
+
+<!-- NEIGHBOURHOOD TITLE -->
+<div id="nbhood">
+  <div class="nb-title">Welcome to<br>the Neighbourhood</div>
+  <div class="nb-sub">Kept — District One</div>
+  <div class="nb-street">Explore the street. Find a door. Press E to enter.</div>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div id="hud-left">KEPT · DISTRICT ONE</div>
+  <div id="hud-right">keptsocials.com</div>
+</div>
+
+<div id="xh"><div id="xhh"></div><div id="xhv"></div></div>
+<div id="hint"></div>
+<div id="toast"></div>
+
+<!-- ROOM OVERLAY -->
+<div id="room-overlay">
+  <div class="ro-title" id="ro-title">Your Space</div>
+  <div class="ro-sub" id="ro-sub">What would you like to do?</div>
+  <div class="room-grid">
+    <button class="room-btn" onclick="openMeditation()">🌑 Meditation Space</button>
+    <button class="room-btn" onclick="toast2('Vault — coming soon')">🔒 Your Vault</button>
+    <button class="room-btn" onclick="toast2('Live feed — coming soon')">📺 Live Screen</button>
+    <button class="room-btn" onclick="toast2('Your posts wall — coming soon')">📌 Posters</button>
+  </div>
+  <div id="room-close" onclick="closeRoom()">✕ BACK TO STREET</div>
+</div>
+
+<!-- MEDITATION -->
+<div id="meditation">
+  <div class="med-close" onclick="closeMeditation()">✕ LEAVE</div>
+  <div class="med-light"></div>
+  <div class="med-text">You are here.<br>This space is yours.<br>Nothing outside can reach you now.<br><br>Breathe.</div>
+</div>
+
+<!-- MOBILE -->
+<div id="mob">
+  <div id="lj" class="jz"><div class="kn" id="lkn"></div></div>
+  <div id="rj" class="jz"><div class="kn" id="rkn"></div></div>
+  <div id="mbtnE" onclick="interact()">E</div>
+</div>
+
+<canvas id="c"></canvas>
+
+<script>
+const $=id=>document.getElementById(id);
+const isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+
+let scene,camera,renderer,clock;
+let started=false;
+let kW=0,kA=0,kS=0,kD=0;
+const vel=new THREE.Vector3();
+const SPEED=5;
+const td={l:{a:0,id:-1,sx:0,sy:0,mx:0,my:0},r:{a:0,id:-1,sx:0,sy:0,mx:0,my:0}};
+
+const houses=[];
+let nearHouse=null;
+
+// House types
+const HOUSE_TYPES=[
+  {type:'closet', w:1.8, d:1.8, h:2.2, color:0x1a1a1a, label:'CLOSET', owner:'Anonymous'},
+  {type:'room',   w:3.5, d:3.5, h:2.8, color:0x111820, label:'ROOM',   owner:'Earthling Official'},
+  {type:'house',  w:6,   d:5,   h:3.5, color:0x0d1a0d, label:'HOUSE',  owner:'@kept_user'},
+  {type:'closet', w:1.8, d:1.8, h:2.2, color:0x1a1510, label:'CLOSET', owner:'New Arrival'},
+  {type:'room',   w:3.5, d:3.5, h:2.8, color:0x1a1020, label:'ROOM',   owner:'@sally_c'},
+  {type:'house',  w:6,   d:5,   h:3.5, color:0x0a1a1a, label:'HOUSE',  owner:'@vegan_official'},
+  {type:'closet', w:1.8, d:1.8, h:2.2, color:0x1a1a12, label:'CLOSET', owner:'Baby Steps'},
+  {type:'room',   w:3.5, d:3.5, h:2.8, color:0x14141a, label:'ROOM',   owner:'District 1 Resident'},
+];
+
+const STREET_POSITIONS=[
+  {x:-18,z:-8,side:-1},{x:-8,z:-8,side:-1},{x:2,z:-8,side:-1},{x:12,z:-8,side:-1},
+  {x:-18,z:8,side:1}, {x:-8,z:8,side:1},  {x:2,z:8,side:1},  {x:12,z:8,side:1},
+];
+
+function initScene(){
+  scene=new THREE.Scene();
+  scene.fog=new THREE.FogExp2(0x050508,0.04);
+  scene.background=new THREE.Color(0x050508);
+  camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,0.1,400);
+  camera.rotation.order='YXZ';
+  camera.position.set(0,1.75,20);
+  clock=new THREE.Clock();
+
+  renderer=new THREE.WebGLRenderer({canvas:$('c'),antialias:!isMobile});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=0.9;
+
+  // Ambient
+  scene.add(new THREE.AmbientLight(0x223344,0.6));
+
+  // Street lamp lights
+  for(let i=-16;i<=12;i+=8){
+    const pl=new THREE.PointLight(0xffeedd,0.8,18);
+    pl.position.set(i,4,0);scene.add(pl);
+    // Lamp post
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,4,6),
+      new THREE.MeshStandardMaterial({color:0x222222,metalness:0.7,roughness:0.4}));
+    pole.position.set(i,2,0);scene.add(pole);
+    const lamp=new THREE.Mesh(new THREE.SphereGeometry(0.12,8,8),
+      new THREE.MeshBasicMaterial({color:0xfff8e0}));
+    lamp.position.set(i,4.1,0);scene.add(lamp);
+  }
+
+  // Ground — street
+  const streetMat=new THREE.MeshStandardMaterial({color:0x0a0a0e,roughness:0.95,metalness:0.05});
+  const street=new THREE.Mesh(new THREE.PlaneGeometry(60,6),streetMat);
+  street.rotation.x=-Math.PI/2;street.position.y=0;street.receiveShadow=true;scene.add(street);
+
+  // Pavement either side
+  const paveMat=new THREE.MeshStandardMaterial({color:0x0e0e12,roughness:0.9});
+  [-1,1].forEach(s=>{
+    const pave=new THREE.Mesh(new THREE.PlaneGeometry(60,6),paveMat);
+    pave.rotation.x=-Math.PI/2;pave.position.set(0,0.01,s*6);pave.receiveShadow=true;scene.add(pave);
+  });
+
+  // Street markings
+  for(let i=-20;i<20;i+=4){
+    const mark=new THREE.Mesh(new THREE.PlaneGeometry(0.15,1.8),
+      new THREE.MeshBasicMaterial({color:0x1a1a22,transparent:true,opacity:0.5}));
+    mark.rotation.x=-Math.PI/2;mark.position.set(i,0.02,0);scene.add(mark);
+  }
+
+  // Build houses
+  STREET_POSITIONS.forEach((pos,i)=>{
+    const ht=HOUSE_TYPES[i%HOUSE_TYPES.length];
+    buildHouse(pos.x, pos.z, ht, i);
+  });
+
+  // Sky gradient via background
+  scene.background=new THREE.Color(0x040508);
+
+  setupControls();
+  setupTouch();
+  renderer.setAnimationLoop(animate);
+}
+
+function buildHouse(x,z,ht,idx){
+  const grp=new THREE.Group();
+  grp.position.set(x,0,z);
+
+  const wallMat=new THREE.MeshStandardMaterial({
+    color:ht.color,roughness:0.55,metalness:0.18,
+    emissive:new THREE.Color(ht.color).multiplyScalar(0.3),emissiveIntensity:0.4
+  });
+
+  // Body
+  const body=new THREE.Mesh(new THREE.BoxGeometry(ht.w,ht.h,ht.d),wallMat);
+  body.position.set(0,ht.h/2,0);body.castShadow=true;body.receiveShadow=true;grp.add(body);
+
+  // Roof — simple pitched
+  const roofMat=new THREE.MeshStandardMaterial({color:0x080808,roughness:0.7,metalness:0.3});
+  const roof=new THREE.Mesh(new THREE.BoxGeometry(ht.w+0.2,0.15,ht.d+0.2),roofMat);
+  roof.position.set(0,ht.h+0.075,0);grp.add(roof);
+
+  // Door
+  const doorW=Math.min(0.85,ht.w*0.35), doorH=Math.min(1.9,ht.h*0.72);
+  const doorMat=new THREE.MeshStandardMaterial({color:0x0a0a12,roughness:0.4,metalness:0.5,emissive:0x111133,emissiveIntensity:0.6});
+  const door=new THREE.Mesh(new THREE.BoxGeometry(doorW,doorH,0.06),doorMat);
+  const faceZ=z<0?ht.d/2:-ht.d/2;
+  door.position.set(0,doorH/2,faceZ+0.04);grp.add(door);
+
+  // Door frame
+  const frameMat=new THREE.MeshStandardMaterial({color:0x181828,metalness:0.6,roughness:0.3});
+  const fTop=new THREE.Mesh(new THREE.BoxGeometry(doorW+0.12,0.06,0.08),frameMat);
+  fTop.position.set(0,doorH+0.03,faceZ+0.04);grp.add(fTop);
+  const fL=new THREE.Mesh(new THREE.BoxGeometry(0.06,doorH+0.06,0.08),frameMat);
+  fL.position.set(-(doorW/2+0.03),doorH/2,faceZ+0.04);grp.add(fL);
+  const fR=fL.clone();fR.position.x=doorW/2+0.03;grp.add(fR);
+
+  // Handle
+  const hMat=new THREE.MeshStandardMaterial({color:0xc8a830,metalness:0.9,roughness:0.1});
+  const handle=new THREE.Mesh(new THREE.SphereGeometry(0.035,8,8),hMat);
+  handle.position.set(doorW*0.3,doorH*0.45,faceZ+0.08);grp.add(handle);
+
+  // Window (for room/house sizes)
+  if(ht.type!=='closet'){
+    const winMat=new THREE.MeshStandardMaterial({color:0x0a1a2a,emissive:0x0a1830,emissiveIntensity:0.8,transparent:true,opacity:0.7});
+    const win=new THREE.Mesh(new THREE.PlaneGeometry(0.7,0.55),winMat);
+    win.position.set(doorW*0.8+0.3,ht.h*0.65,faceZ+0.04);grp.add(win);
+    const wFrame=new THREE.Mesh(new THREE.BoxGeometry(0.76,0.61,0.04),frameMat);
+    wFrame.position.copy(win.position);wFrame.position.z-=0.02;grp.add(wFrame);
+  }
+
+  // Name plate
+  const plateGeo=new THREE.PlaneGeometry(ht.w*0.7,0.22);
+  const plateCv=document.createElement('canvas');plateCv.width=256;plateCv.height=64;
+  const ctx=plateCv.getContext('2d');
+  ctx.fillStyle='rgba(255,255,255,0)';ctx.fillRect(0,0,256,64);
+  ctx.fillStyle='rgba(255,255,255,0.45)';
+  ctx.font='bold 14px "Courier New",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(ht.owner,128,22);
+  ctx.fillStyle='rgba(255,255,255,0.2)';
+  ctx.font='10px "Courier New",monospace';
+  ctx.fillText(ht.label,128,44);
+  const plateMat=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(plateCv),transparent:true,depthWrite:false});
+  const plate=new THREE.Mesh(plateGeo,plateMat);
+  plate.position.set(0,ht.h+0.35,faceZ+0.05);grp.add(plate);
+
+  // Glow light at door
+  const gl=new THREE.PointLight(0x2233aa,0.4,4);
+  gl.position.set(0,doorH*0.6,faceZ+0.6);grp.add(gl);
+
+  scene.add(grp);
+
+  // Trigger zone
+  houses.push({grp,x,z,ht,faceZ,label:ht.label,owner:ht.owner,idx});
+}
+
+// Controls
+let nearHouseIdx=null;
+const rayFwd=new THREE.Raycaster();
+const sc2=new THREE.Vector2(0,0);
+
+function updateNear(){
+  nearHouseIdx=null;$('xh').classList.remove('lock');$('hint').style.display='none';
+  for(let i=0;i<houses.length;i++){
+    const h=houses[i];
+    const dist=Math.hypot(h.x-camera.position.x,h.z-camera.position.z);
+    if(dist<3.2){
+      nearHouseIdx=i;$('xh').classList.add('lock');
+      if(!isMobile){$('hint').style.display='block';$('hint').textContent='[ E ] ENTER — '+h.owner;}
+      return;
+    }
+  }
+}
+
+function interact(){
+  if(!started||nearHouseIdx===null)return;
+  const h=houses[nearHouseIdx];
+  $('ro-title').textContent=h.owner;
+  $('ro-sub').textContent=h.label+' · District One';
+  $('room-overlay').style.display='flex';
+  blip(330,0.3,'sine',0.06);
+}
+
+function closeRoom(){$('room-overlay').style.display='none';}
+function openMeditation(){$('room-overlay').style.display='none';$('meditation').style.display='flex';}
+function closeMeditation(){$('meditation').style.display='none';}
+
+function toast2(t){
+  const el=$('toast');el.textContent=t;el.classList.add('show');
+  clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+function setupControls(){
+  document.addEventListener('keydown',e=>{
+    if(!started)return;
+    const k=e.key.toLowerCase();
+    if(k==='w'||k==='arrowup'){kW=1;e.preventDefault();}
+    if(k==='s'||k==='arrowdown'){kS=1;e.preventDefault();}
+    if(k==='a'||k==='arrowleft'){kA=1;e.preventDefault();}
+    if(k==='d'||k==='arrowright'){kD=1;e.preventDefault();}
+    if(k==='e')interact();
+    if(k==='escape'){closeRoom();closeMeditation();}
+  });
+  document.addEventListener('keyup',e=>{
+    const k=e.key.toLowerCase();
+    if(k==='w'||k==='arrowup')kW=0;if(k==='s'||k==='arrowdown')kS=0;
+    if(k==='a'||k==='arrowleft')kA=0;if(k==='d'||k==='arrowright')kD=0;
+  });
+  document.addEventListener('click',()=>{
+    if(!started||isMobile)return;
+    if(document.pointerLockElement!==document.body)document.body.requestPointerLock().catch(()=>{});
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!started||document.pointerLockElement!==document.body)return;
+    camera.rotation.y-=e.movementX*0.002;
+    camera.rotation.x=Math.max(-0.9,Math.min(0.9,camera.rotation.x-e.movementY*0.002));
+  });
+}
+
+function setupTouch(){
+  const lj=$('lj'),rj=$('rj'),lkn=$('lkn'),rkn=$('rkn'),R=32;
+  function ts(el,d,e){const t=e.changedTouches[0];const b=el.getBoundingClientRect();d.a=1;d.id=t.identifier;d.sx=b.left+b.width/2;d.sy=b.top+b.height/2;d.mx=0;d.my=0;}
+  function tm(e){for(const t of e.changedTouches){for(const[d,kn] of [[td.l,lkn],[td.r,rkn]]){if(t.identifier!==d.id)continue;let dx=t.clientX-d.sx,dy=t.clientY-d.sy;const len=Math.hypot(dx,dy);if(len>R){dx=dx/len*R;dy=dy/len*R;}d.mx=dx/R;d.my=dy/R;kn.style.transform=`translate(${dx}px,${dy}px)`;}}}
+  function te(e){for(const t of e.changedTouches){for(const[d,kn] of [[td.l,lkn],[td.r,rkn]]){if(t.identifier===d.id){d.a=0;d.mx=0;d.my=0;kn.style.transform='';}}}};
+  lj.addEventListener('touchstart',e=>ts(lj,td.l,e),{passive:true});
+  rj.addEventListener('touchstart',e=>ts(rj,td.r,e),{passive:true});
+  document.addEventListener('touchmove',tm,{passive:true});
+  document.addEventListener('touchend',te,{passive:true});
+}
+
+function enterNeighbourhood(){
+  $('intro').style.opacity='0';$('intro').style.transition='opacity 1.2s';
+  setTimeout(()=>{
+    $('intro').style.display='none';
+    $('nbhood').style.display='flex';
+    initScene();
+    setTimeout(()=>{
+      $('nbhood').style.opacity='0';$('nbhood').style.transition='opacity 1.2s';
+      setTimeout(()=>{$('nbhood').style.display='none';started=true;if(!isMobile)document.body.requestPointerLock().catch(()=>{});},1300);
+    },2800);
+  },1300);
+}
+
+let AC_=null;
+function ac(){if(!AC_)try{AC_=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}return AC_;}
+function blip(f,d,t,v){const a=ac();if(!a)return;const o=a.createOscillator(),g=a.createGain();o.type=t||'sine';o.frequency.value=f;g.gain.value=v||0.05;o.connect(g);g.connect(a.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+(d||0.3));o.stop(a.currentTime+(d||0.3));}
+
+function updateMovement(dt){
+  if(!started)return;
+  if(td.r.a){
+    camera.rotation.y-=td.r.mx*0.05;
+    camera.rotation.x=Math.max(-0.9,Math.min(0.9,camera.rotation.x-td.r.my*0.05));
+  }
+  const fwd=new THREE.Vector3(-Math.sin(camera.rotation.y),0,-Math.cos(camera.rotation.y));
+  const rgt=new THREE.Vector3(Math.cos(camera.rotation.y),0,-Math.sin(camera.rotation.y));
+  let mx=0,mz=0;
+  if(kW||td.l.my<-0.1){mx+=fwd.x;mz+=fwd.z;}
+  if(kS||td.l.my>0.1){mx-=fwd.x;mz-=fwd.z;}
+  if(kA||td.l.mx<-0.1){mx-=rgt.x;mz-=rgt.z;}
+  if(kD||td.l.mx>0.1){mx+=rgt.x;mz+=rgt.z;}
+  const mag=Math.hypot(mx,mz);if(mag>0){mx=mx/mag*SPEED;mz=mz/mag*SPEED;}
+  camera.position.x+=mx*dt;
+  camera.position.z+=mz*dt;
+  camera.position.y=1.75;
+  // Bounds
+  camera.position.x=Math.max(-28,Math.min(20,camera.position.x));
+  camera.position.z=Math.max(-14,Math.min(14,camera.position.z));
+}
+
+addEventListener('resize',()=>{
+  if(!renderer)return;
+  camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+function animate(){
+  const dt=Math.min(clock.getDelta(),0.05);
+  if(started){updateMovement(dt);updateNear();}
+  renderer.render(scene,camera);
+}
+</script>
+</body>
+</html>
