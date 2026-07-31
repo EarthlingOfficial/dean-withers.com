@@ -24,38 +24,39 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
 #css3d{position:fixed;inset:0;z-index:1;pointer-events:none}
 #css3d iframe{border:0;pointer-events:auto;background:#000}
 
-#warning-overlay{position:fixed;inset:0;z-index:9999;background:#080603;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 32px;text-align:center;transition:opacity 0.9s}
-#warning-overlay .w-icon{color:#8b0000;font-size:clamp(20px,4vw,34px);letter-spacing:8px;margin-bottom:22px;animation:warnpulse 2.2s ease-in-out infinite}
+#warning-overlay{position:fixed;inset:0;z-index:9999;background:#0a0a0a;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 32px;text-align:center;transition:opacity 0.9s}
+#warning-overlay .w-icon{color:#ff4444;font-size:clamp(26px,5vw,40px);letter-spacing:4px;margin-bottom:16px;animation:warnpulse 2.2s ease-in-out infinite}
 @keyframes warnpulse{0%,100%{opacity:1}50%{opacity:0.4}}
-#warning-overlay .w-title{color:#c8b86a;font-size:clamp(20px,4.5vw,34px);letter-spacing:8px;margin-bottom:6px}
-#warning-overlay .w-sub{color:#7a5a2a;font-size:clamp(9px,1.3vw,11px);letter-spacing:4px;margin-bottom:26px}
-#warning-overlay .w-body{color:#4a3a22;font-size:clamp(8px,1.2vw,10px);letter-spacing:1.8px;line-height:2.3;margin-bottom:36px;border-top:1px solid rgba(200,184,106,.08);border-bottom:1px solid rgba(200,184,106,.08);padding:16px 0;max-width:520px}
-#warning-overlay .w-body b{color:#5a4428;letter-spacing:3px}
+#warning-overlay .w-title{color:#ffffff;font-size:clamp(22px,5vw,36px);font-family:Arial,sans-serif;font-weight:700;letter-spacing:4px;margin-bottom:6px}
+#warning-overlay .w-sub{color:#cccccc;font-size:clamp(13px,2vw,16px);font-family:Arial,sans-serif;letter-spacing:2px;margin-bottom:24px}
+#warning-overlay .w-body{color:#dddddd;font-size:clamp(13px,1.8vw,15px);font-family:Arial,sans-serif;letter-spacing:0.5px;line-height:1.9;margin-bottom:32px;border-top:1px solid rgba(255,255,255,.15);border-bottom:1px solid rgba(255,255,255,.15);padding:18px 0;max-width:540px}
+#warning-overlay .w-body b{color:#ffffff;font-weight:700}
+#warning-overlay .w-body .photo-warn{display:block;color:#ffcc00;font-size:clamp(14px,2vw,16px);font-weight:700;margin:10px 0;padding:10px;border:1px solid rgba(255,204,0,.4);background:rgba(255,204,0,.06)}
 #warning-overlay .w-buttons{display:flex;gap:22px;justify-content:center}
-#warning-enter{padding:11px 40px;background:rgba(200,184,106,.07);border:1px solid rgba(200,184,106,.38);color:#c8b86a;font-family:'Courier New',monospace;font-size:11px;letter-spacing:5px;cursor:pointer;transition:background .2s}
-#warning-enter:hover{background:rgba(200,184,106,.16)}
-#warning-exit{padding:11px 40px;background:rgba(60,10,10,.12);border:1px solid rgba(120,20,20,.28);color:#5a2020;font-family:'Courier New',monospace;font-size:11px;letter-spacing:5px;cursor:pointer;transition:background .2s}
-#warning-exit:hover{background:rgba(80,15,15,.22)}
+#warning-enter{padding:13px 44px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.5);color:#ffffff;font-family:Arial,sans-serif;font-size:14px;font-weight:700;letter-spacing:3px;cursor:pointer;transition:background .2s}
+#warning-enter:hover{background:rgba(255,255,255,.2)}
+#warning-exit{padding:13px 44px;background:rgba(180,30,30,.15);border:1px solid rgba(220,60,60,.5);color:#ff6666;font-family:Arial,sans-serif;font-size:14px;font-weight:700;letter-spacing:3px;cursor:pointer;transition:background .2s}
+#warning-exit:hover{background:rgba(180,30,30,.3)}
 
 #connect{position:fixed;inset:0;background:#0c0b06;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;transition:opacity 1.6s}
 #connect.fade{opacity:0;pointer-events:none}
 
 #c-phase1{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-#c-series{color:#252318;font-size:clamp(7px,1.1vw,10px);letter-spacing:6px;margin-bottom:18px}
+#c-series{color:#aaaaaa;font-size:clamp(11px,1.4vw,13px);font-family:Arial,sans-serif;letter-spacing:4px;margin-bottom:18px}
 #c-title{color:#c8b86a;font-size:clamp(22px,5.5vw,42px);letter-spacing:10px;margin-bottom:6px}
-#c-stage{color:#3a3628;font-size:clamp(9px,1.4vw,12px);letter-spacing:5px;margin-bottom:40px}
+#c-stage{color:#bbbbbb;font-size:clamp(11px,1.4vw,13px);font-family:Arial,sans-serif;letter-spacing:3px;margin-bottom:40px}
 #c-loadbar{width:180px;height:2px;background:rgba(200,184,106,.12);border:1px solid rgba(200,184,106,.14);margin-bottom:14px;overflow:hidden}
 #c-loadfill{height:100%;width:0%;background:#c8b86a;transition:width .4s ease}
-#c-loadtxt{color:#252318;font-size:9px;letter-spacing:4px}
+#c-loadtxt{color:#aaaaaa;font-size:11px;font-family:Arial,sans-serif;letter-spacing:3px}
 
-#c-phase2{display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 28px;max-width:600px}
-#c-phase2 .c-p2-series{color:#252318;font-size:clamp(7px,1.1vw,10px);letter-spacing:6px;margin-bottom:12px}
+#c-phase2{display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 28px;max-width:620px}
+#c-phase2 .c-p2-series{color:#aaaaaa;font-size:clamp(11px,1.4vw,13px);font-family:Arial,sans-serif;letter-spacing:4px;margin-bottom:12px}
 #c-phase2 .c-p2-title{color:#c8b86a;font-size:clamp(18px,4vw,30px);letter-spacing:8px;margin-bottom:4px}
-#c-phase2 .c-p2-stage{color:#2e2b22;font-size:clamp(8px,1.2vw,11px);letter-spacing:4px;margin-bottom:28px}
-#c-disclaimer{color:#1e1d17;font-size:clamp(8px,1.15vw,10px);letter-spacing:1.5px;line-height:2;margin-bottom:28px;border-top:1px solid rgba(200,184,106,.08);border-bottom:1px solid rgba(200,184,106,.08);padding:18px 0;text-align:left}
-#c-disclaimer b{color:#2a2820;letter-spacing:2px}
+#c-phase2 .c-p2-stage{color:#bbbbbb;font-size:clamp(11px,1.4vw,13px);font-family:Arial,sans-serif;letter-spacing:3px;margin-bottom:28px}
+#c-disclaimer{color:#dddddd;font-size:clamp(12px,1.5vw,14px);font-family:Arial,sans-serif;letter-spacing:0.3px;line-height:1.9;margin-bottom:28px;border-top:1px solid rgba(255,255,255,.12);border-bottom:1px solid rgba(255,255,255,.12);padding:18px 0;text-align:left}
+#c-disclaimer b{color:#ffffff;font-weight:700}
 #c-main{color:#c8b86a;font-size:clamp(14px,3.2vw,24px);letter-spacing:8px;animation:pulse 2.4s ease-in-out infinite;cursor:pointer}
-#c-sub{color:#1e1d17;font-size:9px;letter-spacing:3px;margin-top:14px}
+#c-sub{color:#888888;font-size:11px;font-family:Arial,sans-serif;letter-spacing:2px;margin-top:14px}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.25}}
 
 #hud{position:fixed;top:0;left:0;right:0;padding:14px 20px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:10}
@@ -144,11 +145,11 @@ body{margin:0;overflow:hidden;background:#0c0b06;font-family:'Courier New',monos
     <div class="w-title">GRAPHIC FOOTAGE</div>
     <div class="w-sub">NOT FOR MINORS — 18+ ONLY</div>
     <div class="w-body">
-      This experience contains <b>graphic footage of animal suffering</b>,
-      disturbing imagery, and content of a distressing nature.<br><br>
-      It is not suitable for minors or sensitive viewers. Photosensitivity warning.<br><br>
+      This experience contains <b>graphic footage of animal suffering</b>, disturbing imagery, and content of a distressing nature.<br><br>
+      It is not suitable for minors or sensitive viewers.<br><br>
+      <span class="photo-warn">⚡ PHOTOSENSITIVITY WARNING — This experience contains flashing lights and strobe effects that may trigger seizures in people with photosensitive epilepsy. Do not proceed if you or anyone viewing is susceptible to seizures or epileptic episodes.</span>
       <b>VIEWER DISCRETION IS STRONGLY ADVISED.</b><br><br>
-      <span style="color:#2e2010;font-size:clamp(7px,1vw,9px);letter-spacing:1px">By entering you confirm you are 18 or over and consent to viewing this material.</span>
+      <span style="color:#aaaaaa;font-size:13px;letter-spacing:0.5px">By entering you confirm you are 18 or over and consent to viewing this material.</span>
     </div>
     <div class="w-buttons">
       <button id="warning-enter">ENTER</button>
