@@ -64,6 +64,10 @@
     <loc>https://earthlingofficial.com/reddit-missing-persons-suppression.html</loc>
     <priority>0.7</priority>
   </url>
+  <url>
+    <loc>https://earthlingofficial.com/missing-behind-paywall.html</loc>
+    <priority>0.8</priority>
+  </url>
 
   <!-- Go Dean! Game Series -->
   <url>
