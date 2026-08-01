@@ -395,7 +395,6 @@ const WALL_TV_RAYS = [
   { id:'T4',  from:[ 0,  1.9,  8.60],  dir:[-1, 0,  0], ry: Math.PI/2  },
   { id:'T5',  from:[ 0,  1.9, -8],     dir:[ 0, 0,  1], ry: Math.PI    },
   { id:'T6',  from:[ 0,  1.9,  8],     dir:[ 0, 0, -1], ry: 0          },
-  { id:'T7',  from:[ 0,  1.9, -25],    dir:[-1, 0,  0], ry: Math.PI/2  },
   { id:'T8',  from:[ 0,  1.9, 14.57],  dir:[-1, 0,  0], ry: Math.PI/2  },
   { id:'T9',  from:[ 0,  1.9,  6.34],  dir:[ 1, 0,  0], ry:-Math.PI/2  },
   { id:'T10', from:[ 0,  1.6,  4],     dir:[-1, 0,  0], ry: Math.PI/2  },
@@ -748,11 +747,11 @@ function randomNoclipPositions(){
 
 // ── RENDERER / SCENE / CAMERA ─────────────────────────────────────────────────
 const canvas   = document.getElementById('c');
-const renderer = new THREE.WebGLRenderer({canvas, antialias:!isMobile});
-renderer.setPixelRatio(isMobile ? 1 : Math.min(devicePixelRatio, 2));
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
-renderer.shadowMap.enabled = !isMobile;
-if(!isMobile) renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
 renderer.toneMapping       = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.9;
 renderer.outputColorSpace  = THREE.SRGBColorSpace;
@@ -764,12 +763,12 @@ scene.fog = new THREE.FogExp2(0x1a1208, 0.035);
 const camera = new THREE.PerspectiveCamera(80, innerWidth/innerHeight, 0.05, 500);
 camera.position.set(0, EYE_HEIGHT, 0);
 
-scene.add(new THREE.AmbientLight(0xfff5cc, isMobile ? 0.75 : 0.4));
+scene.add(new THREE.AmbientLight(0xfff5cc, 0.4));
 const flickerLights = [];
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-if(!isMobile) composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight), 0.4, 0.5, 0.85));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight), 0.4, 0.5, 0.85));
 composer.addPass(new OutputPass());
 
 const controls = new PointerLockControls(camera, document.body);
@@ -850,7 +849,7 @@ function playClickSound(){
 // ── FALL COUNTER & WINDOW TV STATE ────────────────────────────────────────────
 let totalFalls = 0;
 let windowTVsUnlocked = false;   // fall 10: W1a toggle unlocked
-let backroomsVideoUnlocked = false; // fall 20: T7 + intro-video stops
+let backroomsVideoUnlocked = false; // fall 20: T6 + intro-video stops, all TVs freely toggleable
 let w1aPlaying = false;
 let w1bPlaying = false;
 
@@ -865,8 +864,8 @@ let w1bVideoEl = null;
 let w1bVideoTex = null;
 let t10VideoEl = null;
 let t10VideoTex = null;
-let t7VideoEl = null;
-let t7VideoTex = null;
+let t6VideoEl = null;
+let t6VideoTex = null;
 
 function createVideoTexture(src, { autoplay = false, volume = 0.65 } = {}){
   const vid = document.createElement('video');
@@ -939,6 +938,7 @@ function attachVideoToScreen(videoEl, videoTex, screen, standbyTex){
 }
 
 function createW1aVideoTex(){
+  if(w1aVideoEl) return w1aVideoTex;
   const result = createVideoTexture(
     'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/slaughter.mp4',
     { autoplay: true, volume: 0.65 }
@@ -950,8 +950,7 @@ function createW1aVideoTex(){
 }
 
 function createW1bVideoTex(){
-  // Haxan (1922), the film shown in the supplied Archive.org screenshot.
-  // It is deliberately muted and stopped until the player interacts with W1b.
+  if(w1bVideoEl) return w1bVideoTex;
   const result = createVideoTexture(
     'https://cors.archive.org/cors/Haxan1922/Haxan%20%281922%29.mp4',
     { autoplay: false, volume: 0.65 }
@@ -963,8 +962,7 @@ function createW1bVideoTex(){
 }
 
 function createT10VideoTex(){
-  // cors.archive.org proxy provides the CORS headers WebGL needs to upload frames.
-  // Direct archive.org download links are CORS-blocked for video textures.
+  if(t10VideoEl) return t10VideoTex;
   const result = createVideoTexture(
     'https://cors.archive.org/cors/WolfBlood1925/WolfBlood_512kb.mp4',
     { autoplay: true, volume: 0.65 }
@@ -974,15 +972,16 @@ function createT10VideoTex(){
   return result.tex;
 }
 
-function createT7VideoTex(){
+function createT6VideoTex(){
+  if(t6VideoEl) return t6VideoTex;
   // Same backrooms found footage as the intro video, served via cors proxy.
   // Stays silent/paused until fall 20; intro-video element is stopped at that point.
   const result = createVideoTexture(
     'https://cors.archive.org/cors/1-year-in-the-backrooms-found-footage-compilation/SnapSave.io-1%20Year%20in%20The%20Backrooms%20%28Found%20Footage%20Compilation%29.mp4',
     { autoplay: false, volume: 0.65 }
   );
-  t7VideoEl = result.vid;
-  t7VideoTex = result.tex;
+  t6VideoEl = result.vid;
+  t6VideoTex = result.tex;
   return result.tex;
 }
 
@@ -1048,10 +1047,9 @@ function toggleVideoEl(vid){
 function interactWithTV(tv){
   if(!tv) return;
 
-  // W1a keeps its original ten-fall unlock behavior. W1b is independently
-  // interactive from the first Backrooms floor.
+  // W1a: locked until fall 10, then freely toggleable
   if(tv.id === 'W1a'){
-    if(!windowTVsUnlocked){
+    if(!windowTVsUnlocked && !backroomsVideoUnlocked){
       showWindowTVLockedMsg();
       return;
     }
@@ -1078,15 +1076,15 @@ function interactWithTV(tv){
     return;
   }
 
-  // T7 — Backrooms found footage, unlocked at fall 20.
-  if(tv.id === 'T7'){
+  // T6 — Backrooms found footage, unlocked at fall 20.
+  if(tv.id === 'T6'){
     if(!backroomsVideoUnlocked){
       showWindowTVLockedMsg(`fall ${totalFalls} of 20 times to unlock this signal\nthe footage is in the walls\nyou just can't see it yet`);
       return;
     }
     if(tv.videoEl){
       toggleVideoEl(tv.videoEl);
-      t7VideoEl = tv.videoEl;
+      t6VideoEl = tv.videoEl;
     }
     return;
   }
@@ -1125,6 +1123,8 @@ function buildWallTV(id, pos, ry, levelYOffset=0){
     const vtex = createW1aVideoTex();
     videoEl = w1aVideoEl;
     videoTex = vtex;
+    nctx.fillStyle = '#000'; nctx.fillRect(0,0,128,72);
+    ntex.needsUpdate = true;
     screenMat = new THREE.MeshBasicMaterial({map: vtex, side: THREE.DoubleSide});
   } else if(id === 'W1b'){
     const vtex = createW1bVideoTex();
@@ -1137,13 +1137,12 @@ function buildWallTV(id, pos, ry, levelYOffset=0){
     const vtex = createT10VideoTex();
     videoEl = t10VideoEl;
     videoTex = vtex;
-    // Black standby — no label text shown before video loads
     nctx.fillStyle = '#000'; nctx.fillRect(0,0,128,72);
     ntex.needsUpdate = true;
     screenMat = new THREE.MeshBasicMaterial({map: vtex, side: THREE.DoubleSide});
-  } else if(id === 'T7'){
-    const vtex = createT7VideoTex();
-    videoEl = t7VideoEl;
+  } else if(id === 'T6'){
+    const vtex = createT6VideoTex();
+    videoEl = t6VideoEl;
     videoTex = vtex;
     // Black standby until fall 20 unlock
     nctx.fillStyle = '#000'; nctx.fillRect(0,0,128,72);
@@ -1155,8 +1154,7 @@ function buildWallTV(id, pos, ry, levelYOffset=0){
 
   const screen=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.4), screenMat);
   screen.position.set(0,0,0.075); frame.add(screen);
-  if(id === 'W1b' || id === 'T10' || id === 'T7'){
-    // ntex is already drawn (black or labelled above); attach so toggle can swap textures
+  if(id === 'W1a' || id === 'W1b' || id === 'T10' || id === 'T6'){
     attachVideoToScreen(videoEl, videoTex, screen, ntex);
   }
 
@@ -1198,6 +1196,8 @@ function buildWindowTV(id, pos, ry, levelYOffset=0){
     const vtex = createW1aVideoTex();
     videoEl = w1aVideoEl;
     videoTex = vtex;
+    nctx.fillStyle = '#000'; nctx.fillRect(0,0,128,72);
+    ntex.needsUpdate = true;
     screenMat = new THREE.MeshBasicMaterial({map: vtex, side: THREE.DoubleSide});
   } else if(id==='W1b'){
     const vtex = createW1bVideoTex();
@@ -1212,11 +1212,7 @@ function buildWindowTV(id, pos, ry, levelYOffset=0){
 
   const screen=new THREE.Mesh(new THREE.PlaneGeometry(2.55,1.0), screenMat);
   screen.position.set(0,0,0.055); frame.add(screen);
-  if(id === 'W1a'){
-    drawTVStandby(nctx, id, 'SLAUGHTER FOOTAGE');
-    ntex.needsUpdate = true;
-    attachVideoToScreen(videoEl, videoTex, screen, ntex);
-  } else if(id === 'W1b'){
+  if(id === 'W1a' || id === 'W1b'){
     attachVideoToScreen(videoEl, videoTex, screen, ntex);
   }
 
@@ -1553,17 +1549,22 @@ function triggerFall(){
     // Stop the HTML intro video element — it's still running in the hidden loading div
     const introVid = document.getElementById('intro-video');
     if(introVid){ introVid.pause(); introVid.src = ''; }
-    // Start T7 playing (the same footage now lives on the wall)
-    const t7 = allTVs.find(tv => tv.id === 'T7' && tv.videoEl);
-    if(t7 && t7.videoEl){
-      t7.videoEl.muted = false;
-      t7.videoEl.volume = 0.65;
-      t7.videoEl.play().catch(()=>{ t7.videoEl.muted=true; t7.videoEl.play().catch(()=>{}); });
+    // Start T6 playing (the same footage now lives on the wall)
+    const t6 = allTVs.find(tv => tv.id === 'T6' && tv.videoEl);
+    if(t6 && t6.videoEl){
+      t6.videoEl.muted = false;
+      t6.videoEl.volume = 0.65;
+      t6.videoEl.play().catch(()=>{ t6.videoEl.muted=true; t6.videoEl.play().catch(()=>{}); });
+      // swap screen to video texture
+      if(t6.screen && t6.videoTex){
+        t6.screen.material.map = t6.videoTex;
+        t6.screen.material.needsUpdate = true;
+      }
     }
     setTimeout(()=>{
       const el = document.getElementById('fall-msg');
       if(el){
-        el.textContent = "the opening signal has moved to the walls\nfind T7 — it's playing now\nyou can stop it. they could not.";
+        el.textContent = "the opening signal has moved to the walls\nfind T6 — it's playing now\nyou can stop it. they could not.";
         el.style.display='block'; el.style.opacity='0';
         setTimeout(()=>{ el.style.opacity='1'; },100);
         setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>{ el.style.display='none'; },1200); },7000);
@@ -1825,7 +1826,7 @@ function animate(t){
   // Fuzz TVs — animate static on all wall TVs except video screens
   if(++nf%3===0){
     allTVs.forEach((tv,i)=>{
-      if(tv.id==='W1a' || tv.id==='W1b' || tv.id==='T10' || tv.id==='T7') return;
+      if(tv.id==='W1a' || tv.id==='W1b' || tv.id==='T10' || tv.id==='T6') return;
       if(nf%(3+(i%3))===0){
         const d=tv.nctx.createImageData(128,72);
         for(let j=0;j<d.data.length;j+=4){
@@ -1870,7 +1871,7 @@ function animate(t){
       tvPromptEl.style.display = 'block';
       if(nearTV.id==='W1a' && !windowTVsUnlocked){
         tvPromptEl.textContent = isMobile ? `TAP  LOCKED — FALL ${totalFalls}/10` : `[ E ]  LOCKED — FALL ${totalFalls}/10`;
-      } else if(nearTV.id==='T7' && !backroomsVideoUnlocked){
+      } else if(nearTV.id==='T6' && !backroomsVideoUnlocked){
         tvPromptEl.textContent = isMobile ? `TAP  LOCKED — FALL ${totalFalls}/20` : `[ E ]  LOCKED — FALL ${totalFalls}/20`;
       } else {
         tvPromptEl.textContent = isMobile ? 'TAP  PLAY / STOP' : '[ E ]  PLAY / STOP';
@@ -1970,6 +1971,18 @@ function startVideo(){
   setTimeout(()=>{ playBtn.style.display='none'; },500);
   listenBtn.style.display='block'; listenBtn.textContent='\ud83d\udd0a MUTE';
   runTitleSequence();
+}
+// Disable play button until video has enough data to show a frame
+playBtn.style.pointerEvents = 'none';
+playBtn.style.opacity = '0.35';
+function onIntroVideoReady(){
+  playBtn.style.pointerEvents = '';
+  playBtn.style.opacity = '';
+}
+if(introVideo.readyState >= 3){
+  onIntroVideoReady();
+} else {
+  introVideo.addEventListener('canplay', onIntroVideoReady, { once: true });
 }
 playBtn.addEventListener('click',startVideo);
 introVideo.addEventListener('ended',enterGame);
