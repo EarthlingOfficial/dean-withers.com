@@ -3,124 +3,101 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Earthling Official — Broomz Explorer</title>
+<title>Earthling Official — Broomz</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
-
   #canvas { display: block; width: 100%; height: 100%; }
 
+  /* LOADING SCREEN */
+  #loading {
+    position: fixed; inset: 0; background: #0a0a12;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 100; gap: 16px;
+  }
+  #loading h1 { font-family: monospace; color: #fff; font-size: 20px; letter-spacing: 3px; }
+  #loading-bar-wrap { width: 200px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; }
+  #loading-bar { height: 100%; width: 0%; background: #4ade80; border-radius: 2px; transition: width 0.2s; }
+  #loading-pct { font-family: monospace; color: rgba(255,255,255,0.4); font-size: 11px; letter-spacing: 2px; }
+
   /* HUD */
-  #hud {
-    position: fixed; top: 0; left: 0; width: 100%; pointer-events: none;
-    padding: 12px 16px; display: flex; justify-content: space-between; align-items: flex-start;
-    z-index: 10;
-  }
-  #stamina-wrap {
-    display: flex; flex-direction: column; gap: 4px; pointer-events: none;
-  }
-  #stamina-label {
-    font-family: monospace; font-size: 11px; color: #aaa; letter-spacing: 1px; text-transform: uppercase;
-  }
-  #stamina-bar {
-    width: 140px; height: 6px; background: rgba(255,255,255,0.15); border-radius: 3px; overflow: hidden;
-  }
-  #stamina-fill {
-    height: 100%; width: 100%; background: #4ade80; border-radius: 3px;
-    transition: background 0.3s;
-  }
-  #crosshair {
-    position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
-    width: 16px; height: 16px; pointer-events: none; z-index: 10;
-    display: none;
-  }
-  #crosshair::before, #crosshair::after {
-    content: ''; position: absolute; background: rgba(255,255,255,0.7);
-  }
-  #crosshair::before { width: 1px; height: 100%; left: 50%; transform: translateX(-50%); }
-  #crosshair::after  { width: 100%; height: 1px; top: 50%; transform: translateY(-50%); }
+  #hud { position: fixed; top: 12px; left: 16px; pointer-events: none; z-index: 10; }
+  #stamina-label { font-family: monospace; font-size: 10px; color: #aaa; letter-spacing: 1px; margin-bottom: 4px; }
+  #stamina-bar { width: 130px; height: 5px; background: rgba(255,255,255,0.12); border-radius: 3px; overflow: hidden; }
+  #stamina-fill { height: 100%; width: 100%; background: #4ade80; border-radius: 3px; transition: background 0.3s; }
 
   /* PC hint */
   #pc-hint {
-    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
-    font-family: monospace; font-size: 11px; color: rgba(255,255,255,0.4);
-    letter-spacing: 1px; pointer-events: none; z-index: 10; text-align: center;
-    transition: opacity 0.5s;
+    position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+    font-family: monospace; font-size: 10px; color: rgba(255,255,255,0.35);
+    letter-spacing: 1px; pointer-events: none; z-index: 10; text-align: center; white-space: nowrap;
   }
+
+  /* Crosshair */
+  #crosshair {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    width: 14px; height: 14px; pointer-events: none; z-index: 10; display: none;
+  }
+  #crosshair::before, #crosshair::after { content: ''; position: absolute; background: rgba(255,255,255,0.65); }
+  #crosshair::before { width: 1px; height: 100%; left: 50%; transform: translateX(-50%); }
+  #crosshair::after  { width: 100%; height: 1px; top: 50%; transform: translateY(-50%); }
 
   /* MOBILE CONTROLS */
   #mobile-controls {
-    position: fixed; bottom: 0; left: 0; width: 100%; height: 200px;
-    display: none; align-items: center; justify-content: space-between;
-    padding: 0 30px 20px; z-index: 20; pointer-events: none;
+    position: fixed; bottom: 0; left: 0; width: 100%;
+    height: 190px; display: none; align-items: center;
+    justify-content: space-between; padding: 0 28px 18px; z-index: 20; pointer-events: none;
   }
-  .joystick-zone {
-    width: 110px; height: 110px; position: relative; pointer-events: all;
-  }
+  .joystick-zone { width: 110px; height: 110px; position: relative; pointer-events: all; }
   .joystick-base {
     width: 110px; height: 110px; border-radius: 50%;
-    background: rgba(255,255,255,0.08); border: 1.5px solid rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.07); border: 1.5px solid rgba(255,255,255,0.15);
     position: absolute; top: 0; left: 0;
   }
   .joystick-knob {
-    width: 44px; height: 44px; border-radius: 50%;
-    background: rgba(255,255,255,0.35); border: 1.5px solid rgba(255,255,255,0.5);
+    width: 42px; height: 42px; border-radius: 50%;
+    background: rgba(255,255,255,0.3); border: 1.5px solid rgba(255,255,255,0.45);
     position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
     pointer-events: none;
   }
-
-  /* Run toggle button */
   #run-toggle {
-    width: 56px; height: 56px; border-radius: 50%;
-    background: rgba(74,222,128,0.15); border: 2px solid rgba(74,222,128,0.5);
+    width: 54px; height: 54px; border-radius: 50%;
+    background: rgba(74,222,128,0.12); border: 2px solid rgba(74,222,128,0.45);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    pointer-events: all; cursor: pointer; user-select: none;
+    pointer-events: all; cursor: pointer; user-select: none; gap: 2px;
     transition: background 0.2s, border-color 0.2s;
-    gap: 2px;
   }
-  #run-toggle.active {
-    background: rgba(74,222,128,0.35); border-color: #4ade80;
-  }
-  #run-toggle.drained {
-    background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.4);
-  }
-  #run-toggle span {
-    font-family: monospace; font-size: 9px; color: rgba(255,255,255,0.7);
-    text-transform: uppercase; letter-spacing: 0.5px;
-  }
-  #run-icon { font-size: 18px; line-height: 1; }
+  #run-toggle.active  { background: rgba(74,222,128,0.3); border-color: #4ade80; }
+  #run-toggle.drained { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.4); }
+  #run-icon { font-size: 17px; line-height: 1; }
+  #run-label { font-family: monospace; font-size: 8px; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; }
 
-  /* Lock screen */
-  #lock-screen {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.85);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    z-index: 100; cursor: pointer; gap: 12px;
+  @media (max-height: 420px) {
+    #mobile-controls { height: 140px; padding: 0 20px 10px; }
+    .joystick-zone { width: 90px; height: 90px; }
+    .joystick-base { width: 90px; height: 90px; }
   }
-  #lock-screen h2 {
-    font-family: monospace; color: #fff; font-size: 18px; letter-spacing: 2px;
-  }
-  #lock-screen p {
-    font-family: monospace; color: rgba(255,255,255,0.5); font-size: 12px; letter-spacing: 1px;
-  }
-  .lock-icon { font-size: 40px; }
 </style>
 </head>
 <body>
 
 <canvas id="canvas"></canvas>
 
+<div id="loading">
+  <h1>EARTHLING OFFICIAL</h1>
+  <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
+  <div id="loading-pct">LOADING...</div>
+</div>
+
 <div id="crosshair"></div>
 
 <div id="hud">
-  <div id="stamina-wrap">
-    <div id="stamina-label">Stamina</div>
-    <div id="stamina-bar"><div id="stamina-fill"></div></div>
-  </div>
+  <div id="stamina-label">STAMINA</div>
+  <div id="stamina-bar"><div id="stamina-fill"></div></div>
 </div>
 
-<div id="pc-hint">CLICK TO LOCK MOUSE · WASD MOVE · MOUSE LOOK · SHIFT RUN · ESC UNLOCK</div>
+<div id="pc-hint">WASD · MOUSE LOOK (CLICK TO LOCK) · SHIFT RUN · ESC UNLOCK</div>
 
-<!-- Mobile joysticks -->
 <div id="mobile-controls">
   <div class="joystick-zone" id="left-zone">
     <div class="joystick-base"></div>
@@ -136,242 +113,174 @@
   </div>
 </div>
 
-<div id="lock-screen">
-  <div class="lock-icon">🔒</div>
-  <h2>EARTHLING OFFICIAL</h2>
-  <p>CLICK TO EXPLORE</p>
-</div>
-
 <script type="module">
-import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/loaders/GLTFLoader.js';
 
-// ─── GLTFLoader inline (r128 compatible) ───────────────────────────────────
-// We'll use a dynamic import trick via CDN unpkg for GLTFLoader
-const GLTFLoaderScript = document.createElement('script');
-GLTFLoaderScript.type = 'module';
-
-// Load THREE addons via unpkg
-async function loadGLTF(url, scene) {
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js';
-    script.onload = () => {
-      const loader = new THREE.GLTFLoader();
-      loader.load(url, resolve, undefined, reject);
-    };
-    document.head.appendChild(script);
-  });
-}
-
-// ─── SCENE SETUP ────────────────────────────────────────────────────────────
+// ── RENDERER ──────────────────────────────────────────────────────────────
 const canvas = document.getElementById('canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
 renderer.outputEncoding = THREE.sRGBEncoding;
 
+// ── SCENE ─────────────────────────────────────────────────────────────────
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0a0a12);
-scene.fog = new THREE.FogExp2(0x0a0a12, 0.03);
+scene.fog = new THREE.FogExp2(0x0a0a12, 0.025);
 
-// Camera
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 200);
-camera.position.set(0, 1.7, 3);
+// ── CAMERA ────────────────────────────────────────────────────────────────
+const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.01, 300);
+camera.position.set(0, 1.7, 4);
 
-// ─── LIGHTING ───────────────────────────────────────────────────────────────
-const ambient = new THREE.AmbientLight(0x334466, 0.8);
-scene.add(ambient);
-
-const sun = new THREE.DirectionalLight(0xffeedd, 1.5);
-sun.position.set(5, 10, 5);
+// ── LIGHTS ────────────────────────────────────────────────────────────────
+scene.add(new THREE.AmbientLight(0x334466, 0.9));
+const sun = new THREE.DirectionalLight(0xffeedd, 1.6);
+sun.position.set(6, 12, 6);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
-sun.shadow.camera.near = 0.1;
-sun.shadow.camera.far = 100;
-sun.shadow.camera.left = sun.shadow.camera.bottom = -20;
-sun.shadow.camera.right = sun.shadow.camera.top = 20;
+Object.assign(sun.shadow.camera, { left: -20, right: 20, top: 20, bottom: -20, near: 0.1, far: 100 });
 scene.add(sun);
-
-const fill = new THREE.PointLight(0x4466ff, 0.8, 30);
-fill.position.set(-5, 3, -5);
+const fill = new THREE.PointLight(0x4466ff, 0.9, 40);
+fill.position.set(-6, 3, -6);
 scene.add(fill);
-
-const rim = new THREE.PointLight(0xff6644, 0.5, 20);
-rim.position.set(5, 2, -8);
+const rim = new THREE.PointLight(0xff6644, 0.6, 25);
+rim.position.set(6, 2, -10);
 scene.add(rim);
 
-// ─── FLOOR ──────────────────────────────────────────────────────────────────
-const floorGeo = new THREE.PlaneGeometry(100, 100);
-const floorMat = new THREE.MeshStandardMaterial({
-  color: 0x111122, roughness: 0.9, metalness: 0.1
-});
-const floor = new THREE.Mesh(floorGeo, floorMat);
+// ── FLOOR ─────────────────────────────────────────────────────────────────
+const floor = new THREE.Mesh(
+  new THREE.PlaneGeometry(200, 200),
+  new THREE.MeshStandardMaterial({ color: 0x111122, roughness: 0.9, metalness: 0.1 })
+);
 floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
 scene.add(floor);
+scene.add(new THREE.GridHelper(200, 80, 0x222244, 0x181828));
 
-// Grid overlay
-const grid = new THREE.GridHelper(100, 50, 0x222244, 0x181828);
-scene.add(grid);
-
-// ─── LOAD MODEL ─────────────────────────────────────────────────────────────
+// ── LOAD MODEL ────────────────────────────────────────────────────────────
+const loadingEl  = document.getElementById('loading');
+const loadingBar = document.getElementById('loading-bar');
+const loadingPct = document.getElementById('loading-pct');
 let model = null;
-const modelUrl = 'https://earthlingofficial.com/broomz.glb';
 
-loadGLTF(modelUrl, scene).then(gltf => {
-  model = gltf.scene;
-  model.traverse(child => {
-    if (child.isMesh) {
-      child.castShadow = true;
-      child.receiveShadow = true;
+new GLTFLoader().load(
+  'https://raw.githubusercontent.com/EarthlingOfficial/public-archive/main/broomz.glb',
+  gltf => {
+    model = gltf.scene;
+    model.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+
+    const box    = new THREE.Box3().setFromObject(model);
+    const center = box.getCenter(new THREE.Vector3());
+    const size   = box.getSize(new THREE.Vector3());
+    const scale  = 2 / Math.max(size.x, size.y, size.z);
+    model.scale.setScalar(scale);
+    model.position.sub(center.multiplyScalar(scale));
+    model.position.y = 0;
+    scene.add(model);
+
+    if (gltf.animations.length) {
+      window._mixer = new THREE.AnimationMixer(model);
+      gltf.animations.forEach(clip => window._mixer.clipAction(clip).play());
     }
-  });
 
-  // Auto-center and scale
-  const box = new THREE.Box3().setFromObject(model);
-  const center = box.getCenter(new THREE.Vector3());
-  const size = box.getSize(new THREE.Vector3());
-  const maxDim = Math.max(size.x, size.y, size.z);
-  const scale = 2 / maxDim;
-  model.scale.setScalar(scale);
-  model.position.sub(center.multiplyScalar(scale));
-  model.position.y = 0;
-
-  scene.add(model);
-
-  // Handle animations
-  if (gltf.animations && gltf.animations.length > 0) {
-    window._mixer = new THREE.AnimationMixer(model);
-    gltf.animations.forEach(clip => {
-      window._mixer.clipAction(clip).play();
-    });
+    loadingEl.style.display = 'none';
+    if (isMobile()) {
+      document.getElementById('mobile-controls').style.display = 'flex';
+      document.getElementById('pc-hint').style.display = 'none';
+    }
+  },
+  xhr => {
+    if (xhr.total) {
+      const pct = Math.round(xhr.loaded / xhr.total * 100);
+      loadingBar.style.width = pct + '%';
+      loadingPct.textContent = pct + '%';
+    }
+  },
+  err => {
+    loadingPct.textContent = 'FAILED TO LOAD MODEL';
+    console.error(err);
   }
+);
 
-  document.getElementById('lock-screen').querySelector('p').textContent = 'CLICK TO EXPLORE';
-}).catch(err => {
-  console.warn('Model load failed:', err);
-  // Fallback placeholder
-  const geo = new THREE.BoxGeometry(1, 1, 1);
-  const mat = new THREE.MeshStandardMaterial({ color: 0x4466ff });
-  const cube = new THREE.Mesh(geo, mat);
-  cube.position.y = 0.5;
-  cube.castShadow = true;
-  scene.add(cube);
-});
-
-// ─── PLAYER STATE ───────────────────────────────────────────────────────────
+// ── PLAYER ────────────────────────────────────────────────────────────────
 const player = {
-  yaw: 0, pitch: 0,
-  x: 0, y: 1.7, z: 3,
-  stamina: 1,        // 0–1
-  running: false,
-  runToggled: false, // mobile toggle
-  drained: false,
-  WALK_SPEED: 0.06,
-  RUN_SPEED: 0.14,
-  STAMINA_DRAIN: 0.008,
-  STAMINA_REGEN: 0.004,
+  yaw: 0, pitch: 0, x: 0, y: 1.7, z: 4,
+  stamina: 1, running: false, runToggled: false, drained: false,
+  WALK: 0.06, RUN: 0.14, DRAIN: 0.008, REGEN: 0.004
 };
 
-// ─── KEYBOARD ───────────────────────────────────────────────────────────────
+// ── KEYBOARD ──────────────────────────────────────────────────────────────
 const keys = {};
-window.addEventListener('keydown', e => {
+addEventListener('keydown', e => {
   keys[e.code] = true;
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') player.running = true;
 });
-window.addEventListener('keyup', e => {
+addEventListener('keyup', e => {
   keys[e.code] = false;
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') player.running = false;
 });
 
-// ─── POINTER LOCK ───────────────────────────────────────────────────────────
+// ── POINTER LOCK ──────────────────────────────────────────────────────────
 let locked = false;
-const lockScreen = document.getElementById('lock-screen');
-const crosshair = document.getElementById('crosshair');
-const pcHint = document.getElementById('pc-hint');
-
-function isMobile() {
-  return /Android|iPhone|iPad|iPod|Touch/i.test(navigator.userAgent) || window.matchMedia('(pointer:coarse)').matches;
-}
-
-lockScreen.addEventListener('click', () => {
-  if (isMobile()) {
-    lockScreen.style.display = 'none';
-    document.getElementById('mobile-controls').style.display = 'flex';
-    return;
-  }
-  canvas.requestPointerLock();
-});
-
+canvas.addEventListener('click', () => { if (!isMobile()) canvas.requestPointerLock(); });
 document.addEventListener('pointerlockchange', () => {
   locked = document.pointerLockElement === canvas;
-  lockScreen.style.display = locked ? 'none' : 'flex';
-  crosshair.style.display = locked ? 'block' : 'none';
-  pcHint.style.opacity = locked ? '0' : '1';
+  document.getElementById('crosshair').style.display = locked ? 'block' : 'none';
 });
-
 document.addEventListener('mousemove', e => {
   if (!locked) return;
   player.yaw   -= e.movementX * 0.002;
-  player.pitch -= e.movementY * 0.002;
-  player.pitch = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, player.pitch));
+  player.pitch  = Math.max(-1.4, Math.min(1.4, player.pitch - e.movementY * 0.002));
 });
+addEventListener('keydown', e => { if (e.code === 'Escape' && locked) document.exitPointerLock(); });
 
-document.addEventListener('keydown', e => {
-  if (e.code === 'Escape' && locked) document.exitPointerLock();
-});
+// ── MOBILE DETECTION ──────────────────────────────────────────────────────
+function isMobile() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || matchMedia('(pointer:coarse)').matches;
+}
 
-// ─── MOBILE JOYSTICKS ───────────────────────────────────────────────────────
-const mobileMove  = { x: 0, y: 0 };
-const mobileLook  = { x: 0, y: 0 };
+// ── JOYSTICKS ─────────────────────────────────────────────────────────────
+const mobileMove = { x: 0, y: 0 };
+const mobileLook = { x: 0, y: 0 };
 
-function setupJoystick(zoneId, knobId, out) {
+function joystick(zoneId, knobId, out) {
   const zone = document.getElementById(zoneId);
   const knob = document.getElementById(knobId);
-  const radius = 33;
-  let touchId = null, originX = 0, originY = 0;
-
+  const R = 33;
+  let id = null, ox = 0, oy = 0;
   zone.addEventListener('touchstart', e => {
     e.preventDefault();
-    if (touchId !== null) return;
-    const t = e.changedTouches[0];
-    touchId = t.identifier;
+    if (id !== null) return;
+    const t = e.changedTouches[0]; id = t.identifier;
     const r = zone.getBoundingClientRect();
-    originX = r.left + r.width/2;
-    originY = r.top  + r.height/2;
+    ox = r.left + r.width / 2; oy = r.top + r.height / 2;
   }, { passive: false });
-
   zone.addEventListener('touchmove', e => {
     e.preventDefault();
     for (const t of e.changedTouches) {
-      if (t.identifier !== touchId) continue;
-      let dx = t.clientX - originX;
-      let dy = t.clientY - originY;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      if (dist > radius) { dx *= radius/dist; dy *= radius/dist; }
+      if (t.identifier !== id) continue;
+      let dx = t.clientX - ox, dy = t.clientY - oy;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if (d > R) { dx *= R/d; dy *= R/d; }
       knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-      out.x = dx / radius;
-      out.y = dy / radius;
+      out.x = dx / R; out.y = dy / R;
     }
   }, { passive: false });
-
   const end = e => {
     for (const t of e.changedTouches) {
-      if (t.identifier !== touchId) continue;
-      touchId = null;
-      knob.style.transform = 'translate(-50%, -50%)';
-      out.x = 0; out.y = 0;
+      if (t.identifier !== id) continue;
+      id = null; knob.style.transform = 'translate(-50%,-50%)'; out.x = 0; out.y = 0;
     }
   };
   zone.addEventListener('touchend', end, { passive: false });
   zone.addEventListener('touchcancel', end, { passive: false });
 }
-
-setupJoystick('left-zone',  'left-knob',  mobileMove);
-setupJoystick('right-zone', 'right-knob', mobileLook);
+joystick('left-zone', 'left-knob', mobileMove);
+joystick('right-zone', 'right-knob', mobileLook);
 
 // Run toggle
 const runToggle = document.getElementById('run-toggle');
@@ -383,178 +292,102 @@ runToggle.addEventListener('touchstart', e => {
   runToggle.classList.toggle('active', player.runToggled);
 }, { passive: false });
 
-// ─── FOOTSTEP AUDIO ─────────────────────────────────────────────────────────
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-let stepTimer = 0;
-let stepInterval = 0.45; // seconds between steps
-
-function playFootstep(running) {
-  const ctx = audioCtx;
-  if (ctx.state === 'suspended') ctx.resume();
-
-  const buf = ctx.createBuffer(1, ctx.sampleRate * 0.12, ctx.sampleRate);
-  const data = buf.getChannelData(0);
-
-  // Layered noise burst — different for walk vs run
-  for (let i = 0; i < data.length; i++) {
-    const t = i / ctx.sampleRate;
-    const env = Math.exp(-t * (running ? 35 : 25));
-    data[i] = (Math.random() * 2 - 1) * env * (running ? 0.6 : 0.4);
-    // Add a low thud
-    data[i] += Math.sin(2 * Math.PI * (running ? 90 : 70) * t) * Math.exp(-t * 40) * 0.5;
+// ── FOOTSTEPS ─────────────────────────────────────────────────────────────
+const actx = new (AudioContext || webkitAudioContext)();
+let stepT = 0;
+function footstep(run) {
+  if (actx.state === 'suspended') actx.resume();
+  const buf = actx.createBuffer(1, actx.sampleRate * 0.12, actx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) {
+    const t = i / actx.sampleRate;
+    d[i] = (Math.random()*2-1) * Math.exp(-t*(run?35:25)) * (run?.6:.4)
+           + Math.sin(2*Math.PI*(run?90:70)*t) * Math.exp(-t*40) * .5;
   }
-
-  const src = ctx.createBufferSource();
-  src.buffer = buf;
-
-  // EQ — low shelf boost for thud
-  const filter = ctx.createBiquadFilter();
-  filter.type = 'lowshelf';
-  filter.frequency.value = 200;
-  filter.gain.value = running ? 8 : 4;
-
-  const gain = ctx.createGain();
-  gain.gain.value = running ? 0.5 : 0.35;
-
-  src.connect(filter);
-  filter.connect(gain);
-  gain.connect(ctx.destination);
-  src.start();
+  const src = actx.createBufferSource(); src.buffer = buf;
+  const f = actx.createBiquadFilter(); f.type='lowshelf'; f.frequency.value=200; f.gain.value=run?8:4;
+  const g = actx.createGain(); g.gain.value = run?.5:.35;
+  src.connect(f); f.connect(g); g.connect(actx.destination); src.start();
 }
 
-// ─── STAMINA ────────────────────────────────────────────────────────────────
+// ── STAMINA ───────────────────────────────────────────────────────────────
 const staminaFill = document.getElementById('stamina-fill');
-
-function updateStamina(isRunning, dt) {
-  if (isRunning && !player.drained) {
-    player.stamina -= player.STAMINA_DRAIN;
+function updateStamina(running) {
+  if (running && !player.drained) {
+    player.stamina -= player.DRAIN;
     if (player.stamina <= 0) {
-      player.stamina = 0;
-      player.drained = true;
+      player.stamina = 0; player.drained = true;
       player.runToggled = false;
-      runToggle.classList.remove('active');
-      runToggle.classList.add('drained');
+      runToggle.classList.remove('active'); runToggle.classList.add('drained');
       runLabel.textContent = 'TIRED';
     }
   } else {
-    player.stamina += player.STAMINA_REGEN;
-    if (player.stamina >= 1) {
-      player.stamina = 1;
-      if (player.drained) {
-        player.drained = false;
-        runToggle.classList.remove('drained');
-        runLabel.textContent = 'RUN';
-      }
+    player.stamina = Math.min(1, player.stamina + player.REGEN);
+    if (player.drained && player.stamina >= 1) {
+      player.drained = false;
+      runToggle.classList.remove('drained'); runLabel.textContent = 'RUN';
     }
   }
-  player.stamina = Math.max(0, Math.min(1, player.stamina));
   staminaFill.style.width = (player.stamina * 100) + '%';
-  staminaFill.style.background = player.drained
-    ? '#ef4444'
-    : player.stamina < 0.3
-      ? '#facc15'
-      : '#4ade80';
+  staminaFill.style.background = player.drained ? '#ef4444' : player.stamina < 0.3 ? '#facc15' : '#4ade80';
 }
 
-// ─── RESIZE ─────────────────────────────────────────────────────────────────
-function onResize() {
-  const w = window.innerWidth, h = window.innerHeight;
-  camera.aspect = w / h;
+// ── RESIZE ────────────────────────────────────────────────────────────────
+function resize() {
+  camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(w, h);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-  // Mobile controls height adjust for landscape
-  const mobileControls = document.getElementById('mobile-controls');
-  if (h < 420) {
-    mobileControls.style.height = '150px';
-  } else {
-    mobileControls.style.height = '200px';
-  }
+  renderer.setSize(innerWidth, innerHeight);
 }
-window.addEventListener('resize', onResize);
-screen.orientation && screen.orientation.addEventListener('change', () => setTimeout(onResize, 100));
-onResize();
+addEventListener('resize', resize);
+screen.orientation?.addEventListener('change', () => setTimeout(resize, 100));
+resize();
 
-// ─── CLOCK & LOOP ───────────────────────────────────────────────────────────
+// ── LOOP ──────────────────────────────────────────────────────────────────
 const clock = new THREE.Clock();
-let prevTime = 0;
+let prev = 0;
 
-function animate() {
+(function animate() {
   requestAnimationFrame(animate);
-  const elapsed = clock.getElapsedTime();
-  const dt = elapsed - prevTime;
-  prevTime = elapsed;
+  const now = clock.getElapsedTime(), dt = now - prev; prev = now;
 
-  // Animation mixer
   if (window._mixer) window._mixer.update(dt);
 
-  // ── Determine movement ──
-  const mobile = isMobile();
-  const isRunning = !player.drained && (
-    mobile ? player.runToggled : player.running
-  );
-  updateStamina(isRunning, dt);
-  const speed = isRunning ? player.RUN_SPEED : player.WALK_SPEED;
+  const mob = isMobile();
+  const running = !player.drained && (mob ? player.runToggled : player.running);
+  updateStamina(running);
+  const speed = running ? player.RUN : player.WALK;
 
-  // PC: WASD
-  let moveX = 0, moveZ = 0;
-  if (!mobile) {
-    if (keys['KeyW'] || keys['ArrowUp'])    moveZ -= 1;
-    if (keys['KeyS'] || keys['ArrowDown'])  moveZ += 1;
-    if (keys['KeyA'] || keys['ArrowLeft'])  moveX -= 1;
-    if (keys['KeyD'] || keys['ArrowRight']) moveX += 1;
-  } else {
-    moveX = mobileMove.x;
-    moveZ = mobileMove.y;
-    // Right joystick look
+  let mx = 0, mz = 0;
+  if (mob) {
+    mx = mobileMove.x; mz = mobileMove.y;
     player.yaw   -= mobileLook.x * 0.03;
-    player.pitch -= mobileLook.y * 0.03;
-    player.pitch = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, player.pitch));
-  }
-
-  const moving = Math.abs(moveX) > 0.05 || Math.abs(moveZ) > 0.05;
-
-  if (moving) {
-    const len = Math.sqrt(moveX*moveX + moveZ*moveZ);
-    moveX /= len; moveZ /= len;
-
-    const forward = new THREE.Vector3(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
-    const right   = new THREE.Vector3( Math.cos(player.yaw), 0, -Math.sin(player.yaw));
-
-    player.x += (forward.x * (-moveZ) + right.x * moveX) * speed;
-    player.z += (forward.z * (-moveZ) + right.z * moveX) * speed;
-
-    // Footsteps
-    stepTimer -= dt;
-    if (stepTimer <= 0) {
-      playFootstep(isRunning);
-      stepTimer = isRunning ? 0.28 : 0.45;
-    }
+    player.pitch  = Math.max(-1.4, Math.min(1.4, player.pitch - mobileLook.y * 0.03));
   } else {
-    stepTimer = 0;
+    if (keys['KeyW'] || keys['ArrowUp'])    mz -= 1;
+    if (keys['KeyS'] || keys['ArrowDown'])  mz += 1;
+    if (keys['KeyA'] || keys['ArrowLeft'])  mx -= 1;
+    if (keys['KeyD'] || keys['ArrowRight']) mx += 1;
   }
 
-  // Apply camera
+  const moving = Math.abs(mx) > 0.05 || Math.abs(mz) > 0.05;
+  if (moving) {
+    const len = Math.sqrt(mx*mx + mz*mz);
+    mx /= len; mz /= len;
+    const fwd = new THREE.Vector3(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
+    const rgt = new THREE.Vector3( Math.cos(player.yaw), 0, -Math.sin(player.yaw));
+    player.x += (fwd.x * -mz + rgt.x * mx) * speed;
+    player.z += (fwd.z * -mz + rgt.z * mx) * speed;
+    stepT -= dt;
+    if (stepT <= 0) { footstep(running); stepT = running ? 0.28 : 0.45; }
+  } else { stepT = 0; }
+
   camera.position.set(player.x, player.y, player.z);
-  const euler = new THREE.Euler(player.pitch, player.yaw, 0, 'YXZ');
-  camera.quaternion.setFromEuler(euler);
+  camera.quaternion.setFromEuler(new THREE.Euler(player.pitch, player.yaw, 0, 'YXZ'));
 
-  // Subtle model bob / rotation
-  if (model) {
-    model.rotation.y = elapsed * 0.15;
-  }
+  if (model) model.rotation.y = now * 0.15;
 
   renderer.render(scene, camera);
-}
-
-animate();
-
-// Show mobile controls if touch device on load
-if (isMobile()) {
-  document.getElementById('pc-hint').style.display = 'none';
-  lockScreen.querySelector('p').textContent = 'TAP TO EXPLORE';
-}
+})();
 </script>
 </body>
 </html>
