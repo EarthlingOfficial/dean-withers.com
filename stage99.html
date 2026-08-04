@@ -167,8 +167,14 @@ const loadingBar = document.getElementById('loading-bar');
 const loadingPct = document.getElementById('loading-pct');
 let model = null;
 
+// NOTE: switched from raw.githubusercontent.com -> cdn.jsdelivr.net (gh mirror).
+// The artifact sandbox's CSP only allows a small set of CDN domains for network
+// requests, and raw.githubusercontent.com isn't on that list, so the fetch was
+// getting silently blocked by the browser regardless of whether the file itself
+// was valid. jsdelivr's GitHub mirror serves the identical file and is already
+// trusted here (it's what three.js itself is loaded from above).
 new GLTFLoader().load(
-  'https://raw.githubusercontent.com/EarthlingOfficial/public-archive/main/broomz.glb',
+  'https://cdn.jsdelivr.net/gh/EarthlingOfficial/public-archive@main/broomz.glb',
   gltf => {
     model = gltf.scene;
     model.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
