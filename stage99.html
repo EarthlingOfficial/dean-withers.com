@@ -187,14 +187,20 @@ new GLTFLoader().load(
     model = gltf.scene;
     model.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
 
+    // Rest the model's own lowest point on the world floor (y=0) — its
+    // native coordinates may put it anywhere, including underground
+    // relative to the floor plane — then spawn the camera at normal eye
+    // height above that, at the model's horizontal center.
     const box    = new THREE.Box3().setFromObject(model);
     const center = box.getCenter(new THREE.Vector3());
-    const size   = box.getSize(new THREE.Vector3());
-    const scale  = 2 / Math.max(size.x, size.y, size.z);
-    model.scale.setScalar(scale);
-    model.position.sub(center.multiplyScalar(scale));
-    model.position.y = 0;
+    console.log('[Broomz] bounding box min:', box.min, 'max:', box.max, 'center:', center);
+    model.position.y -= box.min.y;
     scene.add(model);
+
+    player.x = center.x;
+    player.z = center.z;
+    player.y = 40.20; // confirmed correct standing height on the model's floor
+    console.log('[Broomz] camera spawn set to', player.x, player.y, player.z, '— use R/F to nudge height, values print live below.');
 
     if (gltf.animations.length) {
       window._mixer = new THREE.AnimationMixer(model);
@@ -232,6 +238,8 @@ const keys = {};
 addEventListener('keydown', e => {
   keys[e.code] = true;
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') player.running = true;
+  if (e.code === 'KeyR') { player.y += 0.5; console.log('[Broomz] player.y =', player.y.toFixed(2)); }
+  if (e.code === 'KeyF') { player.y -= 0.5; console.log('[Broomz] player.y =', player.y.toFixed(2)); }
 });
 addEventListener('keyup', e => {
   keys[e.code] = false;
@@ -397,8 +405,6 @@ let prev = 0;
 
   camera.position.set(player.x, player.y, player.z);
   camera.quaternion.setFromEuler(new THREE.Euler(player.pitch, player.yaw, 0, 'YXZ'));
-
-  if (model) model.rotation.y = now * 0.15;
 
   renderer.render(scene, camera);
 })();
