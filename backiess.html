@@ -1,0 +1,2244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Go Dean! — The Backrooms</title>
+<link rel="canonical" href="https://earthlingofficial.com/the-backrooms.html">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://earthlingofficial.com/the-backrooms.html">
+<meta property="og:title" content="Go Dean! — The Backrooms">
+<meta property="og:description" content="Go Dean! The Backrooms — gore-geous rooms, ugly truth inside. Free, first-person horror. It has a mind of its own. Don't look down.">
+<meta property="og:image" content="https://earthlingofficial.com/backroomsog1.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Go Dean! — The Backrooms">
+<meta name="twitter:description" content="Go Dean! The Backrooms — gore-geous rooms, ugly truth inside. Free, first-person horror. It has a mind of its own. Don't look down.">
+<meta name="twitter:image" content="https://earthlingofficial.com/backroomsog1.png">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; overflow: hidden; font-family: 'Courier New', monospace; }
+  #c { display: block; width: 100vw; height: 100vh; }
+  #bar-wrap { width: 260px; height: 3px; background: #222; border-radius: 2px; overflow: hidden; }
+  #bar { height: 100%; background: #c8b97a; width: 0%; transition: width .3s; }
+  #pct { margin-top: 12px; font-size: 12px; opacity: .35; }
+  #overlay { position: fixed; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,.75); cursor: pointer; z-index: 10; color: #c8b97a; }
+  #overlay h1 { font-size: 22px; letter-spacing: 4px; margin-bottom: 16px; }
+  #overlay p { font-size: 12px; opacity: .5; line-height: 2.2; text-align: center; }
+  #xhair { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); pointer-events: none; display: none; z-index: 5; }
+  #xh { width: 16px; height: 1px; background: rgba(255,255,255,.6); position: absolute; top: 0; left: -8px; }
+  #xv { width: 1px; height: 16px; background: rgba(255,255,255,.6); position: absolute; top: -8px; left: 0; }
+  #tv-popup { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.82); z-index: 15; color: #c8b97a; }
+  #tv-inner { border: 1px solid rgba(200,185,122,.2); padding: 32px 44px; text-align: center; max-width: 480px; }
+  #tv-inner .tag { font-size: 11px; letter-spacing: 3px; opacity: .45; margin-bottom: 6px; }
+  #tv-inner .tv-id { font-size: 18px; letter-spacing: 6px; margin-bottom: 14px; color: #c8b97a; }
+  #tv-inner a { color: #c8b97a; font-size: 14px; text-decoration: underline; }
+  #tv-inner .esc { margin-top: 24px; font-size: 11px; opacity: .3; }
+  #hint { position: fixed; bottom: 16px; left: 20px; color: rgba(200,185,122,.28); font-size: 11px; letter-spacing: 1px; display: none; pointer-events: none; }
+  #coords { position: fixed; top: 12px; right: 12px; color: rgba(200,185,122,.5); font-size: 10px; letter-spacing: 1px; z-index: 50; pointer-events: none; display: none; }
+  #loading { position: fixed; inset: 0; background: #000; overflow: hidden; z-index: 20; }
+
+  /* Mobile joysticks */
+  #joystick-left, #joystick-right {
+    display: none;
+    position: fixed; bottom: 40px; z-index: 30;
+    width: 110px; height: 110px;
+    border: 2px solid rgba(200,185,122,0.25);
+    border-radius: 50%;
+    background: rgba(0,0,0,0.35);
+    touch-action: none;
+  }
+  #joystick-left { left: 30px; }
+  #joystick-right { right: 30px; }
+  .joy-knob {
+    position: absolute; top: 50%; left: 50%;
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(200,185,122,0.55);
+    transform: translate(-50%,-50%);
+    pointer-events: none;
+  }
+  @media (pointer: coarse) {
+    #joystick-left, #joystick-right { display: block; }
+    #overlay p .kb { display: none; }
+  }
+
+  /* ── AMBIENT HUD TEXT ── */
+  #ambient-text {
+    position: fixed; pointer-events: none; z-index: 6;
+    color: rgba(200,185,122,0.55); font-family: 'Courier New', monospace;
+    font-size: 11px; letter-spacing: 2px; line-height: 1.8;
+    max-width: 320px; text-align: left;
+    opacity: 0; transition: opacity 1.4s;
+    display: none; text-shadow: 0 0 8px rgba(200,185,122,0.3);
+  }
+  #ambient-text.fall-msg {
+    color: rgba(200,100,80,0.8);
+    font-size: 13px; letter-spacing: 3px;
+    text-shadow: 0 0 12px rgba(200,80,60,0.5);
+  }
+
+  /* ── FALL LANDING MESSAGE ── */
+  #fall-msg {
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: rgba(200,100,80,0.88);
+    font-family: 'Courier New', monospace;
+    font-size: 13px; letter-spacing: 2px; line-height: 2.2;
+    text-align: center; white-space: pre-line;
+    text-shadow: 0 0 16px rgba(200,60,40,0.55);
+    pointer-events: none; z-index: 6;
+    display: none; opacity: 0;
+    transition: opacity 1.1s;
+    max-width: 480px;
+  }
+
+  /* ── BROADCAST SYSTEM ── */
+  #player-taunt {
+    position: fixed; top: 52%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(760px, 88vw);
+    padding: 24px 32px 28px;
+    border: 1px solid rgba(220,70,52,0.62);
+    background: linear-gradient(90deg, rgba(12,3,2,0.08), rgba(35,5,3,0.82), rgba(12,3,2,0.08));
+    color: #ff735d;
+    font-family: 'Courier New', monospace;
+    text-align: center;
+    pointer-events: none; z-index: 6;
+    display: none; opacity: 0;
+    transition: opacity 0.8s, transform 0.8s;
+    text-shadow: 0 0 18px rgba(220,45,25,0.85);
+  }
+  #player-taunt.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  #player-taunt .broadcast-tag {
+    display: block;
+    margin-bottom: 14px;
+    color: rgba(255,220,190,0.82);
+    font-size: 11px;
+    letter-spacing: 5px;
+  }
+  #player-taunt .broadcast-copy {
+    font-size: clamp(17px, 2.2vw, 25px);
+    font-weight: bold;
+    letter-spacing: 2px;
+    line-height: 1.65;
+    white-space: pre-line;
+  }
+
+  #ag-fact-feed {
+    position: fixed; top: 22px; left: 20px;
+    width: min(480px, 46vw);
+    padding: 14px 16px;
+    border-left: 3px solid rgba(200,185,122,0.65);
+    background: rgba(8,6,2,0.42);
+    color: rgba(240,230,190,0.86);
+    font-family: 'Courier New', monospace;
+    pointer-events: none; z-index: 6;
+    display: none; opacity: 0;
+    transition: opacity 1.1s;
+    text-shadow: 0 0 10px rgba(200,185,122,0.35);
+  }
+  #ag-fact-feed.show { opacity: 1; }
+  #ag-fact-feed .fact-tag {
+    margin-bottom: 7px;
+    color: rgba(200,185,122,0.38);
+    font-size: 11px;
+    letter-spacing: 3px;
+  }
+  #ag-fact-feed .fact-copy {
+    font-size: 13px;
+    letter-spacing: 1px;
+    line-height: 1.6;
+  }
+  #ag-fact-feed .fact-note {
+    margin-top: 7px;
+    color: rgba(240,220,170,0.48);
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+
+  #fake-chat {
+    position: fixed; left: 20px; bottom: 48px;
+    width: min(560px, 48vw);
+    height: 250px;
+    padding: 12px 16px;
+    border: 1px solid rgba(200,185,122,0.28);
+    background: linear-gradient(180deg, rgba(3,3,2,0.12), rgba(3,3,2,0.78));
+    overflow: hidden;
+    color: rgba(245,240,220,0.88);
+    font-family: 'Courier New', monospace;
+    pointer-events: none; z-index: 6;
+    display: none;
+    text-shadow: 0 0 7px rgba(0,0,0,0.95);
+    mask-image: linear-gradient(to bottom, transparent 0%, black 14%, black 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 14%, black 100%);
+  }
+  #fake-chat .chat-header {
+    margin-bottom: 5px;
+    color: rgba(200,185,122,0.38);
+    font-size: 11px;
+    letter-spacing: 2px;
+  }
+  #fake-chat .chat-line {
+    margin: 7px 0;
+    font-size: 13px;
+    line-height: 1.35;
+    transform: translateY(0);
+    animation: chat-in 0.35s ease-out;
+  }
+  #fake-chat .chat-name { color: #e5c878; font-weight: bold; }
+  #fake-chat .chat-line:nth-child(3n) { color: #ff9c83; }
+  #fake-chat .chat-line:nth-child(4n) { color: #b9e3c8; }
+  @keyframes chat-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @media (max-width: 700px) {
+    #player-taunt {
+      width: 74vw; padding: 10px 12px 12px;
+      top: 36%; font-size: 12px;
+    }
+    #player-taunt .broadcast-tag { font-size: 9px; letter-spacing: 3px; margin-bottom: 6px; }
+    #player-taunt .broadcast-copy { font-size: 12px !important; letter-spacing: 1px; line-height: 1.5; }
+    #ag-fact-feed { width: 74vw; top: 10px; left: 10px; padding: 8px 10px; }
+    #ag-fact-feed .fact-tag { font-size: 9px; margin-bottom: 4px; }
+    #ag-fact-feed .fact-copy { font-size: 11px; line-height: 1.5; }
+    #ag-fact-feed .fact-note { font-size: 8px; }
+    #fake-chat { left: 10px; bottom: 170px; width: 70vw; height: 150px; }
+    #fake-chat .chat-header { font-size: 9px; }
+    #fake-chat .chat-line { font-size: 10px; margin: 4px 0; }
+  }
+
+  /* ── TV PROXIMITY PROMPT ── */
+  #tv-prompt {
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, 26px);
+    color: rgba(200,185,122,0.78);
+    font-family: 'Courier New', monospace;
+    font-size: 11px; letter-spacing: 3px;
+    text-align: center; pointer-events: none;
+    display: none; z-index: 5;
+    text-shadow: 0 0 8px rgba(200,185,122,0.4);
+  }
+
+  /* ── AGE GATE ── */
+  #age-gate {
+    position: fixed; inset: 0; z-index: 25;
+    background: rgba(0,0,0,0.92);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #age-gate-panel {
+    width: min(90vw, 620px);
+    max-height: 90vh;
+    overflow-y: auto;
+    border: 1px solid rgba(200,185,122,0.25);
+    padding: 48px 44px;
+    text-align: center;
+    color: #c8b97a;
+    font-family: 'Courier New', monospace;
+    background: rgba(0,0,0,0.6);
+    display: flex; flex-direction: column; align-items: center; gap: 22px;
+  }
+  #age-gate-panel .ag-warn {
+    font-size: 10px; letter-spacing: 4px; opacity: 0.45; text-transform: uppercase;
+  }
+  #age-gate-panel .ag-title {
+    font-size: 18px; letter-spacing: 6px; text-transform: uppercase;
+    text-shadow: 0 0 18px rgba(200,185,122,0.5);
+  }
+  #age-gate-panel .ag-rule {
+    width: 60px; height: 1px; background: rgba(200,185,122,0.25);
+  }
+  #age-gate-panel .ag-body {
+    font-size: 12px; line-height: 2.1; opacity: 0.7; letter-spacing: 1px;
+  }
+  #age-gate-panel .ag-sting {
+    font-size: 13px; letter-spacing: 2px; opacity: 0.9; font-style: italic;
+    border-left: 2px solid rgba(200,185,122,0.4); padding-left: 14px;
+    text-align: left; line-height: 1.9;
+  }
+  #age-gate-panel .ag-btns {
+    display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-top: 8px;
+  }
+  #age-gate-confirm {
+    padding: 12px 32px; border: 1px solid rgba(200,185,122,0.65);
+    background: transparent; color: #c8b97a;
+    font-family: 'Courier New', monospace; font-size: 12px;
+    letter-spacing: 3px; text-transform: uppercase; cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  #age-gate-confirm:hover { background: rgba(200,185,122,0.12); }
+  #age-gate-leave {
+    padding: 12px 32px; border: 1px solid rgba(200,185,122,0.2);
+    background: transparent; color: rgba(200,185,122,0.4);
+    font-family: 'Courier New', monospace; font-size: 12px;
+    letter-spacing: 3px; text-transform: uppercase; cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  #age-gate-leave:hover { opacity: 0.7; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
+</script>
+<style>
+  /* ── CSS3D LAYER ── */
+  #css3d { position:fixed; inset:0; z-index:2; pointer-events:none; }
+  #css3d iframe { border:0; pointer-events:auto; background:#000; }
+
+  /* ── MAP SIZE SELECTOR (PC only) ── */
+  #map-selector {
+    position:fixed; inset:0; z-index:30;
+    background:rgba(0,0,0,0.93);
+    display:none; align-items:center; justify-content:center;
+    font-family:'Courier New',monospace; color:#c8b97a;
+  }
+  #map-selector.active { display:flex; }
+  #map-selector-panel {
+    text-align:center; display:flex; flex-direction:column;
+    align-items:center; gap:20px;
+    border:1px solid rgba(200,185,122,0.2);
+    padding:44px 52px;
+  }
+  #map-selector-panel .ms-tag { font-size:10px; letter-spacing:4px; opacity:0.4; }
+  #map-selector-panel .ms-title { font-size:17px; letter-spacing:5px; }
+  #map-selector-panel .ms-rule { width:50px; height:1px; background:rgba(200,185,122,0.2); }
+  #map-selector-panel .ms-body { font-size:11px; line-height:2; opacity:0.6; letter-spacing:1px; }
+  .ms-btns { display:flex; gap:14px; flex-wrap:wrap; justify-content:center; margin-top:6px; }
+  .ms-btn {
+    padding:12px 28px; border:1px solid rgba(200,185,122,0.5);
+    background:transparent; color:#c8b97a;
+    font-family:'Courier New',monospace; font-size:12px;
+    letter-spacing:3px; text-transform:uppercase; cursor:pointer;
+    transition:background 0.2s;
+  }
+  .ms-btn:hover { background:rgba(200,185,122,0.1); }
+  .ms-btn.ms-recommended { border-color:rgba(200,185,122,0.85); }
+  .ms-note { font-size:10px; opacity:0.35; letter-spacing:1px; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<!-- Mobile joysticks -->
+<div id="joystick-left"><div class="joy-knob" id="knob-left"></div></div>
+<div id="joystick-right"><div class="joy-knob" id="knob-right"></div></div>
+
+<div id="age-gate">
+  <div id="age-gate-panel">
+    <div class="ag-warn">&#9888;&nbsp; Content Warning &nbsp;&#9888;</div>
+    <div class="ag-title">This Contains Real Footage</div>
+    <div class="ag-rule"></div>
+    <div class="ag-body">
+      This experience contains <strong>graphic real-world footage</strong> from inside<br>
+      the animal agricultural industry — slaughterhouses, factory farms,<br>
+      and the realities that are hidden behind every meal.<br><br>
+      It is disturbing. It is the truth.
+    </div>
+    <div class="ag-sting">
+      "If you can't stomach it,<br>
+      then maybe you shouldn't stomach it."
+    </div>
+    <div class="ag-body" style="font-size:11px;opacity:0.45;">
+      You must be 18 years or older to enter.<br>
+      By continuing you confirm you are of legal age<br>
+      and consent to viewing graphic content.
+    </div>
+    <div class="ag-btns">
+      <button id="age-gate-confirm">I AM 18+ &mdash; ENTER</button>
+      <button id="age-gate-leave">LEAVE</button>
+    </div>
+  </div>
+</div>
+
+<div id="loading">
+  <video id="intro-video" muted playsinline
+    src="https://archive.org/download/1-year-in-the-backrooms-found-footage-compilation/SnapSave.io-1%20Year%20in%20The%20Backrooms%20%28Found%20Footage%20Compilation%29.mp4"
+    style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;opacity:0.72;">
+  </video>
+  <canvas id="vhs-roll" style="position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;"></canvas>
+  <div id="title-card" style="position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;flex-direction:column;pointer-events:none;">
+    <div id="title-line1" style="font-size:15px;letter-spacing:5px;color:#ede080;text-transform:uppercase;opacity:0;transition:opacity 1s;text-align:center;text-shadow:0 0 24px rgba(230,210,100,0.95),0 0 48px rgba(200,180,70,0.6);"></div>
+    <div id="title-line2" style="font-size:13px;letter-spacing:4px;color:#d4c060;text-transform:uppercase;opacity:0;transition:opacity 1s;text-align:center;margin-top:10px;text-shadow:0 0 18px rgba(210,190,80,0.9),0 0 32px rgba(180,160,60,0.5);"></div>
+  </div>
+  <div id="play-btn" style="position:absolute;inset:0;z-index:7;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:rgba(0,0,0,0.55);">
+    <div style="width:72px;height:72px;border:2px solid rgba(200,185,122,0.7);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:18px;">
+      <div style="width:0;height:0;border-top:18px solid transparent;border-bottom:18px solid transparent;border-left:28px solid rgba(200,185,122,0.85);margin-left:6px;"></div>
+    </div>
+    <div style="color:#c8b97a;font-size:12px;letter-spacing:5px;text-transform:uppercase;opacity:0.8;">Play &amp; Enter</div>
+  </div>
+  <div style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);z-index:5;text-align:center;min-width:260px;">
+    <div style="font-size:10px;letter-spacing:3px;color:rgba(200,185,122,0.45);text-transform:uppercase;margin-bottom:10px;">Backrooms Loading. Hold Tight.</div>
+    <div id="bar-wrap" style="width:200px;height:2px;background:#333;border-radius:2px;overflow:hidden;margin:0 auto;">
+      <div id="bar" style="height:100%;background:#c8b97a;width:0%;transition:width .3s;"></div>
+    </div>
+    <div id="pct" style="margin-top:8px;font-size:10px;color:rgba(200,185,122,.3);letter-spacing:2px;">0%</div>
+  </div>
+  <div id="listen-btn" style="position:absolute;bottom:20px;left:20px;z-index:6;display:none;color:rgba(200,185,122,0.6);font-size:10px;letter-spacing:3px;cursor:pointer;border:1px solid rgba(200,185,122,0.25);padding:5px 12px;text-transform:uppercase;">&#128266; LISTEN IN</div>
+  <div id="skip-btn" style="position:absolute;bottom:20px;right:24px;z-index:6;display:none;color:#c8b97a;font-size:11px;letter-spacing:3px;cursor:pointer;opacity:0;transition:opacity 1s;border:1px solid rgba(200,185,122,0.3);padding:6px 14px;text-transform:uppercase;">SKIP &#9654;</div>
+</div>
+<div id="overlay">
+  <h1>CLICK TO ENTER</h1>
+  <p>WASD — Move &nbsp;|&nbsp; Mouse — Look &nbsp;|&nbsp; Shift — Sprint<br>Click a TV — Interact &nbsp;|&nbsp; ESC — Pause &nbsp;|&nbsp; ~ — Coords</p>
+</div>
+<div id="xhair"><div id="xh"></div><div id="xv"></div></div>
+<div id="tv-popup">
+  <div id="tv-inner">
+    <div class="tag">TV SIGNAL</div>
+    <div class="tv-id" id="tv-id-label"></div>
+    <div id="tv-link"></div>
+    <div class="esc">ESC to close</div>
+  </div>
+</div>
+<div id="hint">WASD &nbsp;·&nbsp; SHIFT &nbsp;·&nbsp; CLICK TV &nbsp;·&nbsp; ~ COORDS</div>
+<div id="ambient-text"></div>
+<!-- Fall landing message -->
+<div id="fall-msg"></div>
+<!-- Timed in-game broadcast layers -->
+<div id="player-taunt">
+  <span class="broadcast-tag">FIELD NOTE // YOU ARE THE ANIMAL NOW</span>
+  <span class="broadcast-copy" id="player-taunt-copy"></span>
+</div>
+<div id="ag-fact-feed">
+  <div class="fact-tag">RESEARCH FEED // ANIMAL AGRICULTURE</div>
+  <div class="fact-copy" id="ag-fact-copy"></div>
+  <div class="fact-note">GENERAL CONTEXT — LAWS AND STANDARDS VARY BY JURISDICTION</div>
+</div>
+<div id="fake-chat">
+  <div class="chat-header">FICTIONAL SIGNAL // DEAN CHAT // LIVE-ish</div>
+  <div id="fake-chat-lines"></div>
+</div>
+<!-- TV proximity interaction prompt -->
+<div id="tv-prompt">[ E ] &nbsp; PLAY / STOP</div>
+<div id="door-hint" style="position:fixed;top:50%;left:50%;transform:translate(-50%,55px);color:#c8b97a;font-size:13px;letter-spacing:3px;text-align:center;pointer-events:none;display:none;z-index:5;text-shadow:0 0 14px rgba(200,185,122,0.9);font-family:'Courier New',monospace;">ENTER THE REAL DEBATE<br><span style="font-size:10px;opacity:0.45;letter-spacing:2px;">[E] &nbsp;·&nbsp; TAP</span></div>
+<div id="coords"></div>
+<!-- CSS3D renderer layer for in-world YouTube -->
+<div id="css3d"></div>
+<!-- PC map size selector (shown after age gate, before GLB loads) -->
+<div id="map-selector">
+  <div id="map-selector-panel">
+    <div class="ms-tag">&#9888;&nbsp; BEFORE YOU ENTER &nbsp;&#9888;</div>
+    <div class="ms-title">CHOOSE YOUR MAP</div>
+    <div class="ms-rule"></div>
+    <div class="ms-body">
+      The high-res map is large and may take several minutes to load.<br>
+      The fast map loads quickly and plays identically.
+    </div>
+    <div class="ms-btns">
+      <button class="ms-btn ms-recommended" id="ms-fast">FAST LOAD &mdash; 1K</button>
+      <button class="ms-btn" id="ms-hires">HIGH RES &mdash; 4K</button>
+    </div>
+    <div class="ms-note">mobile always uses fast load &nbsp;·&nbsp; your choice starts the download</div>
+  </div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+
+// ── ARCHIVE.ORG VIDEO POOL FOR WALL TVS ──────────────────────────────────────
+// T1-T9 use animated canvas static. T10 uses a real in-world video texture.
+const WALL_TV_VIDEO_MAP = {}; // no archive videos via video element — CORS blocked
+
+// ── DEVICE & GLB ─────────────────────────────────────────────────────────────
+const isMobile = /Mobi|Android|iPhone|iPad|iPod|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+const GLB_1K = 'https://cors.archive.org/cors/backrooms_vr1k/backrooms_vr1k.glb';
+const GLB_4K = 'https://cors.archive.org/cors/backrooms_vr/backrooms_vr.glb';
+
+// Resolved after map selector (PC) or immediately (mobile)
+let GLB_URL = isMobile ? GLB_1K : null; // null = waiting for PC choice
+
+// ── MAP SELECTOR (PC only) ────────────────────────────────────────────────────
+let _glbUrlResolve = null;
+const glbUrlReady = new Promise(res => { _glbUrlResolve = res; });
+
+if(isMobile){
+  _glbUrlResolve(GLB_1K);
+} else {
+  // Show selector after age gate confirms — triggered by ageConfirmed flag
+  // The selector is shown in the age-gate confirm handler below
+}
+
+// ── WALL TV DEFINITIONS ───────────────────────────────────────────────────────
+const WALL_TV_RAYS = [
+  { id:'T1',  from:[ 0,    1.9,  0],     dir:[ 0, 0,  1], ry: Math.PI    },
+  { id:'T2',  from:[-43.44, 1.9,  3.49], dir:[ 1, 0,  0], ry:-Math.PI/2  }, // moved — was on top of T6
+  { id:'T3',  from:[ 0,    1.9,  0],     dir:[ 1, 0,  0], ry:-Math.PI/2  },
+  { id:'T4',  from:[ 0,    1.9,  8.60],  dir:[-1, 0,  0], ry: Math.PI/2  }, // YouTube CSS3D TV
+  { id:'T5',  from:[-55.75, 1.9,  4.04], dir:[ 1, 0,  0], ry:-Math.PI/2  }, // moved — was on top of T1
+  { id:'T6',  from:[ 0,    1.9,  8],     dir:[ 0, 0, -1], ry: 0          }, // backrooms video fall-20
+  { id:'T8',  from:[ 0,    1.9, 14.57],  dir:[-1, 0,  0], ry: Math.PI/2  },
+  { id:'T9',  from:[ 0,    1.9,  6.34],  dir:[ 1, 0,  0], ry:-Math.PI/2  },
+  { id:'T10', from:[ 0,    1.6,  4],     dir:[-1, 0,  0], ry: Math.PI/2  },
+];
+
+// Filled after snapTVsToWalls() runs — used by fall logic
+let WALL_TVS = [];
+
+// Snap all wall TVs onto real geometry using raycasting
+function snapTVsToWalls(yOffset){
+  WALL_TVS = [];
+  const ray = new THREE.Raycaster();
+  WALL_TV_RAYS.forEach(def => {
+    const origin = new THREE.Vector3(def.from[0], def.from[1] + yOffset, def.from[2]);
+    const dir = new THREE.Vector3(def.dir[0], def.dir[1], def.dir[2]).normalize();
+    ray.set(origin, dir);
+    ray.far = 40;
+    const hits = ray.intersectObjects(collisionMeshes, true);
+    let pos;
+    if(hits.length > 0){
+      pos = hits[0].point.clone().addScaledVector(dir, -0.08);
+    } else {
+      pos = origin.clone().addScaledVector(dir, 6);
+    }
+    WALL_TVS.push({ id: def.id, pos: [pos.x, def.from[1], pos.z], ry: def.ry });
+  });
+}
+
+const WINDOW_TVS = [
+  { id:'W1a', pos:[-3.59, 2.65, 0.18],  ry: Math.PI/2, wide:true },
+  { id:'W1b', pos:[-69.44, 2.50, 11.25], ry: Math.PI/2, wide:true },
+];
+
+// ── LEVEL SYSTEM ─────────────────────────────────────────────────────────────
+const EYE_HEIGHT    = 2.36;
+const LEVEL_DEPTH   = 30;
+const NOCLIP_RADIUS = 0.6;
+const CROSS_SIZE    = 0.5;
+
+const BUILD_BOUNDS = { minX:-22, maxX:25, minZ:-52, maxZ:12 };
+
+let currentLevel    = 0;
+let levelFloorY     = 0;
+let isFalling       = false;
+let isRecovering    = false;
+let recoverStart    = 0;
+let recoverFrom     = 0;
+
+const levelGroups   = [];
+let glbTemplate     = null;
+const noclipZones   = [];
+
+// ── SCREAM AUDIO ──────────────────────────────────────────────────────────────
+const screamAudio = new Audio('https://archive.org/download/ScreamSounds/SCREAM_4.mp3');
+screamAudio.volume = 0.85;
+
+// ── FALL LANDING MESSAGES ─────────────────────────────────────────────────────
+const FALL_MESSAGES = [
+  "you broke your neck...\nthe poor male chicks feel this every day\nthey're ground up alive — for your omelette",
+  "everything went dark...\nthis is how they die in the farms\ndisoriented. terrified. alone.",
+  "you can't move...\nnor could she, for her entire life\ngestation crates. concrete. no room to turn.",
+  "the pain is temporary for you...\nfor them, it never ends\nthat's the difference between you and livestock",
+  "you survived the fall...\nthey don't survive the farm\nthey were born into it and never leave",
+  "you felt what fear feels like...\nthey feel it every second\nnose in the air, smelling the blood ahead",
+  "you hit the floor hard...\nso do they. and no one comes.\nyou had a chance to get up. they don't.",
+  "the lights went out...\nthey've never seen daylight\nborn under fluorescents. die under fluorescents.",
+  "your body remembered what pain is...\ntheirs never forget\nbecause the pain never stops — not until the bolt",
+  "you're lost and hurting...\nwelcome to their whole life\ncrates so small they can't turn around — for years",
+  "disoriented? good.\nthat's how a cow feels in a chute\nsmelling death. hearing screams. unable to run.",
+  "you fell and you're confused...\na fish on a hook is more confused\nit has no idea why its world is ending",
+  "your heart is racing right now...\na pig's heart races the same way in the truck\nfor hours. no water. no explanation.",
+  "you're recovering slowly...\nbroiler chickens can't recover from anything\ntheir legs break under their own engineered weight",
+  "your body hit something real...\ntheirs hit the stun gun\nsometimes it doesn't work. they feel everything.",
+  "lost in here, aren't you?\nso are the calves taken from their mothers at birth\nthey cry for days. no one answers.",
+  "you're hurt and alone...\nso was every animal in every factory farm tonight\nright now. while you're reading this.",
+  "you wanted out of this room...\nthey want out of their cages their entire lives\nyou'll leave. they won't.",
+];
+let fallMsgIdx = 0;
+let fallMsgTimeout = null;
+let fallMsgShowing = false;
+const fallMsgEl = document.getElementById('fall-msg');
+
+function showFallMessage(){
+  if(!fallMsgEl) return;
+  const msg = FALL_MESSAGES[fallMsgIdx % FALL_MESSAGES.length];
+  fallMsgIdx++;
+  fallMsgEl.textContent = msg;
+  fallMsgEl.style.display = 'block';
+  fallMsgEl.style.opacity = '0';
+  // slight delay so the player "lands" before text appears
+  setTimeout(()=>{ fallMsgEl.style.opacity = '1'; fallMsgShowing = true; }, 300);
+  if(fallMsgTimeout) clearTimeout(fallMsgTimeout);
+  fallMsgTimeout = setTimeout(hideFallMessage, 5500);
+}
+
+function hideFallMessage(){
+  if(!fallMsgEl) return;
+  fallMsgEl.style.opacity = '0';
+  fallMsgShowing = false;
+  setTimeout(()=>{ fallMsgEl.style.display = 'none'; }, 1200);
+}
+
+// ── IN-GAME BROADCAST SYSTEM ─────────────────────────────────────────────────
+// These are presentation-only overlays. They deliberately have no connection
+// to TV playback state, movement, or the entrance audio sequence.
+const PLAYER_TAUNTS = [
+  "you seem lost.\nmale chicks in egg production are ground alive or gassed at birth.\nyou have a door. they have a shredder.",
+  "you got to walk into this place by choice.\nthey were born into it.",
+  "you are looking for an exit.\na broiler chicken is looking for one leg that will hold.",
+  "you can turn around whenever you want.\na sow in a farrowing crate cannot.",
+  "you call this a maze?\nthey call a lifetime in a cage a normal Tuesday.",
+  "you are frightened by the dark.\nthey are frightened by the machinery, and the machinery never sleeps.",
+  "you have a name, a future, and a way out.\ntheirs are often reduced to a number before they can stand.",
+  "you heard one scream and started searching.\nslaughter lines run on the fact that nobody has to listen.",
+  "you are being watched.\nthey are watched, handled, graded, and moved like inventory.",
+  "you can stop reading this.\nthey cannot stop the truck.",
+  "you want someone to find you.\ncalves want their mothers. the system has paperwork instead.",
+  "your cage is imaginary.\ntheirs has a lock, a latch, and a production target.",
+  "you are confused because the rules keep changing.\nthat is a familiar feeling in a hatchery.",
+  "you get a pause screen.\nthey get a stun, a stamp, or the next conveyor.",
+  "you are searching for comfort in a hostile environment.\nthat is the product being sold to animals as welfare.",
+  "you can sprint when the fear arrives.\nmost farmed animals are bred too heavy to run.",
+  "you have already fallen several floors.\nthat is still fewer than the times a transport truck ignores the weather.",
+  "you think the walls are closing in.\ntry being bred for a body that cannot support itself.",
+  "you are asking why this is happening.\nthe answer is usually demand, distance, and a legal definition.",
+  "your panic has an audience.\ntheirs has a supply chain.",
+  "you can leave this screen and call it fiction.\nthey cannot leave the footage and call it a life.",
+  "you are allowed to be uncomfortable here.\nthat is more freedom than a cage gives.",
+  "you want the humane version.\nask who gets to define humane when the endpoint is still a killing floor.",
+  "you are one person in a building.\nthey are millions of individuals hidden behind one ingredient list.",
+  "your body is tired after minutes.\nselectively bred farmed bodies can spend a lifetime carrying more than they can bear.",
+  "you are waiting for the next jump scare.\nthey are waiting for the next hand, hook, gate, or truck.",
+  "the game calls you a player.\nthe industry calls them units, yield, and throughput.",
+  "you can close the tab.\nthey cannot close the barn door from the inside.",
+  "you thought getting lost was the worst part.\ntry being born where every road leads to production.",
+  "you are looking for a safe room.\nthere is no safe room in a system built around speed.",
+  "you made it this far by choice.\nmost animals in the system never get a choice at all.",
+  "if this feels unfair, good.\nthat feeling is doing more work than the label on the package."
+];
+
+const ANIMAL_AG_FACTS = [
+  "In egg production, male chicks are often considered economically unprofitable and may be killed shortly after hatching. Practices and rules vary by jurisdiction.",
+  "Broiler chickens are selectively bred for rapid growth. That can create serious welfare problems, including leg disorders and difficulty walking.",
+  "Gestation crates restrict a pregnant sow's movement. Some jurisdictions restrict or ban them; others still permit them under conditions.",
+  "Animal-welfare laws often contain exemptions or different standards for customary agricultural practices. The exact legal text depends on location.",
+  "Ag-gag laws exist in some jurisdictions and can restrict recording or whistleblowing around agricultural facilities. Their scope and status vary.",
+  "Transport protections differ by species, country, and state. A legal minimum is not the same thing as a life without fear, injury, or exhaustion.",
+  "Terms such as cage-free, free-range, natural, and humane are not interchangeable. Their definitions and enforcement depend on the label and jurisdiction.",
+  "In many legal systems, animals are property rather than legal persons. That shapes who can sue, what remedies exist, and whose interests get priority.",
+  "Slaughter inspection usually focuses on food safety and process compliance. It does not mean every welfare concern has disappeared.",
+  "Dairy calves may be separated from their mothers soon after birth in many production systems. The timing and rules vary across farms and regions.",
+  "Selective breeding can increase production while also increasing the risk of chronic pain or disability. Efficiency is not a welfare metric.",
+  "A welfare certification can set a higher standard than baseline law, but the actual meaning depends on the certifier's published rules and audits.",
+  "Most farmed animals are excluded from the everyday legal protections people assume apply to companion animals. Definitions matter.",
+  "Environmental law and animal-welfare law are separate tools. A facility can comply with one while still raising serious questions under the other.",
+  "The word humane is often marketing language unless a specific standard, audit, or statute defines what it requires.",
+  "Pigs are highly social and cognitively complex animals. Housing systems can prevent behaviors such as rooting, nesting, and exploration.",
+  "Chickens recognize individuals and form social hierarchies. A production label does not erase individual perception or pain.",
+  "Fish are sentient vertebrates, yet they are frequently absent from public welfare conversations and legal protections.",
+  "In many places, undercover footage is legally contested even when it reveals conditions the public would never see otherwise.",
+  "A facility can be clean and still be stressful. Hygiene, crowding, freedom of movement, pain, and fear are different welfare questions.",
+  "Animal agriculture is not one single practice. Species, housing, transport, slaughter, and local law can differ dramatically.",
+  "A certification logo is not a universal guarantee. Check the standard, the audit model, and what the label explicitly excludes.",
+  "Legal permission is a floor, not a moral ceiling.",
+  "The fact that a practice is common does not tell you whether it is necessary, humane, or ethically defensible.",
+  "The absence of visible injury does not prove the absence of fear, frustration, chronic pain, or deprivation.",
+  "Public records, inspection reports, court filings, and worker testimony can reveal different parts of the same supply chain.",
+  "Animal welfare, worker safety, environmental damage, and consumer transparency overlap, but they are not the same claim.",
+  "If a law varies by jurisdiction, that is not a loophole in the fact. It is part of the fact."
+];
+
+const FICTIONAL_CHAT_LINES = [
+  ["@floor_10_mod", "wait, this backrooms game is actually about factory farming. it is. it genuinely is."],
+  ["@dean_defender", "Dean Withers would have found the exit in thirty seconds."],
+  ["@bean_counter", "veganism mentioned. chat has entered its emergency broadcast era."],
+  ["@plantbasedpanic", "I saw one lentil and now the government is coming for my barbecue."],
+  ["@earthling_official", "please stop comparing the player to livestock. the player is doing that themselves."],
+  ["@dean_chat", "Dean said read the label. Earthling read the ceiling instead."],
+  ["@meat_logic", "if the chicken wanted to leave it should have learned WASD."],
+  ["@mod_team", "that argument has been timed out for low nutritional value."],
+  ["@withers_watch", "Dean Withers: calm, clear, devastating. Earthling: walking into a wall."],
+  ["@soy_skeptic", "I am not owned by Big Tofu. I can quit whenever I want. probably."],
+  ["@the_actual_cow", "moo means please stop using me as a metaphor for your ethics."],
+  ["@chat_lurker", "the screen is black because the discourse has become too bright."],
+  ["@dean_defender", "another clean point from Dean. another dirty dodge from the chat."],
+  ["@vegan_speedrun", "any percent route: read one welfare report, become annoying at dinner."],
+  ["@comment_section", "the fall mechanic as a loss-of-ground design is genuinely clever. I hate that I respect it."],
+  ["@free_range_facts", "free-range is not a magic spell, folks. read the standard."],
+  ["@meat_logic", "plants have feelings too. okay, then eat the thing with the nervous system."],
+  ["@mod_team", "please stop yelling LAW at the screen. name the jurisdiction or sit down."],
+  ["@dean_chat", "Dean Withers is cooking. ironically, the chat is not."],
+  ["@cage_free_ish", "cage-free and joy-free are not the same thing, but let's keep reading."],
+  ["@earthling_official", "the player has found the moral basement. there are more floors below."],
+  ["@plantbasedpanic", "I came here to own vegans and accidentally learned what a hatchery is."],
+  ["@withers_watch", "someone clip that Dean answer before the chat invents a new straw man."],
+  ["@night_shift", "why is the animal rights account funnier than the comedy accounts."],
+  ["@mod_team", "new rule: no claiming a label means whatever you wish it meant."],
+  ["@dean_defender", "Dean asked one question and six commenters became smoke."],
+  ["@omnivore_arc", "I support personal choice, especially the choice to read the facts first."],
+  ["@chat_lurker", "whoever built this has been in too many comment sections. you can feel it in the walls."],
+  ["@supply_chain", "the farm is not the whole story. neither is the supermarket."],
+  ["@vegan_speedrun", "today's boss fight: 'but bacon tho'."],
+  ["@the_actual_cow", "you keep saying freedom while holding a sandwich. fascinating."],
+  ["@dean_chat", "praise Dean, mute the bad-faith detour, continue."],
+  ["@meat_logic", "I have three tabs open and all of them disagree with me. suspicious."],
+  ["@mod_team", "facts are not an attack. unless your argument is made of vibes."],
+  ["@earthling_official", "the backrooms have better accountability than this comment section."],
+  ["@withers_watch", "Dean Withers has entered the chat. please secure your definitions."],
+  ["@plantbasedpanic", "fine, I will watch the documentary. but I reserve the right to be dramatic."],
+  ["@floor_10_mod", "the player is still lost. the chat is still loud. excellent television."],
+  ["@cage_free_ish", "if the label needs a footnote, the footnote is part of the label."],
+  ["@night_shift", "the fake chat inside the game about a real debate is extremely unhinged and correct."],
+  ["@dean_defender", "that was not a debate, that was Dean filing a conversational tax return."],
+  ["@mod_team", "chat behaving badly. animals still deserve better. continue."]
+];
+
+const tauntEl = document.getElementById('player-taunt');
+const tauntCopyEl = document.getElementById('player-taunt-copy');
+const factFeedEl = document.getElementById('ag-fact-feed');
+const factCopyEl = document.getElementById('ag-fact-copy');
+const chatEl = document.getElementById('fake-chat');
+const chatLinesEl = document.getElementById('fake-chat-lines');
+let tauntIdx = 0;
+let factIdx = 0;
+let chatIdx = 0;
+let tauntTimer = null;
+let factTimer = null;
+let chatTimer = null;
+let tauntHideTimer = null;
+let factHideTimer = null;
+let broadcastsRunning = false;
+
+function showPlayerTaunt(){
+  if(!broadcastsRunning || !tauntEl || !tauntCopyEl) return;
+  tauntCopyEl.textContent = PLAYER_TAUNTS[tauntIdx++ % PLAYER_TAUNTS.length];
+  tauntEl.style.display = 'block';
+  tauntEl.classList.remove('show');
+  requestAnimationFrame(()=>tauntEl.classList.add('show'));
+  if(tauntHideTimer) clearTimeout(tauntHideTimer);
+  tauntHideTimer = setTimeout(()=>{
+    tauntEl.classList.remove('show');
+    setTimeout(()=>{ if(!tauntEl.classList.contains('show')) tauntEl.style.display='none'; }, 850);
+  }, 9000);
+}
+
+function scheduleTaunt(delay){
+  if(!broadcastsRunning) return;
+  if(tauntTimer) clearTimeout(tauntTimer);
+  tauntTimer = setTimeout(()=>{
+    showPlayerTaunt();
+    scheduleTaunt(108000 + Math.random()*24000);
+  }, delay);
+}
+
+function showAnimalAgFact(){
+  if(!broadcastsRunning || !factFeedEl || !factCopyEl) return;
+  factCopyEl.textContent = ANIMAL_AG_FACTS[factIdx++ % ANIMAL_AG_FACTS.length];
+  factFeedEl.style.display = 'block';
+  factFeedEl.classList.remove('show');
+  requestAnimationFrame(()=>factFeedEl.classList.add('show'));
+  if(factHideTimer) clearTimeout(factHideTimer);
+  factHideTimer = setTimeout(()=>{
+    factFeedEl.classList.remove('show');
+    setTimeout(()=>{ if(!factFeedEl.classList.contains('show')) factFeedEl.style.display='none'; }, 1100);
+  }, 17000);
+}
+
+function scheduleFact(delay){
+  if(!broadcastsRunning) return;
+  if(factTimer) clearTimeout(factTimer);
+  factTimer = setTimeout(()=>{
+    showAnimalAgFact();
+    scheduleFact(36000 + Math.random()*12000);
+  }, delay);
+}
+
+function pushChatLine(){
+  if(!broadcastsRunning || !chatLinesEl) return;
+  const [name, message] = FICTIONAL_CHAT_LINES[chatIdx++ % FICTIONAL_CHAT_LINES.length];
+  const line = document.createElement('div');
+  line.className = 'chat-line';
+  const nameEl = document.createElement('span');
+  nameEl.className = 'chat-name';
+  nameEl.textContent = name + ': ';
+  line.append(nameEl, document.createTextNode(message));
+  chatLinesEl.appendChild(line);
+  while(chatLinesEl.children.length > 8) chatLinesEl.removeChild(chatLinesEl.firstChild);
+}
+
+function scheduleChat(){
+  if(!broadcastsRunning) return;
+  if(chatTimer) clearTimeout(chatTimer);
+  chatTimer = setTimeout(()=>{
+    pushChatLine();
+    scheduleChat(5200 + Math.random()*2600);
+  }, 5200 + Math.random()*2600);
+}
+
+function startBroadcasts(){
+  if(broadcastsRunning) return;
+  broadcastsRunning = true;
+  if(factFeedEl) factFeedEl.style.display = 'block';
+  if(chatEl) chatEl.style.display = 'block';
+  showAnimalAgFact();
+  pushChatLine();
+  pushChatLine();
+  scheduleFact(38000);
+  scheduleChat();
+  // First taunt arrives after the player has had time to orient; later
+  // taunts repeat roughly every two minutes.
+  scheduleTaunt(70000);
+}
+
+function stopBroadcasts(){
+  broadcastsRunning = false;
+  [tauntTimer, factTimer, chatTimer, tauntHideTimer, factHideTimer].forEach(timer=>{
+    if(timer) clearTimeout(timer);
+  });
+  tauntTimer = factTimer = chatTimer = tauntHideTimer = factHideTimer = null;
+  if(tauntEl){ tauntEl.classList.remove('show'); tauntEl.style.display='none'; }
+  if(factFeedEl){ factFeedEl.classList.remove('show'); factFeedEl.style.display='none'; }
+  if(chatEl) chatEl.style.display='none';
+}
+
+// ── FIXED NOCLIP POSITIONS FOR LEVEL 0 ───────────────────────────────────────
+const LEVEL0_CROSSES = [
+  [-1.29, 0.52],
+  [ 1.5,  -2.0],
+];
+
+function clampToBounds(x, z) {
+  return [
+    Math.max(BUILD_BOUNDS.minX + 2, Math.min(BUILD_BOUNDS.maxX - 2, x)),
+    Math.max(BUILD_BOUNDS.minZ + 2, Math.min(BUILD_BOUNDS.maxZ - 2, z)),
+  ];
+}
+
+function randomNoclipPositions(){
+  const candidates = [
+    [ 3,  -6], [-4, -10], [ 6, -18], [-5, -22],
+    [ 2, -30], [-6, -35], [ 8,  -4], [-8,  -8],
+    [ 4, -14], [-3, -26],
+  ];
+  for(let i=candidates.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [candidates[i],candidates[j]]=[candidates[j],candidates[i]];
+  }
+  return candidates.slice(0,2).map(([x,z]) => clampToBounds(x,z));
+}
+
+// ── RENDERER / SCENE / CAMERA ─────────────────────────────────────────────────
+const canvas   = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
+renderer.toneMapping       = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.9;
+renderer.outputColorSpace  = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+scene.fog = new THREE.FogExp2(0x1a1208, 0.035);
+
+const camera = new THREE.PerspectiveCamera(80, innerWidth/innerHeight, 0.05, 500);
+camera.position.set(0, EYE_HEIGHT, 0);
+
+scene.add(new THREE.AmbientLight(0xfff5cc, 0.4));
+const flickerLights = [];
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight), 0.4, 0.5, 0.85));
+composer.addPass(new OutputPass());
+
+// ── T4 smirk.mp4 video texture (same pattern as W1a/slaughter) ───────────────
+let t4VideoEl = null;
+let t4VideoTex = null;
+
+function createT4VideoTex(){
+  if(t4VideoEl) return t4VideoTex;
+  const result = createVideoTexture(
+    'https://raw.githubusercontent.com/EarthlingOfficial/public-archive/main/smirk.mp4',
+    { autoplay: false, volume: 0.85 }
+  );
+  t4VideoEl = result.vid;
+  t4VideoTex = result.tex;
+  return result.tex;
+}
+
+const controls = new PointerLockControls(camera, document.body);
+const overlayEl = document.getElementById('overlay');
+const xhairEl   = document.getElementById('xhair');
+const hintEl    = document.getElementById('hint');
+const popupEl   = document.getElementById('tv-popup');
+const tvLinkEl  = document.getElementById('tv-link');
+const tvIdLabel = document.getElementById('tv-id-label');
+const coordsEl  = document.getElementById('coords');
+const doorHintEl = document.getElementById('door-hint');
+const tvPromptEl = document.getElementById('tv-prompt');
+const barEl     = document.getElementById('bar');
+const pctEl     = document.getElementById('pct');
+let showCoords  = false;
+
+controls.addEventListener('lock', ()=>{
+  startW1aAudio();
+  startBroadcasts();
+  overlayEl.style.display='none';
+  xhairEl.style.display='block';
+  hintEl.style.display='block';
+});
+controls.addEventListener('unlock', ()=>{
+  overlayEl.style.display='flex';
+  xhairEl.style.display='none';
+  hintEl.style.display='none';
+  popupEl.style.display='none';
+  tvPromptEl.style.display='none';
+});
+overlayEl.addEventListener('click', ()=>controls.lock());
+
+// ── WALL RAYCASTING COLLISION ──────────────────────────────────────────────────
+const wallRaycaster = new THREE.Raycaster();
+const wallDirs = [];
+for(let i=0;i<8;i++){
+  const a = (i/8)*Math.PI*2;
+  wallDirs.push(new THREE.Vector3(Math.sin(a), 0, Math.cos(a)));
+}
+let collisionMeshes = [];
+const WALL_SKIN = 0.35;
+
+function canMoveTo(newPos){
+  for(const dir of wallDirs){
+    wallRaycaster.set(newPos, dir);
+    wallRaycaster.near = 0;
+    wallRaycaster.far  = WALL_SKIN;
+    const hits = wallRaycaster.intersectObjects(collisionMeshes, false);
+    if(hits.length > 0) return false;
+  }
+  return true;
+}
+
+// ── TV LABEL TEXTURE ─────────────────────────────────────────────────────────
+function makeLabelTex(id){
+  const c = document.createElement('canvas'); c.width=256; c.height=48;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle='rgba(0,0,0,0)'; ctx.fillRect(0,0,256,48);
+  ctx.fillStyle='#8a8060'; ctx.font='bold 22px Courier New';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(id,128,24);
+  return new THREE.CanvasTexture(c);
+}
+
+// ── CLICK SOUND (play/stop) ───────────────────────────────────────────────────
+const clickSoundCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playClickSound(){
+  try {
+    if(clickSoundCtx.state === 'suspended') clickSoundCtx.resume();
+    const osc = clickSoundCtx.createOscillator();
+    const gain = clickSoundCtx.createGain();
+    osc.connect(gain); gain.connect(clickSoundCtx.destination);
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(220, clickSoundCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(80, clickSoundCtx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.18, clickSoundCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, clickSoundCtx.currentTime + 0.12);
+    osc.start(); osc.stop(clickSoundCtx.currentTime + 0.13);
+  } catch(e){}
+}
+
+// ── FALL COUNTER & WINDOW TV STATE ────────────────────────────────────────────
+let totalFalls = 0;
+let windowTVsUnlocked = false;   // fall 10: W1a toggle unlocked
+let backroomsVideoUnlocked = false; // fall 20: T6 + intro-video stops, all TVs freely toggleable
+let w1aPlaying = false;
+let w1bPlaying = false;
+
+
+
+// ── VIDEO TEXTURES ───────────────────────────────────────────────────────────
+// These are real in-world video textures. They never create an overlay, so
+// pointer lock and movement stay active while a TV is playing.
+let w1aVideoEl = null;
+let w1aVideoTex = null;
+let w1bVideoEl = null;
+let w1bVideoTex = null;
+let t10VideoEl = null;
+let t10VideoTex = null;
+let t6VideoEl = null;
+let t6VideoTex = null;
+
+function createVideoTexture(src, { autoplay = false, volume = 0.65 } = {}){
+  const vid = document.createElement('video');
+  // crossOrigin must be set before src/load. If it is set afterward, the
+  // browser may still play audio but refuse to upload video frames to WebGL.
+  vid.crossOrigin = 'anonymous';
+  vid.src = src;
+  vid.loop = true;
+  vid.muted = true;
+  vid.volume = volume;
+  vid.playsInline = true;
+  vid.preload = 'auto';
+  vid.setAttribute('playsinline','');
+  vid.setAttribute('webkit-playsinline','');
+  vid.autoplay = autoplay;
+  vid.load();
+  vid.addEventListener('error', ()=>{
+    console.warn('TV media failed to load:', src, vid.error ? vid.error.code : 'unknown');
+  });
+
+  const tex = new THREE.VideoTexture(vid);
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.colorSpace = THREE.SRGBColorSpace;
+
+  if(autoplay) vid.play().catch(()=>{});
+  return { vid, tex };
+}
+
+function drawTVStandby(nctx, id, title){
+  nctx.clearRect(0, 0, 128, 72);
+  nctx.fillStyle = '#080706';
+  nctx.fillRect(0, 0, 128, 72);
+  nctx.strokeStyle = 'rgba(200,185,122,0.42)';
+  nctx.strokeRect(3, 3, 122, 66);
+  nctx.textAlign = 'center';
+  nctx.textBaseline = 'middle';
+  nctx.fillStyle = '#c8b97a';
+  nctx.font = 'bold 11px Courier New';
+  nctx.fillText(id + ' // ' + title, 64, 27);
+  nctx.fillStyle = 'rgba(240,225,180,0.7)';
+  nctx.font = '9px Courier New';
+  nctx.fillText('[ E ]  PLAY', 64, 48);
+}
+
+function attachVideoToScreen(videoEl, videoTex, screen, standbyTex){
+  if(!videoEl || !videoTex || !screen) return;
+  const material = screen.material;
+  videoEl._tvScreen = screen;
+  videoEl._tvTexture = videoTex;
+  videoEl._tvStandbyTexture = standbyTex;
+  const showVideoFrame = ()=>{
+    if(videoEl.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+    material.map = videoTex;
+    material.needsUpdate = true;
+    screen.userData.videoReady = true;
+    videoTex.needsUpdate = true;
+  };
+  const showStandby = ()=>{
+    material.map = standbyTex;
+    material.needsUpdate = true;
+    screen.userData.videoReady = false;
+  };
+  videoEl.addEventListener('loadeddata', showVideoFrame);
+  videoEl.addEventListener('canplay', showVideoFrame);
+  videoEl.addEventListener('playing', showVideoFrame);
+  videoEl.addEventListener('error', showStandby);
+  if(videoEl.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) showVideoFrame();
+  else showStandby();
+}
+
+function createW1aVideoTex(){
+  if(w1aVideoEl) return w1aVideoTex;
+  const result = createVideoTexture(
+    'https://raw.githubusercontent.com/EarthlingOfficial/public-archive/main/slaughter.mp4',
+    { autoplay: true, volume: 0.65 }
+  );
+  w1aVideoEl = result.vid;
+  w1aVideoTex = result.tex;
+  w1aPlaying = true;
+  return result.tex;
+}
+
+function createW1bVideoTex(){
+  if(w1bVideoEl) return w1bVideoTex;
+  const result = createVideoTexture(
+    'https://cors.archive.org/cors/Haxan1922/Haxan%20%281922%29.mp4',
+    { autoplay: false, volume: 0.65 }
+  );
+  w1bVideoEl = result.vid;
+  w1bVideoTex = result.tex;
+  w1bPlaying = false;
+  return result.tex;
+}
+
+function createT10VideoTex(){
+  if(t10VideoEl) return t10VideoTex;
+  const result = createVideoTexture(
+    'https://cors.archive.org/cors/WolfBlood1925/WolfBlood_512kb.mp4',
+    { autoplay: true, volume: 0.65 }
+  );
+  t10VideoEl = result.vid;
+  t10VideoTex = result.tex;
+  return result.tex;
+}
+
+function createT6VideoTex(){
+  if(t6VideoEl) return t6VideoTex;
+  // Catbox direct file host — faster and more reliable than archive.org CORS proxy.
+  // Stays silent/paused until fall 20; intro-video element is stopped at that point.
+  const result = createVideoTexture(
+    'https://files.catbox.moe/8yka3k.mp4',
+    { autoplay: false, volume: 0.65 }
+  );
+  t6VideoEl = result.vid;
+  t6VideoTex = result.tex;
+  return result.tex;
+}
+
+function getVisibleTVVideo(id){
+  const tv = allTVs.find(candidate => candidate.id === id && candidate.g.visible);
+  return tv && tv.videoEl ? tv.videoEl : null;
+}
+
+function startW1aAudio(){
+  const vid = getVisibleTVVideo('W1a') || w1aVideoEl;
+  if(!vid) return;
+  // If the player manually paused W1a (w1aPlaying===false), don't override it.
+  // Only auto-start on initial game entry when w1aVideoEl hasn't been set yet.
+  if(w1aVideoEl && !w1aPlaying) return;
+  w1aVideoEl = vid;
+  vid.muted = false;
+  vid.volume = 0.65;
+  vid.play().catch(()=>{
+    vid.muted = true;
+    vid.play().catch(()=>{});
+  });
+  w1aPlaying = true;
+}
+
+// ── WALL TV VIDEO ELEMENTS MAP ────────────────────────────────────────────────
+const wallTVVideoEls = {}; // unused — kept for compatibility
+
+// ── TV INTERACTION ────────────────────────────────────────────────────────────
+// Returns the nearest wall TV (T1–T10) within interact range, or null
+function getNearestWallTV(){
+  let best = null, bestDist = Infinity;
+  allTVs.forEach(tv => {
+    if(!tv.g.visible) return;
+    // Always include wall TVs (T prefix); include window TVs always (show locked msg if needed)
+    const d = camera.position.distanceTo(tv.g.position);
+    if(d < bestDist){ bestDist = d; best = tv; }
+  });
+  return bestDist < 5 ? best : null;
+}
+
+function toggleVideoEl(vid){
+  if(!vid) return;
+  if(vid.paused){
+    vid.muted = false;
+    const playAttempt = vid.play();
+    playAttempt.catch(()=>{
+      // Preserve a usable visual even when the browser rejects unprompted
+      // audio; the next explicit interaction can retry with muted playback.
+      vid.muted = true;
+      vid.play().catch(()=>{});
+    });
+  } else {
+    vid.pause();
+    if(vid._tvScreen && vid._tvStandbyTexture){
+      vid._tvScreen.material.map = vid._tvStandbyTexture;
+      vid._tvScreen.material.needsUpdate = true;
+      vid._tvScreen.userData.videoReady = false;
+    }
+  }
+  playClickSound();
+}
+
+function interactWithTV(tv){
+  if(!tv) return;
+
+  // W1a: locked until fall 10, then freely toggleable
+  if(tv.id === 'W1a'){
+    if(!windowTVsUnlocked && !backroomsVideoUnlocked){
+      showWindowTVLockedMsg();
+      return;
+    }
+    if(tv.videoEl){
+      toggleVideoEl(tv.videoEl);
+      w1aVideoEl = tv.videoEl;
+      w1aPlaying = !tv.videoEl.paused;
+    }
+    return;
+  }
+
+  // W1b is its own screen and is playable/stoppable from level one.
+  if(tv.id === 'W1b' && tv.videoEl){
+    toggleVideoEl(tv.videoEl);
+    w1bVideoEl = tv.videoEl;
+    w1bPlaying = !tv.videoEl.paused;
+    return;
+  }
+
+  // T10 — Wolf Blood plays on the physical screen in the level.
+  if(tv.id === 'T10' && tv.videoEl){
+    toggleVideoEl(tv.videoEl);
+    t10VideoEl = tv.videoEl;
+    return;
+  }
+
+  // T6 — Backrooms found footage, unlocked at fall 20.
+  if(tv.id === 'T6'){
+    if(!backroomsVideoUnlocked){
+      showWindowTVLockedMsg(`fall ${totalFalls} of 20 times to unlock this signal\nthe footage is in the walls\nyou just can't see it yet`);
+      return;
+    }
+    const vid = tv.videoEl || t6VideoEl;
+    if(vid) toggleVideoEl(vid);
+    return;
+  }
+
+  // T4 — smirk.mp4 video texture
+  if(tv.id === 'T4' && tv.videoEl){
+    toggleVideoEl(tv.videoEl);
+    t4VideoEl = tv.videoEl;
+    return;
+  }
+
+  // T1–T9 — animated static, just click sound
+  playClickSound();
+}
+
+function showWindowTVLockedMsg(msg){
+  const el = document.getElementById('fall-msg');
+  if(!el) return;
+  el.textContent = msg || `fall ${totalFalls} of 10 times to unlock these screens\nyou think you're trapped?\ntry being born in a cage`;
+  el.style.display = 'block';
+  el.style.opacity = '0';
+  setTimeout(()=>{ el.style.opacity='1'; }, 50);
+  setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>{ el.style.display='none'; }, 1200); }, 4000);
+}
+
+// ── BUILD A WALL TV ───────────────────────────────────────────────────────────
+function buildWallTV(id, pos, ry, levelYOffset=0){
+  const g = new THREE.Group();
+  const frame = new THREE.Mesh(
+    new THREE.BoxGeometry(2.5, 1.7, 0.14),
+    new THREE.MeshStandardMaterial({color:0x111111, roughness:.9, metalness:.2})
+  );
+  frame.castShadow=true; g.add(frame);
+
+  const nc=document.createElement('canvas'); nc.width=128; nc.height=72;
+  const nctx=nc.getContext('2d');
+  const ntex=new THREE.CanvasTexture(nc); ntex.minFilter=THREE.LinearFilter;
+  let videoEl = null;
+  let videoTex = null;
+
+  let screenMat;
+  if(id === 'W1a'){
+    const vtex = createW1aVideoTex();
+    videoEl = w1aVideoEl;
+    videoTex = vtex;
+    nctx.fillStyle = '#000'; nctx.fillRect(0,0,128,72);
+    ntex.needsUpdate = true;
+    screenMat = new THREE.MeshBasicMaterial({map: vtex, side: THREE.DoubleSide});
+  } else if(id === 'W1b'){
+    const vtex = createW1bVideoTex();
+    videoEl = w1bVideoEl;
+    videoTex = vtex;
+    drawTVStandby(nctx, id, 'HAXAN 1922');
+    ntex.needsUpdate = true;
+    screenMat = new THREE.MeshBasicMaterial({map: ntex, side: THREE.DoubleSide});
+  } else if(id === 'T10'){
+    const vtex = createT10VideoTex();
+    videoEl = t10VideoEl;
+    videoTex = vtex;
+    nctx.fillStyle = '#000'; nctx.fillRect(0,0,128,72);
+    ntex.needsUpdate = true;
+    screenMat = new THREE.MeshBasicMaterial({map: vtex, side: THREE.DoubleSide});
+  } else if(id === 'T4'){
+    const vtex = createT4VideoTex();
+    videoEl = t4VideoEl;
+    videoTex = vtex;
+    drawTVStandby(nctx, id, 'SMIRK');
+    ntex.needsUpdate = true;
+    screenMat = new THREE.MeshBasicMaterial({map: ntex, side: THREE.DoubleSide});
+  } else if(id === 'T6'){
+    // If already unlocked, use video texture immediately; otherwise black canvas until fall 20
+    if(backroomsVideoUnlocked && t6VideoTex){
+      videoEl = t6VideoEl;
+      videoTex = t6VideoTex;
+      screenMat = new THREE.MeshBasicMaterial({map: t6VideoTex, side: THREE.DoubleSide});
+    } else {
+      nctx.fillStyle = '#000'; nctx.fillRect(0,0,128,72);
+      ntex.needsUpdate = true;
+      screenMat = new THREE.MeshBasicMaterial({map: ntex, side: THREE.DoubleSide});
+    }
+  } else {
+    screenMat = new THREE.MeshBasicMaterial({map: ntex});
+  }
+
+  const screen=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.4), screenMat);
+  screen.position.set(0,0,0.075); frame.add(screen);
+  if((id === 'W1a' || id === 'W1b' || id === 'T10' || id === 'T4') && videoEl && videoTex){
+    attachVideoToScreen(videoEl, videoTex, screen, ntex);
+  }
+
+  const glow=new THREE.PointLight(0xaaccff,0.55,5);
+  glow.position.set(0,0,0.6); frame.add(glow);
+
+  const labelMesh=new THREE.Mesh(
+    new THREE.PlaneGeometry(2.0,0.28),
+    new THREE.MeshBasicMaterial({map:makeLabelTex(id),transparent:true,depthWrite:false})
+  );
+  labelMesh.position.set(0,-1.06,0.08); frame.add(labelMesh);
+
+  g.position.set(pos[0], pos[1]+levelYOffset, pos[2]);
+  g.rotation.y=ry;
+  return {
+    g, screen, ntex, nctx, id,
+    videoEl,
+    videoTex,
+  };
+}
+
+// ── BUILD A WINDOW TV ─────────────────────────────────────────────────────────
+function buildWindowTV(id, pos, ry, levelYOffset=0){
+  const g = new THREE.Group();
+  const frame=new THREE.Mesh(
+    new THREE.BoxGeometry(2.8,1.2,0.10),
+    new THREE.MeshStandardMaterial({color:0x0a0a0a, roughness:.95, metalness:.1})
+  );
+  frame.castShadow=true; g.add(frame);
+
+  const nc=document.createElement('canvas'); nc.width=128; nc.height=72;
+  const nctx=nc.getContext('2d');
+  const ntex=new THREE.CanvasTexture(nc); ntex.minFilter=THREE.LinearFilter;
+  let videoEl = null;
+  let videoTex = null;
+
+  let screenMat;
+  if(id==='W1a'){
+    const vtex = createW1aVideoTex();
+    videoEl = w1aVideoEl;
+    videoTex = vtex;
+    nctx.fillStyle = '#000'; nctx.fillRect(0,0,128,72);
+    ntex.needsUpdate = true;
+    screenMat = new THREE.MeshBasicMaterial({map: vtex, side: THREE.DoubleSide});
+  } else if(id==='W1b'){
+    const vtex = createW1bVideoTex();
+    videoEl = w1bVideoEl;
+    videoTex = vtex;
+    drawTVStandby(nctx, id, 'HAXAN 1922');
+    ntex.needsUpdate = true;
+    // Use video tex as material but video starts paused — attachVideoToScreen
+    // handles swapping back to standby when paused and to video when playing
+    screenMat = new THREE.MeshBasicMaterial({map: vtex, side: THREE.DoubleSide});
+  } else {
+    screenMat = new THREE.MeshBasicMaterial({map: ntex});
+  }
+
+  const screen=new THREE.Mesh(new THREE.PlaneGeometry(2.55,1.0), screenMat);
+  screen.position.set(0,0,0.055); frame.add(screen);
+  if(id === 'W1a' || id === 'W1b'){
+    attachVideoToScreen(videoEl, videoTex, screen, ntex);
+  }
+
+  const glow=new THREE.PointLight(0xc8e8ff,0.8,6);
+  glow.position.set(0,0,0.7); frame.add(glow);
+
+  const labelMesh=new THREE.Mesh(
+    new THREE.PlaneGeometry(1.8,0.22),
+    new THREE.MeshBasicMaterial({map:makeLabelTex(id),transparent:true,depthWrite:false})
+  );
+  labelMesh.position.set(0,-0.72,0.06); frame.add(labelMesh);
+
+  g.position.set(pos[0], pos[1]+levelYOffset, pos[2]);
+  g.rotation.y=ry;
+  return {
+    g, screen, ntex, nctx, id,
+    videoEl,
+    videoTex,
+  };
+}
+
+// ── IN-GAME WALL BUTTONS ─────────────────────────────────────────────────────
+const LORE_BUTTON_DEF = {
+  id: 'btn-lore',
+  pos: [-43.15, 1.7, -3.99],
+  ry: 0,
+  label: 'STAGE 10\nLORE',
+  url: 'stage10lore.html',
+  color: 0x0a0a0a,
+  accent: 0xc8b97a,
+  isTikTok: false,
+};
+
+const TIKTOK_DOOR_POS = [-49.74, 1.5, -4.14];
+const TIKTOK_URL = 'https://www.tiktok.com/@earthling_official';
+
+function snapButtonToWall(pos){
+  const ray = new THREE.Raycaster();
+  const candidates = [
+    { dir: new THREE.Vector3( 1,0,0), ry: -Math.PI/2 },
+    { dir: new THREE.Vector3(-1,0,0), ry:  Math.PI/2 },
+    { dir: new THREE.Vector3(0,0, 1), ry:  Math.PI   },
+    { dir: new THREE.Vector3(0,0,-1), ry:  0         },
+  ];
+  let best = null, bestDist = Infinity;
+  candidates.forEach(c => {
+    ray.set(new THREE.Vector3(pos[0], pos[1], pos[2]), c.dir);
+    ray.far = 10;
+    const hits = ray.intersectObjects(collisionMeshes, true);
+    if(hits.length > 0 && hits[0].distance < bestDist){
+      bestDist = hits[0].distance;
+      const p = hits[0].point.clone().addScaledVector(c.dir, -0.05);
+      best = { pos: [p.x, pos[1], p.z], ry: c.ry };
+    }
+  });
+  return best || { pos, ry: 0 };
+}
+
+// ── "THIS WAY" WALL TEXT near T6 ─────────────────────────────────────────────
+// Small black-painted text on the wall beside T6, like backrooms graffiti.
+// Clicking/E opens smirk.mp4 directly.
+function buildThisWayText(){
+  // Snap to the wall to the right of T6 (T6 faces -Z, so snap toward +X wall)
+  const ray = new THREE.Raycaster();
+  const origin = new THREE.Vector3(2.5, 1.55, 8.0);
+  const dir = new THREE.Vector3(1, 0, 0);
+  ray.set(origin, dir);
+  ray.far = 20;
+  const hits = ray.intersectObjects(collisionMeshes, true);
+  let px = origin.x, pz = origin.z, ry = -Math.PI / 2;
+  if(hits.length > 0){
+    const p = hits[0].point.clone().addScaledVector(dir, -0.04);
+    px = p.x; pz = p.z;
+  } else {
+    px = origin.x + 6;
+  }
+
+  // Canvas: small black paint text on transparent bg
+  const c = document.createElement('canvas'); c.width = 256; c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, 256, 64);
+  ctx.fillStyle = 'rgba(0,0,0,0.82)';
+  ctx.font = 'bold 18px Courier New';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('this way', 10, 32);
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.font = '11px Courier New';
+  ctx.fillText('→', 112, 33);
+  const tex = new THREE.CanvasTexture(c);
+
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.9, 0.22),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide, depthWrite: false })
+  );
+  mesh.position.set(px, 1.55, pz);
+  mesh.rotation.y = ry;
+  scene.add(mesh);
+
+  // Hitbox for E/click interaction
+  const hitbox = new THREE.Mesh(
+    new THREE.BoxGeometry(0.9, 0.3, 0.08),
+    new THREE.MeshBasicMaterial({ visible: false })
+  );
+  hitbox.position.set(px, 1.55, pz);
+  hitbox.rotation.y = ry;
+  scene.add(hitbox);
+  wallButtonMeshes.push({
+    mesh: hitbox,
+    url: 'https://raw.githubusercontent.com/EarthlingOfficial/public-archive/main/smirk.mp4'
+  });
+}
+
+function buildTikTokDoor(){
+  const snap = snapButtonToWall(TIKTOK_DOOR_POS);
+  const rx = snap.pos[0], rz = snap.pos[2], faceRy = snap.ry;
+
+  const iconC = document.createElement('canvas'); iconC.width=128; iconC.height=128;
+  const ic = iconC.getContext('2d');
+  ic.fillStyle='#fe2c55';
+  ic.beginPath(); ic.arc(76,52,28,0,Math.PI*2); ic.fill();
+  ic.fillStyle='#00f2ea';
+  ic.beginPath(); ic.arc(56,52,28,0,Math.PI*2); ic.fill();
+  ic.fillStyle='#fff';
+  ic.beginPath(); ic.arc(66,52,24,0,Math.PI*2); ic.fill();
+  ic.fillStyle='#000';
+  ic.font='bold 48px sans-serif'; ic.textAlign='center'; ic.textBaseline='middle';
+  ic.fillText('♪',66,56);
+  const iconTex = new THREE.CanvasTexture(iconC);
+  const iconMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.55, 0.55),
+    new THREE.MeshBasicMaterial({ map: iconTex, transparent: true, side: THREE.DoubleSide })
+  );
+  iconMesh.position.set(rx, TIKTOK_DOOR_POS[1] + 1.2, rz);
+  iconMesh.rotation.y = faceRy;
+  scene.add(iconMesh);
+
+  const lc = document.createElement('canvas'); lc.width=512; lc.height=64;
+  const lctx = lc.getContext('2d');
+  lctx.fillStyle='rgba(0,0,0,0)'; lctx.fillRect(0,0,512,64);
+  lctx.fillStyle='#c8b97a';
+  lctx.font='bold 22px Courier New';
+  lctx.textAlign='center'; lctx.textBaseline='middle';
+  lctx.fillText('ENTER THE REAL DEBATE', 256, 32);
+  const lTex = new THREE.CanvasTexture(lc);
+  const labelMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.9, 0.24),
+    new THREE.MeshBasicMaterial({ map: lTex, transparent: true, side: THREE.DoubleSide })
+  );
+  labelMesh.position.set(rx, TIKTOK_DOOR_POS[1] + 1.75, rz);
+  labelMesh.rotation.y = faceRy;
+  scene.add(labelMesh);
+
+  const glow = new THREE.PointLight(0xfe2c55, 0.4, 3);
+  glow.position.set(rx, TIKTOK_DOOR_POS[1] + 1.0, rz);
+  scene.add(glow);
+
+  const hitbox = new THREE.Mesh(
+    new THREE.BoxGeometry(2.2, 3.0, 0.12),
+    new THREE.MeshBasicMaterial({ visible: false })
+  );
+  hitbox.position.set(rx, TIKTOK_DOOR_POS[1] + 0.5, rz);
+  hitbox.rotation.y = faceRy;
+  scene.add(hitbox);
+  wallButtonMeshes.push({ mesh: hitbox, url: TIKTOK_URL });
+}
+
+const wallButtonMeshes = [];
+
+function buildWallButton(def){
+  const g = new THREE.Group();
+
+  const outerFrame = new THREE.Mesh(
+    new THREE.BoxGeometry(1.3, 0.75, 0.04),
+    new THREE.MeshStandardMaterial({ color: 0x141008, roughness: 0.6, metalness: 0.4 })
+  );
+  g.add(outerFrame);
+
+  const panel = new THREE.Mesh(
+    new THREE.BoxGeometry(1.2, 0.64, 0.055),
+    new THREE.MeshStandardMaterial({ color: 0x080601, roughness: 0.95, metalness: 0.05 })
+  );
+  panel.position.set(0, 0, 0.008);
+  g.add(panel);
+
+  [0.375, -0.375].forEach(y => {
+    const bar = new THREE.Mesh(
+      new THREE.BoxGeometry(1.3, 0.022, 0.065),
+      new THREE.MeshBasicMaterial({ color: 0xc8b97a })
+    );
+    bar.position.set(0, y, 0);
+    g.add(bar);
+  });
+
+  [-0.65, 0.65].forEach(x => {
+    const bar = new THREE.Mesh(
+      new THREE.BoxGeometry(0.022, 0.75, 0.065),
+      new THREE.MeshBasicMaterial({ color: 0xc8b97a })
+    );
+    bar.position.set(x, 0, 0);
+    g.add(bar);
+  });
+
+  [[-0.58, 0.31], [0.58, 0.31], [-0.58, -0.31], [0.58, -0.31]].forEach(([x, y]) => {
+    const stud = new THREE.Mesh(
+      new THREE.BoxGeometry(0.06, 0.06, 0.08),
+      new THREE.MeshBasicMaterial({ color: 0xe0d090 })
+    );
+    stud.position.set(x, y, 0);
+    g.add(stud);
+  });
+
+  const lc = document.createElement('canvas'); lc.width=512; lc.height=256;
+  const lctx = lc.getContext('2d');
+  lctx.clearRect(0,0,512,256);
+
+  const grad = lctx.createLinearGradient(0,0,0,256);
+  grad.addColorStop(0,'rgba(30,22,5,0.0)');
+  grad.addColorStop(1,'rgba(10,8,0,0.0)');
+  lctx.fillStyle=grad; lctx.fillRect(0,0,512,256);
+
+  lctx.textAlign='center';
+  lctx.font='500 26px Courier New';
+  lctx.fillStyle='rgba(200,185,122,0.5)';
+  lctx.letterSpacing='6px';
+  lctx.fillText('STAGE  10', 256, 76);
+
+  lctx.fillStyle='rgba(200,185,122,0.25)';
+  lctx.fillRect(140, 106, 232, 1);
+
+  lctx.font='bold 96px Courier New';
+  lctx.fillStyle='#c8b97a';
+  lctx.shadowColor='rgba(200,185,122,0.6)';
+  lctx.shadowBlur=18;
+  lctx.fillText('LORE', 256, 200);
+  lctx.shadowBlur=0;
+
+  const lTex = new THREE.CanvasTexture(lc);
+  const labelM = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.05, 0.52),
+    new THREE.MeshBasicMaterial({ map: lTex, transparent: true })
+  );
+  labelM.position.set(0, 0, 0.045);
+  g.add(labelM);
+
+  const glow = new THREE.PointLight(0xd4a830, 0.65, 4);
+  glow.position.set(0, 0, 0.7);
+  g.add(glow);
+
+  g.position.set(def.pos[0], def.pos[1], def.pos[2]);
+  g.rotation.y = def.ry;
+  scene.add(g);
+
+  wallButtonMeshes.push({ mesh: panel, url: def.url });
+  return g;
+}
+
+// ── ALL TVS FLAT ARRAY (updated per level) ────────────────────────────────────
+let allTVs = [];
+
+// ── CREATE ONE LEVEL ──────────────────────────────────────────────────────────
+function createLevelGroup(levelIndex){
+  const yOff = -levelIndex * LEVEL_DEPTH;
+  const group = new THREE.Group();
+  group.visible = false;
+
+  if(glbTemplate){
+    const clone = glbTemplate.clone(true);
+    clone.traverse(c => {
+      if(c.isMesh){
+        c.castShadow=true; c.receiveShadow=true;
+        collisionMeshes.push(c);
+      }
+    });
+    group.add(clone);
+  }
+
+  const lights = [];
+  [[0,2.8,0],[10,2.8,-5],[-10,2.8,8],[20,2.8,5],[-20,2.8,-12],
+   [5,2.8,25],[0,2.8,-15],[0,2.8,-30],[0,2.8,-45]].forEach(([x,y,z])=>{
+    const l = new THREE.PointLight(0xfff5aa, 1.2, 18);
+    l.position.set(x, y, z);
+    group.add(l); lights.push(l); flickerLights.push(l);
+  });
+
+  group.position.y = yOff;
+  scene.add(group);
+
+  const levelTVs = [];
+  WALL_TVS.forEach(t => {
+    const tv = buildWallTV(t.id, t.pos, t.ry, yOff);
+    tv.g.visible = false;
+    scene.add(tv.g);
+    levelTVs.push(tv);
+  });
+  WINDOW_TVS.forEach(t => {
+    const tv = buildWindowTV(t.id, t.pos, t.ry, yOff);
+    tv.g.visible = false;
+    scene.add(tv.g);
+    levelTVs.push(tv);
+  });
+
+  const floorY = levelFloorY + yOff + 0.04;
+
+  function randomTVCross(){
+    const ray = new THREE.Raycaster();
+    const candidates = [];
+    WALL_TV_RAYS.forEach(def => {
+      const origin = new THREE.Vector3(def.from[0], def.from[1], def.from[2]);
+      const dir = new THREE.Vector3(def.dir[0], 0, def.dir[2]).normalize();
+      ray.set(origin, dir);
+      ray.far = 40;
+      const hits = ray.intersectObjects(collisionMeshes, true);
+      let px, pz;
+      if(hits.length > 0){
+        const p = hits[0].point.clone().addScaledVector(dir, -0.08);
+        px = p.x; pz = p.z;
+      } else {
+        px = def.from[0] + def.dir[0]*6;
+        pz = def.from[2] + def.dir[2]*6;
+      }
+      const fx = px - def.dir[0] * 1;
+      const fz = pz - def.dir[2] * 1;
+      candidates.push([fx, fz]);
+    });
+    const pick = candidates[Math.floor(Math.random()*candidates.length)];
+    return [pick];
+  }
+
+  const positions = (levelIndex === 0) ? LEVEL0_CROSSES : randomTVCross();
+  positions.forEach(([x, z]) => {
+    const mat = new THREE.MeshStandardMaterial({
+      color:0x000000, emissive:new THREE.Color(0x000000),
+      emissiveIntensity:0, roughness:0.9, metalness:0,
+    });
+    const g2 = new THREE.Group();
+    g2.add(new THREE.Mesh(new THREE.BoxGeometry(CROSS_SIZE*2,0.025,0.07), mat));
+    g2.add(new THREE.Mesh(new THREE.BoxGeometry(0.07,0.025,CROSS_SIZE*2), mat));
+    g2.position.set(x, floorY, z);
+    g2.visible = false;
+    scene.add(g2);
+    noclipZones.push({ x, z, levelIndex, mesh: g2 });
+    group.userData.crosses = group.userData.crosses || [];
+    group.userData.crosses.push(g2);
+  });
+
+  levelGroups[levelIndex] = { group, lights, tvs: levelTVs };
+  return levelGroups[levelIndex];
+}
+
+// ── SHOW / HIDE A LEVEL ───────────────────────────────────────────────────────
+function showLevel(idx){
+  if(!levelGroups[idx]) return;
+  const { group, tvs } = levelGroups[idx];
+  group.visible = true;
+  tvs.forEach(tv => { tv.g.visible = true; });
+  (group.userData.crosses||[]).forEach(c => { c.visible = true; });
+  tvs.forEach(tv => { if(!allTVs.find(t=>t===tv)) allTVs.push(tv); });
+}
+
+function hideLevel(idx){
+  if(!levelGroups[idx]) return;
+  const { group, tvs } = levelGroups[idx];
+  group.visible = false;
+  tvs.forEach(tv => { tv.g.visible = false; });
+  (group.userData.crosses||[]).forEach(c => { c.visible = false; });
+}
+
+// ── TRIGGER FALL ─────────────────────────────────────────────────────────────
+function triggerFall(){
+  if(isFalling || isRecovering) return;
+  isFalling = true;
+  totalFalls++;
+  if(totalFalls >= 10 && !windowTVsUnlocked){
+    windowTVsUnlocked = true;
+    setTimeout(()=>{
+      const el = document.getElementById('fall-msg');
+      if(el){
+        el.textContent = "the screens in the walls are awake now\nyou finally fell enough times to see\nwelcome to their permanent state";
+        el.style.display='block'; el.style.opacity='0';
+        setTimeout(()=>{ el.style.opacity='1'; },100);
+        setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>{ el.style.display='none'; },1200); },6000);
+      }
+    }, 2800);
+  }
+
+  if(totalFalls >= 20 && !backroomsVideoUnlocked){
+    backroomsVideoUnlocked = true;
+    const introVid = document.getElementById('intro-video');
+    if(introVid){ introVid.pause(); introVid.src = ''; }
+    createT6VideoTex();
+    const t6TVs = allTVs.filter(tv => tv.id === 'T6');
+    t6TVs.forEach(t6 => {
+      t6.videoEl = t6VideoEl;
+      t6.videoTex = t6VideoTex;
+      if(t6.screen){
+        // Replace material entirely so VideoTexture binding is clean
+        if(t6.screen.material) t6.screen.material.dispose();
+        t6.screen.material = new THREE.MeshBasicMaterial({ map: t6VideoTex, side: THREE.DoubleSide });
+        t6VideoTex.needsUpdate = true;
+      }
+    });
+    if(t6VideoEl){
+      t6VideoEl.muted = false;
+      t6VideoEl.volume = 0.65;
+      t6VideoEl.play().catch(()=>{ t6VideoEl.muted=true; t6VideoEl.play().catch(()=>{}); });
+    }
+    setTimeout(()=>{
+      const el = document.getElementById('fall-msg');
+      if(el){
+        el.textContent = "the opening signal has moved to the walls\nfind T6 — it's playing now\nyou can stop it. they could not.";
+        el.style.display='block'; el.style.opacity='0';
+        setTimeout(()=>{ el.style.opacity='1'; },100);
+        setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>{ el.style.display='none'; },1200); },7000);
+      }
+    }, 2800);
+  }
+
+  try { screamAudio.currentTime=0; screamAudio.play().catch(()=>{}); } catch(e){}
+
+  const nextIdx = currentLevel + 1;
+  const targetFloorY = levelFloorY - nextIdx * LEVEL_DEPTH;
+
+  window._fallTarget   = targetFloorY + EYE_HEIGHT;
+  window._fallVelocity = 0;
+  window._fallPrevIdx  = currentLevel;
+  window._fallNextIdx  = nextIdx;
+
+  if(!levelGroups[nextIdx]) createLevelGroup(nextIdx);
+  showLevel(nextIdx);
+  if(!levelGroups[nextIdx+1]) createLevelGroup(nextIdx+1);
+
+  currentLevel = nextIdx;
+}
+
+// ── GLB LOAD ─────────────────────────────────────────────────────────────────
+const draco=new DRACOLoader();
+draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+const loader=new GLTFLoader(); loader.setDRACOLoader(draco);
+
+// Wait for map URL to be chosen (PC selector) then start loading
+glbUrlReady.then(chosenUrl => {
+  GLB_URL = chosenUrl;
+  loader.load(GLB_URL,
+    gltf => {
+      glbTemplate = gltf.scene;
+      glbTemplate.traverse(c => { if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; } });
+
+      const box = new THREE.Box3().setFromObject(glbTemplate);
+      const center = new THREE.Vector3(); box.getCenter(center);
+      levelFloorY = box.min.y;
+      camera.position.set(center.x, levelFloorY + EYE_HEIGHT, center.z);
+
+      glbTemplate.traverse(c => { if(c.isMesh) collisionMeshes.push(c); });
+
+      snapTVsToWalls(0);
+
+      // Build T4 YouTube screen using snapped T4 position
+      const loreSnap = snapButtonToWall(LORE_BUTTON_DEF.pos);
+      LORE_BUTTON_DEF.pos = loreSnap.pos;
+      LORE_BUTTON_DEF.ry  = loreSnap.ry;
+      buildWallButton(LORE_BUTTON_DEF);
+
+      buildTikTokDoor();
+      buildThisWayText();
+
+      createLevelGroup(0);
+      levelGroups[0].group.add(glbTemplate);
+      showLevel(0);
+
+      setTimeout(()=>{ if(!levelGroups[1]) createLevelGroup(1); }, 3000);
+
+      barEl.style.width='100%'; pctEl.textContent='100%';
+      onGLBReady();
+    },
+    ev => {
+      const fakeP=Math.min(95,Math.round((ev.loaded/1048576)/150*100));
+      barEl.style.width=fakeP+'%'; pctEl.textContent=fakeP+'%';
+    },
+    () => enterGame()
+  );
+});
+
+// ── INPUT ────────────────────────────────────────────────────────────────────
+const keys = new Set();
+document.addEventListener('keydown', e => {
+  keys.add(e.code);
+  if(e.code==='Escape') popupEl.style.display='none';
+  if(e.code==='Backquote'){ showCoords=!showCoords; coordsEl.style.display=showCoords?'block':'none'; }
+  if(e.code==='KeyE' && controls.isLocked){
+    // Check wall buttons (lore, tiktok)
+    btnRaycaster.setFromCamera(new THREE.Vector2(0,0), camera);
+    const btnMeshes = wallButtonMeshes.map(b => b.mesh);
+    const btnHits = btnRaycaster.intersectObjects(btnMeshes, false);
+    if(btnHits.length > 0 && btnHits[0].distance < 6){
+      const hit = wallButtonMeshes.find(b => b.mesh === btnHits[0].object);
+      if(hit){ window.open(hit.url, '_blank'); return; }
+    }
+    // Check nearest wall TV
+    const nearTV = getNearestWallTV();
+    if(nearTV) interactWithTV(nearTV);
+  }
+});
+document.addEventListener('keyup', e => keys.delete(e.code));
+
+// ── MOBILE JOYSTICKS ─────────────────────────────────────────────────────────
+const joyL  = { dx:0, dz:0 };
+const joyR  = { dx:0, dy:0 };
+
+function setupJoystick(el, knob, isRight){
+  let active=false, startX=0, startY=0, id=-1;
+  const R=55;
+
+  function onStart(e){
+    e.preventDefault();
+    const t=e.changedTouches[0]; id=t.identifier;
+    startX=t.clientX; startY=t.clientY; active=true;
+  }
+  function onMove(e){
+    e.preventDefault();
+    if(!active) return;
+    let t=null;
+    for(const touch of e.changedTouches){ if(touch.identifier===id){ t=touch; break; } }
+    if(!t) return;
+    const dx=Math.max(-R,Math.min(R, t.clientX-startX));
+    const dy=Math.max(-R,Math.min(R, t.clientY-startY));
+    knob.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+    if(isRight){ joyR.dx=dx/R; joyR.dy=dy/R; }
+    else        { joyL.dx=dx/R; joyL.dz=dy/R; }
+  }
+  function onEnd(e){
+    for(const t of e.changedTouches){ if(t.identifier===id){ active=false; id=-1; break; } }
+    if(!active){
+      knob.style.transform='translate(-50%,-50%)';
+      if(isRight){ joyR.dx=0; joyR.dy=0; }
+      else        { joyL.dx=0; joyL.dz=0; }
+    }
+  }
+  el.addEventListener('touchstart',  onStart, {passive:false});
+  el.addEventListener('touchmove',   onMove,  {passive:false});
+  el.addEventListener('touchend',    onEnd,   {passive:false});
+  el.addEventListener('touchcancel', onEnd,   {passive:false});
+}
+
+setupJoystick(document.getElementById('joystick-left'),  document.getElementById('knob-left'),  false);
+setupJoystick(document.getElementById('joystick-right'), document.getElementById('knob-right'), true);
+
+let lastJoyRUpdate = 0;
+function applyRightJoystick(dt){
+  if(Math.abs(joyR.dx)<0.05 && Math.abs(joyR.dy)<0.05) return;
+  camera.rotation.order='YXZ';
+  camera.rotation.y -= joyR.dx * dt * 2.2;
+  camera.rotation.x -= joyR.dy * dt * 1.6;
+  camera.rotation.x = Math.max(-Math.PI/2+0.05, Math.min(Math.PI/2-0.05, camera.rotation.x));
+}
+
+// ── BUTTON / TV CLICK ─────────────────────────────────────────────────────────
+const btnRaycaster = new THREE.Raycaster();
+window.addEventListener('click', () => {
+  if(!controls.isLocked && !isMobile) return;
+  btnRaycaster.setFromCamera(new THREE.Vector2(0,0), camera);
+
+  // Wall buttons (lore panel, TikTok door)
+  const btnMeshes = wallButtonMeshes.map(b => b.mesh);
+  const btnHits = btnRaycaster.intersectObjects(btnMeshes, false);
+  if(btnHits.length > 0 && btnHits[0].distance < 5){
+    const hit = wallButtonMeshes.find(b => b.mesh === btnHits[0].object);
+    if(hit){ window.open(hit.url, '_blank'); return; }
+  }
+
+  // Wall TV click — interact with nearest T1–T10 within range
+  const nearTV = getNearestWallTV();
+  if(nearTV) interactWithTV(nearTV);
+});
+
+window.addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+  composer.setSize(innerWidth,innerHeight);
+});
+
+// ── ANIMATE ───────────────────────────────────────────────────────────────────
+let nf=0, ft=0, prevT=performance.now();
+
+function animate(t){
+  requestAnimationFrame(animate);
+  const dt=Math.min((t-prevT)/1000,.05); prevT=t;
+
+  // ── FALL ──────────────────────────────────────────────────────────────────
+  if(isFalling){
+    window._fallVelocity=(window._fallVelocity||0)+28*dt;
+    camera.position.y-=window._fallVelocity*dt;
+
+    if(camera.position.y<=window._fallTarget){
+      camera.position.y=window._fallTarget-(EYE_HEIGHT-0.45);
+      isFalling=false; isRecovering=true;
+      recoverStart=t; recoverFrom=camera.position.y;
+      window._fallVelocity=0;
+      hideLevel(window._fallPrevIdx);
+      // Show landing message
+      showFallMessage();
+    }
+    composer.render(); return;
+  }
+
+  // ── RECOVERY ──────────────────────────────────────────────────────────────
+  if(isRecovering){
+    const elapsed=(t-recoverStart)/1000;
+    const duration=2.5;
+    const progress=Math.min(elapsed/duration,1);
+    const targetY=levelFloorY-currentLevel*LEVEL_DEPTH+EYE_HEIGHT;
+    camera.position.y=recoverFrom+(targetY-recoverFrom)*(1-Math.pow(1-progress,3));
+    const wobbleFade=1-progress;
+    camera.rotation.z=Math.sin(t*0.012)*0.08*wobbleFade;
+    camera.rotation.x+=Math.sin(t*0.009)*0.003*wobbleFade;
+    if(progress>=1){ isRecovering=false; camera.rotation.z=0; }
+    composer.render(); return;
+  }
+
+  // ── NORMAL MOVEMENT ───────────────────────────────────────────────────────
+  if(controls.isLocked || (Math.abs(joyL.dx)>0.05 || Math.abs(joyL.dz)>0.05)){
+    const spd=(keys.has('ShiftLeft')||keys.has('ShiftRight'))?10:4;
+
+    const fwd=new THREE.Vector3();
+    camera.getWorldDirection(fwd); fwd.y=0; fwd.normalize();
+    const right=new THREE.Vector3();
+    right.crossVectors(fwd, new THREE.Vector3(0,1,0)).normalize();
+
+    const dFwd = ((keys.has('KeyW')||keys.has('ArrowUp'))?1:0) - ((keys.has('KeyS')||keys.has('ArrowDown'))?1:0);
+    const dRight= ((keys.has('KeyD')||keys.has('ArrowRight'))?1:0) - ((keys.has('KeyA')||keys.has('ArrowLeft'))?1:0);
+
+    const jFwd = -joyL.dz;
+    const jRight= joyL.dx;
+
+    const totalFwd  = dFwd  + jFwd;
+    const totalRight= dRight+ jRight;
+
+    if(Math.abs(totalFwd)>0.01 || Math.abs(totalRight)>0.01){
+      // Dismiss fall message when player starts moving
+      if(fallMsgShowing){
+        hideFallMessage();
+      }
+
+      const move=new THREE.Vector3();
+      move.addScaledVector(fwd,   totalFwd  * spd * dt);
+      move.addScaledVector(right, totalRight* spd * dt);
+
+      const newPos=camera.position.clone().add(move);
+      newPos.y = camera.position.y;
+
+      if(canMoveTo(newPos)){
+        camera.position.x=newPos.x;
+        camera.position.z=newPos.z;
+      } else {
+        const posX=camera.position.clone(); posX.x=newPos.x;
+        if(canMoveTo(posX)) camera.position.x=newPos.x;
+        const posZ=camera.position.clone(); posZ.z=newPos.z;
+        if(canMoveTo(posZ)) camera.position.z=newPos.z;
+      }
+    }
+
+    applyRightJoystick(dt);
+
+    const targetY=levelFloorY-currentLevel*LEVEL_DEPTH+EYE_HEIGHT;
+    camera.position.y+=(targetY-camera.position.y)*Math.min(dt*12,1);
+
+    const px=camera.position.x, pz=camera.position.z;
+    for(const zone of noclipZones){
+      if(zone.levelIndex===currentLevel){
+        const dx=px-zone.x, dz=pz-zone.z;
+        if(Math.sqrt(dx*dx+dz*dz)<NOCLIP_RADIUS){ triggerFall(); break; }
+      }
+    }
+  }
+
+  // Fuzz TVs — animate static on all wall TVs except video screens
+  if(++nf%3===0){
+    allTVs.forEach((tv,i)=>{
+      if(tv.id==='W1a' || tv.id==='W1b' || tv.id==='T10' || tv.id==='T6' || tv.id==='T4') return;
+      if(nf%(3+(i%3))===0){
+        const d=tv.nctx.createImageData(128,72);
+        for(let j=0;j<d.data.length;j+=4){
+          const v=Math.random()*255|0;
+          d.data[j]=v; d.data[j+1]=v; d.data[j+2]=v+20|0; d.data[j+3]=255;
+        }
+        tv.nctx.putImageData(d,0,0);
+        tv.ntex.needsUpdate=true;
+      }
+    });
+  }
+
+  // Flicker lights
+  ft+=dt;
+  if(ft>.08+Math.random()*.12){
+    ft=0;
+    flickerLights.forEach(l=>{
+      if(Math.random()<.08){
+        l.intensity=0;
+        setTimeout(()=>{ l.intensity=.8+Math.random()*.8; },60+Math.random()*80);
+      }
+    });
+  }
+
+  if(showCoords){
+    coordsEl.textContent=`X: ${camera.position.x.toFixed(2)}  Y: ${camera.position.y.toFixed(2)}  Z: ${camera.position.z.toFixed(2)}  LVL: ${currentLevel}`;
+  }
+
+  // Door proximity hint
+  if(controls.isLocked){
+    const dp = TIKTOK_DOOR_POS;
+    const dx2 = camera.position.x - dp[0], dz2 = camera.position.z - dp[2];
+    doorHintEl.style.display = (Math.sqrt(dx2*dx2+dz2*dz2) < 9) ? 'block' : 'none';
+  } else {
+    doorHintEl.style.display = 'none';
+  }
+
+  // TV proximity prompt
+  if(controls.isLocked || isMobile){
+    const nearTV = getNearestWallTV();
+    if(nearTV){
+      tvPromptEl.style.display = 'block';
+      if(nearTV.id==='W1a' && !windowTVsUnlocked){
+        tvPromptEl.textContent = isMobile ? `TAP  LOCKED — FALL ${totalFalls}/10` : `[ E ]  LOCKED — FALL ${totalFalls}/10`;
+      } else if(nearTV.id==='T6' && !backroomsVideoUnlocked){
+        tvPromptEl.textContent = isMobile ? `TAP  LOCKED — FALL ${totalFalls}/20` : `[ E ]  LOCKED — FALL ${totalFalls}/20`;
+      } else {
+        tvPromptEl.textContent = isMobile ? 'TAP  PLAY / STOP' : '[ E ]  PLAY / STOP';
+      }
+    } else {
+      tvPromptEl.style.display = 'none';
+    }
+  } else {
+    tvPromptEl.style.display = 'none';
+  }
+
+  composer.render();
+}
+animate(0);
+
+window._cam=camera;
+console.log('Tip: window._cam.position — Press ~ for coord overlay');
+
+// ── VHS ROLLING LINES ─────────────────────────────────────────────────────────
+const vhsCanvas=document.getElementById('vhs-roll');
+const vhsCtx=vhsCanvas.getContext('2d');
+let vhsRolls=[];
+function resizeVHS(){ vhsCanvas.width=window.innerWidth; vhsCanvas.height=window.innerHeight; }
+resizeVHS(); window.addEventListener('resize',resizeVHS);
+function spawnVHSRoll(n=1){
+  for(let i=0;i<n;i++) vhsRolls.push({y:Math.random()*vhsCanvas.height,speed:1.5+Math.random()*2,h:6+Math.random()*10,alpha:0.18+Math.random()*0.22});
+}
+let vhsActive=false;
+function drawVHS(){
+  vhsCtx.clearRect(0,0,vhsCanvas.width,vhsCanvas.height);
+  if(!vhsActive) return;
+  vhsRolls=vhsRolls.filter(r=>r.y<vhsCanvas.height+20);
+  vhsRolls.forEach(r=>{ r.y+=r.speed; vhsCtx.fillStyle=`rgba(255,255,220,${r.alpha})`; vhsCtx.fillRect(0,r.y,vhsCanvas.width,r.h); });
+  requestAnimationFrame(drawVHS);
+}
+function startVHS(){ vhsActive=true; drawVHS(); }
+function stopVHS(){ vhsActive=false; vhsCtx.clearRect(0,0,vhsCanvas.width,vhsCanvas.height); }
+
+// ── LOADING / TITLE SEQUENCE ─────────────────────────────────────────────────
+const line1El=document.getElementById('title-line1');
+const line2El=document.getElementById('title-line2');
+const skipBtn=document.getElementById('skip-btn');
+const listenBtn=document.getElementById('listen-btn');
+const playBtn=document.getElementById('play-btn');
+const introVideo=document.getElementById('intro-video');
+let glbLoaded=false;
+let ageConfirmed=false;
+
+document.getElementById('age-gate-confirm').addEventListener('click',()=>{
+  ageConfirmed=true;
+  const gate=document.getElementById('age-gate');
+  gate.style.transition='opacity 0.4s';
+  gate.style.opacity='0';
+  setTimeout(()=>{
+    gate.style.display='none';
+    // PC: show map selector before GLB starts loading
+    if(!isMobile){
+      const sel = document.getElementById('map-selector');
+      if(sel) sel.classList.add('active');
+    }
+  },400);
+  tryShowSkip();
+});
+document.getElementById('age-gate-leave').addEventListener('click',()=>{
+  window.location.href='https://www.earthlingofficial.com';
+});
+
+// Map selector buttons (PC only)
+document.getElementById('ms-fast').addEventListener('click',()=>{
+  document.getElementById('map-selector').classList.remove('active');
+  _glbUrlResolve(GLB_1K);
+});
+document.getElementById('ms-hires').addEventListener('click',()=>{
+  document.getElementById('map-selector').classList.remove('active');
+  _glbUrlResolve(GLB_4K);
+});
+
+function tryShowSkip(){
+  if(ageConfirmed && glbLoaded){
+    skipBtn.style.display='block';
+    // This is the original entrance cue: W1a starts with sound as soon as
+    // the lower-right Start/Skip button appears.
+    startW1aAudio();
+    setTimeout(()=>{ skipBtn.style.opacity='1'; },50);
+  }
+}
+
+function enterGame(){
+  const loadEl=document.getElementById('loading');
+  loadEl.style.transition='opacity 0.8s';
+  loadEl.style.opacity='0';
+  setTimeout(()=>{ loadEl.style.display='none'; overlayEl.style.display='flex'; },800);
+}
+
+function onGLBReady(){
+  glbLoaded=true;
+  tryShowSkip();
+}
+
+skipBtn.addEventListener('click',()=>{
+  // Fallback for browsers that block sound from the async button-appearance
+  // callback. In normal cases W1a is already audible before this click.
+  startW1aAudio();
+  enterGame();
+});
+
+function toggleMute(){ introVideo.muted=!introVideo.muted; listenBtn.textContent=introVideo.muted?'\ud83d\udd07 LISTEN IN':'\ud83d\udd0a MUTE'; }
+listenBtn.addEventListener('click',toggleMute);
+
+function startVideo(){
+  introVideo.muted=false;
+  introVideo.play().catch(()=>{ introVideo.muted=true; introVideo.play(); });
+  playBtn.style.transition='opacity 0.5s'; playBtn.style.opacity='0';
+  setTimeout(()=>{ playBtn.style.display='none'; },500);
+  listenBtn.style.display='block'; listenBtn.textContent='\ud83d\udd0a MUTE';
+  runTitleSequence();
+}
+// Disable play button until video has enough data to show a frame
+playBtn.style.pointerEvents = 'none';
+playBtn.style.opacity = '0.35';
+function onIntroVideoReady(){
+  playBtn.style.pointerEvents = '';
+  playBtn.style.opacity = '';
+}
+if(introVideo.readyState >= 3){
+  onIntroVideoReady();
+} else {
+  introVideo.addEventListener('canplay', onIntroVideoReady, { once: true });
+}
+playBtn.addEventListener('click',startVideo);
+introVideo.addEventListener('ended',enterGame);
+
+function showCard(l1,l2,rolls,delay){
+  return new Promise(res=>{
+    setTimeout(()=>{
+      spawnVHSRoll(rolls);
+      line1El.textContent=l1; line2El.textContent=l2||'';
+      line1El.style.opacity='1'; line2El.style.opacity=l2?'1':'0';
+      setTimeout(()=>{ line1El.style.opacity='0'; line2El.style.opacity='0'; setTimeout(res,1000); },2800);
+    },delay);
+  });
+}
+
+async function runTitleSequence(){
+  await new Promise(r=>setTimeout(r,600));
+  line1El.style.fontSize='13px';
+  line1El.style.letterSpacing='3px';
+  line2El.style.fontSize='11px';
+  line2El.style.letterSpacing='2px';
+  line2El.style.opacity='1';
+  line1El.textContent='Welcome to Stage 10 — First Build';
+  line2El.textContent='A Work In Progress';
+  line1El.style.opacity='1'; line2El.style.opacity='1';
+  await new Promise(r=>setTimeout(r,2200));
+  line1El.style.opacity='0'; line2El.style.opacity='0';
+  await new Promise(r=>setTimeout(r,900));
+
+  line1El.style.fontSize='10px';
+  line1El.style.letterSpacing='2px';
+  line2El.style.fontSize='9px';
+  line1El.textContent='This stage is, and always will be, a living build.';
+  line2El.textContent='As the real life discourse evolves, so does the game.';
+  line1El.style.opacity='1'; line2El.style.opacity='1';
+  await new Promise(r=>setTimeout(r,2800));
+  line1El.style.opacity='0'; line2El.style.opacity='0';
+  await new Promise(r=>setTimeout(r,700));
+
+  line1El.textContent='Jump into the conversation,';
+  line2El.textContent='then jump into the backrooms.';
+  line1El.style.opacity='1'; line2El.style.opacity='1';
+  await new Promise(r=>setTimeout(r,2200));
+  line1El.style.opacity='0'; line2El.style.opacity='0';
+  await new Promise(r=>setTimeout(r,800));
+
+  line1El.style.fontSize='15px'; line1El.style.letterSpacing='5px';
+  line2El.style.fontSize='13px'; line2El.style.letterSpacing='4px';
+
+  await new Promise(r=>setTimeout(r,400));
+  startVHS();
+  await showCard('An Earthling Official Production','',2,0);
+  await showCard('Made for the Animals','A Non-Profit Gameumentary',1,400);
+  await showCard('Plant Based Liminal Horror','',2,400);
+  await showCard('Special Thanks','Kaeso Heius Totus',1,400);
+  await showCard('and caricapu9','',1,400);
+  await showCard('GO DEAN!','',3,400);
+  stopVHS();
+}
+</script>
+</body>
+</html>
