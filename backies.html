@@ -1250,12 +1250,16 @@ function buildWallTV(id, pos, ry, levelYOffset=0){
     ntex.needsUpdate = true;
     screenMat = new THREE.MeshBasicMaterial({map: ntex, side: THREE.DoubleSide});
   } else if(id === 'T6'){
-    // Video texture is NOT created here — deferred until fall 20 to avoid
-    // double-downloading the same file as the intro-video element.
-    // Screen stays black canvas until unlock.
-    nctx.fillStyle = '#000'; nctx.fillRect(0,0,128,72);
-    ntex.needsUpdate = true;
-    screenMat = new THREE.MeshBasicMaterial({map: ntex, side: THREE.DoubleSide});
+    // If already unlocked, use video texture immediately; otherwise black canvas until fall 20
+    if(backroomsVideoUnlocked && t6VideoTex){
+      videoEl = t6VideoEl;
+      videoTex = t6VideoTex;
+      screenMat = new THREE.MeshBasicMaterial({map: t6VideoTex, side: THREE.DoubleSide});
+    } else {
+      nctx.fillStyle = '#000'; nctx.fillRect(0,0,128,72);
+      ntex.needsUpdate = true;
+      screenMat = new THREE.MeshBasicMaterial({map: ntex, side: THREE.DoubleSide});
+    }
   } else {
     screenMat = new THREE.MeshBasicMaterial({map: ntex});
   }
@@ -1711,24 +1715,20 @@ function triggerFall(){
 
   if(totalFalls >= 20 && !backroomsVideoUnlocked){
     backroomsVideoUnlocked = true;
-    // Stop the HTML intro video element
     const introVid = document.getElementById('intro-video');
     if(introVid){ introVid.pause(); introVid.src = ''; }
-    // Create T6 video texture NOW for the first time (deferred from build)
     createT6VideoTex();
-    // Target every T6 TV and attach video — find visible ones first, then all
     const t6TVs = allTVs.filter(tv => tv.id === 'T6');
     t6TVs.forEach(t6 => {
       t6.videoEl = t6VideoEl;
       t6.videoTex = t6VideoTex;
       if(t6.screen){
-        // Attach listeners so screen swaps to video when ready
-        attachVideoToScreen(t6VideoEl, t6VideoTex, t6.screen, t6.ntex);
-        t6.screen.material.map = t6VideoTex;
-        t6.screen.material.needsUpdate = true;
+        // Replace material entirely so VideoTexture binding is clean
+        if(t6.screen.material) t6.screen.material.dispose();
+        t6.screen.material = new THREE.MeshBasicMaterial({ map: t6VideoTex, side: THREE.DoubleSide });
+        t6VideoTex.needsUpdate = true;
       }
     });
-    // Start playing
     if(t6VideoEl){
       t6VideoEl.muted = false;
       t6VideoEl.volume = 0.65;
