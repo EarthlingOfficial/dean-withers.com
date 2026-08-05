@@ -515,8 +515,9 @@ const CROSS_SIZE    = 0.5;
 const BUILD_BOUNDS = { minX:-22, maxX:25, minZ:-52, maxZ:12 };
 
 // ── LEVEL 30 BLOOD SYSTEM ────────────────────────────────────────────────────
-const BLOOD_MAX = 2.8;         // max height to roof (doom)
-const BLOOD_RISE = 0.00933;    // per-second rise (2.8 / 300s = 5 min to max)
+// These are overridden after the GLB loads with real room geometry
+let BLOOD_MAX  = 4.0;          // absolute world-Y ceiling target (set from box.max.y after load)
+let BLOOD_RISE = 0.013;        // per-second rise (set after load: ceilingHeight/300)
 const T4_WATCH_DURATION = 120000; // 2 minutes in ms
 const T4_INTERACTION_RADIUS = 6;
 const PLAYER_VELOCITY_THRESHOLD = 0.08;
@@ -1632,7 +1633,7 @@ function initBloodPlane(){
 
 function startBloodLevel30(){
   initBloodPlane();
-  bloodLevel = 0.02;
+  bloodLevel = levelFloorY + 0.02; // start just above the actual floor
   bloodActive = true;
   bloodStartTime = performance.now();
   bloodPlane.visible = true;
@@ -1893,6 +1894,12 @@ glbUrlReady.then(chosenUrl => {
       camera.position.set(center.x, levelFloorY + EYE_HEIGHT, center.z);
 
       glbTemplate.traverse(c => { if(c.isMesh) collisionMeshes.push(c); });
+
+      // ── Calibrate blood to real room geometry ────────────────────────────
+      // box.max.y = top of room geometry = ceiling in world space.
+      // Blood fills from floor (box.min.y) to ceiling (box.max.y) in 5 min.
+      BLOOD_MAX  = box.max.y;
+      BLOOD_RISE = (box.max.y - box.min.y) / 300; // exact 5-minute fill
 
       snapTVsToWalls(0);
 
@@ -2186,8 +2193,8 @@ function animate(t){
       bloodPlane.position.y = bloodLevel + yOff;
     }
     
-    // Check if player is submerged (blood reached player in world space)
-    if(bloodLevel + yOff > camera.position.y - 0.3){
+    // Death check: blood has filled the room to the ceiling
+    if(bloodLevel >= BLOOD_MAX - 0.05){
       if(!level30DeathMessageShown){
         level30DeathMessageShown = true;
         stopBroadcasts();
