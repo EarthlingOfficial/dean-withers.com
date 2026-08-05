@@ -516,7 +516,7 @@ const BUILD_BOUNDS = { minX:-22, maxX:25, minZ:-52, maxZ:12 };
 
 // ── LEVEL 30 BLOOD SYSTEM ────────────────────────────────────────────────────
 const BLOOD_MAX = 2.8;         // max height to roof (doom)
-const BLOOD_RISE = 0.000122;   // per-frame rise (5 min to max)
+const BLOOD_RISE = 0.00933;    // per-frame rise (5 min to max)
 const T4_WATCH_DURATION = 120000; // 2 minutes in ms
 const T4_INTERACTION_RADIUS = 6;
 const PLAYER_VELOCITY_THRESHOLD = 0.08;
@@ -1618,8 +1618,8 @@ let allTVs = [];
 // ── BLOOD PLANE SETUP ────────────────────────────────────────────────────────
 function initBloodPlane(){
   if(bloodPlane) return;
-  const geo = new THREE.PlaneGeometry(100, 100);
-  const mat = new THREE.MeshBasicMaterial({ color: 0x4a0000, side: THREE.DoubleSide });
+  const geo = new THREE.PlaneGeometry(300, 300);
+  const mat = new THREE.MeshBasicMaterial({ color: 0x1a0000, side: THREE.DoubleSide });
   bloodPlane = new THREE.Mesh(geo, mat);
   bloodPlane.rotation.x = -Math.PI/2;
   bloodPlane.position.set(0, -0.5, 0);
@@ -1662,7 +1662,7 @@ function createLevelGroup(levelIndex){
   }
 
   const lights = [];
-  const lightIntensity = (levelIndex === 30) ? 0.4 : 1.2; // Dim level 30
+  const lightIntensity = (levelIndex === 30) ? 0.15 : 1.2; // Level 30 nearly dark
   [[0,2.8,0],[10,2.8,-5],[-10,2.8,8],[20,2.8,5],[-20,2.8,-12],
    [5,2.8,25],[0,2.8,-15],[0,2.8,-30],[0,2.8,-45]].forEach(([x,y,z])=>{
     const l = new THREE.PointLight(0xfff5aa, lightIntensity, 18);
@@ -1903,6 +1903,21 @@ document.addEventListener('keydown', e => {
     const nearTV = getNearestWallTV();
     if(nearTV) interactWithTV(nearTV);
   }
+  if(e.code==='KeyG' && controls.isLocked){
+    // Godmode: skip to Level 30
+    if(currentLevel !== 30){
+      if(levelGroups[currentLevel]) hideLevel(currentLevel);
+      currentLevel = 30;
+      if(!levelGroups[30]) createLevelGroup(30);
+      showLevel(30);
+      startBloodLevel30();
+      bloodLevel = 0.02;
+      t4WatchStartTime = null;
+      level30FallZoneUnlocked = false;
+      const yOff = -30 * LEVEL_DEPTH;
+      camera.position.set(0, levelFloorY + yOff + EYE_HEIGHT, 0);
+    }
+  }
 });
 document.addEventListener('keyup', e => keys.delete(e.code));
 
@@ -2072,74 +2087,48 @@ function animate(t){
     
     // ── LEVEL 30 SPECIAL LOGIC ────────────────────────────────────────────
     if(currentLevel === 30){
-      // Get player velocity magnitude
-      const prevPos = window._prevPos || camera.position.clone();
-      const vel = camera.position.clone().sub(prevPos).length() / dt;
-      window._prevPos = camera.position.clone();
-      
-      // Check if at T4 location (assume T4 is roughly at 0, 1.9, 8 in world space)
-      const t4Pos = new THREE.Vector3(0, 0, 8);
-      const distToT4 = camera.position.distanceTo(t4Pos);
-      const isNearT4 = distToT4 < T4_INTERACTION_RADIUS;
-      const isStationary = vel < PLAYER_VELOCITY_THRESHOLD;
-      
-      // Get camera facing direction
-      const camDir = new THREE.Vector3();
-      camera.getWorldDirection(camDir);
-      const toT4 = t4Pos.clone().sub(camera.position).normalize();
-      const facingT4 = camDir.dot(toT4) > 0.5; // roughly facing T4
-      
-      // Check if T4 video is playing
       const t4VideoPlaying = t4VideoEl && !t4VideoEl.paused;
       
-      // Track T4 watch
-      if(isNearT4 && isStationary && facingT4 && t4VideoPlaying){
-        if(!t4WatchStartTime){
-          t4WatchStartTime = performance.now();
-        }
-        const watchElapsed = performance.now() - t4WatchStartTime;
+      // Find T4 zone (only zone on L30)
+      const t4Zone = noclipZones.find(z => z.levelIndex === 30);
+      if(t4Zone){
+        const dx = px - t4Zone.x, dz = pz - t4Zone.z;
+        const dist = Math.sqrt(dx*dx+dz*dz);
+        const isInT4Zone = dist < NOCLIP_RADIUS*2.5; // Bigger zone (2.5x)
         
-        // Show "stay very still" message early
-        if(watchElapsed < 3000 && watchElapsed > 500){
-          const msg = document.getElementById('fall-msg');
-          if(msg && !msg.textContent.includes('stay very still')){
-            msg.textContent = 'stay very still';
-            msg.style.display = 'block';
-            msg.style.opacity = '1';
+        // TIMER LOGIC — starts when in zone + video playing
+        if(isInT4Zone && t4VideoPlaying){
+          if(!t4WatchStartTime){
+            t4WatchStartTime = performance.now();
+            // Show message once when timer starts
+            const msg = document.getElementById('fall-msg');
+            if(msg){
+              msg.textContent = 'stay very still';
+              msg.style.display = 'block';
+              msg.style.opacity = '1';
+              setTimeout(()=>{ msg.style.opacity = '0'; }, 2000);
+            }
           }
+          const watchElapsed = performance.now() - t4WatchStartTime;
+          
+          // Unlock zone silently after 2 minutes (no countdown display)
+          if(watchElapsed >= T4_WATCH_DURATION && !level30FallZoneUnlocked){
+            level30FallZoneUnlocked = true;
+          }
+        } else {
+          // Reset timer if video stops or player leaves zone
+          t4WatchStartTime = null;
         }
         
-        // Unlock fall zone after 2 min
-        if(watchElapsed >= T4_WATCH_DURATION && !level30FallZoneUnlocked){
-          level30FallZoneUnlocked = true;
-          const msg = document.getElementById('fall-msg');
-          if(msg){
-            msg.textContent = 'the way out is beneath you';
-            msg.style.display = 'block';
-            msg.style.opacity = '0';
-            setTimeout(()=>{ msg.style.opacity = '1'; }, 50);
-            setTimeout(()=>{ msg.style.opacity = '0'; setTimeout(()=>{ msg.style.display = 'none'; }, 1200); }, 3000);
-          }
-        }
-      } else {
-        // Reset timer if conditions not met
-        t4WatchStartTime = null;
-      }
-      
-      // Check fall zones (only T4 zone unlocked on L30)
-      for(const zone of noclipZones){
-        if(zone.levelIndex === 30){
-          // Only T4 zone (assumption: it's the first or only zone on L30)
-          if(level30FallZoneUnlocked){
-            const dx=px-zone.x, dz=pz-zone.z;
-            if(Math.sqrt(dx*dx+dz*dz)<NOCLIP_RADIUS*1.5){ triggerFall(); break; }
-          }
+        // FALL — trigger ONCE when unlocked + in zone
+        if(level30FallZoneUnlocked && isInT4Zone && !isFalling){
+          triggerFall();
         }
       }
     } else {
-      // Normal levels — check all zones
+      // Normal levels — standard zone checking
       for(const zone of noclipZones){
-        if(zone.levelIndex===currentLevel){
+        if(zone.levelIndex===currentLevel && !isFalling){
           const dx=px-zone.x, dz=pz-zone.z;
           if(Math.sqrt(dx*dx+dz*dz)<NOCLIP_RADIUS){ triggerFall(); break; }
         }
