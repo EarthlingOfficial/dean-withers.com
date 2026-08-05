@@ -2150,13 +2150,13 @@ function animate(t){
   // ── UPDATE BLOOD LEVEL (Level 30) ────────────────────────────────────────
   if(currentLevel === 30 && bloodActive){
     bloodLevel = Math.min(BLOOD_MAX, bloodLevel + dt * BLOOD_RISE);
+    const yOff = -currentLevel * LEVEL_DEPTH;
     if(bloodPlane){
-      const yOff = -currentLevel * LEVEL_DEPTH;
       bloodPlane.position.y = bloodLevel + yOff;
     }
     
-    // Check if player is submerged (blood reached player)
-    if(bloodLevel > camera.position.y - 0.3){
+    // Check if player is submerged (blood reached player in world space)
+    if(bloodLevel + yOff > camera.position.y - 0.3){
       if(!level30DeathMessageShown){
         level30DeathMessageShown = true;
         stopBroadcasts();
@@ -2171,9 +2171,9 @@ function animate(t){
           msg.style.opacity = '1';
         }
         
-        // Reset to beginning after 3 seconds
+        // Redirect to VeganBros after 3 seconds
         setTimeout(()=>{
-          location.reload();
+          window.location.href = 'https://earthlingofficial.com/veganbros.html';
         }, 3000);
       }
     }
