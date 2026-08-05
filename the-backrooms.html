@@ -281,6 +281,41 @@
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
 </script>
+<style>
+  /* ── CSS3D LAYER ── */
+  #css3d { position:fixed; inset:0; z-index:2; pointer-events:none; }
+  #css3d iframe { border:0; pointer-events:auto; background:#000; }
+
+  /* ── MAP SIZE SELECTOR (PC only) ── */
+  #map-selector {
+    position:fixed; inset:0; z-index:30;
+    background:rgba(0,0,0,0.93);
+    display:none; align-items:center; justify-content:center;
+    font-family:'Courier New',monospace; color:#c8b97a;
+  }
+  #map-selector.active { display:flex; }
+  #map-selector-panel {
+    text-align:center; display:flex; flex-direction:column;
+    align-items:center; gap:20px;
+    border:1px solid rgba(200,185,122,0.2);
+    padding:44px 52px;
+  }
+  #map-selector-panel .ms-tag { font-size:10px; letter-spacing:4px; opacity:0.4; }
+  #map-selector-panel .ms-title { font-size:17px; letter-spacing:5px; }
+  #map-selector-panel .ms-rule { width:50px; height:1px; background:rgba(200,185,122,0.2); }
+  #map-selector-panel .ms-body { font-size:11px; line-height:2; opacity:0.6; letter-spacing:1px; }
+  .ms-btns { display:flex; gap:14px; flex-wrap:wrap; justify-content:center; margin-top:6px; }
+  .ms-btn {
+    padding:12px 28px; border:1px solid rgba(200,185,122,0.5);
+    background:transparent; color:#c8b97a;
+    font-family:'Courier New',monospace; font-size:12px;
+    letter-spacing:3px; text-transform:uppercase; cursor:pointer;
+    transition:background 0.2s;
+  }
+  .ms-btn:hover { background:rgba(200,185,122,0.1); }
+  .ms-btn.ms-recommended { border-color:rgba(200,185,122,0.85); }
+  .ms-note { font-size:10px; opacity:0.35; letter-spacing:1px; }
+</style>
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -377,6 +412,25 @@
 <div id="tv-prompt">[ E ] &nbsp; PLAY / STOP</div>
 <div id="door-hint" style="position:fixed;top:50%;left:50%;transform:translate(-50%,55px);color:#c8b97a;font-size:13px;letter-spacing:3px;text-align:center;pointer-events:none;display:none;z-index:5;text-shadow:0 0 14px rgba(200,185,122,0.9);font-family:'Courier New',monospace;">ENTER THE REAL DEBATE<br><span style="font-size:10px;opacity:0.45;letter-spacing:2px;">[E] &nbsp;·&nbsp; TAP</span></div>
 <div id="coords"></div>
+<!-- CSS3D renderer layer for in-world YouTube -->
+<div id="css3d"></div>
+<!-- PC map size selector (shown after age gate, before GLB loads) -->
+<div id="map-selector">
+  <div id="map-selector-panel">
+    <div class="ms-tag">&#9888;&nbsp; BEFORE YOU ENTER &nbsp;&#9888;</div>
+    <div class="ms-title">CHOOSE YOUR MAP</div>
+    <div class="ms-rule"></div>
+    <div class="ms-body">
+      The high-res map is large and may take several minutes to load.<br>
+      The fast map loads quickly and plays identically.
+    </div>
+    <div class="ms-btns">
+      <button class="ms-btn ms-recommended" id="ms-fast">FAST LOAD &mdash; 1K</button>
+      <button class="ms-btn" id="ms-hires">HIGH RES &mdash; 4K</button>
+    </div>
+    <div class="ms-note">mobile always uses fast load &nbsp;·&nbsp; your choice starts the download</div>
+  </div>
+</div>
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -387,27 +441,41 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
+
 // ── ARCHIVE.ORG VIDEO POOL FOR WALL TVS ──────────────────────────────────────
 // T1-T9 use animated canvas static. T10 uses a real in-world video texture.
 const WALL_TV_VIDEO_MAP = {}; // no archive videos via video element — CORS blocked
 
 // ── DEVICE & GLB ─────────────────────────────────────────────────────────────
 const isMobile = /Mobi|Android|iPhone|iPad|iPod|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
-const GLB_URL = isMobile
-  ? 'https://cors.archive.org/cors/backrooms_vr1k/backrooms_vr1k.glb'
-  : 'https://cors.archive.org/cors/backrooms_vr/backrooms_vr.glb';
+const GLB_1K = 'https://cors.archive.org/cors/backrooms_vr1k/backrooms_vr1k.glb';
+const GLB_4K = 'https://cors.archive.org/cors/backrooms_vr/backrooms_vr.glb';
+
+// Resolved after map selector (PC) or immediately (mobile)
+let GLB_URL = isMobile ? GLB_1K : null; // null = waiting for PC choice
+
+// ── MAP SELECTOR (PC only) ────────────────────────────────────────────────────
+let _glbUrlResolve = null;
+const glbUrlReady = new Promise(res => { _glbUrlResolve = res; });
+
+if(isMobile){
+  _glbUrlResolve(GLB_1K);
+} else {
+  // Show selector after age gate confirms — triggered by ageConfirmed flag
+  // The selector is shown in the age-gate confirm handler below
+}
 
 // ── WALL TV DEFINITIONS ───────────────────────────────────────────────────────
 const WALL_TV_RAYS = [
-  { id:'T1',  from:[ 0,  1.9,  0],     dir:[ 0, 0,  1], ry: Math.PI    },
-  { id:'T2',  from:[ 0,  1.9,  0],     dir:[ 0, 0, -1], ry: 0          },
-  { id:'T3',  from:[ 0,  1.9,  0],     dir:[ 1, 0,  0], ry:-Math.PI/2  },
-  { id:'T4',  from:[ 0,  1.9,  8.60],  dir:[-1, 0,  0], ry: Math.PI/2  },
-  { id:'T5',  from:[ 0,  1.9, -8],     dir:[ 0, 0,  1], ry: Math.PI    },
-  { id:'T6',  from:[ 0,  1.9,  8],     dir:[ 0, 0, -1], ry: 0          },
-  { id:'T8',  from:[ 0,  1.9, 14.57],  dir:[-1, 0,  0], ry: Math.PI/2  },
-  { id:'T9',  from:[ 0,  1.9,  6.34],  dir:[ 1, 0,  0], ry:-Math.PI/2  },
-  { id:'T10', from:[ 0,  1.6,  4],     dir:[-1, 0,  0], ry: Math.PI/2  },
+  { id:'T1',  from:[ 0,    1.9,  0],     dir:[ 0, 0,  1], ry: Math.PI    },
+  { id:'T2',  from:[-43.44, 1.9,  3.49], dir:[ 1, 0,  0], ry:-Math.PI/2  }, // moved — was on top of T6
+  { id:'T3',  from:[ 0,    1.9,  0],     dir:[ 1, 0,  0], ry:-Math.PI/2  },
+  { id:'T4',  from:[ 0,    1.9,  8.60],  dir:[-1, 0,  0], ry: Math.PI/2  }, // YouTube CSS3D TV
+  { id:'T5',  from:[-55.75, 1.9,  4.04], dir:[ 1, 0,  0], ry:-Math.PI/2  }, // moved — was on top of T1
+  { id:'T6',  from:[ 0,    1.9,  8],     dir:[ 0, 0, -1], ry: 0          }, // backrooms video fall-20
+  { id:'T8',  from:[ 0,    1.9, 14.57],  dir:[-1, 0,  0], ry: Math.PI/2  },
+  { id:'T9',  from:[ 0,    1.9,  6.34],  dir:[ 1, 0,  0], ry:-Math.PI/2  },
+  { id:'T10', from:[ 0,    1.6,  4],     dir:[-1, 0,  0], ry: Math.PI/2  },
 ];
 
 // Filled after snapTVsToWalls() runs — used by fall logic
@@ -446,12 +514,30 @@ const CROSS_SIZE    = 0.5;
 
 const BUILD_BOUNDS = { minX:-22, maxX:25, minZ:-52, maxZ:12 };
 
+// ── LEVEL 30 BLOOD SYSTEM ────────────────────────────────────────────────────
+// These are overridden after the GLB loads with real room geometry
+let BLOOD_MAX  = 4.0;          // absolute world-Y ceiling target (set from box.max.y after load)
+let BLOOD_RISE = 0.013;        // per-second rise (set after load: ceilingHeight/300)
+const T4_WATCH_DURATION = 120000; // 2 minutes in ms
+const T4_INTERACTION_RADIUS = 6;
+const PLAYER_VELOCITY_THRESHOLD = 0.08;
+
 let currentLevel    = 0;
 let levelFloorY     = 0;
 let isFalling       = false;
 let isRecovering    = false;
 let recoverStart    = 0;
 let recoverFrom     = 0;
+
+// ── LEVEL 30 STATE ────────────────────────────────────────────────────────────
+let bloodPlane = null;
+let bloodLevel = 0;
+let bloodActive = false;
+let bloodStartTime = 0;
+let t4WatchStartTime = null;
+let t4WatchComplete = false;
+let level30FallZoneUnlocked = false;
+let level30DeathMessageShown = false;
 
 const levelGroups   = [];
 let glbTemplate     = null;
@@ -462,6 +548,17 @@ const screamAudio = new Audio('https://archive.org/download/ScreamSounds/SCREAM_
 screamAudio.volume = 0.85;
 
 // ── FALL LANDING MESSAGES ─────────────────────────────────────────────────────
+const LEVEL30_DEATH_MESSAGES = [
+  "you drowned in exploited animals",
+  "the blood caught up — just like them",
+  "five minutes to understand what a lifetime feels like",
+  "you couldn't escape. they never could either.",
+  "submerged. suffocating. how did it feel?",
+  "blood in your lungs, just like them in theirs",
+  "you had a choice. they didn't.",
+  "you lasted longer than the footage showed",
+];
+
 const FALL_MESSAGES = [
   "you broke your neck...\nthe poor male chicks feel this every day\nthey're ground up alive — for your omelette",
   "everything went dark...\nthis is how they die in the farms\ndisoriented. terrified. alone.",
@@ -773,13 +870,29 @@ scene.fog = new THREE.FogExp2(0x1a1208, 0.035);
 const camera = new THREE.PerspectiveCamera(80, innerWidth/innerHeight, 0.05, 500);
 camera.position.set(0, EYE_HEIGHT, 0);
 
-scene.add(new THREE.AmbientLight(0xfff5cc, 0.4));
+const ambientLight = new THREE.AmbientLight(0xfff5cc, 0.4);
+scene.add(ambientLight);
 const flickerLights = [];
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight), 0.4, 0.5, 0.85));
 composer.addPass(new OutputPass());
+
+// ── T4 smirk.mp4 video texture (same pattern as W1a/slaughter) ───────────────
+let t4VideoEl = null;
+let t4VideoTex = null;
+
+function createT4VideoTex(){
+  if(t4VideoEl) return t4VideoTex;
+  const result = createVideoTexture(
+    'https://raw.githubusercontent.com/EarthlingOfficial/public-archive/main/smirk.mp4',
+    { autoplay: false, volume: 0.85 }
+  );
+  t4VideoEl = result.vid;
+  t4VideoTex = result.tex;
+  return result.tex;
+}
 
 const controls = new PointerLockControls(camera, document.body);
 const overlayEl = document.getElementById('overlay');
@@ -795,16 +908,20 @@ const barEl     = document.getElementById('bar');
 const pctEl     = document.getElementById('pct');
 let showCoords  = false;
 
-controls.addEventListener('lock',   ()=>{
-  // This is the user's explicit "CLICK TO ENTER" gesture. Use it to restore
-  // W1a's sound after the browser has allowed the game to begin.
+controls.addEventListener('lock', ()=>{
   startW1aAudio();
   startBroadcasts();
   overlayEl.style.display='none';
   xhairEl.style.display='block';
   hintEl.style.display='block';
 });
-controls.addEventListener('unlock', ()=>{ overlayEl.style.display='flex'; xhairEl.style.display='none';  hintEl.style.display='none';  popupEl.style.display='none'; tvPromptEl.style.display='none'; });
+controls.addEventListener('unlock', ()=>{
+  overlayEl.style.display='flex';
+  xhairEl.style.display='none';
+  hintEl.style.display='none';
+  popupEl.style.display='none';
+  tvPromptEl.style.display='none';
+});
 overlayEl.addEventListener('click', ()=>controls.lock());
 
 // ── WALL RAYCASTING COLLISION ──────────────────────────────────────────────────
@@ -950,7 +1067,7 @@ function attachVideoToScreen(videoEl, videoTex, screen, standbyTex){
 function createW1aVideoTex(){
   if(w1aVideoEl) return w1aVideoTex;
   const result = createVideoTexture(
-    'https://raw.githubusercontent.com/EarthlingOfficial/dean-withers.com/main/slaughter.mp4',
+    'https://raw.githubusercontent.com/EarthlingOfficial/public-archive/main/slaughter.mp4',
     { autoplay: true, volume: 0.65 }
   );
   w1aVideoEl = result.vid;
@@ -984,10 +1101,10 @@ function createT10VideoTex(){
 
 function createT6VideoTex(){
   if(t6VideoEl) return t6VideoTex;
-  // Same backrooms found footage as the intro video, served via cors proxy.
+  // Catbox direct file host — faster and more reliable than archive.org CORS proxy.
   // Stays silent/paused until fall 20; intro-video element is stopped at that point.
   const result = createVideoTexture(
-    'https://cors.archive.org/cors/1-year-in-the-backrooms-found-footage-compilation/SnapSave.io-1%20Year%20in%20The%20Backrooms%20%28Found%20Footage%20Compilation%29.mp4',
+    'https://files.catbox.moe/8yka3k.mp4',
     { autoplay: false, volume: 0.65 }
   );
   t6VideoEl = result.vid;
@@ -1092,10 +1209,15 @@ function interactWithTV(tv){
       showWindowTVLockedMsg(`fall ${totalFalls} of 20 times to unlock this signal\nthe footage is in the walls\nyou just can't see it yet`);
       return;
     }
-    if(tv.videoEl){
-      toggleVideoEl(tv.videoEl);
-      t6VideoEl = tv.videoEl;
-    }
+    const vid = tv.videoEl || t6VideoEl;
+    if(vid) toggleVideoEl(vid);
+    return;
+  }
+
+  // T4 — smirk.mp4 video texture
+  if(tv.id === 'T4' && tv.videoEl){
+    toggleVideoEl(tv.videoEl);
+    t4VideoEl = tv.videoEl;
     return;
   }
 
@@ -1150,21 +1272,31 @@ function buildWallTV(id, pos, ry, levelYOffset=0){
     nctx.fillStyle = '#000'; nctx.fillRect(0,0,128,72);
     ntex.needsUpdate = true;
     screenMat = new THREE.MeshBasicMaterial({map: vtex, side: THREE.DoubleSide});
-  } else if(id === 'T6'){
-    const vtex = createT6VideoTex();
-    videoEl = t6VideoEl;
+  } else if(id === 'T4'){
+    const vtex = createT4VideoTex();
+    videoEl = t4VideoEl;
     videoTex = vtex;
-    // Black standby until fall 20 unlock
-    nctx.fillStyle = '#000'; nctx.fillRect(0,0,128,72);
+    drawTVStandby(nctx, id, 'SMIRK');
     ntex.needsUpdate = true;
     screenMat = new THREE.MeshBasicMaterial({map: ntex, side: THREE.DoubleSide});
+  } else if(id === 'T6'){
+    // If already unlocked, use video texture immediately; otherwise black canvas until fall 20
+    if(backroomsVideoUnlocked && t6VideoTex){
+      videoEl = t6VideoEl;
+      videoTex = t6VideoTex;
+      screenMat = new THREE.MeshBasicMaterial({map: t6VideoTex, side: THREE.DoubleSide});
+    } else {
+      nctx.fillStyle = '#000'; nctx.fillRect(0,0,128,72);
+      ntex.needsUpdate = true;
+      screenMat = new THREE.MeshBasicMaterial({map: ntex, side: THREE.DoubleSide});
+    }
   } else {
     screenMat = new THREE.MeshBasicMaterial({map: ntex});
   }
 
   const screen=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.4), screenMat);
   screen.position.set(0,0,0.075); frame.add(screen);
-  if(id === 'W1a' || id === 'W1b' || id === 'T10' || id === 'T6'){
+  if((id === 'W1a' || id === 'W1b' || id === 'T10' || id === 'T4') && videoEl && videoTex){
     attachVideoToScreen(videoEl, videoTex, screen, ntex);
   }
 
@@ -1215,7 +1347,9 @@ function buildWindowTV(id, pos, ry, levelYOffset=0){
     videoTex = vtex;
     drawTVStandby(nctx, id, 'HAXAN 1922');
     ntex.needsUpdate = true;
-    screenMat = new THREE.MeshBasicMaterial({map: ntex, side: THREE.DoubleSide});
+    // Use video tex as material but video starts paused — attachVideoToScreen
+    // handles swapping back to standby when paused and to video when playing
+    screenMat = new THREE.MeshBasicMaterial({map: vtex, side: THREE.DoubleSide});
   } else {
     screenMat = new THREE.MeshBasicMaterial({map: ntex});
   }
@@ -1279,6 +1413,61 @@ function snapButtonToWall(pos){
     }
   });
   return best || { pos, ry: 0 };
+}
+
+// ── "THIS WAY" WALL TEXT near T6 ─────────────────────────────────────────────
+// Small black-painted text on the wall beside T6, like backrooms graffiti.
+// Clicking/E opens smirk.mp4 directly.
+function buildThisWayText(){
+  // Snap to the wall to the right of T6 (T6 faces -Z, so snap toward +X wall)
+  const ray = new THREE.Raycaster();
+  const origin = new THREE.Vector3(2.5, 1.55, 8.0);
+  const dir = new THREE.Vector3(1, 0, 0);
+  ray.set(origin, dir);
+  ray.far = 20;
+  const hits = ray.intersectObjects(collisionMeshes, true);
+  let px = origin.x, pz = origin.z, ry = -Math.PI / 2;
+  if(hits.length > 0){
+    const p = hits[0].point.clone().addScaledVector(dir, -0.04);
+    px = p.x; pz = p.z;
+  } else {
+    px = origin.x + 6;
+  }
+
+  // Canvas: small black paint text on transparent bg
+  const c = document.createElement('canvas'); c.width = 256; c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, 256, 64);
+  ctx.fillStyle = 'rgba(0,0,0,0.82)';
+  ctx.font = 'bold 18px Courier New';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('this way', 10, 32);
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.font = '11px Courier New';
+  ctx.fillText('→', 112, 33);
+  const tex = new THREE.CanvasTexture(c);
+
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.9, 0.22),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide, depthWrite: false })
+  );
+  mesh.position.set(px, 1.55, pz);
+  mesh.rotation.y = ry;
+  scene.add(mesh);
+
+  // Hitbox for E/click interaction
+  const hitbox = new THREE.Mesh(
+    new THREE.BoxGeometry(0.9, 0.3, 0.08),
+    new THREE.MeshBasicMaterial({ visible: false })
+  );
+  hitbox.position.set(px, 1.55, pz);
+  hitbox.rotation.y = ry;
+  scene.add(hitbox);
+  wallButtonMeshes.push({
+    mesh: hitbox,
+    url: 'https://raw.githubusercontent.com/EarthlingOfficial/public-archive/main/smirk.mp4'
+  });
 }
 
 function buildTikTokDoor(){
@@ -1428,6 +1617,56 @@ function buildWallButton(def){
 // ── ALL TVS FLAT ARRAY (updated per level) ────────────────────────────────────
 let allTVs = [];
 
+// ── BLOOD PLANE SETUP ────────────────────────────────────────────────────────
+function initBloodPlane(){
+  if(bloodPlane) return;
+  // 400×400 covers the full map extent (map runs ~x:-70→+25, z:-52→+12)
+  const geo = new THREE.PlaneGeometry(400, 400);
+  const mat = new THREE.MeshBasicMaterial({ color: 0x5a0000, side: THREE.DoubleSide, transparent: true, opacity: 0.92 });
+  bloodPlane = new THREE.Mesh(geo, mat);
+  bloodPlane.rotation.x = -Math.PI/2;
+  // Centre on map midpoint: x=(−70+25)/2≈−22, z=(−52+12)/2≈−20
+  bloodPlane.position.set(-22, -0.5, -20);
+  bloodPlane.visible = false;
+  scene.add(bloodPlane);
+}
+
+function startBloodLevel30(){
+  initBloodPlane();
+  bloodLevel = levelFloorY + 0.02; // start just above the actual floor
+  bloodActive = true;
+  bloodStartTime = performance.now();
+  bloodPlane.visible = true;
+  level30FallZoneUnlocked = false;
+  level30DeathMessageShown = false;
+  t4WatchComplete = false;
+  t4WatchStartTime = null;
+
+  // ── Darken level 30: dim + red-shift the global ambient ──────────────────
+  ambientLight.color.set(0x220000);
+  ambientLight.intensity = 0.05;
+  // Red-black fog so blood blends into the shadows
+  scene.fog = new THREE.FogExp2(0x0a0000, 0.055);
+
+  // ── Auto-play T4 video so the watch timer can start ───────────────────────
+  createT4VideoTex();
+  if(t4VideoEl){
+    t4VideoEl.muted = false;
+    t4VideoEl.play().catch(()=>{ t4VideoEl.muted = true; t4VideoEl.play().catch(()=>{}); });
+  }
+}
+
+function restoreNormalLighting(){
+  ambientLight.color.set(0xfff5cc);
+  ambientLight.intensity = 0.4;
+  scene.fog = new THREE.FogExp2(0x1a1208, 0.035);
+}
+
+function stopBlood(){
+  bloodActive = false;
+  if(bloodPlane) bloodPlane.visible = false;
+}
+
 // ── CREATE ONE LEVEL ──────────────────────────────────────────────────────────
 function createLevelGroup(levelIndex){
   const yOff = -levelIndex * LEVEL_DEPTH;
@@ -1446,9 +1685,12 @@ function createLevelGroup(levelIndex){
   }
 
   const lights = [];
+  // Level 30: dim crimson point lights so blood blends into darkness
+  const lightColor     = (levelIndex === 30) ? 0x330000 : 0xfff5aa;
+  const lightIntensity = (levelIndex === 30) ? 0.35     : 1.2;
   [[0,2.8,0],[10,2.8,-5],[-10,2.8,8],[20,2.8,5],[-20,2.8,-12],
    [5,2.8,25],[0,2.8,-15],[0,2.8,-30],[0,2.8,-45]].forEach(([x,y,z])=>{
-    const l = new THREE.PointLight(0xfff5aa, 1.2, 18);
+    const l = new THREE.PointLight(lightColor, lightIntensity, 18);
     l.position.set(x, y, z);
     group.add(l); lights.push(l); flickerLights.push(l);
   });
@@ -1497,7 +1739,21 @@ function createLevelGroup(levelIndex){
     return [pick];
   }
 
-  const positions = (levelIndex === 0) ? LEVEL0_CROSSES : randomTVCross();
+  // Level 30: always place the zone directly in front of T4 (x≈0, z≈8.60).
+  // T4 faces the player from the left wall at z=8.60 — standing at x≈0 is
+  // directly in its sightline. All other levels keep the random placement.
+  let positions;
+  if(levelIndex === 0){
+    positions = LEVEL0_CROSSES;
+  } else if(levelIndex === 30){
+    const t4Snap = WALL_TVS.find(t => t.id === 'T4');
+    // Step 1.5 units away from the wall into the room (+X, since T4 fires -X)
+    const zoneX = t4Snap ? t4Snap.pos[0] + 1.5 : 1.5;
+    const zoneZ = t4Snap ? t4Snap.pos[2]       : 8.60;
+    positions = [[zoneX, zoneZ]];
+  } else {
+    positions = randomTVCross();
+  }
   positions.forEach(([x, z]) => {
     const mat = new THREE.MeshStandardMaterial({
       color:0x000000, emissive:new THREE.Color(0x000000),
@@ -1556,20 +1812,24 @@ function triggerFall(){
 
   if(totalFalls >= 20 && !backroomsVideoUnlocked){
     backroomsVideoUnlocked = true;
-    // Stop the HTML intro video element — it's still running in the hidden loading div
     const introVid = document.getElementById('intro-video');
     if(introVid){ introVid.pause(); introVid.src = ''; }
-    // Start T6 playing (the same footage now lives on the wall)
-    const t6 = allTVs.find(tv => tv.id === 'T6' && tv.videoEl);
-    if(t6 && t6.videoEl){
-      t6.videoEl.muted = false;
-      t6.videoEl.volume = 0.65;
-      t6.videoEl.play().catch(()=>{ t6.videoEl.muted=true; t6.videoEl.play().catch(()=>{}); });
-      // swap screen to video texture
-      if(t6.screen && t6.videoTex){
-        t6.screen.material.map = t6.videoTex;
-        t6.screen.material.needsUpdate = true;
+    createT6VideoTex();
+    const t6TVs = allTVs.filter(tv => tv.id === 'T6');
+    t6TVs.forEach(t6 => {
+      t6.videoEl = t6VideoEl;
+      t6.videoTex = t6VideoTex;
+      if(t6.screen){
+        // Replace material entirely so VideoTexture binding is clean
+        if(t6.screen.material) t6.screen.material.dispose();
+        t6.screen.material = new THREE.MeshBasicMaterial({ map: t6VideoTex, side: THREE.DoubleSide });
+        t6VideoTex.needsUpdate = true;
       }
+    });
+    if(t6VideoEl){
+      t6VideoEl.muted = false;
+      t6VideoEl.volume = 0.65;
+      t6VideoEl.play().catch(()=>{ t6VideoEl.muted=true; t6VideoEl.play().catch(()=>{}); });
     }
     setTimeout(()=>{
       const el = document.getElementById('fall-msg');
@@ -1597,48 +1857,77 @@ function triggerFall(){
   if(!levelGroups[nextIdx+1]) createLevelGroup(nextIdx+1);
 
   currentLevel = nextIdx;
+
+  // ── LEVEL 30 INITIALIZATION ──────────────────────────────────────────────
+  if(nextIdx === 30){
+    startBloodLevel30();
+    // Show landing message after a brief delay
+    setTimeout(()=>{
+      const msg = document.getElementById('fall-msg');
+      if(msg){
+        msg.textContent = "it's getting real.\nWatch the footage to survive";
+        msg.style.display = 'block';
+        msg.style.opacity = '0';
+        setTimeout(()=>{ msg.style.opacity = '1'; }, 50);
+        setTimeout(()=>{ msg.style.opacity = '0'; setTimeout(()=>{ msg.style.display = 'none'; }, 1200); }, 5000);
+      }
+    }, 800);
+  }
 }
 
 // ── GLB LOAD ─────────────────────────────────────────────────────────────────
 const draco=new DRACOLoader();
 draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
 const loader=new GLTFLoader(); loader.setDRACOLoader(draco);
-loader.load(GLB_URL,
-  gltf => {
-    glbTemplate = gltf.scene;
-    glbTemplate.traverse(c => { if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; } });
 
-    const box = new THREE.Box3().setFromObject(glbTemplate);
-    const center = new THREE.Vector3(); box.getCenter(center);
-    levelFloorY = box.min.y;
-    camera.position.set(center.x, levelFloorY + EYE_HEIGHT, center.z);
+// Wait for map URL to be chosen (PC selector) then start loading
+glbUrlReady.then(chosenUrl => {
+  GLB_URL = chosenUrl;
+  loader.load(GLB_URL,
+    gltf => {
+      glbTemplate = gltf.scene;
+      glbTemplate.traverse(c => { if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; } });
 
-    glbTemplate.traverse(c => { if(c.isMesh) collisionMeshes.push(c); });
+      const box = new THREE.Box3().setFromObject(glbTemplate);
+      const center = new THREE.Vector3(); box.getCenter(center);
+      levelFloorY = box.min.y;
+      camera.position.set(center.x, levelFloorY + EYE_HEIGHT, center.z);
 
-    snapTVsToWalls(0);
+      glbTemplate.traverse(c => { if(c.isMesh) collisionMeshes.push(c); });
 
-    const loreSnap = snapButtonToWall(LORE_BUTTON_DEF.pos);
-    LORE_BUTTON_DEF.pos = loreSnap.pos;
-    LORE_BUTTON_DEF.ry  = loreSnap.ry;
-    buildWallButton(LORE_BUTTON_DEF);
+      // ── Calibrate blood to real room geometry ────────────────────────────
+      // box.max.y = top of room geometry = ceiling in world space.
+      // Blood fills from floor (box.min.y) to ceiling (box.max.y) in 5 min.
+      BLOOD_MAX  = box.max.y;
+      BLOOD_RISE = (box.max.y - box.min.y) / 300; // exact 5-minute fill
 
-    buildTikTokDoor();
+      snapTVsToWalls(0);
 
-    createLevelGroup(0);
-    levelGroups[0].group.add(glbTemplate);
-    showLevel(0);
+      // Build T4 YouTube screen using snapped T4 position
+      const loreSnap = snapButtonToWall(LORE_BUTTON_DEF.pos);
+      LORE_BUTTON_DEF.pos = loreSnap.pos;
+      LORE_BUTTON_DEF.ry  = loreSnap.ry;
+      buildWallButton(LORE_BUTTON_DEF);
 
-    setTimeout(()=>{ if(!levelGroups[1]) createLevelGroup(1); }, 3000);
+      buildTikTokDoor();
+      buildThisWayText();
 
-    barEl.style.width='100%'; pctEl.textContent='100%';
-    onGLBReady();
-  },
-  ev => {
-    const fakeP=Math.min(95,Math.round((ev.loaded/1048576)/150*100));
-    barEl.style.width=fakeP+'%'; pctEl.textContent=fakeP+'%';
-  },
-  () => enterGame()
-);
+      createLevelGroup(0);
+      levelGroups[0].group.add(glbTemplate);
+      showLevel(0);
+
+      setTimeout(()=>{ if(!levelGroups[1]) createLevelGroup(1); }, 3000);
+
+      barEl.style.width='100%'; pctEl.textContent='100%';
+      onGLBReady();
+    },
+    ev => {
+      const fakeP=Math.min(95,Math.round((ev.loaded/1048576)/150*100));
+      barEl.style.width=fakeP+'%'; pctEl.textContent=fakeP+'%';
+    },
+    () => enterGame()
+  );
+});
 
 // ── INPUT ────────────────────────────────────────────────────────────────────
 const keys = new Set();
@@ -1825,10 +2114,105 @@ function animate(t){
     camera.position.y+=(targetY-camera.position.y)*Math.min(dt*12,1);
 
     const px=camera.position.x, pz=camera.position.z;
-    for(const zone of noclipZones){
-      if(zone.levelIndex===currentLevel){
-        const dx=px-zone.x, dz=pz-zone.z;
-        if(Math.sqrt(dx*dx+dz*dz)<NOCLIP_RADIUS){ triggerFall(); break; }
+    
+    // ── LEVEL 30 SPECIAL LOGIC ────────────────────────────────────────────
+    if(currentLevel === 30){
+      // Calculate velocity properly
+      if(!window._prevCamPos) window._prevCamPos = camera.position.clone();
+      const deltaPos = camera.position.clone().sub(window._prevCamPos);
+      const vel = deltaPos.length() / dt;
+      window._prevCamPos = camera.position.clone();
+      
+      const isStationary = vel < PLAYER_VELOCITY_THRESHOLD;
+      const t4VideoPlaying = t4VideoEl && !t4VideoEl.paused;
+      
+      // Find T4 zone (only zone on L30)
+      const t4Zone = noclipZones.find(z => z.levelIndex === 30);
+      if(t4Zone){
+        const dx = px - t4Zone.x, dz = pz - t4Zone.z;
+        const dist = Math.sqrt(dx*dx+dz*dz);
+        const isInT4Zone = dist < NOCLIP_RADIUS * 1.5;
+
+        // WATCH TIMER — counts whenever player is inside the T4 zone.
+        // No stationary requirement: "stay very still" is psychological pressure only.
+        // Timer only resets if the player leaves the zone entirely.
+        if(isInT4Zone){
+          if(!t4WatchStartTime){
+            t4WatchStartTime = performance.now();
+          }
+          const watchElapsed = performance.now() - t4WatchStartTime;
+
+          // Show "stay very still" once as a tension cue (not enforced)
+          if(watchElapsed > 500 && watchElapsed < 4000){
+            const msg = document.getElementById('fall-msg');
+            if(msg && msg.style.display === 'none'){
+              msg.textContent = 'stay very still';
+              msg.style.display = 'block';
+              msg.style.opacity = '1';
+            }
+          }
+
+          // Unlock the fall zone after 2 minutes in the zone
+          if(watchElapsed >= T4_WATCH_DURATION && !level30FallZoneUnlocked){
+            level30FallZoneUnlocked = true;
+            const msg = document.getElementById('fall-msg');
+            if(msg){
+              msg.textContent = 'the way out is beneath you';
+              msg.style.display = 'block';
+              msg.style.opacity = '0';
+              setTimeout(()=>{ msg.style.opacity = '1'; }, 50);
+              setTimeout(()=>{ msg.style.opacity = '0'; setTimeout(()=>{ msg.style.display = 'none'; }, 1200); }, 3000);
+            }
+          }
+        } else {
+          // Only reset the timer when the player actually leaves the zone
+          t4WatchStartTime = null;
+        }
+
+        // FALL — trigger once the zone unlocks and player is still inside it
+        if(level30FallZoneUnlocked && isInT4Zone && !isFalling){
+          triggerFall();
+        }
+      }
+    } else {
+      // Normal levels — standard zone checking
+      for(const zone of noclipZones){
+        if(zone.levelIndex===currentLevel && !isFalling){
+          const dx=px-zone.x, dz=pz-zone.z;
+          if(Math.sqrt(dx*dx+dz*dz)<NOCLIP_RADIUS){ triggerFall(); break; }
+        }
+      }
+    }
+  }
+
+  // ── UPDATE BLOOD LEVEL (Level 30) ────────────────────────────────────────
+  if(currentLevel === 30 && bloodActive){
+    bloodLevel = Math.min(BLOOD_MAX, bloodLevel + dt * BLOOD_RISE);
+    const yOff = -currentLevel * LEVEL_DEPTH;
+    if(bloodPlane){
+      bloodPlane.position.y = bloodLevel + yOff;
+    }
+    
+    // Death check: blood has filled the room to the ceiling
+    if(bloodLevel >= BLOOD_MAX - 0.05){
+      if(!level30DeathMessageShown){
+        level30DeathMessageShown = true;
+        stopBroadcasts();
+        stopBlood();
+        
+        // Show death message
+        const deathMsg = LEVEL30_DEATH_MESSAGES[Math.floor(Math.random() * LEVEL30_DEATH_MESSAGES.length)];
+        const msg = document.getElementById('fall-msg');
+        if(msg){
+          msg.textContent = deathMsg;
+          msg.style.display = 'block';
+          msg.style.opacity = '1';
+        }
+        
+        // Redirect to VeganBros after 3 seconds
+        setTimeout(()=>{
+          window.location.href = 'https://earthlingofficial.com/veganbros.html';
+        }, 3000);
       }
     }
   }
@@ -1836,7 +2220,7 @@ function animate(t){
   // Fuzz TVs — animate static on all wall TVs except video screens
   if(++nf%3===0){
     allTVs.forEach((tv,i)=>{
-      if(tv.id==='W1a' || tv.id==='W1b' || tv.id==='T10' || tv.id==='T6') return;
+      if(tv.id==='W1a' || tv.id==='W1b' || tv.id==='T10' || tv.id==='T6' || tv.id==='T4') return;
       if(nf%(3+(i%3))===0){
         const d=tv.nctx.createImageData(128,72);
         for(let j=0;j<d.data.length;j+=4){
@@ -1935,11 +2319,28 @@ document.getElementById('age-gate-confirm').addEventListener('click',()=>{
   const gate=document.getElementById('age-gate');
   gate.style.transition='opacity 0.4s';
   gate.style.opacity='0';
-  setTimeout(()=>{ gate.style.display='none'; },400);
+  setTimeout(()=>{
+    gate.style.display='none';
+    // PC: show map selector before GLB starts loading
+    if(!isMobile){
+      const sel = document.getElementById('map-selector');
+      if(sel) sel.classList.add('active');
+    }
+  },400);
   tryShowSkip();
 });
 document.getElementById('age-gate-leave').addEventListener('click',()=>{
   window.location.href='https://www.earthlingofficial.com';
+});
+
+// Map selector buttons (PC only)
+document.getElementById('ms-fast').addEventListener('click',()=>{
+  document.getElementById('map-selector').classList.remove('active');
+  _glbUrlResolve(GLB_1K);
+});
+document.getElementById('ms-hires').addEventListener('click',()=>{
+  document.getElementById('map-selector').classList.remove('active');
+  _glbUrlResolve(GLB_4K);
 });
 
 function tryShowSkip(){
