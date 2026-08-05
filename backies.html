@@ -514,12 +514,29 @@ const CROSS_SIZE    = 0.5;
 
 const BUILD_BOUNDS = { minX:-22, maxX:25, minZ:-52, maxZ:12 };
 
+// ── LEVEL 30 BLOOD SYSTEM ────────────────────────────────────────────────────
+const BLOOD_MAX = 2.8;         // max height to roof (doom)
+const BLOOD_RISE = 0.000122;   // per-frame rise (5 min to max)
+const T4_WATCH_DURATION = 120000; // 2 minutes in ms
+const T4_INTERACTION_RADIUS = 6;
+const PLAYER_VELOCITY_THRESHOLD = 0.08;
+
 let currentLevel    = 0;
 let levelFloorY     = 0;
 let isFalling       = false;
 let isRecovering    = false;
 let recoverStart    = 0;
 let recoverFrom     = 0;
+
+// ── LEVEL 30 STATE ────────────────────────────────────────────────────────────
+let bloodPlane = null;
+let bloodLevel = 0;
+let bloodActive = false;
+let bloodStartTime = 0;
+let t4WatchStartTime = null;
+let t4WatchComplete = false;
+let level30FallZoneUnlocked = false;
+let level30DeathMessageShown = false;
 
 const levelGroups   = [];
 let glbTemplate     = null;
@@ -530,6 +547,17 @@ const screamAudio = new Audio('https://archive.org/download/ScreamSounds/SCREAM_
 screamAudio.volume = 0.85;
 
 // ── FALL LANDING MESSAGES ─────────────────────────────────────────────────────
+const LEVEL30_DEATH_MESSAGES = [
+  "you drowned in exploited animals",
+  "the blood caught up — just like them",
+  "five minutes to understand what a lifetime feels like",
+  "you couldn't escape. they never could either.",
+  "submerged. suffocating. how did it feel?",
+  "blood in your lungs, just like them in theirs",
+  "you had a choice. they didn't.",
+  "you lasted longer than the footage showed",
+];
+
 const FALL_MESSAGES = [
   "you broke your neck...\nthe poor male chicks feel this every day\nthey're ground up alive — for your omelette",
   "everything went dark...\nthis is how they die in the farms\ndisoriented. terrified. alone.",
@@ -1071,10 +1099,10 @@ function createT10VideoTex(){
 
 function createT6VideoTex(){
   if(t6VideoEl) return t6VideoTex;
-  // Same backrooms found footage as the intro video, served via cors proxy.
+  // Catbox direct file host — faster and more reliable than archive.org CORS proxy.
   // Stays silent/paused until fall 20; intro-video element is stopped at that point.
   const result = createVideoTexture(
-    'https://cors.archive.org/cors/opencomp/opencomp.mp4',
+    'https://files.catbox.moe/8yka3k.mp4',
     { autoplay: false, volume: 0.65 }
   );
   t6VideoEl = result.vid;
@@ -1587,6 +1615,35 @@ function buildWallButton(def){
 // ── ALL TVS FLAT ARRAY (updated per level) ────────────────────────────────────
 let allTVs = [];
 
+// ── BLOOD PLANE SETUP ────────────────────────────────────────────────────────
+function initBloodPlane(){
+  if(bloodPlane) return;
+  const geo = new THREE.PlaneGeometry(100, 100);
+  const mat = new THREE.MeshBasicMaterial({ color: 0x4a0000, side: THREE.DoubleSide });
+  bloodPlane = new THREE.Mesh(geo, mat);
+  bloodPlane.rotation.x = -Math.PI/2;
+  bloodPlane.position.set(0, -0.5, 0);
+  bloodPlane.visible = false;
+  scene.add(bloodPlane);
+}
+
+function startBloodLevel30(){
+  initBloodPlane();
+  bloodLevel = 0.02;
+  bloodActive = true;
+  bloodStartTime = performance.now();
+  bloodPlane.visible = true;
+  level30FallZoneUnlocked = false;
+  level30DeathMessageShown = false;
+  t4WatchComplete = false;
+  t4WatchStartTime = null;
+}
+
+function stopBlood(){
+  bloodActive = false;
+  if(bloodPlane) bloodPlane.visible = false;
+}
+
 // ── CREATE ONE LEVEL ──────────────────────────────────────────────────────────
 function createLevelGroup(levelIndex){
   const yOff = -levelIndex * LEVEL_DEPTH;
@@ -1605,9 +1662,10 @@ function createLevelGroup(levelIndex){
   }
 
   const lights = [];
+  const lightIntensity = (levelIndex === 30) ? 0.4 : 1.2; // Dim level 30
   [[0,2.8,0],[10,2.8,-5],[-10,2.8,8],[20,2.8,5],[-20,2.8,-12],
    [5,2.8,25],[0,2.8,-15],[0,2.8,-30],[0,2.8,-45]].forEach(([x,y,z])=>{
-    const l = new THREE.PointLight(0xfff5aa, 1.2, 18);
+    const l = new THREE.PointLight(0xfff5aa, lightIntensity, 18);
     l.position.set(x, y, z);
     group.add(l); lights.push(l); flickerLights.push(l);
   });
@@ -1760,6 +1818,22 @@ function triggerFall(){
   if(!levelGroups[nextIdx+1]) createLevelGroup(nextIdx+1);
 
   currentLevel = nextIdx;
+
+  // ── LEVEL 30 INITIALIZATION ──────────────────────────────────────────────
+  if(nextIdx === 30){
+    startBloodLevel30();
+    // Show landing message after a brief delay
+    setTimeout(()=>{
+      const msg = document.getElementById('fall-msg');
+      if(msg){
+        msg.textContent = "it's getting real.\nWatch the footage to survive";
+        msg.style.display = 'block';
+        msg.style.opacity = '0';
+        setTimeout(()=>{ msg.style.opacity = '1'; }, 50);
+        setTimeout(()=>{ msg.style.opacity = '0'; setTimeout(()=>{ msg.style.display = 'none'; }, 1200); }, 5000);
+      }
+    }, 800);
+  }
 }
 
 // ── GLB LOAD ─────────────────────────────────────────────────────────────────
@@ -1995,10 +2069,112 @@ function animate(t){
     camera.position.y+=(targetY-camera.position.y)*Math.min(dt*12,1);
 
     const px=camera.position.x, pz=camera.position.z;
-    for(const zone of noclipZones){
-      if(zone.levelIndex===currentLevel){
-        const dx=px-zone.x, dz=pz-zone.z;
-        if(Math.sqrt(dx*dx+dz*dz)<NOCLIP_RADIUS){ triggerFall(); break; }
+    
+    // ── LEVEL 30 SPECIAL LOGIC ────────────────────────────────────────────
+    if(currentLevel === 30){
+      // Get player velocity magnitude
+      const prevPos = window._prevPos || camera.position.clone();
+      const vel = camera.position.clone().sub(prevPos).length() / dt;
+      window._prevPos = camera.position.clone();
+      
+      // Check if at T4 location (assume T4 is roughly at 0, 1.9, 8 in world space)
+      const t4Pos = new THREE.Vector3(0, 0, 8);
+      const distToT4 = camera.position.distanceTo(t4Pos);
+      const isNearT4 = distToT4 < T4_INTERACTION_RADIUS;
+      const isStationary = vel < PLAYER_VELOCITY_THRESHOLD;
+      
+      // Get camera facing direction
+      const camDir = new THREE.Vector3();
+      camera.getWorldDirection(camDir);
+      const toT4 = t4Pos.clone().sub(camera.position).normalize();
+      const facingT4 = camDir.dot(toT4) > 0.5; // roughly facing T4
+      
+      // Check if T4 video is playing
+      const t4VideoPlaying = t4VideoEl && !t4VideoEl.paused;
+      
+      // Track T4 watch
+      if(isNearT4 && isStationary && facingT4 && t4VideoPlaying){
+        if(!t4WatchStartTime){
+          t4WatchStartTime = performance.now();
+        }
+        const watchElapsed = performance.now() - t4WatchStartTime;
+        
+        // Show "stay very still" message early
+        if(watchElapsed < 3000 && watchElapsed > 500){
+          const msg = document.getElementById('fall-msg');
+          if(msg && !msg.textContent.includes('stay very still')){
+            msg.textContent = 'stay very still';
+            msg.style.display = 'block';
+            msg.style.opacity = '1';
+          }
+        }
+        
+        // Unlock fall zone after 2 min
+        if(watchElapsed >= T4_WATCH_DURATION && !level30FallZoneUnlocked){
+          level30FallZoneUnlocked = true;
+          const msg = document.getElementById('fall-msg');
+          if(msg){
+            msg.textContent = 'the way out is beneath you';
+            msg.style.display = 'block';
+            msg.style.opacity = '0';
+            setTimeout(()=>{ msg.style.opacity = '1'; }, 50);
+            setTimeout(()=>{ msg.style.opacity = '0'; setTimeout(()=>{ msg.style.display = 'none'; }, 1200); }, 3000);
+          }
+        }
+      } else {
+        // Reset timer if conditions not met
+        t4WatchStartTime = null;
+      }
+      
+      // Check fall zones (only T4 zone unlocked on L30)
+      for(const zone of noclipZones){
+        if(zone.levelIndex === 30){
+          // Only T4 zone (assumption: it's the first or only zone on L30)
+          if(level30FallZoneUnlocked){
+            const dx=px-zone.x, dz=pz-zone.z;
+            if(Math.sqrt(dx*dx+dz*dz)<NOCLIP_RADIUS*1.5){ triggerFall(); break; }
+          }
+        }
+      }
+    } else {
+      // Normal levels — check all zones
+      for(const zone of noclipZones){
+        if(zone.levelIndex===currentLevel){
+          const dx=px-zone.x, dz=pz-zone.z;
+          if(Math.sqrt(dx*dx+dz*dz)<NOCLIP_RADIUS){ triggerFall(); break; }
+        }
+      }
+    }
+  }
+
+  // ── UPDATE BLOOD LEVEL (Level 30) ────────────────────────────────────────
+  if(currentLevel === 30 && bloodActive){
+    bloodLevel = Math.min(BLOOD_MAX, bloodLevel + dt * BLOOD_RISE);
+    if(bloodPlane){
+      const yOff = -currentLevel * LEVEL_DEPTH;
+      bloodPlane.position.y = bloodLevel + yOff;
+    }
+    
+    // Check if player is submerged (blood reached player)
+    if(bloodLevel > camera.position.y - 0.3){
+      if(!level30DeathMessageShown){
+        level30DeathMessageShown = true;
+        stopBroadcasts();
+        stopBlood();
+        
+        // Show death message
+        const deathMsg = LEVEL30_DEATH_MESSAGES[Math.floor(Math.random() * LEVEL30_DEATH_MESSAGES.length)];
+        const msg = document.getElementById('fall-msg');
+        if(msg){
+          msg.textContent = deathMsg;
+          msg.style.display = 'block';
+          msg.style.opacity = '1';
+        }
+        
+        // Reset to beginning after 3 seconds
+        setTimeout(()=>{
+          location.reload();
+        }, 3000);
       }
     }
   }
