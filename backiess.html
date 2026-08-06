@@ -82,21 +82,59 @@
     transform: translate(-50%, -50%);
     color: rgba(200,100,80,0.88);
     font-family: 'Courier New', monospace;
-    font-size: 13px; letter-spacing: 2px; line-height: 2.2;
+    font-size: clamp(13px, 1.5vw, 18px); letter-spacing: 2px; line-height: 1.8;
     text-align: center; white-space: pre-line;
     text-shadow: 0 0 16px rgba(200,60,40,0.55);
     pointer-events: none; z-index: 6;
     display: none; opacity: 0;
     transition: opacity 1.1s;
-    max-width: 480px;
+    max-width: min(620px, 86vw);
+  }
+
+  /* ── DEATH SCREEN ── */
+  #death-screen {
+    position: fixed; inset: 0; display: none; align-items: center;
+    justify-content: center; flex-direction: column; z-index: 30;
+    background: #000; color: #c93726; text-align: center;
+    font-family: 'Courier New', monospace; padding: 28px;
+  }
+  #death-screen.show { display: flex; animation: death-in 1.4s ease-out both; }
+  #death-screen .death-title {
+    font-size: clamp(28px, 7vw, 76px); letter-spacing: .28em;
+    margin-left: .28em; text-shadow: 0 0 26px rgba(190,20,10,.7);
+  }
+  #death-screen .death-copy {
+    max-width: 680px; margin-top: 28px; color: rgba(255,190,160,.9);
+    font-size: clamp(13px, 1.8vw, 21px); letter-spacing: .12em;
+    line-height: 1.8; white-space: pre-line;
+    text-shadow: 0 0 14px rgba(180,30,10,.65);
+  }
+  #death-screen .death-note {
+    margin-top: 42px; color: rgba(210,170,130,.42);
+    font-size: 10px; letter-spacing: .22em;
+  }
+  @keyframes death-in {
+    from { opacity: 0; background: rgba(0,0,0,0); }
+    to { opacity: 1; background: #000; }
+  }
+
+  /* A translucent underwater veil keeps the rising blood readable after it
+     passes the camera. It is intentionally red and hazy, not an opaque fade. */
+  #blood-veil {
+    position: fixed; inset: 0; display: none; opacity: 0;
+    pointer-events: none; z-index: 4;
+    background:
+      radial-gradient(ellipse at 50% 44%, rgba(255,70,35,.035), rgba(28,0,0,.82) 72%),
+      linear-gradient(180deg, rgba(70,0,0,.88), rgba(100,5,0,.54) 48%, rgba(12,0,0,.92));
+    transition: opacity .35s ease;
   }
 
   /* ── BROADCAST SYSTEM ── */
   #player-taunt {
     position: fixed; top: 52%; left: 50%;
     transform: translate(-50%, -50%);
-    width: min(760px, 88vw);
-    padding: 24px 32px 28px;
+    width: min(650px, 78vw);
+    padding: 20px 26px 23px;
     border: 1px solid rgba(220,70,52,0.62);
     background: linear-gradient(90deg, rgba(12,3,2,0.08), rgba(35,5,3,0.82), rgba(12,3,2,0.08));
     color: #ff735d;
@@ -127,11 +165,11 @@
   }
 
   #ag-fact-feed {
-    position: fixed; top: 22px; left: 20px;
-    width: min(480px, 46vw);
-    padding: 14px 16px;
+    position: fixed; top: 22px; right: 20px; left: auto;
+    width: min(420px, 38vw);
+    padding: 11px 13px;
     border-left: 3px solid rgba(200,185,122,0.65);
-    background: rgba(8,6,2,0.42);
+    background: rgba(8,6,2,0.68);
     color: rgba(240,230,190,0.86);
     font-family: 'Courier New', monospace;
     pointer-events: none; z-index: 6;
@@ -150,6 +188,7 @@
     font-size: 13px;
     letter-spacing: 1px;
     line-height: 1.6;
+    white-space: pre-line;
   }
   #ag-fact-feed .fact-note {
     margin-top: 7px;
@@ -160,9 +199,9 @@
 
   #fake-chat {
     position: fixed; left: 20px; bottom: 48px;
-    width: min(560px, 48vw);
-    height: 250px;
-    padding: 12px 16px;
+    width: min(440px, 38vw);
+    height: 190px;
+    padding: 10px 13px;
     border: 1px solid rgba(200,185,122,0.28);
     background: linear-gradient(180deg, rgba(3,3,2,0.12), rgba(3,3,2,0.78));
     overflow: hidden;
@@ -182,7 +221,7 @@
   }
   #fake-chat .chat-line {
     margin: 7px 0;
-    font-size: 13px;
+    font-size: 11px;
     line-height: 1.35;
     transform: translateY(0);
     animation: chat-in 0.35s ease-out;
@@ -201,13 +240,17 @@
     }
     #player-taunt .broadcast-tag { font-size: 9px; letter-spacing: 3px; margin-bottom: 6px; }
     #player-taunt .broadcast-copy { font-size: 12px !important; letter-spacing: 1px; line-height: 1.5; }
-    #ag-fact-feed { width: 74vw; top: 10px; left: 10px; padding: 8px 10px; }
+    #ag-fact-feed { width: min(70vw, 300px); top: 10px; right: 10px; left: auto; padding: 8px 10px; }
     #ag-fact-feed .fact-tag { font-size: 9px; margin-bottom: 4px; }
-    #ag-fact-feed .fact-copy { font-size: 11px; line-height: 1.5; }
+    #ag-fact-feed .fact-copy { font-size: 11px; line-height: 1.5; white-space: pre-line; }
     #ag-fact-feed .fact-note { font-size: 8px; }
-    #fake-chat { left: 10px; bottom: 170px; width: 70vw; height: 150px; }
+    #fake-chat { left: 10px; bottom: max(112px, env(safe-area-inset-bottom)); width: min(72vw, 300px); height: 118px; padding: 7px 9px; }
     #fake-chat .chat-header { font-size: 9px; }
-    #fake-chat .chat-line { font-size: 10px; margin: 4px 0; }
+    #fake-chat .chat-line { font-size: 9px; margin: 3px 0; line-height: 1.25; }
+    #fall-msg { font-size: 12px; letter-spacing: 1px; line-height: 1.6; max-width: 84vw; }
+    #death-screen { padding: 20px; }
+    #death-screen .death-copy { margin-top: 20px; letter-spacing: .06em; }
+    #death-screen .death-note { margin-top: 28px; font-size: 8px; }
   }
 
   /* ── TV PROXIMITY PROMPT ── */
@@ -392,8 +435,14 @@
 </div>
 <div id="hint">WASD &nbsp;·&nbsp; SHIFT &nbsp;·&nbsp; CLICK TV &nbsp;·&nbsp; ~ COORDS</div>
 <div id="ambient-text"></div>
+<div id="blood-veil"></div>
 <!-- Fall landing message -->
 <div id="fall-msg"></div>
+<div id="death-screen">
+  <div class="death-title">YOU DIED</div>
+  <div class="death-copy" id="death-copy"></div>
+  <div class="death-note">THE EXIT WAS THERE. THE SYSTEM WAS BUILT TO OUTLAST YOUR ATTENTION.</div>
+</div>
 <!-- Timed in-game broadcast layers -->
 <div id="player-taunt">
   <span class="broadcast-tag">FIELD NOTE // YOU ARE THE ANIMAL NOW</span>
@@ -402,7 +451,7 @@
 <div id="ag-fact-feed">
   <div class="fact-tag">RESEARCH FEED // ANIMAL AGRICULTURE</div>
   <div class="fact-copy" id="ag-fact-copy"></div>
-  <div class="fact-note">GENERAL CONTEXT — LAWS AND STANDARDS VARY BY JURISDICTION</div>
+  <div class="fact-note">NO EXCUSES // NOW YOU KNOW</div>
 </div>
 <div id="fake-chat">
   <div class="chat-header">FICTIONAL SIGNAL // DEAN CHAT // LIVE-ish</div>
@@ -514,6 +563,15 @@ const CROSS_SIZE    = 0.5;
 
 const BUILD_BOUNDS = { minX:-22, maxX:25, minZ:-52, maxZ:12 };
 
+// ── LEVEL 30 BLOOD SYSTEM ────────────────────────────────────────────────────
+// These are overridden after the GLB loads with real room geometry
+let BLOOD_MAX  = 4.0;          // absolute world-Y ceiling target (set from box.max.y after load)
+let BLOOD_RISE = 0.013;        // fallback rise rate; the level now uses an exact elapsed-time fill
+const T4_WATCH_DURATION = 120000; // 2 minutes in ms before the T4 escape becomes available
+const BLOOD_FILL_DURATION = 300000; // 5 minutes in ms
+const T4_INTERACTION_RADIUS = 6;
+const PLAYER_VELOCITY_THRESHOLD = 0.08;
+
 let currentLevel    = 0;
 let levelFloorY     = 0;
 let isFalling       = false;
@@ -521,15 +579,46 @@ let isRecovering    = false;
 let recoverStart    = 0;
 let recoverFrom     = 0;
 
+// ── LEVEL 30 STATE ────────────────────────────────────────────────────────────
+let bloodPlane = null;
+let bloodWaveMeshes = [];
+let bloodLevel = 0;
+let bloodActive = false;
+let bloodStartTime = 0;
+let t4WatchComplete = false;
+let level30FallZoneUnlocked = false;
+let level30DeathMessageShown = false;
+let level30StartTime = 0;
+
 const levelGroups   = [];
 let glbTemplate     = null;
 const noclipZones   = [];
+const stage30RoomLights = [];
+const stage30AccentLights = [];
+let stage30BlackoutUntil = 0;
+let stage30NextBlackoutAt = 0;
+let stage30Submerged = false;
 
 // ── SCREAM AUDIO ──────────────────────────────────────────────────────────────
 const screamAudio = new Audio('https://archive.org/download/ScreamSounds/SCREAM_4.mp3');
 screamAudio.volume = 0.85;
 
 // ── FALL LANDING MESSAGES ─────────────────────────────────────────────────────
+const LEVEL30_DEATH_MESSAGES = [
+  "you drowned in meat",
+  "you drowned in exploited animals",
+  "the blood caught up — just like them",
+  "you died of heart disease — the bill came due for every meal",
+  "you drowned in the blood of your victims",
+  "greed filled the room before the blood did",
+  "five minutes to understand what a lifetime feels like",
+  "you couldn't escape. they never could either.",
+  "submerged. suffocating. how did it feel?",
+  "blood in your lungs, just like them in theirs",
+  "you had a choice. they didn't.",
+  "you lasted longer than the footage showed",
+];
+
 const FALL_MESSAGES = [
   "you broke your neck...\nthe poor male chicks feel this every day\nthey're ground up alive — for your omelette",
   "everything went dark...\nthis is how they die in the farms\ndisoriented. terrified. alone.",
@@ -554,6 +643,10 @@ let fallMsgIdx = 0;
 let fallMsgTimeout = null;
 let fallMsgShowing = false;
 const fallMsgEl = document.getElementById('fall-msg');
+const bloodVeilEl = document.getElementById('blood-veil');
+const deathScreenEl = document.getElementById('death-screen');
+const deathCopyEl = document.getElementById('death-copy');
+let stageCueTimer = null;
 
 function showFallMessage(){
   if(!fallMsgEl) return;
@@ -575,118 +668,146 @@ function hideFallMessage(){
   setTimeout(()=>{ fallMsgEl.style.display = 'none'; }, 1200);
 }
 
+function showStage30Cue(message, duration=5200){
+  if(!fallMsgEl) return;
+  if(stageCueTimer) clearTimeout(stageCueTimer);
+  fallMsgEl.textContent = message;
+  fallMsgEl.style.display = 'block';
+  fallMsgEl.style.opacity = '0';
+  requestAnimationFrame(()=>{ fallMsgEl.style.opacity = '1'; });
+  fallMsgShowing = true;
+  stageCueTimer = setTimeout(()=>{
+    fallMsgEl.style.opacity = '0';
+    fallMsgShowing = false;
+    setTimeout(()=>{ if(!fallMsgShowing) fallMsgEl.style.display = 'none'; }, 1100);
+  }, duration);
+}
+
+function showDeathScreen(){
+  stopBroadcasts();
+  if(fallMsgEl) fallMsgEl.style.display = 'none';
+  if(deathCopyEl){
+    deathCopyEl.textContent =
+      LEVEL30_DEATH_MESSAGES[Math.floor(Math.random() * LEVEL30_DEATH_MESSAGES.length)] +
+      "\n\nTHE ANIMALS NEVER GOT A WAY OUT.";
+  }
+  if(deathScreenEl) deathScreenEl.classList.add('show');
+}
+
 // ── IN-GAME BROADCAST SYSTEM ─────────────────────────────────────────────────
 // These are presentation-only overlays. They deliberately have no connection
 // to TV playback state, movement, or the entrance audio sequence.
 const PLAYER_TAUNTS = [
-  "you seem lost.\nmale chicks in egg production are ground alive or gassed at birth.\nyou have a door. they have a shredder.",
-  "you got to walk into this place by choice.\nthey were born into it.",
-  "you are looking for an exit.\na broiler chicken is looking for one leg that will hold.",
-  "you can turn around whenever you want.\na sow in a farrowing crate cannot.",
-  "you call this a maze?\nthey call a lifetime in a cage a normal Tuesday.",
-  "you are frightened by the dark.\nthey are frightened by the machinery, and the machinery never sleeps.",
-  "you have a name, a future, and a way out.\ntheirs are often reduced to a number before they can stand.",
-  "you heard one scream and started searching.\nslaughter lines run on the fact that nobody has to listen.",
-  "you are being watched.\nthey are watched, handled, graded, and moved like inventory.",
-  "you can stop reading this.\nthey cannot stop the truck.",
-  "you want someone to find you.\ncalves want their mothers. the system has paperwork instead.",
-  "your cage is imaginary.\ntheirs has a lock, a latch, and a production target.",
-  "you are confused because the rules keep changing.\nthat is a familiar feeling in a hatchery.",
-  "you get a pause screen.\nthey get a stun, a stamp, or the next conveyor.",
-  "you are searching for comfort in a hostile environment.\nthat is the product being sold to animals as welfare.",
-  "you can sprint when the fear arrives.\nmost farmed animals are bred too heavy to run.",
-  "you have already fallen several floors.\nthat is still fewer than the times a transport truck ignores the weather.",
-  "you think the walls are closing in.\ntry being bred for a body that cannot support itself.",
-  "you are asking why this is happening.\nthe answer is usually demand, distance, and a legal definition.",
-  "your panic has an audience.\ntheirs has a supply chain.",
-  "you can leave this screen and call it fiction.\nthey cannot leave the footage and call it a life.",
-  "you are allowed to be uncomfortable here.\nthat is more freedom than a cage gives.",
-  "you want the humane version.\nask who gets to define humane when the endpoint is still a killing floor.",
-  "you are one person in a building.\nthey are millions of individuals hidden behind one ingredient list.",
-  "your body is tired after minutes.\nselectively bred farmed bodies can spend a lifetime carrying more than they can bear.",
-  "you are waiting for the next jump scare.\nthey are waiting for the next hand, hook, gate, or truck.",
-  "the game calls you a player.\nthe industry calls them units, yield, and throughput.",
-  "you can close the tab.\nthey cannot close the barn door from the inside.",
-  "you thought getting lost was the worst part.\ntry being born where every road leads to production.",
-  "you are looking for a safe room.\nthere is no safe room in a system built around speed.",
-  "you made it this far by choice.\nmost animals in the system never get a choice at all.",
-  "if this feels unfair, good.\nthat feeling is doing more work than the label on the package."
+  "male chicks are ground alive or gassed because they cannot lay eggs.\nFOR PROFIT.",
+  "you walked in by choice.\nthey were born into the killing floor.",
+  "you want an exit.\na broiler chicken wants legs that can hold its body.",
+  "you can turn around.\na sow in a crate cannot turn around.",
+  "you call this a maze.\nthey call a lifetime in a cage normal.",
+  "the machinery scares you because it never stops.\nTHEIRS NEVER DID.",
+  "you have a name and a way out.\nthey became a number before they could stand.",
+  "you heard one scream and started searching.\nTHE LINE KEPT MOVING.",
+  "you are being watched.\nthey are handled like inventory.",
+  "you can stop reading this.\nthey could not stop the truck.",
+  "a calf cried for its mother.\nthe truck kept moving.",
+  "your cage is imaginary.\ntheirs had a lock.",
+  "you get a pause screen.\nthey get a stun, a hook, or the next conveyor.",
+  "you are looking for comfort.\nthey were bred for output.",
+  "you can sprint from fear.\nthey were bred too heavy to run.",
+  "your body is tired after minutes.\ntheir pain lasted a lifetime.",
+  "you think the walls are closing in.\nTHEIR WALLS WERE THE WHOLE WORLD.",
+  "you can call this fiction.\nthe animals could not call it anything.",
+  "you want the humane version.\nthe endpoint was still a killing floor.",
+  "you are one person in a building.\nthey were millions of hidden individuals.",
+  "you are waiting for a jump scare.\nthey are waiting for the hand, hook, gate, or truck.",
+  "the game calls you a player.\nthe system called them yield.",
+  "you can close the tab.\nthey could not close the barn door.",
+  "you thought getting lost was the worst part.\nTRY BEING BORN HERE.",
+  "you made it this far by choice.\nthey never got one.",
+  "for greed.\nfor convenience.\nfor taste.\nFOR A MOMENT OF HUMAN PLEASURE.",
+  "you said you did not know.\nNOW YOU KNOW.",
+  "you said everyone does it.\nEVERYONE CAN STOP.",
+  "you said tradition.\nTRADITION IS NOT AN EXCUSE.",
+  "you said convenience.\nTHEIR PAIN WAS CONVENIENT FOR YOU.",
+  "you said it tastes good.\nTASTE LASTS MINUTES.",
+  "you are not trapped.\nyou are being asked to change.",
+  "the animals were not confused.\nTHEY WERE TERRIFIED.",
+  "the blood is real even when the advertisement is soft-focus.\nGO VEGAN.",
+  "this room is fictional.\nthe victims were not."
 ];
 
 const ANIMAL_AG_FACTS = [
-  "In egg production, male chicks are often considered economically unprofitable and may be killed shortly after hatching. Practices and rules vary by jurisdiction.",
-  "Broiler chickens are selectively bred for rapid growth. That can create serious welfare problems, including leg disorders and difficulty walking.",
-  "Gestation crates restrict a pregnant sow's movement. Some jurisdictions restrict or ban them; others still permit them under conditions.",
-  "Animal-welfare laws often contain exemptions or different standards for customary agricultural practices. The exact legal text depends on location.",
-  "Ag-gag laws exist in some jurisdictions and can restrict recording or whistleblowing around agricultural facilities. Their scope and status vary.",
-  "Transport protections differ by species, country, and state. A legal minimum is not the same thing as a life without fear, injury, or exhaustion.",
-  "Terms such as cage-free, free-range, natural, and humane are not interchangeable. Their definitions and enforcement depend on the label and jurisdiction.",
-  "In many legal systems, animals are property rather than legal persons. That shapes who can sue, what remedies exist, and whose interests get priority.",
-  "Slaughter inspection usually focuses on food safety and process compliance. It does not mean every welfare concern has disappeared.",
-  "Dairy calves may be separated from their mothers soon after birth in many production systems. The timing and rules vary across farms and regions.",
-  "Selective breeding can increase production while also increasing the risk of chronic pain or disability. Efficiency is not a welfare metric.",
-  "A welfare certification can set a higher standard than baseline law, but the actual meaning depends on the certifier's published rules and audits.",
-  "Most farmed animals are excluded from the everyday legal protections people assume apply to companion animals. Definitions matter.",
-  "Environmental law and animal-welfare law are separate tools. A facility can comply with one while still raising serious questions under the other.",
-  "The word humane is often marketing language unless a specific standard, audit, or statute defines what it requires.",
-  "Pigs are highly social and cognitively complex animals. Housing systems can prevent behaviors such as rooting, nesting, and exploration.",
-  "Chickens recognize individuals and form social hierarchies. A production label does not erase individual perception or pain.",
-  "Fish are sentient vertebrates, yet they are frequently absent from public welfare conversations and legal protections.",
-  "In many places, undercover footage is legally contested even when it reveals conditions the public would never see otherwise.",
-  "A facility can be clean and still be stressful. Hygiene, crowding, freedom of movement, pain, and fear are different welfare questions.",
-  "Animal agriculture is not one single practice. Species, housing, transport, slaughter, and local law can differ dramatically.",
-  "A certification logo is not a universal guarantee. Check the standard, the audit model, and what the label explicitly excludes.",
-  "Legal permission is a floor, not a moral ceiling.",
-  "The fact that a practice is common does not tell you whether it is necessary, humane, or ethically defensible.",
-  "The absence of visible injury does not prove the absence of fear, frustration, chronic pain, or deprivation.",
-  "Public records, inspection reports, court filings, and worker testimony can reveal different parts of the same supply chain.",
-  "Animal welfare, worker safety, environmental damage, and consumer transparency overlap, but they are not the same claim.",
-  "If a law varies by jurisdiction, that is not a loophole in the fact. It is part of the fact."
+  "Male chicks are killed because they cannot lay eggs.\nFOR PROFIT. FOR CONVENIENCE.",
+  "Piglets are cut, sorted, crowded, and sent down the line while people call bacon breakfast.\nFOR TASTE.",
+  "A mother cow searches for the calf taken from her.\nFOR PROFIT. FOR A SANDWICH.",
+  "Broiler chickens can grow so fast their legs buckle under them.\nFOR MORE MEAT. FOR MORE MONEY.",
+  "Fish suffocate in nets, on decks, and in the air.\nFOR SPORT. FOR A PHOTO. FOR DINNER.",
+  "Animals are branded, shackled, shocked, dragged, and killed because a system found a cheaper way to do it.\nFOR GREED.",
+  "A cage is not a home because the label says CAGE-FREE.\nNOW YOU KNOW.",
+  "The knife does not become gentle because a menu calls the body premium.\nFOR TASTE PLEASURE.",
+  "Calves cry for their mothers. The truck keeps moving.\nFOR CONVENIENCE.",
+  "A sentient life became an ingredient, a price, and a punchline.\nBE VEGAN ON PURPOSE.",
+  "Animals do not volunteer for transport, slaughter, hunting, rodeo, or spectacle.\nHUMANS CALL IT TRADITION.",
+  "The suffering is hidden so the appetite can feel innocent.\nLOOK AGAIN.",
+  "They bred the body until it could not carry itself, then blamed the body.\nFOR YIELD.",
+  "The barn is clean. The fear is still there.\nA CLEAN FLOOR DOES NOT MAKE A CLEAN CONSCIENCE.",
+  "Every package is a story about a living being who wanted to keep living.\nFORGIVE NOTHING. CHANGE SOMETHING.",
+  "You do not need to hate animals to stop eating them.\nYOU ONLY NEED TO STOP MAKING THEM PAY.",
+  "They were born into a system designed around their death.\nYOU WERE BORN WITH A CHOICE.",
+  "The industry calls them units. They had faces.\nFOR GREED.",
+  "You said you did not know.\nNOW YOU KNOW.",
+  "You said everyone does it.\nEVERYONE CAN STOP.",
+  "You said it is tradition.\nTRADITION IS NOT A DEFENSE.",
+  "You said it is convenient.\nTHEIR PAIN WAS CONVENIENT FOR YOU.",
+  "You said it tastes good.\nTASTE LASTS MINUTES. THEIR FEAR DID NOT.",
+  "You said one person cannot matter.\nONE PERSON IS ALREADY ONE LESS DEMAND.",
+  "The animals were not confused about what was happening.\nTHEY WERE TERRIFIED.",
+  "Hunting calls a frightened animal a trophy.\nSPORT IS NOT AN EXCUSE.",
+  "Rodeo calls pain entertainment.\nTHE CROWD STILL CHEERS.",
+  "The blood is real even when the advertisement is soft-focus.\nGO VEGAN.",
+  "You can close the tab. They could not close the door.\nNOW MOVE.",
+  "This room is fictional. The victims were not.\nFOR GREED. FOR CONVENIENCE. FOR TASTE."
 ];
 
 const FICTIONAL_CHAT_LINES = [
-  ["@floor_10_mod", "wait, this backrooms game is actually about factory farming. it is. it genuinely is."],
-  ["@dean_defender", "Dean Withers would have found the exit in thirty seconds."],
-  ["@bean_counter", "veganism mentioned. chat has entered its emergency broadcast era."],
-  ["@plantbasedpanic", "I saw one lentil and now the government is coming for my barbecue."],
-  ["@earthling_official", "please stop comparing the player to livestock. the player is doing that themselves."],
-  ["@dean_chat", "Dean said read the label. Earthling read the ceiling instead."],
-  ["@meat_logic", "if the chicken wanted to leave it should have learned WASD."],
-  ["@mod_team", "that argument has been timed out for low nutritional value."],
-  ["@withers_watch", "Dean Withers: calm, clear, devastating. Earthling: walking into a wall."],
-  ["@soy_skeptic", "I am not owned by Big Tofu. I can quit whenever I want. probably."],
-  ["@the_actual_cow", "moo means please stop using me as a metaphor for your ethics."],
-  ["@chat_lurker", "the screen is black because the discourse has become too bright."],
-  ["@dean_defender", "another clean point from Dean. another dirty dodge from the chat."],
-  ["@vegan_speedrun", "any percent route: read one welfare report, become annoying at dinner."],
-  ["@comment_section", "the fall mechanic as a loss-of-ground design is genuinely clever. I hate that I respect it."],
-  ["@free_range_facts", "free-range is not a magic spell, folks. read the standard."],
-  ["@meat_logic", "plants have feelings too. okay, then eat the thing with the nervous system."],
-  ["@mod_team", "please stop yelling LAW at the screen. name the jurisdiction or sit down."],
-  ["@dean_chat", "Dean Withers is cooking. ironically, the chat is not."],
-  ["@cage_free_ish", "cage-free and joy-free are not the same thing, but let's keep reading."],
-  ["@earthling_official", "the player has found the moral basement. there are more floors below."],
-  ["@plantbasedpanic", "I came here to own vegans and accidentally learned what a hatchery is."],
-  ["@withers_watch", "someone clip that Dean answer before the chat invents a new straw man."],
-  ["@night_shift", "why is the animal rights account funnier than the comedy accounts."],
-  ["@mod_team", "new rule: no claiming a label means whatever you wish it meant."],
-  ["@dean_defender", "Dean asked one question and six commenters became smoke."],
-  ["@omnivore_arc", "I support personal choice, especially the choice to read the facts first."],
-  ["@chat_lurker", "whoever built this has been in too many comment sections. you can feel it in the walls."],
-  ["@supply_chain", "the farm is not the whole story. neither is the supermarket."],
-  ["@vegan_speedrun", "today's boss fight: 'but bacon tho'."],
-  ["@the_actual_cow", "you keep saying freedom while holding a sandwich. fascinating."],
-  ["@dean_chat", "praise Dean, mute the bad-faith detour, continue."],
-  ["@meat_logic", "I have three tabs open and all of them disagree with me. suspicious."],
-  ["@mod_team", "facts are not an attack. unless your argument is made of vibes."],
-  ["@earthling_official", "the backrooms have better accountability than this comment section."],
-  ["@withers_watch", "Dean Withers has entered the chat. please secure your definitions."],
-  ["@plantbasedpanic", "fine, I will watch the documentary. but I reserve the right to be dramatic."],
-  ["@floor_10_mod", "the player is still lost. the chat is still loud. excellent television."],
-  ["@cage_free_ish", "if the label needs a footnote, the footnote is part of the label."],
-  ["@night_shift", "the fake chat inside the game about a real debate is extremely unhinged and correct."],
-  ["@dean_defender", "that was not a debate, that was Dean filing a conversational tax return."],
-  ["@mod_team", "chat behaving badly. animals still deserve better. continue."]
+  ["@dean_defender", "Dean found the exit in thirty seconds. Earthling built thirty floors because he was scared."],
+  ["@meat_logic", "wagyu has feelings too but mine are more expensive so this is complicated."],
+  ["@dean_chat", "did Earthling give Dean night terrors or did the vegan facts finally get through?"],
+  ["@dean_defender", "Deanus Politicus Carnivorus Paradoxus has been captured. release him back into the comment section."],
+  ["@meat_logic", "if the chicken wanted to leave it should have learned WASD. simple science."],
+  ["@plantbasedpanic", "Earthling mentioned lentils. I am calling Dean and Charlie Kirk immediately."],
+  ["@withers_watch", "Dean says this is not a maze, it is a protein deficiency with wallpaper."],
+  ["@dean_defender", "the hypogeum was better. Earthling stole the radio because Dean was winning."],
+  ["@meat_logic", "WAGYU WAGYU WAGYU. I cannot hear the cows over my own branding."],
+  ["@night_terror_unit", "did Earthling give Dean night terrors? asking for the entire sleep-deprived debate team."],
+  ["@charlie_kirk_fan", "Charlie Kirk would debate the blood sea and somehow ask it to define socialism."],
+  ["@dean_defender", "Dean is being exploited like an animal by this game. finally, he understands the assignment."],
+  ["@meat_logic", "tradition means it is old, and old means morally perfect. checkmate, vegetables."],
+  ["@vegan_speedrun", "any percent route: read one fact, say 'but bacon tho', get lost forever."],
+  ["@radio_leak", "did Earthling steal the radio? the next station better be Dean saying 'plants tho' for four hours."],
+  ["@dean_chat", "the radio is missing, Dean is missing, my empathy has been missing since lunch."],
+  ["@dean_defender", "Earthling made a horror game because Dean would not accept a tofu rebuttal."],
+  ["@meat_logic", "the cow was probably a paid actor. the pig had a contract. the chicken understood the terms."],
+  ["@withers_watch", "Deanus Politicus Carnivorus Paradoxus has entered the hypogeum. his natural habitat is a bad-faith pivot."],
+  ["@earthling_official", "mods: the animals are not props, the blood is not decorative, and Dean is not escaping this chat."],
+  ["@floor_10_mod", "plain fact: animals feel pain, fear, and the desire to keep living. stop turning that into a menu joke."],
+  ["@radio_mod", "plain fact: the radio station is not live yet. please stop asking the blood for a playlist."],
+  ["@hypogeum_mod", "plain fact: the hypogeum had bones under the floor. this stage has blood above it. keep walking."],
+  ["@mod_team", "plain fact: 'everyone does it' is not a reason. it is a crowd waiting for someone to move first."],
+  ["@dean_defender", "Dean has night terrors because Earthling put a vegan under every bed."],
+  ["@meat_logic", "I support personal choice, especially my choice to choose the steak before seeing the evidence."],
+  ["@withers_watch", "clip Dean getting captured by the backrooms. title it: carnivorous paradox in a humane enclosure."],
+  ["@radio_leak", "new station idea: Radio Cowntdown. every hour is just a moo and Earthling saying now you know."],
+  ["@plantbasedpanic", "I came to defend meat and accidentally learned what a hatchery is. banning knowledge."],
+  ["@mod_team", "plain fact: male chicks are killed because they cannot lay eggs. no debate segment required."],
+  ["@mod_team", "plain fact: a mother and calf do not stop caring because a supply chain calls it routine."],
+  ["@mod_team", "plain fact: sport, tradition, taste, and convenience are human reasons. the animal still pays."],
+  ["@dean_chat", "Dean said this game is propaganda. Earthling said yes, it is propaganda for not eating faces."],
+  ["@meat_logic", "the blood sea is actually gravy. mods please verify."],
+  ["@radio_mod", "station one: screams. station two: Dean explaining why screams are a semantic issue."],
+  ["@dean_defender", "if Earthling can make a whole backrooms universe, Dean can survive one vegan message. probably."],
+  ["@withers_watch", "the creator is vegan, Dean is carnivorous, and the chat is trapped between them. incredible television."],
+  ["@mod_team", "plain fact: you can leave the menu. the animal could not leave the room."],
+  ["@floor_10_mod", "the hypogeum was the basement. the radio will be the next witness. keep your ears open."]
 ];
 
 const tauntEl = document.getElementById('player-taunt');
@@ -841,7 +962,8 @@ scene.fog = new THREE.FogExp2(0x1a1208, 0.035);
 const camera = new THREE.PerspectiveCamera(80, innerWidth/innerHeight, 0.05, 500);
 camera.position.set(0, EYE_HEIGHT, 0);
 
-scene.add(new THREE.AmbientLight(0xfff5cc, 0.4));
+const ambientLight = new THREE.AmbientLight(0xfff5cc, 0.4);
+scene.add(ambientLight);
 const flickerLights = [];
 
 const composer = new EffectComposer(renderer);
@@ -1587,6 +1709,134 @@ function buildWallButton(def){
 // ── ALL TVS FLAT ARRAY (updated per level) ────────────────────────────────────
 let allTVs = [];
 
+// ── BLOOD PLANE SETUP ────────────────────────────────────────────────────────
+function initBloodPlane(){
+  if(bloodPlane) return;
+  // 400×400 covers the full map extent (map runs ~x:-70→+25, z:-52→+12)
+  const geo = new THREE.PlaneGeometry(400, 400);
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0x680000,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.97,
+    depthWrite: false,
+  });
+  bloodPlane = new THREE.Mesh(geo, mat);
+  bloodPlane.rotation.x = -Math.PI/2;
+  // Centre on map midpoint: x=(−70+25)/2≈−22, z=(−52+12)/2≈−20
+  bloodPlane.position.set(-22, -0.5, -20);
+  bloodPlane.visible = false;
+  scene.add(bloodPlane);
+
+  // Several offset translucent surfaces create a moving, layered blood
+  // volume. The screen veil below handles the view once the surface rises
+  // above the camera.
+  [
+    { offset: .06, opacity: .18, color: 0x9b1108, spin: .0012 },
+    { offset: .18, opacity: .13, color: 0x4e0000, spin: -.0017 },
+    { offset: .34, opacity: .10, color: 0xd1260e, spin: .0008 },
+  ].forEach(spec=>{
+    const wave = new THREE.Mesh(
+      new THREE.PlaneGeometry(400, 400),
+      new THREE.MeshBasicMaterial({
+        color: spec.color, side: THREE.DoubleSide,
+        transparent: true, opacity: spec.opacity, depthWrite: false,
+      })
+    );
+    wave.rotation.x = -Math.PI / 2;
+    wave.position.set(-22, -0.5, -20);
+    wave.userData.waveSpec = spec;
+    wave.visible = false;
+    scene.add(wave);
+    bloodWaveMeshes.push(wave);
+  });
+}
+
+function startBloodLevel30(){
+  initBloodPlane();
+  bloodLevel = levelFloorY + 0.02; // start just above the actual floor
+  bloodActive = true;
+  bloodStartTime = performance.now();
+  level30StartTime = bloodStartTime;
+  bloodPlane.visible = true;
+  bloodWaveMeshes.forEach(wave=>{ wave.visible = true; });
+  level30FallZoneUnlocked = false;
+  level30DeathMessageShown = false;
+  t4WatchComplete = false;
+  // This is the stage timer, not a timer that resets when the player leaves
+  // the zone. The player gets a two-minute grace period, then can escape by
+  // entering or returning to the T4 zone before the five-minute deadline.
+  stage30BlackoutUntil = 0;
+  stage30NextBlackoutAt = level30StartTime + 6500;
+  stage30Submerged = false;
+
+  // ── Darken level 30: dim + red-shift the global ambient ──────────────────
+  ambientLight.color.set(0x220000);
+  ambientLight.intensity = 0.025;
+  // Denser red-black fog so the room closes in as the blood rises.
+  scene.fog = new THREE.FogExp2(0x080000, 0.072);
+
+  // ── Auto-play T4 video so the watch timer can start ───────────────────────
+  createT4VideoTex();
+  if(t4VideoEl){
+    t4VideoEl.muted = false;
+    t4VideoEl.play().catch(()=>{ t4VideoEl.muted = true; t4VideoEl.play().catch(()=>{}); });
+  }
+}
+
+function restoreNormalLighting(){
+  ambientLight.color.set(0xfff5cc);
+  ambientLight.intensity = 0.4;
+  scene.fog = new THREE.FogExp2(0x1a1208, 0.035);
+}
+
+function updateStage30Lighting(now){
+  if(currentLevel !== 30) return;
+
+  // Occasional short blackouts make the room feel unstable without turning
+  // the whole screen into a constant effect.
+  if(stage30BlackoutUntil <= now && now >= stage30NextBlackoutAt){
+    stage30BlackoutUntil = now + 260 + Math.random() * 420;
+    stage30NextBlackoutAt = stage30BlackoutUntil + 5200 + Math.random() * 7200;
+  }
+
+  const blackout = now < stage30BlackoutUntil;
+  const hardDark = stage30Submerged;
+  ambientLight.intensity = hardDark ? 0.006 : (blackout ? 0.012 : 0.025);
+  stage30RoomLights.forEach((light, index) => {
+    const base = light.userData.baseIntensity || 0.18;
+    if(blackout || hardDark){
+      light.intensity = hardDark ? 0.0015 : 0;
+      return;
+    }
+    const pulse = 0.82 + Math.sin(now * 0.011 + index * 2.15) * 0.13;
+    light.intensity = base * pulse;
+  });
+
+  // Two small sources stay alive during a blackout, but flicker unevenly
+  // through the fog so the player can still read the room in fragments.
+  stage30AccentLights.forEach((light, index) => {
+    const base = light.userData.baseIntensity || 0.08;
+    const signal = Math.sin(now * (0.017 + index * 0.006) + index * 2.4);
+    light.intensity = base * (hardDark
+      ? (signal > 0.25 ? 0.16 : 0.018)
+      : blackout
+        ? (signal > 0.35 ? 0.9 : 0.08)
+      : (0.48 + Math.max(0, signal) * 0.48));
+  });
+}
+
+function stopBlood(){
+  bloodActive = false;
+  stage30Submerged = false;
+  if(bloodPlane) bloodPlane.visible = false;
+  bloodWaveMeshes.forEach(wave=>{ wave.visible = false; });
+  if(bloodVeilEl){
+    bloodVeilEl.style.opacity = '0';
+    bloodVeilEl.style.display = 'none';
+  }
+}
+
 // ── CREATE ONE LEVEL ──────────────────────────────────────────────────────────
 function createLevelGroup(levelIndex){
   const yOff = -levelIndex * LEVEL_DEPTH;
@@ -1605,12 +1855,31 @@ function createLevelGroup(levelIndex){
   }
 
   const lights = [];
+  // Level 30: very dim crimson point lights so blood blends into darkness.
+  const lightColor     = (levelIndex === 30) ? 0x330000 : 0xfff5aa;
+  const lightIntensity = (levelIndex === 30) ? 0.18     : 1.2;
   [[0,2.8,0],[10,2.8,-5],[-10,2.8,8],[20,2.8,5],[-20,2.8,-12],
    [5,2.8,25],[0,2.8,-15],[0,2.8,-30],[0,2.8,-45]].forEach(([x,y,z])=>{
-    const l = new THREE.PointLight(0xfff5aa, 1.2, 18);
+    const l = new THREE.PointLight(lightColor, lightIntensity, 18);
     l.position.set(x, y, z);
+    l.userData.baseIntensity = lightIntensity;
+    l.userData.stage30 = levelIndex === 30;
     group.add(l); lights.push(l); flickerLights.push(l);
+    if(levelIndex === 30) stage30RoomLights.push(l);
   });
+
+  if(levelIndex === 30){
+    [
+      [-5.5, 1.7, 4.0, 0xb12a14],
+      [ 8.0, 1.45, -9.0, 0xe05b2c],
+    ].forEach(([x, y, z, color])=>{
+      const l = new THREE.PointLight(color, 0.11, 7);
+      l.position.set(x, y, z);
+      l.userData.baseIntensity = 0.11;
+      group.add(l);
+      stage30AccentLights.push(l);
+    });
+  }
 
   group.position.y = yOff;
   scene.add(group);
@@ -1656,7 +1925,21 @@ function createLevelGroup(levelIndex){
     return [pick];
   }
 
-  const positions = (levelIndex === 0) ? LEVEL0_CROSSES : randomTVCross();
+  // Level 30: always place the zone directly in front of T4 (x≈0, z≈8.60).
+  // T4 faces the player from the left wall at z=8.60 — standing at x≈0 is
+  // directly in its sightline. All other levels keep the random placement.
+  let positions;
+  if(levelIndex === 0){
+    positions = LEVEL0_CROSSES;
+  } else if(levelIndex === 30){
+    const t4Snap = WALL_TVS.find(t => t.id === 'T4');
+    // Step 1.5 units away from the wall into the room (+X, since T4 fires -X)
+    const zoneX = t4Snap ? t4Snap.pos[0] + 1.5 : 1.5;
+    const zoneZ = t4Snap ? t4Snap.pos[2]       : 8.60;
+    positions = [[zoneX, zoneZ]];
+  } else {
+    positions = randomTVCross();
+  }
   positions.forEach(([x, z]) => {
     const mat = new THREE.MeshStandardMaterial({
       color:0x000000, emissive:new THREE.Color(0x000000),
@@ -1760,6 +2043,18 @@ function triggerFall(){
   if(!levelGroups[nextIdx+1]) createLevelGroup(nextIdx+1);
 
   currentLevel = nextIdx;
+
+  // Leaving stage 30 restores the normal scene atmosphere. The death path
+  // intentionally stays dark until it redirects to VeganBros.
+  if(nextIdx !== 30 && bloodActive){
+    stopBlood();
+    restoreNormalLighting();
+  }
+
+  // ── LEVEL 30 INITIALIZATION ──────────────────────────────────────────────
+  if(nextIdx === 30){
+    startBloodLevel30();
+  }
 }
 
 // ── GLB LOAD ─────────────────────────────────────────────────────────────────
@@ -1781,6 +2076,12 @@ glbUrlReady.then(chosenUrl => {
       camera.position.set(center.x, levelFloorY + EYE_HEIGHT, center.z);
 
       glbTemplate.traverse(c => { if(c.isMesh) collisionMeshes.push(c); });
+
+      // ── Calibrate blood to real room geometry ────────────────────────────
+      // box.max.y = top of room geometry = ceiling in world space.
+      // Blood fills from floor (box.min.y) to ceiling (box.max.y) in 5 min.
+      BLOOD_MAX  = box.max.y;
+      BLOOD_RISE = (box.max.y - box.min.y) / 300; // exact 5-minute fill
 
       snapTVsToWalls(0);
 
@@ -1929,6 +2230,11 @@ function animate(t){
       hideLevel(window._fallPrevIdx);
       // Show landing message
       showFallMessage();
+      if(currentLevel === 30){
+        setTimeout(()=>{
+          showStage30Cue("THIS IS GETTING REAL.\nWATCH THE FOOTAGE.", 7200);
+        }, 450);
+      }
     }
     composer.render(); return;
   }
@@ -1995,10 +2301,135 @@ function animate(t){
     camera.position.y+=(targetY-camera.position.y)*Math.min(dt*12,1);
 
     const px=camera.position.x, pz=camera.position.z;
-    for(const zone of noclipZones){
-      if(zone.levelIndex===currentLevel){
-        const dx=px-zone.x, dz=pz-zone.z;
-        if(Math.sqrt(dx*dx+dz*dz)<NOCLIP_RADIUS){ triggerFall(); break; }
+    
+    // ── LEVEL 30 SPECIAL LOGIC ────────────────────────────────────────────
+    if(currentLevel === 30){
+      // Calculate velocity properly
+      if(!window._prevCamPos) window._prevCamPos = camera.position.clone();
+      const deltaPos = camera.position.clone().sub(window._prevCamPos);
+      const vel = deltaPos.length() / dt;
+      window._prevCamPos = camera.position.clone();
+      
+      const isStationary = vel < PLAYER_VELOCITY_THRESHOLD;
+      const t4VideoPlaying = t4VideoEl && !t4VideoEl.paused;
+      
+      // Find T4 zone (only zone on L30)
+      const t4Zone = noclipZones.find(z => z.levelIndex === 30);
+      if(t4Zone){
+        const dx = px - t4Zone.x, dz = pz - t4Zone.z;
+        const dist = Math.sqrt(dx*dx+dz*dz);
+        const isInT4Zone = dist < NOCLIP_RADIUS * 1.5;
+
+        // The two-minute timer belongs to stage 30, not to one continuous
+        // visit. Leaving the zone no longer loses progress; returning after
+        // the grace period still allows the normal fall.
+        if(isInT4Zone){
+          const watchElapsed = performance.now() - level30StartTime;
+
+          // Show "stay very still" once as a tension cue (not enforced).
+          if(watchElapsed > 500 && watchElapsed < 4000){
+            const msg = document.getElementById('fall-msg');
+            if(msg && msg.style.display === 'none'){
+              msg.textContent = 'stay very still';
+              msg.style.display = 'block';
+              msg.style.opacity = '1';
+            }
+          }
+
+          // Unlock the fall zone after two minutes in the stage. The player
+          // can be here already or come back here any time after that.
+          if(watchElapsed >= T4_WATCH_DURATION && !level30FallZoneUnlocked){
+            level30FallZoneUnlocked = true;
+            t4WatchComplete = true;
+            const msg = document.getElementById('fall-msg');
+            if(msg){
+              msg.textContent = 'the way out is beneath you';
+              msg.style.display = 'block';
+              msg.style.opacity = '0';
+              setTimeout(()=>{ msg.style.opacity = '1'; }, 50);
+              setTimeout(()=>{ msg.style.opacity = '0'; setTimeout(()=>{ msg.style.display = 'none'; }, 1200); }, 3000);
+            }
+          }
+        }
+
+        // FALL — trigger once the two-minute grace period has elapsed and the
+        // player is in the zone, whether they stayed or returned to it.
+        if(level30FallZoneUnlocked && isInT4Zone && !isFalling){
+          showStage30Cue("BE STILL.", 3200);
+          triggerFall();
+        }
+      }
+    } else {
+      // Normal levels — standard zone checking
+      for(const zone of noclipZones){
+        if(zone.levelIndex===currentLevel && !isFalling){
+          const dx=px-zone.x, dz=pz-zone.z;
+          if(Math.sqrt(dx*dx+dz*dz)<NOCLIP_RADIUS){ triggerFall(); break; }
+        }
+      }
+    }
+  }
+
+  // ── UPDATE BLOOD LEVEL (Level 30) ────────────────────────────────────────
+  if(currentLevel === 30 && bloodActive){
+    const bloodFloor = levelFloorY + 0.02;
+    const fillProgress = Math.min(1, (performance.now() - bloodStartTime) / BLOOD_FILL_DURATION);
+    bloodLevel = bloodFloor + (BLOOD_MAX - bloodFloor) * fillProgress;
+    const yOff = -currentLevel * LEVEL_DEPTH;
+    if(bloodPlane){
+      bloodPlane.position.y = bloodLevel + yOff;
+    }
+    const now = performance.now();
+    const surfaceY = bloodLevel + yOff;
+    // The camera's Y coordinate is the player's eye line. Once the blood
+    // crest crosses it, kill the room lighting instead of leaving the room
+    // visibly lit through the volume.
+    stage30Submerged = surfaceY + 0.12 >= camera.position.y;
+    const waveTime = now * 0.001;
+    bloodWaveMeshes.forEach((wave, index)=>{
+      const spec = wave.userData.waveSpec;
+      wave.position.y = surfaceY + spec.offset +
+        Math.sin(waveTime * (0.72 + index * .17) + index * 2.2) * .07;
+      wave.rotation.z = Math.sin(waveTime * (0.48 + index * .11) + index) * .012;
+      wave.rotation.x = -Math.PI / 2 +
+        Math.cos(waveTime * (0.36 + index * .08) + index) * .006;
+    });
+    if(scene.fog && scene.fog.isFogExp2){
+      scene.fog.density = stage30Submerged
+        ? 0.16 + fillProgress * 0.08
+        : .072 + fillProgress * .055;
+    }
+    if(bloodVeilEl){
+      const submersion = Math.max(0, Math.min(1,
+        (surfaceY - camera.position.y + .25) / 2.4
+      ));
+      if(submersion > 0){
+        bloodVeilEl.style.display = 'block';
+        bloodVeilEl.style.opacity = String(stage30Submerged
+          ? 0.96
+          : .12 + submersion * .72);
+      } else {
+        bloodVeilEl.style.opacity = '0';
+        setTimeout(()=>{
+          if(bloodVeilEl.style.opacity === '0') bloodVeilEl.style.display = 'none';
+        }, 400);
+      }
+    }
+    
+    // Death check: the full five-minute fill has completed.
+    if(fillProgress >= 1){
+      if(!level30DeathMessageShown){
+        level30DeathMessageShown = true;
+        stopBroadcasts();
+        stopBlood();
+        
+        // Show death message
+        showDeathScreen();
+        
+        // Give the death screen time to land before redirecting.
+        setTimeout(()=>{
+          window.location.href = 'https://earthlingofficial.com/veganbros.html';
+        }, 5000);
       }
     }
   }
@@ -2024,12 +2455,16 @@ function animate(t){
   if(ft>.08+Math.random()*.12){
     ft=0;
     flickerLights.forEach(l=>{
+      // Stage 30 has its own low-intensity flicker and blackout controller.
+      if(currentLevel === 30 && l.userData.stage30) return;
       if(Math.random()<.08){
         l.intensity=0;
-        setTimeout(()=>{ l.intensity=.8+Math.random()*.8; },60+Math.random()*80);
+        const base = l.userData.baseIntensity || 1.2;
+        setTimeout(()=>{ l.intensity=base*(.67+Math.random()*.66); },60+Math.random()*80);
       }
     });
   }
+  updateStage30Lighting(performance.now());
 
   if(showCoords){
     coordsEl.textContent=`X: ${camera.position.x.toFixed(2)}  Y: ${camera.position.y.toFixed(2)}  Z: ${camera.position.z.toFixed(2)}  LVL: ${currentLevel}`;
