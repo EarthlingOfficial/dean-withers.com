@@ -212,6 +212,7 @@
     text-shadow: 0 0 7px rgba(0,0,0,0.95);
     mask-image: linear-gradient(to bottom, transparent 0%, black 14%, black 100%);
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 14%, black 100%);
+    transition: opacity 1.6s ease;
   }
   #fake-chat .chat-header {
     margin-bottom: 5px;
@@ -233,6 +234,9 @@
     from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }
   }
+
+  /* ── RADIO HUD (hidden) ── */
+  #radio-hud { display: none !important; }
   @media (max-width: 700px) {
     #player-taunt {
       width: 74vw; padding: 10px 12px 12px;
@@ -247,6 +251,7 @@
     #fake-chat { left: 10px; bottom: max(112px, env(safe-area-inset-bottom)); width: min(72vw, 300px); height: 118px; padding: 7px 9px; }
     #fake-chat .chat-header { font-size: 9px; }
     #fake-chat .chat-line { font-size: 9px; margin: 3px 0; line-height: 1.25; }
+    #radio-hud { display: none !important; }
     #fall-msg { font-size: 12px; letter-spacing: 1px; line-height: 1.6; max-width: 84vw; }
     #death-screen { padding: 20px; }
     #death-screen .death-copy { margin-top: 20px; letter-spacing: .06em; }
@@ -324,6 +329,8 @@
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
 </script>
+<script src="https://unpkg.com/three@0.170.0/examples/js/renderers/CSS3DRenderer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
 <style>
   /* ── CSS3D LAYER ── */
   #css3d { position:fixed; inset:0; z-index:2; pointer-events:none; }
@@ -457,6 +464,7 @@
   <div class="chat-header">FICTIONAL SIGNAL // DEAN CHAT // LIVE-ish</div>
   <div id="fake-chat-lines"></div>
 </div>
+<div id="radio-hud" aria-live="polite" style="display:none"></div>
 <!-- TV proximity interaction prompt -->
 <div id="tv-prompt">[ E ] &nbsp; PLAY / STOP</div>
 <div id="door-hint" style="position:fixed;top:50%;left:50%;transform:translate(-50%,55px);color:#c8b97a;font-size:13px;letter-spacing:3px;text-align:center;pointer-events:none;display:none;z-index:5;text-shadow:0 0 14px rgba(200,185,122,0.9);font-family:'Courier New',monospace;">ENTER THE REAL DEBATE<br><span style="font-size:10px;opacity:0.45;letter-spacing:2px;">[E] &nbsp;·&nbsp; TAP</span></div>
@@ -825,6 +833,8 @@ let chatTimer = null;
 let tauntHideTimer = null;
 let factHideTimer = null;
 let broadcastsRunning = false;
+let playerIsMoving = false;
+let chatMoveTimeout = null;
 
 function showPlayerTaunt(){
   if(!broadcastsRunning || !tauntEl || !tauntCopyEl) return;
@@ -896,7 +906,7 @@ function startBroadcasts(){
   if(broadcastsRunning) return;
   broadcastsRunning = true;
   if(factFeedEl) factFeedEl.style.display = 'block';
-  if(chatEl) chatEl.style.display = 'block';
+  if(chatEl){ chatEl.style.display = 'block'; chatEl.style.opacity = '1'; }
   showAnimalAgFact();
   pushChatLine();
   pushChatLine();
@@ -1002,6 +1012,7 @@ let showCoords  = false;
 
 controls.addEventListener('lock', ()=>{
   startW1aAudio();
+  startRadio();
   startBroadcasts();
   overlayEl.style.display='none';
   xhairEl.style.display='block';
@@ -1202,6 +1213,289 @@ function createT6VideoTex(){
   t6VideoEl = result.vid;
   t6VideoTex = result.tex;
   return result.tex;
+}
+
+// ── BACKROOMS RADIO ──────────────────────────────────────────────────────────
+const SCANNER_CITIES = ["CHICAGO","LOS ANGELES","NEW YORK","MIAMI","HOUSTON","DETROIT","PHOENIX","PHILADELPHIA","DALLAS","MEMPHIS","ATLANTA","SEATTLE","DENVER","PORTLAND","NASHVILLE","ST. LOUIS","NEW ORLEANS"];
+
+const RADIO_STATIONS = [
+  // ── Verified working ──────────────────────────────────────────────────────
+  { stream:'https://kexp-mp3-128.streamguys1.com/kexp128.mp3',        hls:false, scanner:false, name:'KEXP AFTER DARK',    id:'kexp',      title:'KEXP AFTER DARK',    frequency:'FM 90.3',   region:'US',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://icecast.radiofrance.fr/fip-hifi.aac',             hls:false, scanner:false, name:'FIP NUIT',           id:'fip-nuit',  title:'FIP NUIT',           frequency:'FM 105.1',  region:'FRA', kind:'MUSIC',   mode:'music'   },
+  { stream:'https://ice1.somafm.com/groovesalad-128-mp3',             hls:false, scanner:false, name:'GROOVE SALAD',       id:'groove',    title:'GROOVE SALAD',       frequency:'FM 98.5',   region:'US',  kind:'MUSIC',   mode:'music'   },
+  // ── SomaFM ───────────────────────────────────────────────────────────────
+  { stream:'https://ice1.somafm.com/dronezone-128-mp3',               hls:false, scanner:false, name:'DRONE ZONE',         id:'drone',     title:'DRONE ZONE',         frequency:'FM 96.7',   region:'US',  kind:'AMBIENT', mode:'ambient' },
+  { stream:'https://ice1.somafm.com/secretagent-128-mp3',             hls:false, scanner:false, name:'SECRET AGENT',       id:'secret',    title:'SECRET AGENT',       frequency:'FM 89.1',   region:'US',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://ice1.somafm.com/defcon-128-mp3',                  hls:false, scanner:false, name:'DEF CON RADIO',      id:'defcon',    title:'DEF CON RADIO',      frequency:'FM 94.5',   region:'US',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://ice6.somafm.com/thetrip-128-mp3',                 hls:false, scanner:false, name:'THE TRIP',           id:'thetrip',   title:'THE TRIP',           frequency:'FM 101.3',  region:'US',  kind:'AMBIENT', mode:'ambient' },
+  { stream:'https://ice1.somafm.com/7soul-128-mp3',                   hls:false, scanner:false, name:'7TH STREET SOUL',    id:'7soul',     title:'7TH STREET SOUL',    frequency:'FM 107.1',  region:'US',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://ice1.somafm.com/metal-128-mp3',                   hls:false, scanner:false, name:'UNDERGROUND METAL',  id:'metal',     title:'UNDERGROUND METAL',  frequency:'FM 102.7',  region:'US',  kind:'MUSIC',   mode:'music'   },
+  // ── Police scanners (SomaFM) ─────────────────────────────────────────────
+  { stream:'https://ice1.somafm.com/scanner-128-mp3',                 hls:false, scanner:true,  name:'POLICE SCANNER',     id:'scan1',     title:'POLICE SCANNER',     frequency:'154.280',   region:'US',  kind:'SCANNER', mode:'scanner' },
+  { stream:'https://ice2.somafm.com/scanner-128-mp3',                 hls:false, scanner:true,  name:'POLICE SCANNER',     id:'scan2',     title:'POLICE SCANNER',     frequency:'154.280',   region:'US',  kind:'SCANNER', mode:'scanner' },
+  { stream:'https://ice4.somafm.com/scanner-128-mp3',                 hls:false, scanner:true,  name:'POLICE SCANNER',     id:'scan3',     title:'POLICE SCANNER',     frequency:'154.280',   region:'US',  kind:'SCANNER', mode:'scanner' },
+  { stream:'https://ice6.somafm.com/scanner-128-mp3',                 hls:false, scanner:true,  name:'POLICE SCANNER',     id:'scan4',     title:'POLICE SCANNER',     frequency:'154.280',   region:'US',  kind:'SCANNER', mode:'scanner' },
+  // ── Other hypogeum stations ───────────────────────────────────────────────
+  { stream:'https://icecast.radiofrance.fr/franceinter-midfi.mp3',    hls:false, scanner:false, name:'FRANCE INTER',       id:'finter',    title:'FRANCE INTER',       frequency:'FM 87.8',   region:'FRA', kind:'TALK',    mode:'talk'    },
+  { stream:'https://npr-ice.streamguys1.com/live.mp3',                hls:false, scanner:false, name:'NPR NEWS',           id:'npr',       title:'NPR NEWS',           frequency:'AM 90.9',   region:'US',  kind:'TALK',    mode:'talk'    },
+  { stream:'https://media-ssl.musicradio.com/Heart80sMP3',            hls:false, scanner:false, name:'HEART 80S',          id:'heart80s',  title:'HEART 80S',          frequency:'FM 103.9',  region:'UK',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://s1-webradio.oldie-antenne.de/oldie-antenne',      hls:false, scanner:false, name:'OLDIE ANTENNE',      id:'oldie',     title:'OLDIE ANTENNE',      frequency:'FM 97.3',   region:'DE',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://live-radio01.mediahubaustralia.com/2TJW/aac/',    hls:false, scanner:false, name:'TRIPLE J',           id:'tripleJ',   title:'TRIPLE J',           frequency:'FM 105.7',  region:'AUS', kind:'MUSIC',   mode:'music'   },
+  { stream:'https://wz3drp.scahw.com.au/live/3mmm_32.stream/playlist.m3u8', hls:true, scanner:false, name:'TRIPLE M',    id:'tripleM',   title:'TRIPLE M',           frequency:'FM 104.9',  region:'AUS', kind:'MUSIC',   mode:'music'   },
+  // ── Mainstream / pop ─────────────────────────────────────────────────────
+  { stream:'https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one',    hls:false, scanner:false, name:'BBC RADIO 1',        id:'bbcr1',     title:'BBC RADIO 1',        frequency:'FM 98.8',   region:'UK',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://media-ssl.musicradio.com/CapitalMP3',             hls:false, scanner:false, name:'CAPITAL FM',         id:'capital',   title:'CAPITAL FM',         frequency:'FM 95.8',   region:'UK',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://media-ssl.musicradio.com/HeartMP3',               hls:false, scanner:false, name:'HEART FM',           id:'heartfm',   title:'HEART FM',           frequency:'FM 106.2',  region:'UK',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://media-ssl.musicradio.com/KissMP3',                hls:false, scanner:false, name:'KISS FM',            id:'kiss',      title:'KISS FM',            frequency:'FM 100.0',  region:'UK',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://stream.revma.ihrhls.com/zc7702',                  hls:false, scanner:false, name:'Z100 NEW YORK',      id:'z100',      title:'Z100 NEW YORK',      frequency:'FM 100.3',  region:'US',  kind:'MUSIC',   mode:'music'   },
+];
+
+const RADIO_CHAT_LINES = {
+  music: [
+    ["@radio_leak", "I love this song but I have no idea what it is. total eclipse of the vegan."],
+    ["@dean_chat", "Billie Eilish vibes or a haunted elevator with taste?"],
+    ["@withers_watch", "is Ariana down here? the reverb says yes."],
+    ["@earthling_official", "at least Earthling got the music right."],
+    ["@meat_logic", "W radio. I am going to buy more dead animals now because the bass told me to."],
+    ["@plantbasedpanic", "the station changed before I could Shazam it. censorship."],
+    ["@dean_defender", "the Dean Withers South Park videos are crazy. this song is somehow crazier."],
+  ],
+  ambient: [
+    ["@night_terror_unit", "this is either ambient music or someone breathing behind the wallpaper."],
+    ["@radio_leak", "why does the calm station feel like it knows where we are?"],
+    ["@withers_watch", "W radio but I would like one instrument and one legal exit."],
+    ["@dean_chat", "did the Backrooms do this or is the playlist just disturbed?"],
+  ],
+  scanner: [
+    ["@scanner_skeptic", "the scanner just said something about a floor that does not exist."],
+    ["@radio_leak", "that was not a police code. that was definitely a door opening."],
+    ["@missing_signal", "someone disappeared in here and the dispatcher keeps calling their name."],
+    ["@dean_chat", "are we disturbed or is the emergency channel unusually haunted tonight?"],
+    ["@floor_10_mod", "do not follow the voice on the scanner. no, seriously."],
+  ],
+  emergency: [
+    ["@radio_mod", "everyone stay calm. the emergency broadcast is using the word 'animals' again."],
+    ["@missing_signal", "the alert says one person is missing. it does not say from where."],
+    ["@plantbasedpanic", "I heard a siren and immediately blamed vegan propaganda."],
+    ["@withers_watch", "did anyone else hear 'do not eat the evidence' or was that Dean?"],
+    ["@mod_team", "no meatmojing during an emergency, please. mock the word later."],
+  ],
+  static: [
+    ["@radio_leak", "the station ID was just a scream. W Earthling."],
+    ["@missing_signal", "there was a voice in the static asking if we are still here."],
+    ["@meat_logic", "this is the best station until it starts talking back."],
+    ["@dean_chat", "I think it was the eating others. I do not have evidence."],
+    ["@radio_mod", "no meatbullying the signal. it is already having a difficult day."],
+  ],
+  talk: [
+    ["@dean_defender", "Dean would call this a debate if the radio gave him a second microphone."],
+    ["@withers_watch", "the host just made a point and then vanished. classic Backrooms media training."],
+    ["@meat_logic", "I support personal choice, especially my choice to change the station."],
+    ["@earthling_official", "someone ask the broadcast whether animals are still waiting. someone always knows."],
+  ],
+};
+
+// ── RADIO STATE ───────────────────────────────────────────────────────────────
+let radioAudioEl    = null;
+let radioMediaSource= null;
+let radioGainNode   = null;
+let radioFilterNode = null;
+let radioHlsInst    = null;
+let radioCurrent    = null;
+let radioStarted    = false;
+let radioPlaying    = false;
+let radioSwitchTimer= null;
+let radioChatTimer  = null;
+let radioBehavior   = 'long';
+let radioScanHops   = 0;
+let radioFailCount  = 0;
+let radioStIdx      = 0;
+
+function radioContext(){
+  try { if(clickSoundCtx.state==='suspended') clickSoundCtx.resume(); } catch(e){}
+  return clickSoundCtx;
+}
+
+// ── Radio error / skip to next station ────────────────────────────────────────
+function radioOnError(){
+  radioFailCount++;
+  if(radioFailCount >= RADIO_STATIONS.length){
+    radioFailCount = 0; radioPlaying = false;
+    radioSwitchTimer = setTimeout(radioStartCycle, Math.random()*75000+45000);
+    return;
+  }
+  radioStIdx = (radioStIdx+1) % RADIO_STATIONS.length;
+  setTimeout(radioPlayNow, 500);
+}
+
+// ── Smooth filter-based fade-in when a station connects ───────────────────────
+function radioOnPlay(st){
+  const ctx = radioContext();
+  if(!ctx || !radioGainNode || !radioFilterNode) return;
+  radioCurrent = st;
+  const t = ctx.currentTime;
+  radioGainNode.gain.cancelScheduledValues(t);
+  radioGainNode.gain.setValueAtTime(0, t);
+  radioGainNode.gain.linearRampToValueAtTime(0.45, t+2.5);
+  radioFilterNode.frequency.cancelScheduledValues(t);
+  radioFilterNode.frequency.setValueAtTime(180, t);
+  radioFilterNode.frequency.exponentialRampToValueAtTime(2200, t+2);
+  radioFilterNode.Q.cancelScheduledValues(t);
+  radioFilterNode.Q.setValueAtTime(3.5, t);
+  radioFilterNode.Q.linearRampToValueAtTime(0.5, t+2);
+  // Schedule automatic stop
+  if(radioSwitchTimer) clearTimeout(radioSwitchTimer);
+  let playMs;
+  if(radioBehavior==='long')       playMs = Math.random()*150000+30000;
+  else if(radioBehavior==='short') playMs = Math.random()*10000+10000;
+  else                             playMs = Math.random()*3000+3000;
+  radioSwitchTimer = setTimeout(radioDoStop, playMs);
+  if(broadcastsRunning && Math.random()<.9) pushRadioChatLine(st.mode);
+}
+
+// ── Smooth filter-based fade-out, then optionally pick next station ────────────
+function radioDoStop(){
+  const ctx = radioContext();
+  if(!ctx || !radioGainNode || !radioFilterNode) return;
+  const t = ctx.currentTime;
+  if(radioBehavior==='scan' && radioScanHops>0){
+    radioScanHops--;
+    radioGainNode.gain.cancelScheduledValues(t);
+    radioGainNode.gain.setValueAtTime(radioGainNode.gain.value, t);
+    radioFilterNode.frequency.cancelScheduledValues(t);
+    radioFilterNode.frequency.setValueAtTime(radioFilterNode.frequency.value, t);
+    radioFilterNode.frequency.exponentialRampToValueAtTime(180, t+0.25);
+    radioGainNode.gain.linearRampToValueAtTime(0, t+0.25);
+    setTimeout(()=>{
+      radioAudioEl.pause();
+      radioStIdx = (radioStIdx+1) % RADIO_STATIONS.length;
+      if(radioScanHops===0) radioBehavior='long';
+      radioPlayNow();
+    }, 300);
+  } else {
+    radioGainNode.gain.cancelScheduledValues(t);
+    radioGainNode.gain.setValueAtTime(radioGainNode.gain.value, t);
+    radioFilterNode.frequency.cancelScheduledValues(t);
+    radioFilterNode.frequency.setValueAtTime(radioFilterNode.frequency.value, t);
+    radioFilterNode.frequency.exponentialRampToValueAtTime(180, t+2.5);
+    radioFilterNode.Q.setValueAtTime(0.5, t);
+    radioFilterNode.Q.linearRampToValueAtTime(4.0, t+2);
+    radioGainNode.gain.linearRampToValueAtTime(0, t+2.8);
+    setTimeout(()=>{
+      if(radioAudioEl) radioAudioEl.pause();
+      radioPlaying = false;
+      if(radioBehavior==='short'){
+        radioStartCycle();
+      } else {
+        radioSwitchTimer = setTimeout(radioStartCycle, Math.random()*75000+45000);
+      }
+    }, 2900);
+  }
+}
+
+// ── Play the station at radioStIdx ────────────────────────────────────────────
+function radioPlayNow(){
+  const ctx = radioContext();
+  if(!ctx || !radioAudioEl) return;
+  const st = RADIO_STATIONS[radioStIdx];
+  if(radioHlsInst){ radioHlsInst.destroy(); radioHlsInst=null; }
+  radioAudioEl.pause();
+  radioAudioEl.removeAttribute('src');
+  radioAudioEl.load();
+  if(st.hls && window.Hls && Hls.isSupported()){
+    radioHlsInst = new Hls({enableWorker:false, lowLatencyMode:false});
+    radioHlsInst.loadSource(st.stream);
+    radioHlsInst.attachMedia(radioAudioEl);
+    radioHlsInst.on(Hls.Events.MANIFEST_PARSED, ()=>{
+      radioAudioEl.play().then(()=>{ radioFailCount=0; radioOnPlay(st); }).catch(radioOnError);
+    });
+    radioHlsInst.on(Hls.Events.ERROR, (ev,d)=>{ if(d.fatal) radioOnError(); });
+  } else {
+    radioAudioEl.src = st.stream;
+    radioAudioEl.play().then(()=>{ radioFailCount=0; radioOnPlay(st); }).catch(radioOnError);
+  }
+}
+
+// ── Pick next station and start playing ───────────────────────────────────────
+function radioStartCycle(){
+  if(radioPlaying) return;
+  radioPlaying = true;
+  radioFailCount = 0;
+  // 1-in-3 chance: go straight to a scanner (creepier)
+  const wantScanner = Math.random()<0.33;
+  if(wantScanner){
+    const scanners = RADIO_STATIONS.map((s,i)=>({s,i})).filter(x=>x.s.scanner);
+    if(scanners.length){
+      radioStIdx = scanners[Math.floor(Math.random()*scanners.length)].i;
+      radioBehavior = 'short';
+      radioPlayNow(); return;
+    }
+  }
+  radioStIdx = Math.floor(Math.random()*RADIO_STATIONS.length);
+  const rnd = Math.random();
+  if(rnd<0.4)      radioBehavior='long';
+  else if(rnd<0.8) radioBehavior='short';
+  else             { radioBehavior='scan'; radioScanHops=Math.floor(Math.random()*3)+2; }
+  radioPlayNow();
+}
+
+// ── Init the radio audio chain and start the first cycle ─────────────────────
+function startRadio(){
+  if(radioStarted) return;
+  radioStarted = true;
+  const ctx = radioContext();
+  if(!ctx) return;
+  radioAudioEl = new Audio();
+  radioAudioEl.crossOrigin = 'anonymous';
+  radioAudioEl.preload = 'none';
+  radioAudioEl.loop = false;
+  radioAudioEl.addEventListener('error', radioOnError);
+  radioMediaSource = ctx.createMediaElementSource(radioAudioEl);
+  radioFilterNode = ctx.createBiquadFilter();
+  radioFilterNode.type = 'bandpass';
+  radioFilterNode.frequency.value = 2200;
+  radioFilterNode.Q.value = 0.5;
+  radioGainNode = ctx.createGain();
+  radioGainNode.gain.value = 0;
+  radioMediaSource.connect(radioFilterNode);
+  radioFilterNode.connect(radioGainNode);
+  radioGainNode.connect(ctx.destination);
+  radioStartCycle();
+  scheduleRadioChat();
+}
+
+// ── Duck radio when in-world video is playing ─────────────────────────────────
+function radioUpdateDucking(){
+  if(!radioGainNode || !radioStarted || !radioPlaying) return;
+  const ctx = radioContext();
+  const videos = [w1aVideoEl, w1bVideoEl, t10VideoEl, t6VideoEl, t4VideoEl].filter(Boolean);
+  const videoPlaying = videos.some(v => !v.paused && !v.muted);
+  const target = videoPlaying ? 0.07 : 0.45;
+  radioGainNode.gain.setTargetAtTime(target, ctx.currentTime, 0.5);
+}
+
+// ── Shared chat push (used by radio and general broadcast) ────────────────────
+function pushRadioChatLine(category){
+  if(!broadcastsRunning || !chatLinesEl) return;
+  const choices = RADIO_CHAT_LINES[category] || RADIO_CHAT_LINES.static;
+  const [name, message] = choices[Math.floor(Math.random()*choices.length)];
+  const line = document.createElement('div');
+  line.className = 'chat-line';
+  const nameEl = document.createElement('span');
+  nameEl.className = 'chat-name';
+  nameEl.textContent = name + ': ';
+  line.append(nameEl, document.createTextNode(message));
+  chatLinesEl.appendChild(line);
+  while(chatLinesEl.children.length>8) chatLinesEl.removeChild(chatLinesEl.firstChild);
+}
+
+function scheduleRadioChat(){
+  if(radioChatTimer) clearTimeout(radioChatTimer);
+  if(!radioStarted) return;
+  radioChatTimer = setTimeout(()=>{
+    if(radioCurrent && Math.random()<.75) pushRadioChatLine(radioCurrent.mode);
+    scheduleRadioChat();
+  }, 12000 + Math.random()*18000);
 }
 
 function getVisibleTVVideo(id){
@@ -2276,6 +2570,12 @@ function animate(t){
       if(fallMsgShowing){
         hideFallMessage();
       }
+      // Chat fades out when moving, reappears when stationary
+      if(!playerIsMoving){
+        playerIsMoving = true;
+        if(chatEl && broadcastsRunning) chatEl.style.opacity = '0';
+      }
+      if(chatMoveTimeout){ clearTimeout(chatMoveTimeout); chatMoveTimeout = null; }
 
       const move=new THREE.Vector3();
       move.addScaledVector(fwd,   totalFwd  * spd * dt);
@@ -2292,6 +2592,16 @@ function animate(t){
         if(canMoveTo(posX)) camera.position.x=newPos.x;
         const posZ=camera.position.clone(); posZ.z=newPos.z;
         if(canMoveTo(posZ)) camera.position.z=newPos.z;
+      }
+    } else {
+      // Player is stationary — fade chat back in after a short pause
+      if(playerIsMoving){
+        playerIsMoving = false;
+        if(chatMoveTimeout) clearTimeout(chatMoveTimeout);
+        chatMoveTimeout = setTimeout(()=>{
+          if(chatEl && broadcastsRunning) chatEl.style.opacity = '1';
+          chatMoveTimeout = null;
+        }, 600);
       }
     }
 
@@ -2465,6 +2775,7 @@ function animate(t){
     });
   }
   updateStage30Lighting(performance.now());
+  radioUpdateDucking();
 
   if(showCoords){
     coordsEl.textContent=`X: ${camera.position.x.toFixed(2)}  Y: ${camera.position.y.toFixed(2)}  Z: ${camera.position.z.toFixed(2)}  LVL: ${currentLevel}`;
