@@ -212,6 +212,7 @@
     text-shadow: 0 0 7px rgba(0,0,0,0.95);
     mask-image: linear-gradient(to bottom, transparent 0%, black 14%, black 100%);
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 14%, black 100%);
+    transition: opacity 1.6s ease;
   }
   #fake-chat .chat-header {
     margin-bottom: 5px;
@@ -234,55 +235,8 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
-  /* ── RADIO HUD ── */
-  #radio-hud {
-    position: fixed; right: 20px; bottom: 48px;
-    width: min(360px, 34vw);
-    padding: 10px 13px 11px;
-    border: 1px solid rgba(200,185,122,0.32);
-    background: linear-gradient(180deg, rgba(4,5,4,0.18), rgba(4,5,4,0.78));
-    color: rgba(235,230,202,0.9);
-    font-family: 'Courier New', monospace;
-    pointer-events: none; z-index: 7;
-    display: none; opacity: 0;
-    transition: opacity .7s, border-color .25s, filter .25s;
-    text-shadow: 0 0 8px rgba(0,0,0,0.95);
-  }
-  #radio-hud.active { display: block; opacity: 1; }
-  #radio-hud.tuning {
-    border-color: rgba(255,125,85,0.8);
-    filter: blur(.25px) saturate(1.45);
-    animation: radio-warp .18s steps(2, end) 2;
-  }
-  #radio-hud .radio-topline {
-    display: flex; justify-content: space-between; gap: 12px;
-    color: rgba(200,185,122,0.48);
-    font-size: 9px; letter-spacing: 2px; margin-bottom: 7px;
-  }
-  #radio-hud .radio-station {
-    color: #d8c982; font-size: 13px; letter-spacing: 2px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  #radio-hud .radio-meta {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 10px; margin-top: 7px;
-    color: rgba(235,230,202,0.6); font-size: 10px; letter-spacing: 1px;
-  }
-  #radio-hud .radio-bars {
-    color: #d8c982; font-size: 14px; letter-spacing: 1px;
-    min-width: 72px; text-align: left;
-  }
-  #radio-hud .radio-status { color: rgba(255,153,120,0.8); }
-  #radio-hud .radio-help {
-    margin-top: 7px; color: rgba(200,185,122,0.3);
-    font-size: 8px; letter-spacing: 1px;
-  }
-  @keyframes radio-warp {
-    0% { transform: translateX(0) skewX(0); }
-    35% { transform: translateX(-2px) skewX(-1deg); }
-    70% { transform: translateX(2px) skewX(1deg); }
-    100% { transform: translateX(0) skewX(0); }
-  }
+  /* ── RADIO HUD (hidden) ── */
+  #radio-hud { display: none !important; }
   @media (max-width: 700px) {
     #player-taunt {
       width: 74vw; padding: 10px 12px 12px;
@@ -297,14 +251,7 @@
     #fake-chat { left: 10px; bottom: max(112px, env(safe-area-inset-bottom)); width: min(72vw, 300px); height: 118px; padding: 7px 9px; }
     #fake-chat .chat-header { font-size: 9px; }
     #fake-chat .chat-line { font-size: 9px; margin: 3px 0; line-height: 1.25; }
-    #radio-hud {
-      right: 10px; bottom: max(112px, env(safe-area-inset-bottom));
-      width: min(72vw, 300px); padding: 7px 9px;
-    }
-    #radio-hud .radio-topline { font-size: 8px; margin-bottom: 4px; }
-    #radio-hud .radio-station { font-size: 10px; letter-spacing: 1px; }
-    #radio-hud .radio-meta { font-size: 8px; margin-top: 4px; }
-    #radio-hud .radio-help { display: none; }
+    #radio-hud { display: none !important; }
     #fall-msg { font-size: 12px; letter-spacing: 1px; line-height: 1.6; max-width: 84vw; }
     #death-screen { padding: 20px; }
     #death-screen .death-copy { margin-top: 20px; letter-spacing: .06em; }
@@ -382,6 +329,7 @@
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
 </script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
 <style>
   /* ── CSS3D LAYER ── */
   #css3d { position:fixed; inset:0; z-index:2; pointer-events:none; }
@@ -454,7 +402,7 @@
 
 <div id="loading">
   <video id="intro-video" muted playsinline
-    src="https://archive.org/download/1-year-in-the-backrooms-found-footage-compilation/SnapSave.io-1%20Year%20in%20The%20Backrooms%20%28Found%20Footage%20Compilation%29.mp4"
+    src="https://files.catbox.moe/8yka3k.mp4"
     style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;opacity:0.72;">
   </video>
   <canvas id="vhs-roll" style="position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;"></canvas>
@@ -515,22 +463,12 @@
   <div class="chat-header">FICTIONAL SIGNAL // DEAN CHAT // LIVE-ish</div>
   <div id="fake-chat-lines"></div>
 </div>
-<div id="radio-hud" aria-live="polite">
-  <div class="radio-topline">
-    <span id="radio-frequency">FM 96.7</span>
-    <span id="radio-region">US // LIVE-ish</span>
-  </div>
-  <div class="radio-station" id="radio-station">NIGHT WAVE // SEARCHING</div>
-  <div class="radio-meta">
-    <span class="radio-bars" id="radio-bars">▂▃▅▃</span>
-    <span id="radio-kind">AMBIENT</span>
-    <span class="radio-status" id="radio-status">TUNING</span>
-  </div>
-  <div class="radio-help">R // CHANGE CHANNEL &nbsp;·&nbsp; RADIO PERSISTS THROUGH THE BUILDING</div>
-</div>
+<div id="radio-hud" aria-live="polite" style="display:none"></div>
 <!-- TV proximity interaction prompt -->
 <div id="tv-prompt">[ E ] &nbsp; PLAY / STOP</div>
 <div id="door-hint" style="position:fixed;top:50%;left:50%;transform:translate(-50%,55px);color:#c8b97a;font-size:13px;letter-spacing:3px;text-align:center;pointer-events:none;display:none;z-index:5;text-shadow:0 0 14px rgba(200,185,122,0.9);font-family:'Courier New',monospace;">ENTER THE REAL DEBATE<br><span style="font-size:10px;opacity:0.45;letter-spacing:2px;">[E] &nbsp;·&nbsp; TAP</span></div>
+<div id="void-door-hint" style="position:fixed;top:50%;left:50%;transform:translate(-50%,55px);color:#7dffa8;font-size:13px;letter-spacing:3px;text-align:center;pointer-events:none;display:none;z-index:5;text-shadow:0 0 14px rgba(60,255,120,0.9);font-family:'Courier New',monospace;">RETURN TO THE BUILD<br><span style="font-size:10px;opacity:0.45;letter-spacing:2px;">[E] &nbsp;·&nbsp; TAP</span></div>
+<div id="void-level-readout" style="position:fixed;top:16px;left:50%;transform:translateX(-50%);color:#4dd97a;font-size:11px;letter-spacing:4px;text-align:center;pointer-events:none;display:none;z-index:5;text-shadow:0 0 10px rgba(60,255,120,0.7);font-family:'Courier New',monospace;">LEVEL 70 // THE FLOATING SIGNAL</div>
 <div id="coords"></div>
 <!-- CSS3D renderer layer for in-world YouTube -->
 <div id="css3d"></div>
@@ -560,6 +498,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { CSS3DObject, CSS3DRenderer } from 'three/addons/renderers/CSS3DRenderer.js';
 
 
 // ── ARCHIVE.ORG VIDEO POOL FOR WALL TVS ──────────────────────────────────────
@@ -626,11 +565,99 @@ const WINDOW_TVS = [
   { id:'W1b', pos:[-69.44, 2.50, 11.25], ry: Math.PI/2, wide:true },
 ];
 
+// Every supplied live link gets its own physical screen in level 70. The
+// YouTube player is a CSS3D iframe attached to that TV, not a popup overlay.
+const VOID_LIVE_FEEDS = [
+  'https://www.youtube.com/embed/HvZt-nh9sGg?autoplay=1',
+  'https://www.youtube.com/embed/6GINvRvBGGs?autoplay=1',
+  'https://www.youtube.com/embed/AeMUdOPFcXI?autoplay=1',
+  'https://www.youtube.com/embed/-rXriX4SiQk?autoplay=1',
+  'https://www.youtube.com/embed/M3HKLzjvKPc?autoplay=1',
+  'https://www.youtube.com/embed/fO9e9jnhYK8?autoplay=1',
+  'https://www.youtube.com/embed/awQzjn72bI0?autoplay=1',
+  'https://www.youtube.com/embed/fO9e9jnhYK8?autoplay=1',
+  'https://www.youtube.com/embed/tj4knR4r1UU?autoplay=1',
+  'https://www.youtube.com/embed/5NARcHliRuY?autoplay=1',
+  'https://www.youtube.com/embed/ydYDqZQpim8?autoplay=1',
+  'https://www.youtube.com/embed/qpukdDslCjk?autoplay=1',
+];
+
+// Level 71 resumes the normal build. Only 4 signals are new: news on T5,
+// both window feeds, and one normal wall TV. Everything else in the GLB
+// keeps its original behaviour (T4/T6/T10/W1a video textures, unlocks, etc).
+const MAIN_RETURN_FEEDS = {
+  normal:  VOID_LIVE_FEEDS[3],
+  news:    VOID_LIVE_FEEDS[0],
+};
+
 // ── LEVEL SYSTEM ─────────────────────────────────────────────────────────────
 const EYE_HEIGHT    = 2.36;
 const LEVEL_DEPTH   = 30;
 const NOCLIP_RADIUS = 0.6;
 const CROSS_SIZE    = 0.5;
+
+const VOID_START_LEVEL = 36;   // first level with no GLB geometry
+const VOID_END_LEVEL   = 70;   // the floating signal level, live feeds live here
+const RETURN_LEVEL     = 71;   // normal build resumes
+const VOID_FALL_COUNT  = 15;   // total falls from level 35 to reach level 70
+// Door sits 20m clear of the TV ring so you can't click a TV and accidentally
+// trigger the exit — it used to be 1.8m past the ring, now it's a walk away.
+const VOID_DOOR_LOCAL_POS = [0, 1.65, -29];
+const VOID_TV_LOCAL_POSITIONS = [
+  [-7.4, 2.15, -6.4,  0.28],
+  [-2.5, 2.15, -7.2,  0.05],
+  [ 2.5, 2.15, -7.2, -0.05],
+  [ 7.4, 2.15, -6.4, -0.28],
+  [-8.2, 2.15, -1.8,  0.75],
+  [ 8.2, 2.15, -1.8, -0.75],
+  [-8.2, 2.15,  3.0,  0.95],
+  [ 8.2, 2.15,  3.0, -0.95],
+  [-6.5, 2.15,  7.0,  2.55],
+  [-2.0, 2.15,  8.0,  3.05],
+  [ 2.0, 2.15,  8.0, -3.05],
+  [ 6.5, 2.15,  7.0, -2.55],
+];
+// Centre of the TV ring — void levels re-centre the player here on landing
+// so you're never dropped off in blind darkness away from the screens.
+const VOID_RING_CENTER = { x: 0, z: 0.4 };
+
+function isVoidLevel(levelIndex){
+  return levelIndex >= VOID_START_LEVEL && levelIndex <= VOID_END_LEVEL;
+}
+
+// Precompute the 15 fall stops between level 35 and level 70. Intermediate
+// void levels are otherwise identical (blank ring of TVs), so we don't need
+// to visit every integer index — just enough stops to make it feel like a
+// long fall without 34 individual falls.
+function buildVoidLevelSequence(){
+  const start = VOID_START_LEVEL - 1; // 35 — last normal level
+  const span = VOID_END_LEVEL - start;
+  const seq = [];
+  for(let i = 1; i <= VOID_FALL_COUNT; i++){
+    seq.push(start + Math.round(span * i / VOID_FALL_COUNT));
+  }
+  for(let i = 1; i < seq.length; i++){
+    if(seq[i] <= seq[i-1]) seq[i] = seq[i-1] + 1;
+  }
+  seq[seq.length - 1] = VOID_END_LEVEL;
+  return seq;
+}
+const VOID_LEVEL_SEQUENCE = buildVoidLevelSequence();
+let voidSeqPos = -1;
+
+function levelTargetY(levelIndex){
+  const base = levelFloorY - levelIndex * LEVEL_DEPTH + EYE_HEIGHT;
+  return levelIndex === VOID_END_LEVEL ? base + 0.75 : base;
+}
+
+function nextVoidStop(fromLevel){
+  if(fromLevel === VOID_START_LEVEL - 1){
+    return VOID_LEVEL_SEQUENCE[0];
+  }
+  const idx = VOID_LEVEL_SEQUENCE.indexOf(fromLevel);
+  if(idx === -1 || idx >= VOID_LEVEL_SEQUENCE.length - 1) return VOID_END_LEVEL;
+  return VOID_LEVEL_SEQUENCE[idx + 1];
+}
 
 const BUILD_BOUNDS = { minX:-22, maxX:25, minZ:-52, maxZ:12 };
 
@@ -649,6 +676,9 @@ let isFalling       = false;
 let isRecovering    = false;
 let recoverStart    = 0;
 let recoverFrom     = 0;
+let voidExitDoor    = null;
+let voidAutoFallAt  = 0;
+let mapCenter       = new THREE.Vector3(0, 0, 0);
 
 // ── LEVEL 30 STATE ────────────────────────────────────────────────────────────
 let bloodPlane = null;
@@ -896,6 +926,8 @@ let chatTimer = null;
 let tauntHideTimer = null;
 let factHideTimer = null;
 let broadcastsRunning = false;
+let playerIsMoving = false;
+let chatMoveTimeout = null;
 
 function showPlayerTaunt(){
   if(!broadcastsRunning || !tauntEl || !tauntCopyEl) return;
@@ -967,7 +999,7 @@ function startBroadcasts(){
   if(broadcastsRunning) return;
   broadcastsRunning = true;
   if(factFeedEl) factFeedEl.style.display = 'block';
-  if(chatEl) chatEl.style.display = 'block';
+  if(chatEl){ chatEl.style.display = 'block'; chatEl.style.opacity = '1'; }
   showAnimalAgFact();
   pushChatLine();
   pushChatLine();
@@ -1037,6 +1069,15 @@ const ambientLight = new THREE.AmbientLight(0xfff5cc, 0.4);
 scene.add(ambientLight);
 const flickerLights = [];
 
+const css3dRenderer = new CSS3DRenderer();
+css3dRenderer.setSize(innerWidth, innerHeight);
+css3dRenderer.domElement.id = 'css3d-renderer';
+css3dRenderer.domElement.style.position = 'fixed';
+css3dRenderer.domElement.style.inset = '0';
+css3dRenderer.domElement.style.zIndex = '2';
+css3dRenderer.domElement.style.pointerEvents = 'none';
+document.getElementById('css3d').appendChild(css3dRenderer.domElement);
+
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight), 0.4, 0.5, 0.85));
@@ -1070,23 +1111,45 @@ const tvPromptEl = document.getElementById('tv-prompt');
 const barEl     = document.getElementById('bar');
 const pctEl     = document.getElementById('pct');
 let showCoords  = false;
+let hasLockedOnce = false;
+
+// Toggle pointer-events on every attached live-feed iframe. While locked,
+// the real cursor is hidden and shouldn't be able to steal clicks from
+// camera-look; while unlocked, the player needs to be able to click into
+// the embedded YouTube UI (settings, CC, fullscreen, play/pause).
+function setLiveFeedsInteractive(interactive){
+  allTVs.forEach(tv => {
+    if(tv.liveIframe) tv.liveIframe.style.pointerEvents = interactive ? 'auto' : 'none';
+  });
+}
 
 controls.addEventListener('lock', ()=>{
+  hasLockedOnce = true;
   startW1aAudio();
   startRadio();
   startBroadcasts();
   overlayEl.style.display='none';
   xhairEl.style.display='block';
   hintEl.style.display='block';
+  setLiveFeedsInteractive(false);
 });
 controls.addEventListener('unlock', ()=>{
-  overlayEl.style.display='flex';
+  // Only the very first unlock (before the player has ever locked) shows
+  // the full "click to enter" screen. Every unlock after that just frees
+  // the cursor without covering the game — no pause-screen lock.
+  overlayEl.style.display = hasLockedOnce ? 'none' : 'flex';
   xhairEl.style.display='none';
   hintEl.style.display='none';
   popupEl.style.display='none';
   tvPromptEl.style.display='none';
+  setLiveFeedsInteractive(true);
 });
 overlayEl.addEventListener('click', ()=>controls.lock());
+// Clicking back into the game canvas (not into a cross-origin iframe —
+// those clicks never bubble here) re-locks the pointer.
+document.getElementById('c').addEventListener('click', ()=>{
+  if(hasLockedOnce && !controls.isLocked) controls.lock();
+});
 
 // ── WALL RAYCASTING COLLISION ──────────────────────────────────────────────────
 const wallRaycaster = new THREE.Raycaster();
@@ -1277,23 +1340,38 @@ function createT6VideoTex(){
 }
 
 // ── BACKROOMS RADIO ──────────────────────────────────────────────────────────
-// The radio is deliberately self-contained: it adds one audio bus and one HUD
-// without changing the map, level, fall, blood, or TV progression systems.
+const SCANNER_CITIES = ["CHICAGO","LOS ANGELES","NEW YORK","MIAMI","HOUSTON","DETROIT","PHOENIX","PHILADELPHIA","DALLAS","MEMPHIS","ATLANTA","SEATTLE","DENVER","PORTLAND","NASHVILLE","ST. LOUIS","NEW ORLEANS"];
+
 const RADIO_STATIONS = [
-  { id:'night-wave', title:'NIGHT WAVE', frequency:'FM 96.7', region:'US', kind:'AMBIENT', mode:'ambient', stream:'https://ice1.somafm.com/dronezone-128-mp3' },
-  { id:'groove-salad', title:'GROOVE SALAD', frequency:'FM 98.5', region:'US', kind:'MUSIC', mode:'music', stream:'https://ice1.somafm.com/groovesalad-128-mp3' },
-  { id:'kexp-after-dark', title:'KEXP AFTER DARK', frequency:'FM 90.3', region:'US', kind:'MUSIC', mode:'music', stream:'https://kexp-mp3-128.streamguys1.com/kexp128.mp3' },
-  { id:'radio-paradise', title:'RADIO PARADISE', frequency:'FM 100.1', region:'US', kind:'MUSIC', mode:'music', stream:'https://stream.radioparadise.com/aac-320' },
-  { id:'abc-nightline', title:'ABC NIGHTLINE', frequency:'AM 702', region:'AUS', kind:'TALK', mode:'talk', stream:'https://live-radio01.mediahubaustralia.com/2LRW/mp3/' },
-  { id:'triple-j-shadow', title:'TRIPLE J SHADOW', frequency:'FM 105.7', region:'AUS', kind:'MUSIC', mode:'music', stream:'https://live-radio01.mediahubaustralia.com/JJJW/mp3/' },
-  { id:'fip-nuit', title:'FIP NUIT', frequency:'FM 105.1', region:'FRA', kind:'MUSIC', mode:'music', stream:'https://icecast.radiofrance.fr/fip-hifi.aac' },
-  { id:'bbc-six-late', title:'BBC SIX // LATE', frequency:'FM 93.9', region:'UK', kind:'MUSIC', mode:'music', stream:'https://stream.live.vc.bbcmedia.co.uk/bbc_6music' },
-  { id:'euro-nightline', title:'EURO NIGHTLINE', frequency:'FM 88.8', region:'EU', kind:'TALK', mode:'talk' },
-  { id:'weather-service', title:'WEATHER SERVICE', frequency:'NOAA 162.550', region:'US', kind:'EMERGENCY', mode:'emergency' },
-  { id:'outback-alert', title:'OUTBACK ALERT', frequency:'HF 7.210', region:'AUS', kind:'EMERGENCY', mode:'emergency' },
-  { id:'floor-scanner', title:'FLOOR SCANNER', frequency:'154.280', region:'US', kind:'SCANNER', mode:'scanner' },
-  { id:'europe-traffic', title:'EURO TRAFFIC', frequency:'AM 1611', region:'EU', kind:'TRAFFIC', mode:'scanner' },
-  { id:'unknown-carrier', title:'NO CARRIER', frequency:'—', region:'UNKNOWN', kind:'STATIC', mode:'static' },
+  // ── Verified working ──────────────────────────────────────────────────────
+  { stream:'https://kexp-mp3-128.streamguys1.com/kexp128.mp3',        hls:false, scanner:false, name:'KEXP AFTER DARK',    id:'kexp',      title:'KEXP AFTER DARK',    frequency:'FM 90.3',   region:'US',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://icecast.radiofrance.fr/fip-hifi.aac',             hls:false, scanner:false, name:'FIP NUIT',           id:'fip-nuit',  title:'FIP NUIT',           frequency:'FM 105.1',  region:'FRA', kind:'MUSIC',   mode:'music'   },
+  { stream:'https://ice1.somafm.com/groovesalad-128-mp3',             hls:false, scanner:false, name:'GROOVE SALAD',       id:'groove',    title:'GROOVE SALAD',       frequency:'FM 98.5',   region:'US',  kind:'MUSIC',   mode:'music'   },
+  // ── SomaFM ───────────────────────────────────────────────────────────────
+  { stream:'https://ice1.somafm.com/dronezone-128-mp3',               hls:false, scanner:false, name:'DRONE ZONE',         id:'drone',     title:'DRONE ZONE',         frequency:'FM 96.7',   region:'US',  kind:'AMBIENT', mode:'ambient' },
+  { stream:'https://ice1.somafm.com/secretagent-128-mp3',             hls:false, scanner:false, name:'SECRET AGENT',       id:'secret',    title:'SECRET AGENT',       frequency:'FM 89.1',   region:'US',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://ice1.somafm.com/defcon-128-mp3',                  hls:false, scanner:false, name:'DEF CON RADIO',      id:'defcon',    title:'DEF CON RADIO',      frequency:'FM 94.5',   region:'US',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://ice6.somafm.com/thetrip-128-mp3',                 hls:false, scanner:false, name:'THE TRIP',           id:'thetrip',   title:'THE TRIP',           frequency:'FM 101.3',  region:'US',  kind:'AMBIENT', mode:'ambient' },
+  { stream:'https://ice1.somafm.com/7soul-128-mp3',                   hls:false, scanner:false, name:'7TH STREET SOUL',    id:'7soul',     title:'7TH STREET SOUL',    frequency:'FM 107.1',  region:'US',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://ice1.somafm.com/metal-128-mp3',                   hls:false, scanner:false, name:'UNDERGROUND METAL',  id:'metal',     title:'UNDERGROUND METAL',  frequency:'FM 102.7',  region:'US',  kind:'MUSIC',   mode:'music'   },
+  // ── Police scanners (SomaFM) ─────────────────────────────────────────────
+  { stream:'https://ice1.somafm.com/scanner-128-mp3',                 hls:false, scanner:true,  name:'POLICE SCANNER',     id:'scan1',     title:'POLICE SCANNER',     frequency:'154.280',   region:'US',  kind:'SCANNER', mode:'scanner' },
+  { stream:'https://ice2.somafm.com/scanner-128-mp3',                 hls:false, scanner:true,  name:'POLICE SCANNER',     id:'scan2',     title:'POLICE SCANNER',     frequency:'154.280',   region:'US',  kind:'SCANNER', mode:'scanner' },
+  { stream:'https://ice4.somafm.com/scanner-128-mp3',                 hls:false, scanner:true,  name:'POLICE SCANNER',     id:'scan3',     title:'POLICE SCANNER',     frequency:'154.280',   region:'US',  kind:'SCANNER', mode:'scanner' },
+  { stream:'https://ice6.somafm.com/scanner-128-mp3',                 hls:false, scanner:true,  name:'POLICE SCANNER',     id:'scan4',     title:'POLICE SCANNER',     frequency:'154.280',   region:'US',  kind:'SCANNER', mode:'scanner' },
+  // ── Other hypogeum stations ───────────────────────────────────────────────
+  { stream:'https://icecast.radiofrance.fr/franceinter-midfi.mp3',    hls:false, scanner:false, name:'FRANCE INTER',       id:'finter',    title:'FRANCE INTER',       frequency:'FM 87.8',   region:'FRA', kind:'TALK',    mode:'talk'    },
+  { stream:'https://npr-ice.streamguys1.com/live.mp3',                hls:false, scanner:false, name:'NPR NEWS',           id:'npr',       title:'NPR NEWS',           frequency:'AM 90.9',   region:'US',  kind:'TALK',    mode:'talk'    },
+  { stream:'https://media-ssl.musicradio.com/Heart80sMP3',            hls:false, scanner:false, name:'HEART 80S',          id:'heart80s',  title:'HEART 80S',          frequency:'FM 103.9',  region:'UK',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://s1-webradio.oldie-antenne.de/oldie-antenne',      hls:false, scanner:false, name:'OLDIE ANTENNE',      id:'oldie',     title:'OLDIE ANTENNE',      frequency:'FM 97.3',   region:'DE',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://live-radio01.mediahubaustralia.com/2TJW/aac/',    hls:false, scanner:false, name:'TRIPLE J',           id:'tripleJ',   title:'TRIPLE J',           frequency:'FM 105.7',  region:'AUS', kind:'MUSIC',   mode:'music'   },
+  { stream:'https://wz3drp.scahw.com.au/live/3mmm_32.stream/playlist.m3u8', hls:true, scanner:false, name:'TRIPLE M',    id:'tripleM',   title:'TRIPLE M',           frequency:'FM 104.9',  region:'AUS', kind:'MUSIC',   mode:'music'   },
+  // ── Mainstream / pop ─────────────────────────────────────────────────────
+  { stream:'https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one',    hls:false, scanner:false, name:'BBC RADIO 1',        id:'bbcr1',     title:'BBC RADIO 1',        frequency:'FM 98.8',   region:'UK',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://media-ssl.musicradio.com/CapitalMP3',             hls:false, scanner:false, name:'CAPITAL FM',         id:'capital',   title:'CAPITAL FM',         frequency:'FM 95.8',   region:'UK',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://media-ssl.musicradio.com/HeartMP3',               hls:false, scanner:false, name:'HEART FM',           id:'heartfm',   title:'HEART FM',           frequency:'FM 106.2',  region:'UK',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://media-ssl.musicradio.com/KissMP3',                hls:false, scanner:false, name:'KISS FM',            id:'kiss',      title:'KISS FM',            frequency:'FM 100.0',  region:'UK',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://stream.revma.ihrhls.com/zc7702',                  hls:false, scanner:false, name:'Z100 NEW YORK',      id:'z100',      title:'Z100 NEW YORK',      frequency:'FM 100.3',  region:'US',  kind:'MUSIC',   mode:'music'   },
 ];
 
 const RADIO_CHAT_LINES = {
@@ -1341,158 +1419,190 @@ const RADIO_CHAT_LINES = {
   ],
 };
 
-const radioHudEl = document.getElementById('radio-hud');
-const radioFrequencyEl = document.getElementById('radio-frequency');
-const radioRegionEl = document.getElementById('radio-region');
-const radioStationEl = document.getElementById('radio-station');
-const radioBarsEl = document.getElementById('radio-bars');
-const radioKindEl = document.getElementById('radio-kind');
-const radioStatusEl = document.getElementById('radio-status');
-let radioAudioEl = null;
-let radioMediaSource = null;
-let radioGainNode = null;
-let radioCurrent = null;
-let radioIndex = -1;
-let radioStarted = false;
-let radioSwitchTimer = null;
-let radioStreamTimer = null;
-let radioChatTimer = null;
-let radioFallbackNodes = [];
-let radioFallbackIntervals = [];
-let radioDuckAmount = 0;
-let radioStreamAttempt = 0;
+// ── RADIO STATE ───────────────────────────────────────────────────────────────
+let radioAudioEl    = null;
+let radioMediaSource= null;
+let radioGainNode   = null;
+let radioFilterNode = null;
+let radioHlsInst    = null;
+let radioCurrent    = null;
+let radioStarted    = false;
+let radioPlaying    = false;
+let radioSwitchTimer= null;
+let radioChatTimer  = null;
+let radioBehavior   = 'long';
+let radioScanHops   = 0;
+let radioFailCount  = 0;
+let radioStIdx      = 0;
 
 function radioContext(){
-  try {
-    if(clickSoundCtx.state === 'suspended') clickSoundCtx.resume();
-  } catch(e){}
+  try { if(clickSoundCtx.state==='suspended') clickSoundCtx.resume(); } catch(e){}
   return clickSoundCtx;
 }
 
-function stopRadioFallback(){
-  radioFallbackIntervals.forEach(timer => clearInterval(timer));
-  radioFallbackIntervals = [];
-  radioFallbackNodes.forEach(node => {
-    try { node.stop(); } catch(e){}
-    try { node.disconnect(); } catch(e){}
-  });
-  radioFallbackNodes = [];
-}
-
-function makeRadioNoise(ctx, color='white'){
-  const buffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
-  const data = buffer.getChannelData(0);
-  let last = 0;
-  for(let i=0; i<data.length; i++){
-    const white = Math.random() * 2 - 1;
-    last = color === 'brown' ? (last + white * 0.035) * 0.995 : white;
-    data[i] = color === 'brown' ? last * 3.5 : white;
+// ── Radio error / skip to next station ────────────────────────────────────────
+function radioOnError(){
+  radioFailCount++;
+  if(radioFailCount >= RADIO_STATIONS.length){
+    radioFailCount = 0; radioPlaying = false;
+    radioSwitchTimer = setTimeout(radioStartCycle, Math.random()*75000+45000);
+    return;
   }
-  const source = ctx.createBufferSource();
-  source.buffer = buffer; source.loop = true;
-  source.start();
-  radioFallbackNodes.push(source);
-  return source;
+  radioStIdx = (radioStIdx+1) % RADIO_STATIONS.length;
+  setTimeout(radioPlayNow, 500);
 }
 
-function startRadioFallback(station){
-  stopRadioFallback();
+// ── Smooth filter-based fade-in when a station connects ───────────────────────
+function radioOnPlay(st){
   const ctx = radioContext();
-  if(!ctx || !radioGainNode) return;
-  const mode = station.mode;
-  if(mode === 'static' || mode === 'scanner' || mode === 'emergency'){
-    const noise = makeRadioNoise(ctx, mode === 'static' ? 'white' : 'brown');
-    const filter = ctx.createBiquadFilter();
-    filter.type = mode === 'static' ? 'highpass' : 'bandpass';
-    filter.frequency.value = mode === 'static' ? 750 : 780;
-    filter.Q.value = mode === 'static' ? .25 : .8;
-    const gain = ctx.createGain();
-    gain.gain.value = mode === 'static' ? .045 : .025;
-    noise.connect(filter); filter.connect(gain); gain.connect(radioGainNode);
-    radioFallbackNodes.push(filter, gain);
+  if(!ctx || !radioGainNode || !radioFilterNode) return;
+  radioCurrent = st;
+  const t = ctx.currentTime;
+  radioGainNode.gain.cancelScheduledValues(t);
+  radioGainNode.gain.setValueAtTime(0, t);
+  radioGainNode.gain.linearRampToValueAtTime(0.45, t+2.5);
+  radioFilterNode.frequency.cancelScheduledValues(t);
+  radioFilterNode.frequency.setValueAtTime(180, t);
+  radioFilterNode.frequency.exponentialRampToValueAtTime(2200, t+2);
+  radioFilterNode.Q.cancelScheduledValues(t);
+  radioFilterNode.Q.setValueAtTime(3.5, t);
+  radioFilterNode.Q.linearRampToValueAtTime(0.5, t+2);
+  // Schedule automatic stop
+  if(radioSwitchTimer) clearTimeout(radioSwitchTimer);
+  let playMs;
+  if(radioBehavior==='long')       playMs = Math.random()*150000+30000;
+  else if(radioBehavior==='short') playMs = Math.random()*10000+10000;
+  else                             playMs = Math.random()*3000+3000;
+  radioSwitchTimer = setTimeout(radioDoStop, playMs);
+  if(broadcastsRunning && Math.random()<.9) pushRadioChatLine(st.mode);
+}
+
+// ── Smooth filter-based fade-out, then optionally pick next station ────────────
+function radioDoStop(){
+  const ctx = radioContext();
+  if(!ctx || !radioGainNode || !radioFilterNode) return;
+  const t = ctx.currentTime;
+  if(radioBehavior==='scan' && radioScanHops>0){
+    radioScanHops--;
+    radioGainNode.gain.cancelScheduledValues(t);
+    radioGainNode.gain.setValueAtTime(radioGainNode.gain.value, t);
+    radioFilterNode.frequency.cancelScheduledValues(t);
+    radioFilterNode.frequency.setValueAtTime(radioFilterNode.frequency.value, t);
+    radioFilterNode.frequency.exponentialRampToValueAtTime(180, t+0.25);
+    radioGainNode.gain.linearRampToValueAtTime(0, t+0.25);
+    setTimeout(()=>{
+      radioAudioEl.pause();
+      radioStIdx = (radioStIdx+1) % RADIO_STATIONS.length;
+      if(radioScanHops===0) radioBehavior='long';
+      radioPlayNow();
+    }, 300);
+  } else {
+    radioGainNode.gain.cancelScheduledValues(t);
+    radioGainNode.gain.setValueAtTime(radioGainNode.gain.value, t);
+    radioFilterNode.frequency.cancelScheduledValues(t);
+    radioFilterNode.frequency.setValueAtTime(radioFilterNode.frequency.value, t);
+    radioFilterNode.frequency.exponentialRampToValueAtTime(180, t+2.5);
+    radioFilterNode.Q.setValueAtTime(0.5, t);
+    radioFilterNode.Q.linearRampToValueAtTime(4.0, t+2);
+    radioGainNode.gain.linearRampToValueAtTime(0, t+2.8);
+    setTimeout(()=>{
+      if(radioAudioEl) radioAudioEl.pause();
+      radioPlaying = false;
+      if(radioBehavior==='short'){
+        radioStartCycle();
+      } else {
+        radioSwitchTimer = setTimeout(radioStartCycle, Math.random()*75000+45000);
+      }
+    }, 2900);
   }
-  if(mode === 'ambient' || mode === 'music' || mode === 'talk'){
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = mode === 'talk' ? 'triangle' : 'sine';
-    osc.frequency.value = mode === 'music' ? 146.83 : 98;
-    gain.gain.value = mode === 'music' ? .018 : .028;
-    osc.connect(gain); gain.connect(radioGainNode); osc.start();
-    radioFallbackNodes.push(osc, gain);
-    if(mode === 'ambient'){
-      const low = ctx.createOscillator();
-      const lowGain = ctx.createGain();
-      low.type = 'sine'; low.frequency.value = 49;
-      lowGain.gain.value = .022;
-      low.connect(lowGain); lowGain.connect(radioGainNode); low.start();
-      radioFallbackNodes.push(low, lowGain);
+}
+
+// ── Play the station at radioStIdx ────────────────────────────────────────────
+function radioPlayNow(){
+  const ctx = radioContext();
+  if(!ctx || !radioAudioEl) return;
+  const st = RADIO_STATIONS[radioStIdx];
+  if(radioHlsInst){ radioHlsInst.destroy(); radioHlsInst=null; }
+  radioAudioEl.pause();
+  radioAudioEl.removeAttribute('src');
+  radioAudioEl.load();
+  if(st.hls && window.Hls && Hls.isSupported()){
+    radioHlsInst = new Hls({enableWorker:false, lowLatencyMode:false});
+    radioHlsInst.loadSource(st.stream);
+    radioHlsInst.attachMedia(radioAudioEl);
+    radioHlsInst.on(Hls.Events.MANIFEST_PARSED, ()=>{
+      radioAudioEl.play().then(()=>{ radioFailCount=0; radioOnPlay(st); }).catch(radioOnError);
+    });
+    radioHlsInst.on(Hls.Events.ERROR, (ev,d)=>{ if(d.fatal) radioOnError(); });
+  } else {
+    radioAudioEl.src = st.stream;
+    radioAudioEl.play().then(()=>{ radioFailCount=0; radioOnPlay(st); }).catch(radioOnError);
+  }
+}
+
+// ── Pick next station and start playing ───────────────────────────────────────
+function radioStartCycle(){
+  if(radioPlaying) return;
+  radioPlaying = true;
+  radioFailCount = 0;
+  // 1-in-3 chance: go straight to a scanner (creepier)
+  const wantScanner = Math.random()<0.33;
+  if(wantScanner){
+    const scanners = RADIO_STATIONS.map((s,i)=>({s,i})).filter(x=>x.s.scanner);
+    if(scanners.length){
+      radioStIdx = scanners[Math.floor(Math.random()*scanners.length)].i;
+      radioBehavior = 'short';
+      radioPlayNow(); return;
     }
   }
-  if(mode === 'emergency' || mode === 'scanner'){
-    const beep = ()=>{
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'square';
-      osc.frequency.value = mode === 'emergency' ? 880 : 520;
-      gain.gain.setValueAtTime(.0001, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(mode === 'emergency' ? .055 : .032, ctx.currentTime + .03);
-      gain.gain.exponentialRampToValueAtTime(.0001, ctx.currentTime + .32);
-      osc.connect(gain); gain.connect(radioGainNode);
-      osc.start(); osc.stop(ctx.currentTime + .34);
-    };
-    beep();
-    radioFallbackIntervals.push(setInterval(beep, mode === 'emergency' ? 4200 : 6800));
-  }
+  radioStIdx = Math.floor(Math.random()*RADIO_STATIONS.length);
+  const rnd = Math.random();
+  if(rnd<0.4)      radioBehavior='long';
+  else if(rnd<0.8) radioBehavior='short';
+  else             { radioBehavior='scan'; radioScanHops=Math.floor(Math.random()*3)+2; }
+  radioPlayNow();
 }
 
-function radioSignalBars(station){
-  if(station.mode === 'static') return '▂▂▃▂';
-  if(station.mode === 'scanner' || station.mode === 'emergency') return '▂▅▃▁';
-  return '▂▃▅▃';
+// ── Init the radio audio chain and start the first cycle ─────────────────────
+function startRadio(){
+  if(radioStarted) return;
+  radioStarted = true;
+  const ctx = radioContext();
+  if(!ctx) return;
+  radioAudioEl = new Audio();
+  radioAudioEl.crossOrigin = 'anonymous';
+  radioAudioEl.preload = 'none';
+  radioAudioEl.loop = false;
+  radioAudioEl.addEventListener('error', radioOnError);
+  radioMediaSource = ctx.createMediaElementSource(radioAudioEl);
+  radioFilterNode = ctx.createBiquadFilter();
+  radioFilterNode.type = 'bandpass';
+  radioFilterNode.frequency.value = 2200;
+  radioFilterNode.Q.value = 0.5;
+  radioGainNode = ctx.createGain();
+  radioGainNode.gain.value = 0;
+  radioMediaSource.connect(radioFilterNode);
+  radioFilterNode.connect(radioGainNode);
+  radioGainNode.connect(ctx.destination);
+  radioStartCycle();
+  scheduleRadioChat();
 }
 
-function updateRadioHud(status='LIVE'){
-  if(!radioCurrent || !radioHudEl) return;
-  radioHudEl.classList.add('active');
-  radioFrequencyEl.textContent = radioCurrent.frequency;
-  radioRegionEl.textContent = radioCurrent.region + ' // LIVE-ish';
-  radioStationEl.textContent = radioCurrent.title;
-  radioBarsEl.textContent = radioSignalBars(radioCurrent);
-  radioKindEl.textContent = radioCurrent.kind;
-  radioStatusEl.textContent = status;
+// ── Duck radio when in-world video is playing ─────────────────────────────────
+function radioUpdateDucking(){
+  if(!radioGainNode || !radioStarted || !radioPlaying) return;
+  const ctx = radioContext();
+  const videos = [w1aVideoEl, w1bVideoEl, t10VideoEl, t6VideoEl, t4VideoEl].filter(Boolean);
+  const videoPlaying = videos.some(v => !v.paused && !v.muted);
+  const target = videoPlaying ? 0.07 : 0.45;
+  radioGainNode.gain.setTargetAtTime(target, ctx.currentTime, 0.5);
 }
 
-function radioPickIndex(){
-  const dark = currentLevel >= 30;
-  const darkIndices = RADIO_STATIONS
-    .map((station, index) => ({station, index}))
-    .filter(item => ['scanner','emergency','static'].includes(item.station.mode))
-    .map(item => item.index);
-  if(dark && Math.random() < .62 && darkIndices.length) {
-    return darkIndices[Math.floor(Math.random() * darkIndices.length)];
-  }
-  let next = Math.floor(Math.random() * RADIO_STATIONS.length);
-  if(RADIO_STATIONS.length > 1 && next === radioIndex) next = (next + 1) % RADIO_STATIONS.length;
-  return next;
-}
-
-function scheduleRadioSwitch(){
-  if(radioSwitchTimer) clearTimeout(radioSwitchTimer);
-  if(!radioStarted) return;
-  const isUnstable = radioCurrent && ['scanner','static'].includes(radioCurrent.mode);
-  const delay = isUnstable
-    ? 18000 + Math.random() * 26000
-    : 30000 + Math.random() * 30000;
-  radioSwitchTimer = setTimeout(() => {
-    tuneRadio();
-    scheduleRadioSwitch();
-  }, delay);
-}
-
+// ── Shared chat push (used by radio and general broadcast) ────────────────────
 function pushRadioChatLine(category){
   if(!broadcastsRunning || !chatLinesEl) return;
   const choices = RADIO_CHAT_LINES[category] || RADIO_CHAT_LINES.static;
-  const [name, message] = choices[Math.floor(Math.random() * choices.length)];
+  const [name, message] = choices[Math.floor(Math.random()*choices.length)];
   const line = document.createElement('div');
   line.className = 'chat-line';
   const nameEl = document.createElement('span');
@@ -1500,88 +1610,16 @@ function pushRadioChatLine(category){
   nameEl.textContent = name + ': ';
   line.append(nameEl, document.createTextNode(message));
   chatLinesEl.appendChild(line);
-  while(chatLinesEl.children.length > 8) chatLinesEl.removeChild(chatLinesEl.firstChild);
+  while(chatLinesEl.children.length>8) chatLinesEl.removeChild(chatLinesEl.firstChild);
 }
 
 function scheduleRadioChat(){
   if(radioChatTimer) clearTimeout(radioChatTimer);
   if(!radioStarted) return;
-  radioChatTimer = setTimeout(() => {
-    if(radioCurrent && Math.random() < .75) pushRadioChatLine(radioCurrent.mode);
+  radioChatTimer = setTimeout(()=>{
+    if(radioCurrent && Math.random()<.75) pushRadioChatLine(radioCurrent.mode);
     scheduleRadioChat();
-  }, 12000 + Math.random() * 18000);
-}
-
-function tuneRadio(forcedIndex=null){
-  if(!radioStarted && forcedIndex === null) return;
-  const nextIndex = forcedIndex === null ? radioPickIndex() : forcedIndex;
-  radioIndex = nextIndex;
-  radioCurrent = RADIO_STATIONS[radioIndex];
-  radioStreamAttempt = 0;
-  if(radioStreamTimer) clearTimeout(radioStreamTimer);
-  if(radioAudioEl) radioAudioEl.pause();
-  stopRadioFallback();
-  startRadioFallback(radioCurrent);
-  updateRadioHud('TUNING');
-  radioHudEl.classList.add('tuning');
-  setTimeout(() => radioHudEl.classList.remove('tuning'), 520);
-  try { playClickSound(); } catch(e){}
-
-  if(radioCurrent.stream && radioAudioEl){
-    radioAudioEl.src = radioCurrent.stream;
-    radioAudioEl.load();
-    radioAudioEl.play().then(() => {
-      stopRadioFallback();
-      updateRadioHud('LIVE');
-    }).catch(() => {
-      updateRadioHud('FALLBACK');
-    });
-    radioStreamTimer = setTimeout(() => {
-      if(radioCurrent && radioAudioEl && radioAudioEl.readyState < 2) {
-        radioAudioEl.pause();
-        updateRadioHud('FALLBACK');
-      }
-    }, 8500);
-  } else {
-    updateRadioHud('FALLBACK');
-  }
-  if(broadcastsRunning && Math.random() < .9) pushRadioChatLine(radioCurrent.mode);
-}
-
-function startRadio(){
-  if(radioStarted) return;
-  radioStarted = true;
-  const ctx = radioContext();
-  if(!ctx || !radioHudEl) return;
-  radioAudioEl = new Audio();
-  radioAudioEl.crossOrigin = 'anonymous';
-  radioAudioEl.preload = 'none';
-  radioAudioEl.loop = true;
-  radioAudioEl.addEventListener('playing', () => {
-    stopRadioFallback();
-    updateRadioHud('LIVE');
-  });
-  radioAudioEl.addEventListener('error', () => {
-    if(radioCurrent) updateRadioHud('FALLBACK');
-  });
-  radioMediaSource = ctx.createMediaElementSource(radioAudioEl);
-  radioGainNode = ctx.createGain();
-  radioGainNode.gain.value = .16;
-  radioMediaSource.connect(radioGainNode);
-  radioGainNode.connect(ctx.destination);
-  tuneRadio();
-  scheduleRadioSwitch();
-  scheduleRadioChat();
-}
-
-function radioUpdateDucking(){
-  if(!radioGainNode || !radioStarted) return;
-  const videos = [w1aVideoEl, w1bVideoEl, t10VideoEl, t6VideoEl, t4VideoEl]
-    .filter(Boolean);
-  const videoPlaying = videos.some(video => !video.paused && !video.muted);
-  radioDuckAmount += ((videoPlaying ? .11 : 0) - radioDuckAmount) * .08;
-  const target = Math.max(.035, .16 - radioDuckAmount);
-  radioGainNode.gain.setTargetAtTime(target, radioContext().currentTime, .14);
+  }, 12000 + Math.random()*18000);
 }
 
 function getVisibleTVVideo(id){
@@ -1645,6 +1683,11 @@ function toggleVideoEl(vid){
 
 function interactWithTV(tv){
   if(!tv) return;
+
+  if(tv.liveEmbed){
+    activateInWorldLiveTV(tv);
+    return;
+  }
 
   // W1a: locked until fall 10, then freely toggleable
   if(tv.id === 'W1a'){
@@ -1850,7 +1893,146 @@ function buildWindowTV(id, pos, ry, levelYOffset=0){
   };
 }
 
-// ── IN-GAME WALL BUTTONS ─────────────────────────────────────────────────────
+// ── VOID LEVEL TVs & EXIT DOOR (levels 36–70) ───────────────────────────────
+function buildVoidTV(id, pos, ry, levelYOffset, liveEmbed=null){
+  // Reuse the normal wall TV — same geometry, same behaviour — the signal
+  // sources are just intentionally unlabelled down here.
+  const tv = buildWallTV(id, pos, ry, levelYOffset);
+  const frame = tv.g.children[0];
+  if(frame && frame.children[2]) frame.children[2].visible = false; // hide ID label
+  if(liveEmbed) addLiveFeedToTV(tv, liveEmbed);
+  return tv;
+}
+
+function buildVoidExitDoor(levelYOffset){
+  const door = new THREE.Group();
+  const frameMat = new THREE.MeshStandardMaterial({
+    color: 0x0c2415, emissive: 0x19ff62, emissiveIntensity: 3.4,
+    metalness: 0.35, roughness: 0.3,
+  });
+  // Human-scale narrow opening — just the frame. No fill plane: the
+  // doorway itself is true black void, and the point light does the glow.
+  const left = new THREE.Mesh(new THREE.BoxGeometry(.15, 2.6, .15), frameMat);
+  const right = left.clone();
+  const top = new THREE.Mesh(new THREE.BoxGeometry(1.9, .15, .15), frameMat);
+  left.position.set(-0.8, 1.3, 0);
+  right.position.set(0.8, 1.3, 0);
+  top.position.set(0, 2.6, 0);
+  door.add(left, right, top);
+  const glow = new THREE.PointLight(0x36ff78, 2.2, 12);
+  glow.position.set(0, 1.5, 0.8);
+  door.add(glow);
+  door.position.set(
+    VOID_DOOR_LOCAL_POS[0],
+    VOID_DOOR_LOCAL_POS[1] + levelYOffset,
+    VOID_DOOR_LOCAL_POS[2],
+  );
+  door.visible = false;
+  scene.add(door);
+  return { group: door, glow };
+}
+
+function getVoidDoorDistance(){
+  if(currentLevel !== VOID_END_LEVEL || !voidExitDoor) return Infinity;
+  return camera.position.distanceTo(voidExitDoor.group.position);
+}
+
+function enterReturnLevel(){
+  if(currentLevel !== VOID_END_LEVEL || isFalling || isRecovering) return;
+  const previousLevel = currentLevel;
+  hideLevel(previousLevel);
+  if(!levelGroups[RETURN_LEVEL]) createLevelGroup(RETURN_LEVEL);
+  showLevel(RETURN_LEVEL);
+  currentLevel = RETURN_LEVEL;
+  applyVoidAtmosphere(RETURN_LEVEL);
+  camera.position.set(mapCenter.x, levelTargetY(RETURN_LEVEL), mapCenter.z);
+  camera.rotation.set(0, 0, 0);
+  if(voidExitDoor) voidExitDoor.group.visible = false;
+  showStage30Cue('THE SIGNAL LET YOU THROUGH.\nWELCOME BACK TO THE BUILD.', 5200);
+}
+
+function applyVoidAtmosphere(levelIndex){
+  const readout = document.getElementById('void-level-readout');
+  if(isVoidLevel(levelIndex)){
+    ambientLight.color.set(0x07150c);
+    ambientLight.intensity = levelIndex === VOID_END_LEVEL ? 0.018 : 0.008;
+    scene.background = new THREE.Color(0x000000);
+    scene.fog = new THREE.FogExp2(0x000000, levelIndex === VOID_END_LEVEL ? 0.018 : 0.035);
+    if(readout) readout.style.display = levelIndex === VOID_END_LEVEL ? 'block' : 'none';
+  } else {
+    if(readout) readout.style.display = 'none';
+    if(scene.background) scene.background.set(0x000000);
+    ambientLight.color.set(0xfff5cc);
+    ambientLight.intensity = 0.4;
+    scene.fog = new THREE.FogExp2(0x1a1208, 0.035);
+  }
+}
+
+// ── IN-WORLD LIVE FEEDS (CSS3D YouTube overlays) ────────────────────────────
+function setTVBlank(tv){
+  if(!tv || !tv.nctx || !tv.ntex) return;
+  tv.nctx.clearRect(0, 0, 128, 72);
+  tv.nctx.fillStyle = '#000';
+  tv.nctx.fillRect(0, 0, 128, 72);
+  tv.ntex.needsUpdate = true;
+}
+
+function addLiveFeedToTV(tv, embedUrl){
+  if(!tv) return tv;
+  tv.liveEmbed = embedUrl;
+  tv.g.userData.liveEmbed = embedUrl;
+  attachLiveIframeToTV(tv);
+  return tv;
+}
+
+function attachLiveIframeToTV(tv){
+  if(!tv || !tv.screen || tv.liveIframeObject) return;
+  const parent = tv.screen.parent;
+  if(!parent) return;
+  const iframe = document.createElement('iframe');
+  iframe.className = 'in-world-live-feed';
+  iframe.title = `${tv.id} live signal`;
+  // Native size is 5x the old 220x140 (same aspect ratio) so YouTube's
+  // auto-quality picks HD instead of 240p/360p. The CSS3D object scale
+  // below is divided by the same 5x so the on-screen size is unchanged.
+  iframe.width = '1100';
+  iframe.height = '700';
+  iframe.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+  iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+  iframe.allowFullscreen = true;
+  iframe.style.width = '1100px';
+  iframe.style.height = '700px';
+  iframe.style.border = '0';
+  iframe.style.display = 'block';
+  iframe.style.pointerEvents = 'none';
+  iframe.style.background = '#000';
+  const object = new CSS3DObject(iframe);
+  object.position.set(0, 0, 0.085);
+  object.scale.set(0.002, 0.002, 0.002);
+  object.visible = false;
+  parent.add(object);
+  tv.liveIframe = iframe;
+  tv.liveIframeObject = object;
+}
+
+function activateInWorldLiveTV(tv){
+  if(!tv || !tv.liveEmbed) return;
+  if(!tv.liveIframeObject) attachLiveIframeToTV(tv);
+  if(!tv.liveIframe || !tv.liveIframeObject) return;
+  if(tv.liveActive){
+    tv.liveIframe.src = 'about:blank';
+    tv.liveIframeObject.visible = false;
+    tv.liveActive = false;
+    playClickSound();
+    return;
+  }
+  tv.liveIframe.src = tv.liveEmbed;
+  tv.liveIframeObject.visible = true;
+  tv.liveActive = true;
+  playClickSound();
+}
+
+
 const LORE_BUTTON_DEF = {
   id: 'btn-lore',
   pos: [-43.15, 1.7, -3.99],
@@ -2223,7 +2405,7 @@ function createLevelGroup(levelIndex){
   const group = new THREE.Group();
   group.visible = false;
 
-  if(glbTemplate){
+  if(glbTemplate && !isVoidLevel(levelIndex)){
     const clone = glbTemplate.clone(true);
     clone.traverse(c => {
       if(c.isMesh){
@@ -2235,18 +2417,32 @@ function createLevelGroup(levelIndex){
   }
 
   const lights = [];
+  if(isVoidLevel(levelIndex)){
+    // A tiny green-black light source keeps the void readable without
+    // restoring the yellow room lighting from the upper build.
+    const voidLight = new THREE.PointLight(
+      levelIndex === VOID_END_LEVEL ? 0x0e6d35 : 0x061b0e,
+      levelIndex === VOID_END_LEVEL ? 0.12 : 0.025,
+      24,
+    );
+    voidLight.position.set(0, 2.2, 0);
+    group.add(voidLight);
+    flickerLights.push(voidLight);
+  }
   // Level 30: very dim crimson point lights so blood blends into darkness.
-  const lightColor     = (levelIndex === 30) ? 0x330000 : 0xfff5aa;
-  const lightIntensity = (levelIndex === 30) ? 0.18     : 1.2;
-  [[0,2.8,0],[10,2.8,-5],[-10,2.8,8],[20,2.8,5],[-20,2.8,-12],
-   [5,2.8,25],[0,2.8,-15],[0,2.8,-30],[0,2.8,-45]].forEach(([x,y,z])=>{
-    const l = new THREE.PointLight(lightColor, lightIntensity, 18);
-    l.position.set(x, y, z);
-    l.userData.baseIntensity = lightIntensity;
-    l.userData.stage30 = levelIndex === 30;
-    group.add(l); lights.push(l); flickerLights.push(l);
-    if(levelIndex === 30) stage30RoomLights.push(l);
-  });
+  if(!isVoidLevel(levelIndex)){
+    const lightColor     = (levelIndex === 30) ? 0x330000 : 0xfff5aa;
+    const lightIntensity = (levelIndex === 30) ? 0.18     : 1.2;
+    [[0,2.8,0],[10,2.8,-5],[-10,2.8,8],[20,2.8,5],[-20,2.8,-12],
+     [5,2.8,25],[0,2.8,-15],[0,2.8,-30],[0,2.8,-45]].forEach(([x,y,z])=>{
+      const l = new THREE.PointLight(lightColor, lightIntensity, 18);
+      l.position.set(x, y, z);
+      l.userData.baseIntensity = lightIntensity;
+      l.userData.stage30 = levelIndex === 30;
+      group.add(l); lights.push(l); flickerLights.push(l);
+      if(levelIndex === 30) stage30RoomLights.push(l);
+    });
+  }
 
   if(levelIndex === 30){
     [
@@ -2265,18 +2461,48 @@ function createLevelGroup(levelIndex){
   scene.add(group);
 
   const levelTVs = [];
-  WALL_TVS.forEach(t => {
-    const tv = buildWallTV(t.id, t.pos, t.ry, yOff);
-    tv.g.visible = false;
-    scene.add(tv.g);
-    levelTVs.push(tv);
-  });
-  WINDOW_TVS.forEach(t => {
-    const tv = buildWindowTV(t.id, t.pos, t.ry, yOff);
-    tv.g.visible = false;
-    scene.add(tv.g);
-    levelTVs.push(tv);
-  });
+  let exitDoor = null;
+  if(isVoidLevel(levelIndex)){
+    const isLive = levelIndex === VOID_END_LEVEL;
+    VOID_TV_LOCAL_POSITIONS.forEach(([x, y, z, ry], index)=>{
+      const tv = buildVoidTV(
+        `VOID-TV-${index + 1}`,
+        [x, y, z],
+        ry,
+        yOff,
+        isLive ? VOID_LIVE_FEEDS[index] : null,
+      );
+      tv.g.visible = false;
+      scene.add(tv.g);
+      levelTVs.push(tv);
+    });
+    if(levelIndex === VOID_END_LEVEL){
+      exitDoor = buildVoidExitDoor(yOff);
+      voidExitDoor = exitDoor;
+    }
+  } else {
+    WALL_TVS.forEach(t => {
+      const tv = buildWallTV(t.id, t.pos, t.ry, yOff);
+      tv.g.visible = false;
+      scene.add(tv.g);
+      levelTVs.push(tv);
+    });
+    WINDOW_TVS.forEach(t => {
+      const tv = buildWindowTV(t.id, t.pos, t.ry, yOff);
+      tv.g.visible = false;
+      scene.add(tv.g);
+      levelTVs.push(tv);
+    });
+    if(levelIndex === RETURN_LEVEL){
+      // Normal build resumes — only these 4 signals are new. Everything
+      // else (T4/T6/T10/W1a video textures, unlocks) behaves exactly like
+      // every other level.
+      levelTVs.forEach(tv => {
+        if(tv.id === 'T1') addLiveFeedToTV(tv, MAIN_RETURN_FEEDS.normal);
+        else if(tv.id === 'T5') addLiveFeedToTV(tv, MAIN_RETURN_FEEDS.news);
+      });
+    }
+  }
 
   const floorY = levelFloorY + yOff + 0.04;
 
@@ -2303,6 +2529,13 @@ function createLevelGroup(levelIndex){
     });
     const pick = candidates[Math.floor(Math.random()*candidates.length)];
     return [pick];
+  }
+
+  // Void levels have no floor geometry and fall on a timer, not a floor
+  // cross — skip the noclip-zone placement entirely down there.
+  if(isVoidLevel(levelIndex)){
+    levelGroups[levelIndex] = { group, lights, tvs: levelTVs, door: exitDoor };
+    return levelGroups[levelIndex];
   }
 
   // Level 30: always place the zone directly in front of T4 (x≈0, z≈8.60).
@@ -2336,26 +2569,40 @@ function createLevelGroup(levelIndex){
     group.userData.crosses.push(g2);
   });
 
-  levelGroups[levelIndex] = { group, lights, tvs: levelTVs };
+  levelGroups[levelIndex] = { group, lights, tvs: levelTVs, door: exitDoor };
   return levelGroups[levelIndex];
 }
 
 // ── SHOW / HIDE A LEVEL ───────────────────────────────────────────────────────
 function showLevel(idx){
   if(!levelGroups[idx]) return;
-  const { group, tvs } = levelGroups[idx];
+  const { group, tvs, door } = levelGroups[idx];
   group.visible = true;
   tvs.forEach(tv => { tv.g.visible = true; });
   (group.userData.crosses||[]).forEach(c => { c.visible = true; });
   tvs.forEach(tv => { if(!allTVs.find(t=>t===tv)) allTVs.push(tv); });
+  if(door) door.group.visible = true;
+}
+
+// Fully tears down a TV's live iframe (not just hides it) so no audio can
+// keep playing off-screen after the level is left. Next activation rebuilds
+// a fresh iframe via attachLiveIframeToTV.
+function killLiveFeed(tv){
+  if(!tv || !tv.liveIframeObject) return;
+  if(tv.liveIframe) tv.liveIframe.src = 'about:blank';
+  if(tv.liveIframeObject.parent) tv.liveIframeObject.parent.remove(tv.liveIframeObject);
+  tv.liveIframe = null;
+  tv.liveIframeObject = null;
+  tv.liveActive = false;
 }
 
 function hideLevel(idx){
   if(!levelGroups[idx]) return;
-  const { group, tvs } = levelGroups[idx];
+  const { group, tvs, door } = levelGroups[idx];
   group.visible = false;
-  tvs.forEach(tv => { tv.g.visible = false; });
+  tvs.forEach(tv => { tv.g.visible = false; killLiveFeed(tv); });
   (group.userData.crosses||[]).forEach(c => { c.visible = false; });
+  if(door) door.group.visible = false;
 }
 
 // ── TRIGGER FALL ─────────────────────────────────────────────────────────────
@@ -2410,19 +2657,26 @@ function triggerFall(){
 
   try { screamAudio.currentTime=0; screamAudio.play().catch(()=>{}); } catch(e){}
 
-  const nextIdx = currentLevel + 1;
+  let nextIdx;
+  if(currentLevel === VOID_START_LEVEL - 1 || (isVoidLevel(currentLevel) && currentLevel < VOID_END_LEVEL)){
+    nextIdx = nextVoidStop(currentLevel);
+  } else {
+    nextIdx = currentLevel + 1;
+  }
   const targetFloorY = levelFloorY - nextIdx * LEVEL_DEPTH;
 
-  window._fallTarget   = targetFloorY + EYE_HEIGHT;
+  window._fallTarget   = targetFloorY + (nextIdx === VOID_END_LEVEL ? EYE_HEIGHT + 0.75 : EYE_HEIGHT);
   window._fallVelocity = 0;
   window._fallPrevIdx  = currentLevel;
   window._fallNextIdx  = nextIdx;
 
   if(!levelGroups[nextIdx]) createLevelGroup(nextIdx);
   showLevel(nextIdx);
-  if(!levelGroups[nextIdx+1]) createLevelGroup(nextIdx+1);
+  const peekIdx = isVoidLevel(nextIdx) && nextIdx < VOID_END_LEVEL ? nextVoidStop(nextIdx) : nextIdx + 1;
+  if(!levelGroups[peekIdx]) createLevelGroup(peekIdx);
 
   currentLevel = nextIdx;
+  applyVoidAtmosphere(nextIdx);
 
   // Leaving stage 30 restores the normal scene atmosphere. The death path
   // intentionally stays dark until it redirects to VeganBros.
@@ -2497,11 +2751,11 @@ document.addEventListener('keydown', e => {
   keys.add(e.code);
   if(e.code==='Escape') popupEl.style.display='none';
   if(e.code==='Backquote'){ showCoords=!showCoords; coordsEl.style.display=showCoords?'block':'none'; }
-  if(e.code==='KeyR' && controls.isLocked){
-    tuneRadio();
-    scheduleRadioSwitch();
-  }
   if(e.code==='KeyE' && controls.isLocked){
+    if(currentLevel === VOID_END_LEVEL && getVoidDoorDistance() < 3){
+      enterReturnLevel();
+      return;
+    }
     // Check wall buttons (lore, tiktok)
     btnRaycaster.setFromCamera(new THREE.Vector2(0,0), camera);
     const btnMeshes = wallButtonMeshes.map(b => b.mesh);
@@ -2574,6 +2828,11 @@ window.addEventListener('click', () => {
   if(!controls.isLocked && !isMobile) return;
   btnRaycaster.setFromCamera(new THREE.Vector2(0,0), camera);
 
+  if(currentLevel === VOID_END_LEVEL && getVoidDoorDistance() < 3){
+    enterReturnLevel();
+    return;
+  }
+
   // Wall buttons (lore panel, TikTok door)
   const btnMeshes = wallButtonMeshes.map(b => b.mesh);
   const btnHits = btnRaycaster.intersectObjects(btnMeshes, false);
@@ -2592,6 +2851,7 @@ window.addEventListener('resize',()=>{
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight);
   composer.setSize(innerWidth,innerHeight);
+  css3dRenderer.setSize(innerWidth,innerHeight);
 });
 
 // ── ANIMATE ───────────────────────────────────────────────────────────────────
@@ -2612,6 +2872,12 @@ function animate(t){
       recoverStart=t; recoverFrom=camera.position.y;
       window._fallVelocity=0;
       hideLevel(window._fallPrevIdx);
+      // Void levels have no floor geometry to walk toward — drop the player
+      // in the middle of the TV ring so it's never a blind black landing.
+      if(isVoidLevel(currentLevel)){
+        camera.position.x = VOID_RING_CENTER.x;
+        camera.position.z = VOID_RING_CENTER.z;
+      }
       // Show landing message
       showFallMessage();
       if(currentLevel === 30){
@@ -2619,8 +2885,15 @@ function animate(t){
           showStage30Cue("THIS IS GETTING REAL.\nWATCH THE FOOTAGE.", 7200);
         }, 450);
       }
+      if(isVoidLevel(currentLevel) && currentLevel < VOID_END_LEVEL){
+        // Blank chambers on the way down — a short readable pause, then
+        // the next fall happens on its own.
+        voidAutoFallAt = t + 1500;
+      } else {
+        voidAutoFallAt = 0;
+      }
     }
-    composer.render(); return;
+    composer.render(); css3dRenderer.render(scene, camera); return;
   }
 
   // ── RECOVERY ──────────────────────────────────────────────────────────────
@@ -2628,13 +2901,13 @@ function animate(t){
     const elapsed=(t-recoverStart)/1000;
     const duration=2.5;
     const progress=Math.min(elapsed/duration,1);
-    const targetY=levelFloorY-currentLevel*LEVEL_DEPTH+EYE_HEIGHT;
+    const targetY=levelTargetY(currentLevel);
     camera.position.y=recoverFrom+(targetY-recoverFrom)*(1-Math.pow(1-progress,3));
     const wobbleFade=1-progress;
     camera.rotation.z=Math.sin(t*0.012)*0.08*wobbleFade;
     camera.rotation.x+=Math.sin(t*0.009)*0.003*wobbleFade;
     if(progress>=1){ isRecovering=false; camera.rotation.z=0; }
-    composer.render(); return;
+    composer.render(); css3dRenderer.render(scene, camera); return;
   }
 
   // ── NORMAL MOVEMENT ───────────────────────────────────────────────────────
@@ -2660,6 +2933,12 @@ function animate(t){
       if(fallMsgShowing){
         hideFallMessage();
       }
+      // Chat fades out when moving, reappears when stationary
+      if(!playerIsMoving){
+        playerIsMoving = true;
+        if(chatEl && broadcastsRunning) chatEl.style.opacity = '0';
+      }
+      if(chatMoveTimeout){ clearTimeout(chatMoveTimeout); chatMoveTimeout = null; }
 
       const move=new THREE.Vector3();
       move.addScaledVector(fwd,   totalFwd  * spd * dt);
@@ -2677,11 +2956,21 @@ function animate(t){
         const posZ=camera.position.clone(); posZ.z=newPos.z;
         if(canMoveTo(posZ)) camera.position.z=newPos.z;
       }
+    } else {
+      // Player is stationary — fade chat back in after a short pause
+      if(playerIsMoving){
+        playerIsMoving = false;
+        if(chatMoveTimeout) clearTimeout(chatMoveTimeout);
+        chatMoveTimeout = setTimeout(()=>{
+          if(chatEl && broadcastsRunning) chatEl.style.opacity = '1';
+          chatMoveTimeout = null;
+        }, 600);
+      }
     }
 
     applyRightJoystick(dt);
 
-    const targetY=levelFloorY-currentLevel*LEVEL_DEPTH+EYE_HEIGHT;
+    const targetY=levelTargetY(currentLevel);
     camera.position.y+=(targetY-camera.position.y)*Math.min(dt*12,1);
 
     const px=camera.position.x, pz=camera.position.z;
@@ -2742,6 +3031,12 @@ function animate(t){
           showStage30Cue("BE STILL.", 3200);
           triggerFall();
         }
+      }
+    } else if(isVoidLevel(currentLevel) && currentLevel < VOID_END_LEVEL){
+      // Blank void chambers — no floor zone to walk into, just a timed drop.
+      if(voidAutoFallAt && t >= voidAutoFallAt && !isFalling && !isRecovering){
+        voidAutoFallAt = 0;
+        triggerFall();
       }
     } else {
       // Normal levels — standard zone checking
@@ -2864,6 +3159,12 @@ function animate(t){
     doorHintEl.style.display = 'none';
   }
 
+  // Void exit door proximity hint
+  const voidDoorHintEl = document.getElementById('void-door-hint');
+  if(voidDoorHintEl){
+    voidDoorHintEl.style.display = (controls.isLocked && getVoidDoorDistance() < 6) ? 'block' : 'none';
+  }
+
   // TV proximity prompt
   if(controls.isLocked || isMobile){
     const nearTV = getNearestWallTV();
@@ -2884,6 +3185,7 @@ function animate(t){
   }
 
   composer.render();
+  css3dRenderer.render(scene, camera);
 }
 animate(0);
 
