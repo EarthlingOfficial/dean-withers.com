@@ -402,7 +402,7 @@
 
 <div id="loading">
   <video id="intro-video" muted playsinline
-    src="https://archive.org/download/1-year-in-the-backrooms-found-footage-compilation/SnapSave.io-1%20Year%20in%20The%20Backrooms%20%28Found%20Footage%20Compilation%29.mp4"
+    src="https://files.catbox.moe/8yka3k.mp4"
     style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;opacity:0.72;">
   </video>
   <canvas id="vhs-roll" style="position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;"></canvas>
@@ -467,6 +467,8 @@
 <!-- TV proximity interaction prompt -->
 <div id="tv-prompt">[ E ] &nbsp; PLAY / STOP</div>
 <div id="door-hint" style="position:fixed;top:50%;left:50%;transform:translate(-50%,55px);color:#c8b97a;font-size:13px;letter-spacing:3px;text-align:center;pointer-events:none;display:none;z-index:5;text-shadow:0 0 14px rgba(200,185,122,0.9);font-family:'Courier New',monospace;">ENTER THE REAL DEBATE<br><span style="font-size:10px;opacity:0.45;letter-spacing:2px;">[E] &nbsp;·&nbsp; TAP</span></div>
+<div id="void-door-hint" style="position:fixed;top:50%;left:50%;transform:translate(-50%,55px);color:#7dffa8;font-size:13px;letter-spacing:3px;text-align:center;pointer-events:none;display:none;z-index:5;text-shadow:0 0 14px rgba(60,255,120,0.9);font-family:'Courier New',monospace;">RETURN TO THE BUILD<br><span style="font-size:10px;opacity:0.45;letter-spacing:2px;">[E] &nbsp;·&nbsp; TAP</span></div>
+<div id="void-level-readout" style="position:fixed;top:16px;left:50%;transform:translateX(-50%);color:#4dd97a;font-size:11px;letter-spacing:4px;text-align:center;pointer-events:none;display:none;z-index:5;text-shadow:0 0 10px rgba(60,255,120,0.7);font-family:'Courier New',monospace;">LEVEL 70 // THE FLOATING SIGNAL</div>
 <div id="coords"></div>
 <!-- CSS3D renderer layer for in-world YouTube -->
 <div id="css3d"></div>
@@ -496,6 +498,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { CSS3DObject, CSS3DRenderer } from 'three/addons/renderers/CSS3DRenderer.js';
 
 
 // ── ARCHIVE.ORG VIDEO POOL FOR WALL TVS ──────────────────────────────────────
@@ -562,11 +565,101 @@ const WINDOW_TVS = [
   { id:'W1b', pos:[-69.44, 2.50, 11.25], ry: Math.PI/2, wide:true },
 ];
 
+// Every supplied live link gets its own physical screen in level 70. The
+// YouTube player is a CSS3D iframe attached to that TV, not a popup overlay.
+const VOID_LIVE_FEEDS = [
+  'https://www.youtube.com/embed/HvZt-nh9sGg?autoplay=1',
+  'https://www.youtube.com/embed/6GINvRvBGGs?autoplay=1',
+  'https://www.youtube.com/embed/AeMUdOPFcXI?autoplay=1',
+  'https://www.youtube.com/embed/-rXriX4SiQk?autoplay=1',
+  'https://www.youtube.com/embed/M3HKLzjvKPc?autoplay=1',
+  'https://www.youtube.com/embed/fO9e9jnhYK8?autoplay=1',
+  'https://www.youtube.com/embed/awQzjn72bI0?autoplay=1',
+  'https://www.youtube.com/embed/fO9e9jnhYK8?autoplay=1',
+  'https://www.youtube.com/embed/tj4knR4r1UU?autoplay=1',
+  'https://www.youtube.com/embed/5NARcHliRuY?autoplay=1',
+  'https://www.youtube.com/embed/ydYDqZQpim8?autoplay=1',
+  'https://www.youtube.com/embed/qpukdDslCjk?autoplay=1',
+];
+
+// Level 71 resumes the normal build. Only 4 signals are new: news on T5,
+// both window feeds, and one normal wall TV. Everything else in the GLB
+// keeps its original behaviour (T4/T6/T10/W1a video textures, unlocks, etc).
+const MAIN_RETURN_FEEDS = {
+  windowA: VOID_LIVE_FEEDS[1],
+  windowB: VOID_LIVE_FEEDS[2],
+  normal:  VOID_LIVE_FEEDS[3],
+  news:    VOID_LIVE_FEEDS[0],
+};
+
 // ── LEVEL SYSTEM ─────────────────────────────────────────────────────────────
 const EYE_HEIGHT    = 2.36;
 const LEVEL_DEPTH   = 30;
 const NOCLIP_RADIUS = 0.6;
 const CROSS_SIZE    = 0.5;
+
+const VOID_START_LEVEL = 36;   // first level with no GLB geometry
+const VOID_END_LEVEL   = 70;   // the floating signal level, live feeds live here
+const RETURN_LEVEL     = 71;   // normal build resumes
+const VOID_FALL_COUNT  = 15;   // total falls from level 35 to reach level 70
+// Door sits 20m clear of the TV ring so you can't click a TV and accidentally
+// trigger the exit — it used to be 1.8m past the ring, now it's a walk away.
+const VOID_DOOR_LOCAL_POS = [0, 1.65, -29];
+const VOID_TV_LOCAL_POSITIONS = [
+  [-7.4, 2.15, -6.4,  0.28],
+  [-2.5, 2.15, -7.2,  0.05],
+  [ 2.5, 2.15, -7.2, -0.05],
+  [ 7.4, 2.15, -6.4, -0.28],
+  [-8.2, 2.15, -1.8,  0.75],
+  [ 8.2, 2.15, -1.8, -0.75],
+  [-8.2, 2.15,  3.0,  0.95],
+  [ 8.2, 2.15,  3.0, -0.95],
+  [-6.5, 2.15,  7.0,  2.55],
+  [-2.0, 2.15,  8.0,  3.05],
+  [ 2.0, 2.15,  8.0, -3.05],
+  [ 6.5, 2.15,  7.0, -2.55],
+];
+// Centre of the TV ring — void levels re-centre the player here on landing
+// so you're never dropped off in blind darkness away from the screens.
+const VOID_RING_CENTER = { x: 0, z: 0.4 };
+
+function isVoidLevel(levelIndex){
+  return levelIndex >= VOID_START_LEVEL && levelIndex <= VOID_END_LEVEL;
+}
+
+// Precompute the 15 fall stops between level 35 and level 70. Intermediate
+// void levels are otherwise identical (blank ring of TVs), so we don't need
+// to visit every integer index — just enough stops to make it feel like a
+// long fall without 34 individual falls.
+function buildVoidLevelSequence(){
+  const start = VOID_START_LEVEL - 1; // 35 — last normal level
+  const span = VOID_END_LEVEL - start;
+  const seq = [];
+  for(let i = 1; i <= VOID_FALL_COUNT; i++){
+    seq.push(start + Math.round(span * i / VOID_FALL_COUNT));
+  }
+  for(let i = 1; i < seq.length; i++){
+    if(seq[i] <= seq[i-1]) seq[i] = seq[i-1] + 1;
+  }
+  seq[seq.length - 1] = VOID_END_LEVEL;
+  return seq;
+}
+const VOID_LEVEL_SEQUENCE = buildVoidLevelSequence();
+let voidSeqPos = -1;
+
+function levelTargetY(levelIndex){
+  const base = levelFloorY - levelIndex * LEVEL_DEPTH + EYE_HEIGHT;
+  return levelIndex === VOID_END_LEVEL ? base + 0.75 : base;
+}
+
+function nextVoidStop(fromLevel){
+  if(fromLevel === VOID_START_LEVEL - 1){
+    return VOID_LEVEL_SEQUENCE[0];
+  }
+  const idx = VOID_LEVEL_SEQUENCE.indexOf(fromLevel);
+  if(idx === -1 || idx >= VOID_LEVEL_SEQUENCE.length - 1) return VOID_END_LEVEL;
+  return VOID_LEVEL_SEQUENCE[idx + 1];
+}
 
 const BUILD_BOUNDS = { minX:-22, maxX:25, minZ:-52, maxZ:12 };
 
@@ -585,6 +678,9 @@ let isFalling       = false;
 let isRecovering    = false;
 let recoverStart    = 0;
 let recoverFrom     = 0;
+let voidExitDoor    = null;
+let voidAutoFallAt  = 0;
+let mapCenter       = new THREE.Vector3(0, 0, 0);
 
 // ── LEVEL 30 STATE ────────────────────────────────────────────────────────────
 let bloodPlane = null;
@@ -974,6 +1070,15 @@ camera.position.set(0, EYE_HEIGHT, 0);
 const ambientLight = new THREE.AmbientLight(0xfff5cc, 0.4);
 scene.add(ambientLight);
 const flickerLights = [];
+
+const css3dRenderer = new CSS3DRenderer();
+css3dRenderer.setSize(innerWidth, innerHeight);
+css3dRenderer.domElement.id = 'css3d-renderer';
+css3dRenderer.domElement.style.position = 'fixed';
+css3dRenderer.domElement.style.inset = '0';
+css3dRenderer.domElement.style.zIndex = '2';
+css3dRenderer.domElement.style.pointerEvents = 'none';
+document.getElementById('css3d').appendChild(css3dRenderer.domElement);
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
@@ -1559,6 +1664,11 @@ function toggleVideoEl(vid){
 function interactWithTV(tv){
   if(!tv) return;
 
+  if(tv.liveEmbed){
+    activateInWorldLiveTV(tv);
+    return;
+  }
+
   // W1a: locked until fall 10, then freely toggleable
   if(tv.id === 'W1a'){
     if(!windowTVsUnlocked && !backroomsVideoUnlocked){
@@ -1763,7 +1873,147 @@ function buildWindowTV(id, pos, ry, levelYOffset=0){
   };
 }
 
-// ── IN-GAME WALL BUTTONS ─────────────────────────────────────────────────────
+// ── VOID LEVEL TVs & EXIT DOOR (levels 36–70) ───────────────────────────────
+function buildVoidTV(id, pos, ry, levelYOffset, liveEmbed=null){
+  // Reuse the normal wall TV — same geometry, same behaviour — the signal
+  // sources are just intentionally unlabelled down here.
+  const tv = buildWallTV(id, pos, ry, levelYOffset);
+  const frame = tv.g.children[0];
+  if(frame && frame.children[2]) frame.children[2].visible = false; // hide ID label
+  if(liveEmbed) addLiveFeedToTV(tv, liveEmbed);
+  return tv;
+}
+
+function buildVoidExitDoor(levelYOffset){
+  const door = new THREE.Group();
+  const green = new THREE.MeshStandardMaterial({
+    color: 0x10351c, emissive: 0x20ff68, emissiveIntensity: 2.6,
+    transparent: true, opacity: 0.42, side: THREE.DoubleSide,
+  });
+  const frameMat = new THREE.MeshStandardMaterial({
+    color: 0x0c2415, emissive: 0x19ff62, emissiveIntensity: 3.4,
+    metalness: 0.35, roughness: 0.3,
+  });
+  const left = new THREE.Mesh(new THREE.BoxGeometry(.18, 3.5, .18), frameMat);
+  const right = left.clone();
+  const top = new THREE.Mesh(new THREE.BoxGeometry(3.25, .18, .18), frameMat);
+  left.position.set(-1.53, 1.75, 0);
+  right.position.set(1.53, 1.75, 0);
+  top.position.set(0, 3.5, 0);
+  const portal = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 3.35), green);
+  portal.position.set(0, 1.72, -0.02);
+  door.add(left, right, top, portal);
+  const glow = new THREE.PointLight(0x36ff78, 2.2, 12);
+  glow.position.set(0, 1.8, 0.8);
+  door.add(glow);
+  door.position.set(
+    VOID_DOOR_LOCAL_POS[0],
+    VOID_DOOR_LOCAL_POS[1] + levelYOffset,
+    VOID_DOOR_LOCAL_POS[2],
+  );
+  door.visible = false;
+  scene.add(door);
+  return { group: door, portal, glow };
+}
+
+function getVoidDoorDistance(){
+  if(currentLevel !== VOID_END_LEVEL || !voidExitDoor) return Infinity;
+  return camera.position.distanceTo(voidExitDoor.group.position);
+}
+
+function enterReturnLevel(){
+  if(currentLevel !== VOID_END_LEVEL || isFalling || isRecovering) return;
+  const previousLevel = currentLevel;
+  hideLevel(previousLevel);
+  if(!levelGroups[RETURN_LEVEL]) createLevelGroup(RETURN_LEVEL);
+  showLevel(RETURN_LEVEL);
+  currentLevel = RETURN_LEVEL;
+  applyVoidAtmosphere(RETURN_LEVEL);
+  camera.position.set(mapCenter.x, levelTargetY(RETURN_LEVEL), mapCenter.z);
+  camera.rotation.set(0, 0, 0);
+  if(voidExitDoor) voidExitDoor.group.visible = false;
+  showStage30Cue('THE SIGNAL LET YOU THROUGH.\nWELCOME BACK TO THE BUILD.', 5200);
+}
+
+function applyVoidAtmosphere(levelIndex){
+  const readout = document.getElementById('void-level-readout');
+  if(isVoidLevel(levelIndex)){
+    ambientLight.color.set(0x07150c);
+    ambientLight.intensity = levelIndex === VOID_END_LEVEL ? 0.018 : 0.008;
+    scene.background = new THREE.Color(0x000000);
+    scene.fog = new THREE.FogExp2(0x000000, levelIndex === VOID_END_LEVEL ? 0.018 : 0.035);
+    if(readout) readout.style.display = levelIndex === VOID_END_LEVEL ? 'block' : 'none';
+  } else {
+    if(readout) readout.style.display = 'none';
+    if(scene.background) scene.background.set(0x000000);
+    ambientLight.color.set(0xfff5cc);
+    ambientLight.intensity = 0.4;
+    scene.fog = new THREE.FogExp2(0x1a1208, 0.035);
+  }
+}
+
+// ── IN-WORLD LIVE FEEDS (CSS3D YouTube overlays) ────────────────────────────
+function setTVBlank(tv){
+  if(!tv || !tv.nctx || !tv.ntex) return;
+  tv.nctx.clearRect(0, 0, 128, 72);
+  tv.nctx.fillStyle = '#000';
+  tv.nctx.fillRect(0, 0, 128, 72);
+  tv.ntex.needsUpdate = true;
+}
+
+function addLiveFeedToTV(tv, embedUrl){
+  if(!tv) return tv;
+  tv.liveEmbed = embedUrl;
+  tv.g.userData.liveEmbed = embedUrl;
+  attachLiveIframeToTV(tv);
+  return tv;
+}
+
+function attachLiveIframeToTV(tv){
+  if(!tv || !tv.screen || tv.liveIframeObject) return;
+  const parent = tv.screen.parent;
+  if(!parent) return;
+  const iframe = document.createElement('iframe');
+  iframe.className = 'in-world-live-feed';
+  iframe.title = `${tv.id} live signal`;
+  iframe.width = '220';
+  iframe.height = '140';
+  iframe.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+  iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+  iframe.allowFullscreen = true;
+  iframe.style.width = '220px';
+  iframe.style.height = '140px';
+  iframe.style.border = '0';
+  iframe.style.display = 'block';
+  iframe.style.pointerEvents = 'none';
+  iframe.style.background = '#000';
+  const object = new CSS3DObject(iframe);
+  object.position.set(0, 0, 0.085);
+  object.scale.set(0.01, 0.01, 0.01);
+  object.visible = false;
+  parent.add(object);
+  tv.liveIframe = iframe;
+  tv.liveIframeObject = object;
+}
+
+function activateInWorldLiveTV(tv){
+  if(!tv || !tv.liveEmbed) return;
+  if(!tv.liveIframeObject) attachLiveIframeToTV(tv);
+  if(!tv.liveIframe || !tv.liveIframeObject) return;
+  if(tv.liveActive){
+    tv.liveIframe.src = 'about:blank';
+    tv.liveIframeObject.visible = false;
+    tv.liveActive = false;
+    playClickSound();
+    return;
+  }
+  tv.liveIframe.src = tv.liveEmbed;
+  tv.liveIframeObject.visible = true;
+  tv.liveActive = true;
+  playClickSound();
+}
+
+
 const LORE_BUTTON_DEF = {
   id: 'btn-lore',
   pos: [-43.15, 1.7, -3.99],
@@ -2136,7 +2386,7 @@ function createLevelGroup(levelIndex){
   const group = new THREE.Group();
   group.visible = false;
 
-  if(glbTemplate){
+  if(glbTemplate && !isVoidLevel(levelIndex)){
     const clone = glbTemplate.clone(true);
     clone.traverse(c => {
       if(c.isMesh){
@@ -2148,18 +2398,32 @@ function createLevelGroup(levelIndex){
   }
 
   const lights = [];
+  if(isVoidLevel(levelIndex)){
+    // A tiny green-black light source keeps the void readable without
+    // restoring the yellow room lighting from the upper build.
+    const voidLight = new THREE.PointLight(
+      levelIndex === VOID_END_LEVEL ? 0x0e6d35 : 0x061b0e,
+      levelIndex === VOID_END_LEVEL ? 0.12 : 0.025,
+      24,
+    );
+    voidLight.position.set(0, 2.2, 0);
+    group.add(voidLight);
+    flickerLights.push(voidLight);
+  }
   // Level 30: very dim crimson point lights so blood blends into darkness.
-  const lightColor     = (levelIndex === 30) ? 0x330000 : 0xfff5aa;
-  const lightIntensity = (levelIndex === 30) ? 0.18     : 1.2;
-  [[0,2.8,0],[10,2.8,-5],[-10,2.8,8],[20,2.8,5],[-20,2.8,-12],
-   [5,2.8,25],[0,2.8,-15],[0,2.8,-30],[0,2.8,-45]].forEach(([x,y,z])=>{
-    const l = new THREE.PointLight(lightColor, lightIntensity, 18);
-    l.position.set(x, y, z);
-    l.userData.baseIntensity = lightIntensity;
-    l.userData.stage30 = levelIndex === 30;
-    group.add(l); lights.push(l); flickerLights.push(l);
-    if(levelIndex === 30) stage30RoomLights.push(l);
-  });
+  if(!isVoidLevel(levelIndex)){
+    const lightColor     = (levelIndex === 30) ? 0x330000 : 0xfff5aa;
+    const lightIntensity = (levelIndex === 30) ? 0.18     : 1.2;
+    [[0,2.8,0],[10,2.8,-5],[-10,2.8,8],[20,2.8,5],[-20,2.8,-12],
+     [5,2.8,25],[0,2.8,-15],[0,2.8,-30],[0,2.8,-45]].forEach(([x,y,z])=>{
+      const l = new THREE.PointLight(lightColor, lightIntensity, 18);
+      l.position.set(x, y, z);
+      l.userData.baseIntensity = lightIntensity;
+      l.userData.stage30 = levelIndex === 30;
+      group.add(l); lights.push(l); flickerLights.push(l);
+      if(levelIndex === 30) stage30RoomLights.push(l);
+    });
+  }
 
   if(levelIndex === 30){
     [
@@ -2178,18 +2442,48 @@ function createLevelGroup(levelIndex){
   scene.add(group);
 
   const levelTVs = [];
-  WALL_TVS.forEach(t => {
-    const tv = buildWallTV(t.id, t.pos, t.ry, yOff);
-    tv.g.visible = false;
-    scene.add(tv.g);
-    levelTVs.push(tv);
-  });
-  WINDOW_TVS.forEach(t => {
-    const tv = buildWindowTV(t.id, t.pos, t.ry, yOff);
-    tv.g.visible = false;
-    scene.add(tv.g);
-    levelTVs.push(tv);
-  });
+  let exitDoor = null;
+  if(isVoidLevel(levelIndex)){
+    const isLive = levelIndex === VOID_END_LEVEL;
+    VOID_TV_LOCAL_POSITIONS.forEach(([x, y, z, ry], index)=>{
+      const tv = buildVoidTV(
+        `VOID-TV-${index + 1}`,
+        [x, y, z],
+        ry,
+        yOff,
+        isLive ? VOID_LIVE_FEEDS[index] : null,
+      );
+      tv.g.visible = false;
+      scene.add(tv.g);
+      levelTVs.push(tv);
+    });
+    if(levelIndex === VOID_END_LEVEL){
+      exitDoor = buildVoidExitDoor(yOff);
+      voidExitDoor = exitDoor;
+    }
+  } else {
+    WALL_TVS.forEach(t => {
+      const tv = buildWallTV(t.id, t.pos, t.ry, yOff);
+      tv.g.visible = false;
+      scene.add(tv.g);
+      levelTVs.push(tv);
+    });
+    WINDOW_TVS.forEach(t => {
+      const tv = buildWindowTV(t.id, t.pos, t.ry, yOff);
+      tv.g.visible = false;
+      scene.add(tv.g);
+      levelTVs.push(tv);
+    });
+    if(levelIndex === RETURN_LEVEL){
+      // Normal build resumes — only these 4 signals are new. Everything
+      // else (T4/T6/T10/W1a video textures, unlocks) behaves exactly like
+      // every other level.
+      levelTVs.forEach(tv => {
+        if(tv.id === 'T1') addLiveFeedToTV(tv, MAIN_RETURN_FEEDS.normal);
+        else if(tv.id === 'T5') addLiveFeedToTV(tv, MAIN_RETURN_FEEDS.news);
+      });
+    }
+  }
 
   const floorY = levelFloorY + yOff + 0.04;
 
@@ -2218,6 +2512,13 @@ function createLevelGroup(levelIndex){
     return [pick];
   }
 
+  // Void levels have no floor geometry and fall on a timer, not a floor
+  // cross — skip the noclip-zone placement entirely down there.
+  if(isVoidLevel(levelIndex)){
+    levelGroups[levelIndex] = { group, lights, tvs: levelTVs, door: exitDoor };
+    return levelGroups[levelIndex];
+  }
+
   // Level 30: always place the zone directly in front of T4 (x≈0, z≈8.60).
   // T4 faces the player from the left wall at z=8.60 — standing at x≈0 is
   // directly in its sightline. All other levels keep the random placement.
@@ -2230,6 +2531,9 @@ function createLevelGroup(levelIndex){
     const zoneX = t4Snap ? t4Snap.pos[0] + 1.5 : 1.5;
     const zoneZ = t4Snap ? t4Snap.pos[2]       : 8.60;
     positions = [[zoneX, zoneZ]];
+  } else if(levelIndex === RETURN_LEVEL){
+    // No fall-through on the way back — this is the destination.
+    positions = [];
   } else {
     positions = randomTVCross();
   }
@@ -2249,26 +2553,28 @@ function createLevelGroup(levelIndex){
     group.userData.crosses.push(g2);
   });
 
-  levelGroups[levelIndex] = { group, lights, tvs: levelTVs };
+  levelGroups[levelIndex] = { group, lights, tvs: levelTVs, door: exitDoor };
   return levelGroups[levelIndex];
 }
 
 // ── SHOW / HIDE A LEVEL ───────────────────────────────────────────────────────
 function showLevel(idx){
   if(!levelGroups[idx]) return;
-  const { group, tvs } = levelGroups[idx];
+  const { group, tvs, door } = levelGroups[idx];
   group.visible = true;
   tvs.forEach(tv => { tv.g.visible = true; });
   (group.userData.crosses||[]).forEach(c => { c.visible = true; });
   tvs.forEach(tv => { if(!allTVs.find(t=>t===tv)) allTVs.push(tv); });
+  if(door) door.group.visible = true;
 }
 
 function hideLevel(idx){
   if(!levelGroups[idx]) return;
-  const { group, tvs } = levelGroups[idx];
+  const { group, tvs, door } = levelGroups[idx];
   group.visible = false;
   tvs.forEach(tv => { tv.g.visible = false; });
   (group.userData.crosses||[]).forEach(c => { c.visible = false; });
+  if(door) door.group.visible = false;
 }
 
 // ── TRIGGER FALL ─────────────────────────────────────────────────────────────
@@ -2323,19 +2629,26 @@ function triggerFall(){
 
   try { screamAudio.currentTime=0; screamAudio.play().catch(()=>{}); } catch(e){}
 
-  const nextIdx = currentLevel + 1;
+  let nextIdx;
+  if(currentLevel === VOID_START_LEVEL - 1 || (isVoidLevel(currentLevel) && currentLevel < VOID_END_LEVEL)){
+    nextIdx = nextVoidStop(currentLevel);
+  } else {
+    nextIdx = currentLevel + 1;
+  }
   const targetFloorY = levelFloorY - nextIdx * LEVEL_DEPTH;
 
-  window._fallTarget   = targetFloorY + EYE_HEIGHT;
+  window._fallTarget   = targetFloorY + (nextIdx === VOID_END_LEVEL ? EYE_HEIGHT + 0.75 : EYE_HEIGHT);
   window._fallVelocity = 0;
   window._fallPrevIdx  = currentLevel;
   window._fallNextIdx  = nextIdx;
 
   if(!levelGroups[nextIdx]) createLevelGroup(nextIdx);
   showLevel(nextIdx);
-  if(!levelGroups[nextIdx+1]) createLevelGroup(nextIdx+1);
+  const peekIdx = isVoidLevel(nextIdx) && nextIdx < VOID_END_LEVEL ? nextVoidStop(nextIdx) : nextIdx + 1;
+  if(!levelGroups[peekIdx]) createLevelGroup(peekIdx);
 
   currentLevel = nextIdx;
+  applyVoidAtmosphere(nextIdx);
 
   // Leaving stage 30 restores the normal scene atmosphere. The death path
   // intentionally stays dark until it redirects to VeganBros.
@@ -2411,6 +2724,10 @@ document.addEventListener('keydown', e => {
   if(e.code==='Escape') popupEl.style.display='none';
   if(e.code==='Backquote'){ showCoords=!showCoords; coordsEl.style.display=showCoords?'block':'none'; }
   if(e.code==='KeyE' && controls.isLocked){
+    if(currentLevel === VOID_END_LEVEL && getVoidDoorDistance() < 3){
+      enterReturnLevel();
+      return;
+    }
     // Check wall buttons (lore, tiktok)
     btnRaycaster.setFromCamera(new THREE.Vector2(0,0), camera);
     const btnMeshes = wallButtonMeshes.map(b => b.mesh);
@@ -2483,6 +2800,11 @@ window.addEventListener('click', () => {
   if(!controls.isLocked && !isMobile) return;
   btnRaycaster.setFromCamera(new THREE.Vector2(0,0), camera);
 
+  if(currentLevel === VOID_END_LEVEL && getVoidDoorDistance() < 3){
+    enterReturnLevel();
+    return;
+  }
+
   // Wall buttons (lore panel, TikTok door)
   const btnMeshes = wallButtonMeshes.map(b => b.mesh);
   const btnHits = btnRaycaster.intersectObjects(btnMeshes, false);
@@ -2501,6 +2823,7 @@ window.addEventListener('resize',()=>{
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight);
   composer.setSize(innerWidth,innerHeight);
+  css3dRenderer.setSize(innerWidth,innerHeight);
 });
 
 // ── ANIMATE ───────────────────────────────────────────────────────────────────
@@ -2521,6 +2844,12 @@ function animate(t){
       recoverStart=t; recoverFrom=camera.position.y;
       window._fallVelocity=0;
       hideLevel(window._fallPrevIdx);
+      // Void levels have no floor geometry to walk toward — drop the player
+      // in the middle of the TV ring so it's never a blind black landing.
+      if(isVoidLevel(currentLevel)){
+        camera.position.x = VOID_RING_CENTER.x;
+        camera.position.z = VOID_RING_CENTER.z;
+      }
       // Show landing message
       showFallMessage();
       if(currentLevel === 30){
@@ -2528,8 +2857,15 @@ function animate(t){
           showStage30Cue("THIS IS GETTING REAL.\nWATCH THE FOOTAGE.", 7200);
         }, 450);
       }
+      if(isVoidLevel(currentLevel) && currentLevel < VOID_END_LEVEL){
+        // Blank chambers on the way down — a short readable pause, then
+        // the next fall happens on its own.
+        voidAutoFallAt = t + 1500;
+      } else {
+        voidAutoFallAt = 0;
+      }
     }
-    composer.render(); return;
+    composer.render(); css3dRenderer.render(scene, camera); return;
   }
 
   // ── RECOVERY ──────────────────────────────────────────────────────────────
@@ -2537,13 +2873,13 @@ function animate(t){
     const elapsed=(t-recoverStart)/1000;
     const duration=2.5;
     const progress=Math.min(elapsed/duration,1);
-    const targetY=levelFloorY-currentLevel*LEVEL_DEPTH+EYE_HEIGHT;
+    const targetY=levelTargetY(currentLevel);
     camera.position.y=recoverFrom+(targetY-recoverFrom)*(1-Math.pow(1-progress,3));
     const wobbleFade=1-progress;
     camera.rotation.z=Math.sin(t*0.012)*0.08*wobbleFade;
     camera.rotation.x+=Math.sin(t*0.009)*0.003*wobbleFade;
     if(progress>=1){ isRecovering=false; camera.rotation.z=0; }
-    composer.render(); return;
+    composer.render(); css3dRenderer.render(scene, camera); return;
   }
 
   // ── NORMAL MOVEMENT ───────────────────────────────────────────────────────
@@ -2606,7 +2942,7 @@ function animate(t){
 
     applyRightJoystick(dt);
 
-    const targetY=levelFloorY-currentLevel*LEVEL_DEPTH+EYE_HEIGHT;
+    const targetY=levelTargetY(currentLevel);
     camera.position.y+=(targetY-camera.position.y)*Math.min(dt*12,1);
 
     const px=camera.position.x, pz=camera.position.z;
@@ -2667,6 +3003,12 @@ function animate(t){
           showStage30Cue("BE STILL.", 3200);
           triggerFall();
         }
+      }
+    } else if(isVoidLevel(currentLevel) && currentLevel < VOID_END_LEVEL){
+      // Blank void chambers — no floor zone to walk into, just a timed drop.
+      if(voidAutoFallAt && t >= voidAutoFallAt && !isFalling && !isRecovering){
+        voidAutoFallAt = 0;
+        triggerFall();
       }
     } else {
       // Normal levels — standard zone checking
@@ -2789,6 +3131,12 @@ function animate(t){
     doorHintEl.style.display = 'none';
   }
 
+  // Void exit door proximity hint
+  const voidDoorHintEl = document.getElementById('void-door-hint');
+  if(voidDoorHintEl){
+    voidDoorHintEl.style.display = (controls.isLocked && getVoidDoorDistance() < 6) ? 'block' : 'none';
+  }
+
   // TV proximity prompt
   if(controls.isLocked || isMobile){
     const nearTV = getNearestWallTV();
@@ -2809,6 +3157,7 @@ function animate(t){
   }
 
   composer.render();
+  css3dRenderer.render(scene, camera);
 }
 animate(0);
 
