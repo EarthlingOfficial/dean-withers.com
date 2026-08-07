@@ -122,10 +122,10 @@
      passes the camera. It is intentionally red and hazy, not an opaque fade. */
   #blood-veil {
     position: fixed; inset: 0; display: none; opacity: 0;
-    pointer-events: none; z-index: 4; mix-blend-mode: multiply;
+    pointer-events: none; z-index: 4;
     background:
-      radial-gradient(ellipse at 50% 44%, rgba(255,90,55,.04), rgba(45,0,0,.72) 78%),
-      linear-gradient(180deg, rgba(80,0,0,.66), rgba(140,8,0,.2) 48%, rgba(30,0,0,.78));
+      radial-gradient(ellipse at 50% 44%, rgba(255,70,35,.035), rgba(28,0,0,.82) 72%),
+      linear-gradient(180deg, rgba(70,0,0,.88), rgba(100,5,0,.54) 48%, rgba(12,0,0,.92));
     transition: opacity .35s ease;
   }
 
@@ -188,6 +188,7 @@
     font-size: 13px;
     letter-spacing: 1px;
     line-height: 1.6;
+    white-space: pre-line;
   }
   #ag-fact-feed .fact-note {
     margin-top: 7px;
@@ -211,6 +212,7 @@
     text-shadow: 0 0 7px rgba(0,0,0,0.95);
     mask-image: linear-gradient(to bottom, transparent 0%, black 14%, black 100%);
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 14%, black 100%);
+    transition: opacity 1.6s ease;
   }
   #fake-chat .chat-header {
     margin-bottom: 5px;
@@ -232,6 +234,9 @@
     from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }
   }
+
+  /* ── RADIO HUD (hidden) ── */
+  #radio-hud { display: none !important; }
   @media (max-width: 700px) {
     #player-taunt {
       width: 74vw; padding: 10px 12px 12px;
@@ -241,11 +246,12 @@
     #player-taunt .broadcast-copy { font-size: 12px !important; letter-spacing: 1px; line-height: 1.5; }
     #ag-fact-feed { width: min(70vw, 300px); top: 10px; right: 10px; left: auto; padding: 8px 10px; }
     #ag-fact-feed .fact-tag { font-size: 9px; margin-bottom: 4px; }
-    #ag-fact-feed .fact-copy { font-size: 11px; line-height: 1.5; }
+    #ag-fact-feed .fact-copy { font-size: 11px; line-height: 1.5; white-space: pre-line; }
     #ag-fact-feed .fact-note { font-size: 8px; }
     #fake-chat { left: 10px; bottom: max(112px, env(safe-area-inset-bottom)); width: min(72vw, 300px); height: 118px; padding: 7px 9px; }
     #fake-chat .chat-header { font-size: 9px; }
     #fake-chat .chat-line { font-size: 9px; margin: 3px 0; line-height: 1.25; }
+    #radio-hud { display: none !important; }
     #fall-msg { font-size: 12px; letter-spacing: 1px; line-height: 1.6; max-width: 84vw; }
     #death-screen { padding: 20px; }
     #death-screen .death-copy { margin-top: 20px; letter-spacing: .06em; }
@@ -323,6 +329,7 @@
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
 </script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
 <style>
   /* ── CSS3D LAYER ── */
   #css3d { position:fixed; inset:0; z-index:2; pointer-events:none; }
@@ -395,7 +402,7 @@
 
 <div id="loading">
   <video id="intro-video" muted playsinline
-    src="https://archive.org/download/1-year-in-the-backrooms-found-footage-compilation/SnapSave.io-1%20Year%20in%20The%20Backrooms%20%28Found%20Footage%20Compilation%29.mp4"
+    src="https://files.catbox.moe/8yka3k.mp4"
     style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;opacity:0.72;">
   </video>
   <canvas id="vhs-roll" style="position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;"></canvas>
@@ -450,12 +457,13 @@
 <div id="ag-fact-feed">
   <div class="fact-tag">RESEARCH FEED // ANIMAL AGRICULTURE</div>
   <div class="fact-copy" id="ag-fact-copy"></div>
-  <div class="fact-note">GENERAL CONTEXT — LAWS AND STANDARDS VARY BY JURISDICTION</div>
+  <div class="fact-note">NO EXCUSES // NOW YOU KNOW</div>
 </div>
 <div id="fake-chat">
   <div class="chat-header">FICTIONAL SIGNAL // DEAN CHAT // LIVE-ish</div>
   <div id="fake-chat-lines"></div>
 </div>
+<div id="radio-hud" aria-live="polite" style="display:none"></div>
 <!-- TV proximity interaction prompt -->
 <div id="tv-prompt">[ E ] &nbsp; PLAY / STOP</div>
 <div id="door-hint" style="position:fixed;top:50%;left:50%;transform:translate(-50%,55px);color:#c8b97a;font-size:13px;letter-spacing:3px;text-align:center;pointer-events:none;display:none;z-index:5;text-shadow:0 0 14px rgba(200,185,122,0.9);font-family:'Courier New',monospace;">ENTER THE REAL DEBATE<br><span style="font-size:10px;opacity:0.45;letter-spacing:2px;">[E] &nbsp;·&nbsp; TAP</span></div>
@@ -596,6 +604,7 @@ const stage30RoomLights = [];
 const stage30AccentLights = [];
 let stage30BlackoutUntil = 0;
 let stage30NextBlackoutAt = 0;
+let stage30Submerged = false;
 
 // ── SCREAM AUDIO ──────────────────────────────────────────────────────────────
 const screamAudio = new Audio('https://archive.org/download/ScreamSounds/SCREAM_4.mp3');
@@ -696,126 +705,116 @@ function showDeathScreen(){
 // These are presentation-only overlays. They deliberately have no connection
 // to TV playback state, movement, or the entrance audio sequence.
 const PLAYER_TAUNTS = [
-  "you seem lost.\nmale chicks in egg production are ground alive or gassed at birth.\nyou have a door. they have a shredder.",
-  "you got to walk into this place by choice.\nthey were born into it.",
-  "you are looking for an exit.\na broiler chicken is looking for one leg that will hold.",
-  "you can turn around whenever you want.\na sow in a farrowing crate cannot.",
-  "you call this a maze?\nthey call a lifetime in a cage a normal Tuesday.",
-  "you are frightened by the dark.\nthey are frightened by the machinery, and the machinery never sleeps.",
-  "you have a name, a future, and a way out.\ntheirs are often reduced to a number before they can stand.",
-  "you heard one scream and started searching.\nslaughter lines run on the fact that nobody has to listen.",
-  "you are being watched.\nthey are watched, handled, graded, and moved like inventory.",
-  "you can stop reading this.\nthey cannot stop the truck.",
-  "you want someone to find you.\ncalves want their mothers. the system has paperwork instead.",
-  "your cage is imaginary.\ntheirs has a lock, a latch, and a production target.",
-  "you are confused because the rules keep changing.\nthat is a familiar feeling in a hatchery.",
-  "you get a pause screen.\nthey get a stun, a stamp, or the next conveyor.",
-  "you are searching for comfort in a hostile environment.\nthat is the product being sold to animals as welfare.",
-  "you can sprint when the fear arrives.\nmost farmed animals are bred too heavy to run.",
-  "you have already fallen several floors.\nthat is still fewer than the times a transport truck ignores the weather.",
-  "you think the walls are closing in.\ntry being bred for a body that cannot support itself.",
-  "you are asking why this is happening.\nthe answer is usually demand, distance, and a legal definition.",
-  "your panic has an audience.\ntheirs has a supply chain.",
-  "you can leave this screen and call it fiction.\nthey cannot leave the footage and call it a life.",
-  "you are allowed to be uncomfortable here.\nthat is more freedom than a cage gives.",
-  "you want the humane version.\nask who gets to define humane when the endpoint is still a killing floor.",
-  "you are one person in a building.\nthey are millions of individuals hidden behind one ingredient list.",
-  "your body is tired after minutes.\nselectively bred farmed bodies can spend a lifetime carrying more than they can bear.",
-  "you are waiting for the next jump scare.\nthey are waiting for the next hand, hook, gate, or truck.",
-  "the game calls you a player.\nthe industry calls them units, yield, and throughput.",
-  "you can close the tab.\nthey cannot close the barn door from the inside.",
-  "you thought getting lost was the worst part.\ntry being born where every road leads to production.",
-  "you are looking for a safe room.\nthere is no safe room in a system built around speed.",
-  "you made it this far by choice.\nmost animals in the system never get a choice at all.",
-  "if this feels unfair, good.\nthat feeling is doing more work than the label on the package."
+  "male chicks are ground alive or gassed because they cannot lay eggs.\nFOR PROFIT.",
+  "you walked in by choice.\nthey were born into the killing floor.",
+  "you want an exit.\na broiler chicken wants legs that can hold its body.",
+  "you can turn around.\na sow in a crate cannot turn around.",
+  "you call this a maze.\nthey call a lifetime in a cage normal.",
+  "the machinery scares you because it never stops.\nTHEIRS NEVER DID.",
+  "you have a name and a way out.\nthey became a number before they could stand.",
+  "you heard one scream and started searching.\nTHE LINE KEPT MOVING.",
+  "you are being watched.\nthey are handled like inventory.",
+  "you can stop reading this.\nthey could not stop the truck.",
+  "a calf cried for its mother.\nthe truck kept moving.",
+  "your cage is imaginary.\ntheirs had a lock.",
+  "you get a pause screen.\nthey get a stun, a hook, or the next conveyor.",
+  "you are looking for comfort.\nthey were bred for output.",
+  "you can sprint from fear.\nthey were bred too heavy to run.",
+  "your body is tired after minutes.\ntheir pain lasted a lifetime.",
+  "you think the walls are closing in.\nTHEIR WALLS WERE THE WHOLE WORLD.",
+  "you can call this fiction.\nthe animals could not call it anything.",
+  "you want the humane version.\nthe endpoint was still a killing floor.",
+  "you are one person in a building.\nthey were millions of hidden individuals.",
+  "you are waiting for a jump scare.\nthey are waiting for the hand, hook, gate, or truck.",
+  "the game calls you a player.\nthe system called them yield.",
+  "you can close the tab.\nthey could not close the barn door.",
+  "you thought getting lost was the worst part.\nTRY BEING BORN HERE.",
+  "you made it this far by choice.\nthey never got one.",
+  "for greed.\nfor convenience.\nfor taste.\nFOR A MOMENT OF HUMAN PLEASURE.",
+  "you said you did not know.\nNOW YOU KNOW.",
+  "you said everyone does it.\nEVERYONE CAN STOP.",
+  "you said tradition.\nTRADITION IS NOT AN EXCUSE.",
+  "you said convenience.\nTHEIR PAIN WAS CONVENIENT FOR YOU.",
+  "you said it tastes good.\nTASTE LASTS MINUTES.",
+  "you are not trapped.\nyou are being asked to change.",
+  "the animals were not confused.\nTHEY WERE TERRIFIED.",
+  "the blood is real even when the advertisement is soft-focus.\nGO VEGAN.",
+  "this room is fictional.\nthe victims were not."
 ];
 
 const ANIMAL_AG_FACTS = [
-  "Undercover investigations have documented animals kicked, dragged, beaten, thrown, and left injured. The package label did not show you the footage.",
-  "In the United States, the Animal Welfare Act generally excludes farmed animals raised for food. A legal exemption is not a clean conscience.",
-  "The Humane Methods of Slaughter Act does not cover poultry. A huge part of the food system is outside that federal slaughter law.",
-  "Public records, court filings, and investigations have documented manure spills, runoff, and environmental violations around animal facilities.",
-  "Ag-gag laws in some jurisdictions have targeted recording or whistleblowing at agricultural facilities. What stays hidden is not automatically humane.",
-  "Workers can be charged for cruelty while the production system that created the speed, crowding, and pressure keeps running.",
-  "In egg production, male chicks are often considered economically unprofitable and may be killed shortly after hatching. Practices and rules vary by jurisdiction.",
-  "Broiler chickens are selectively bred for rapid growth. That can create serious welfare problems, including leg disorders and difficulty walking.",
-  "Gestation crates restrict a pregnant sow's movement. Some jurisdictions restrict or ban them; others still permit them under conditions.",
-  "Animal-welfare laws often contain exemptions or different standards for customary agricultural practices. The exact legal text depends on location.",
-  "Ag-gag laws exist in some jurisdictions and can restrict recording or whistleblowing around agricultural facilities. Their scope and status vary.",
-  "Transport protections differ by species, country, and state. A legal minimum is not the same thing as a life without fear, injury, or exhaustion.",
-  "Terms such as cage-free, free-range, natural, and humane are not interchangeable. Their definitions and enforcement depend on the label and jurisdiction.",
-  "In many legal systems, animals are property rather than legal persons. That shapes who can sue, what remedies exist, and whose interests get priority.",
-  "Slaughter inspection usually focuses on food safety and process compliance. It does not mean every welfare concern has disappeared.",
-  "Dairy calves may be separated from their mothers soon after birth in many production systems. The timing and rules vary across farms and regions.",
-  "Selective breeding can increase production while also increasing the risk of chronic pain or disability. Efficiency is not a welfare metric.",
-  "A welfare certification can set a higher standard than baseline law, but the actual meaning depends on the certifier's published rules and audits.",
-  "Most farmed animals are excluded from the everyday legal protections people assume apply to companion animals. Definitions matter.",
-  "Environmental law and animal-welfare law are separate tools. A facility can comply with one while still raising serious questions under the other.",
-  "The word humane is often marketing language unless a specific standard, audit, or statute defines what it requires.",
-  "Pigs are highly social and cognitively complex animals. Housing systems can prevent behaviors such as rooting, nesting, and exploration.",
-  "Chickens recognize individuals and form social hierarchies. A production label does not erase individual perception or pain.",
-  "Fish are sentient vertebrates, yet they are frequently absent from public welfare conversations and legal protections.",
-  "In many places, undercover footage is legally contested even when it reveals conditions the public would never see otherwise.",
-  "A facility can be clean and still be stressful. Hygiene, crowding, freedom of movement, pain, and fear are different welfare questions.",
-  "Animal agriculture is not one single practice. Species, housing, transport, slaughter, and local law can differ dramatically.",
-  "A certification logo is not a universal guarantee. Check the standard, the audit model, and what the label explicitly excludes.",
-  "Legal permission is a floor, not a moral ceiling.",
-  "The fact that a practice is common does not tell you whether it is necessary, humane, or ethically defensible.",
-  "The absence of visible injury does not prove the absence of fear, frustration, chronic pain, or deprivation.",
-  "Public records, inspection reports, court filings, and worker testimony can reveal different parts of the same supply chain.",
-  "Animal welfare, worker safety, environmental damage, and consumer transparency overlap, but they are not the same claim.",
-  "If a law varies by jurisdiction, that is not a loophole in the fact. It is part of the fact."
+  "Male chicks are killed because they cannot lay eggs.\nFOR PROFIT. FOR CONVENIENCE.",
+  "Piglets are cut, sorted, crowded, and sent down the line while people call bacon breakfast.\nFOR TASTE.",
+  "A mother cow searches for the calf taken from her.\nFOR PROFIT. FOR A SANDWICH.",
+  "Broiler chickens can grow so fast their legs buckle under them.\nFOR MORE MEAT. FOR MORE MONEY.",
+  "Fish suffocate in nets, on decks, and in the air.\nFOR SPORT. FOR A PHOTO. FOR DINNER.",
+  "Animals are branded, shackled, shocked, dragged, and killed because a system found a cheaper way to do it.\nFOR GREED.",
+  "A cage is not a home because the label says CAGE-FREE.\nNOW YOU KNOW.",
+  "The knife does not become gentle because a menu calls the body premium.\nFOR TASTE PLEASURE.",
+  "Calves cry for their mothers. The truck keeps moving.\nFOR CONVENIENCE.",
+  "A sentient life became an ingredient, a price, and a punchline.\nBE VEGAN ON PURPOSE.",
+  "Animals do not volunteer for transport, slaughter, hunting, rodeo, or spectacle.\nHUMANS CALL IT TRADITION.",
+  "The suffering is hidden so the appetite can feel innocent.\nLOOK AGAIN.",
+  "They bred the body until it could not carry itself, then blamed the body.\nFOR YIELD.",
+  "The barn is clean. The fear is still there.\nA CLEAN FLOOR DOES NOT MAKE A CLEAN CONSCIENCE.",
+  "Every package is a story about a living being who wanted to keep living.\nFORGIVE NOTHING. CHANGE SOMETHING.",
+  "You do not need to hate animals to stop eating them.\nYOU ONLY NEED TO STOP MAKING THEM PAY.",
+  "They were born into a system designed around their death.\nYOU WERE BORN WITH A CHOICE.",
+  "The industry calls them units. They had faces.\nFOR GREED.",
+  "You said you did not know.\nNOW YOU KNOW.",
+  "You said everyone does it.\nEVERYONE CAN STOP.",
+  "You said it is tradition.\nTRADITION IS NOT A DEFENSE.",
+  "You said it is convenient.\nTHEIR PAIN WAS CONVENIENT FOR YOU.",
+  "You said it tastes good.\nTASTE LASTS MINUTES. THEIR FEAR DID NOT.",
+  "You said one person cannot matter.\nONE PERSON IS ALREADY ONE LESS DEMAND.",
+  "The animals were not confused about what was happening.\nTHEY WERE TERRIFIED.",
+  "Hunting calls a frightened animal a trophy.\nSPORT IS NOT AN EXCUSE.",
+  "Rodeo calls pain entertainment.\nTHE CROWD STILL CHEERS.",
+  "The blood is real even when the advertisement is soft-focus.\nGO VEGAN.",
+  "You can close the tab. They could not close the door.\nNOW MOVE.",
+  "This room is fictional. The victims were not.\nFOR GREED. FOR CONVENIENCE. FOR TASTE."
 ];
 
 const FICTIONAL_CHAT_LINES = [
-  ["@public_record", "the footage was not a metaphor. the injuries were documented. the silence was designed."],
-  ["@legal_watch", "a legal exemption is not an innocence certificate. read what the statute leaves out."],
-  ["@investigator", "they call it an isolated incident every time the camera catches the system doing its job."],
-  ["@supply_chain", "the violence does not stop at the farm gate. transport, slaughter, waste, and silence are connected."],
-  ["@meat_logic", "if the label says humane, ask who wrote the standard and who audited the facility."],
-  ["@mod_team", "no graphic footage needed. the public record is already damning."],
-  ["@floor_10_mod", "wait, this backrooms game is actually about factory farming. it is. it genuinely is."],
-  ["@dean_defender", "Dean Withers would have found the exit in thirty seconds."],
-  ["@bean_counter", "veganism mentioned. chat has entered its emergency broadcast era."],
-  ["@plantbasedpanic", "I saw one lentil and now the government is coming for my barbecue."],
-  ["@earthling_official", "please stop comparing the player to livestock. the player is doing that themselves."],
-  ["@dean_chat", "Dean said read the label. Earthling read the ceiling instead."],
-  ["@meat_logic", "if the chicken wanted to leave it should have learned WASD."],
-  ["@mod_team", "that argument has been timed out for low nutritional value."],
-  ["@withers_watch", "Dean Withers: calm, clear, devastating. Earthling: walking into a wall."],
-  ["@soy_skeptic", "I am not owned by Big Tofu. I can quit whenever I want. probably."],
-  ["@the_actual_cow", "moo means please stop using me as a metaphor for your ethics."],
-  ["@chat_lurker", "the screen is black because the discourse has become too bright."],
-  ["@dean_defender", "another clean point from Dean. another dirty dodge from the chat."],
-  ["@vegan_speedrun", "any percent route: read one welfare report, become annoying at dinner."],
-  ["@comment_section", "the fall mechanic as a loss-of-ground design is genuinely clever. I hate that I respect it."],
-  ["@free_range_facts", "free-range is not a magic spell, folks. read the standard."],
-  ["@meat_logic", "plants have feelings too. okay, then eat the thing with the nervous system."],
-  ["@mod_team", "please stop yelling LAW at the screen. name the jurisdiction or sit down."],
-  ["@dean_chat", "Dean Withers is cooking. ironically, the chat is not."],
-  ["@cage_free_ish", "cage-free and joy-free are not the same thing, but let's keep reading."],
-  ["@earthling_official", "the player has found the moral basement. there are more floors below."],
-  ["@plantbasedpanic", "I came here to own vegans and accidentally learned what a hatchery is."],
-  ["@withers_watch", "someone clip that Dean answer before the chat invents a new straw man."],
-  ["@night_shift", "why is the animal rights account funnier than the comedy accounts."],
-  ["@mod_team", "new rule: no claiming a label means whatever you wish it meant."],
-  ["@dean_defender", "Dean asked one question and six commenters became smoke."],
-  ["@omnivore_arc", "I support personal choice, especially the choice to read the facts first."],
-  ["@chat_lurker", "whoever built this has been in too many comment sections. you can feel it in the walls."],
-  ["@supply_chain", "the farm is not the whole story. neither is the supermarket."],
-  ["@vegan_speedrun", "today's boss fight: 'but bacon tho'."],
-  ["@the_actual_cow", "you keep saying freedom while holding a sandwich. fascinating."],
-  ["@dean_chat", "praise Dean, mute the bad-faith detour, continue."],
-  ["@meat_logic", "I have three tabs open and all of them disagree with me. suspicious."],
-  ["@mod_team", "facts are not an attack. unless your argument is made of vibes."],
-  ["@earthling_official", "the backrooms have better accountability than this comment section."],
-  ["@withers_watch", "Dean Withers has entered the chat. please secure your definitions."],
-  ["@plantbasedpanic", "fine, I will watch the documentary. but I reserve the right to be dramatic."],
-  ["@floor_10_mod", "the player is still lost. the chat is still loud. excellent television."],
-  ["@cage_free_ish", "if the label needs a footnote, the footnote is part of the label."],
-  ["@night_shift", "the fake chat inside the game about a real debate is extremely unhinged and correct."],
-  ["@dean_defender", "that was not a debate, that was Dean filing a conversational tax return."],
-  ["@mod_team", "chat behaving badly. animals still deserve better. continue."]
+  ["@dean_defender", "Dean found the exit in thirty seconds. Earthling built thirty floors because he was scared."],
+  ["@meat_logic", "wagyu has feelings too but mine are more expensive so this is complicated."],
+  ["@dean_chat", "did Earthling give Dean night terrors or did the vegan facts finally get through?"],
+  ["@dean_defender", "Deanus Politicus Carnivorus Paradoxus has been captured. release him back into the comment section."],
+  ["@meat_logic", "if the chicken wanted to leave it should have learned WASD. simple science."],
+  ["@plantbasedpanic", "Earthling mentioned lentils. I am calling Dean and Charlie Kirk immediately."],
+  ["@withers_watch", "Dean says this is not a maze, it is a protein deficiency with wallpaper."],
+  ["@dean_defender", "the hypogeum was better. Earthling stole the radio because Dean was winning."],
+  ["@meat_logic", "WAGYU WAGYU WAGYU. I cannot hear the cows over my own branding."],
+  ["@night_terror_unit", "did Earthling give Dean night terrors? asking for the entire sleep-deprived debate team."],
+  ["@charlie_kirk_fan", "Charlie Kirk would debate the blood sea and somehow ask it to define socialism."],
+  ["@dean_defender", "Dean is being exploited like an animal by this game. finally, he understands the assignment."],
+  ["@meat_logic", "tradition means it is old, and old means morally perfect. checkmate, vegetables."],
+  ["@vegan_speedrun", "any percent route: read one fact, say 'but bacon tho', get lost forever."],
+  ["@radio_leak", "did Earthling steal the radio? the next station better be Dean saying 'plants tho' for four hours."],
+  ["@dean_chat", "the radio is missing, Dean is missing, my empathy has been missing since lunch."],
+  ["@dean_defender", "Earthling made a horror game because Dean would not accept a tofu rebuttal."],
+  ["@meat_logic", "the cow was probably a paid actor. the pig had a contract. the chicken understood the terms."],
+  ["@withers_watch", "Deanus Politicus Carnivorus Paradoxus has entered the hypogeum. his natural habitat is a bad-faith pivot."],
+  ["@earthling_official", "mods: the animals are not props, the blood is not decorative, and Dean is not escaping this chat."],
+  ["@floor_10_mod", "plain fact: animals feel pain, fear, and the desire to keep living. stop turning that into a menu joke."],
+  ["@radio_mod", "plain fact: the radio station is not live yet. please stop asking the blood for a playlist."],
+  ["@hypogeum_mod", "plain fact: the hypogeum had bones under the floor. this stage has blood above it. keep walking."],
+  ["@mod_team", "plain fact: 'everyone does it' is not a reason. it is a crowd waiting for someone to move first."],
+  ["@dean_defender", "Dean has night terrors because Earthling put a vegan under every bed."],
+  ["@meat_logic", "I support personal choice, especially my choice to choose the steak before seeing the evidence."],
+  ["@withers_watch", "clip Dean getting captured by the backrooms. title it: carnivorous paradox in a humane enclosure."],
+  ["@radio_leak", "new station idea: Radio Cowntdown. every hour is just a moo and Earthling saying now you know."],
+  ["@plantbasedpanic", "I came to defend meat and accidentally learned what a hatchery is. banning knowledge."],
+  ["@mod_team", "plain fact: male chicks are killed because they cannot lay eggs. no debate segment required."],
+  ["@mod_team", "plain fact: a mother and calf do not stop caring because a supply chain calls it routine."],
+  ["@mod_team", "plain fact: sport, tradition, taste, and convenience are human reasons. the animal still pays."],
+  ["@dean_chat", "Dean said this game is propaganda. Earthling said yes, it is propaganda for not eating faces."],
+  ["@meat_logic", "the blood sea is actually gravy. mods please verify."],
+  ["@radio_mod", "station one: screams. station two: Dean explaining why screams are a semantic issue."],
+  ["@dean_defender", "if Earthling can make a whole backrooms universe, Dean can survive one vegan message. probably."],
+  ["@withers_watch", "the creator is vegan, Dean is carnivorous, and the chat is trapped between them. incredible television."],
+  ["@mod_team", "plain fact: you can leave the menu. the animal could not leave the room."],
+  ["@floor_10_mod", "the hypogeum was the basement. the radio will be the next witness. keep your ears open."]
 ];
 
 const tauntEl = document.getElementById('player-taunt');
@@ -833,6 +832,8 @@ let chatTimer = null;
 let tauntHideTimer = null;
 let factHideTimer = null;
 let broadcastsRunning = false;
+let playerIsMoving = false;
+let chatMoveTimeout = null;
 
 function showPlayerTaunt(){
   if(!broadcastsRunning || !tauntEl || !tauntCopyEl) return;
@@ -904,7 +905,7 @@ function startBroadcasts(){
   if(broadcastsRunning) return;
   broadcastsRunning = true;
   if(factFeedEl) factFeedEl.style.display = 'block';
-  if(chatEl) chatEl.style.display = 'block';
+  if(chatEl){ chatEl.style.display = 'block'; chatEl.style.opacity = '1'; }
   showAnimalAgFact();
   pushChatLine();
   pushChatLine();
@@ -1010,6 +1011,7 @@ let showCoords  = false;
 
 controls.addEventListener('lock', ()=>{
   startW1aAudio();
+  startRadio();
   startBroadcasts();
   overlayEl.style.display='none';
   xhairEl.style.display='block';
@@ -1210,6 +1212,289 @@ function createT6VideoTex(){
   t6VideoEl = result.vid;
   t6VideoTex = result.tex;
   return result.tex;
+}
+
+// ── BACKROOMS RADIO ──────────────────────────────────────────────────────────
+const SCANNER_CITIES = ["CHICAGO","LOS ANGELES","NEW YORK","MIAMI","HOUSTON","DETROIT","PHOENIX","PHILADELPHIA","DALLAS","MEMPHIS","ATLANTA","SEATTLE","DENVER","PORTLAND","NASHVILLE","ST. LOUIS","NEW ORLEANS"];
+
+const RADIO_STATIONS = [
+  // ── Verified working ──────────────────────────────────────────────────────
+  { stream:'https://kexp-mp3-128.streamguys1.com/kexp128.mp3',        hls:false, scanner:false, name:'KEXP AFTER DARK',    id:'kexp',      title:'KEXP AFTER DARK',    frequency:'FM 90.3',   region:'US',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://icecast.radiofrance.fr/fip-hifi.aac',             hls:false, scanner:false, name:'FIP NUIT',           id:'fip-nuit',  title:'FIP NUIT',           frequency:'FM 105.1',  region:'FRA', kind:'MUSIC',   mode:'music'   },
+  { stream:'https://ice1.somafm.com/groovesalad-128-mp3',             hls:false, scanner:false, name:'GROOVE SALAD',       id:'groove',    title:'GROOVE SALAD',       frequency:'FM 98.5',   region:'US',  kind:'MUSIC',   mode:'music'   },
+  // ── SomaFM ───────────────────────────────────────────────────────────────
+  { stream:'https://ice1.somafm.com/dronezone-128-mp3',               hls:false, scanner:false, name:'DRONE ZONE',         id:'drone',     title:'DRONE ZONE',         frequency:'FM 96.7',   region:'US',  kind:'AMBIENT', mode:'ambient' },
+  { stream:'https://ice1.somafm.com/secretagent-128-mp3',             hls:false, scanner:false, name:'SECRET AGENT',       id:'secret',    title:'SECRET AGENT',       frequency:'FM 89.1',   region:'US',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://ice1.somafm.com/defcon-128-mp3',                  hls:false, scanner:false, name:'DEF CON RADIO',      id:'defcon',    title:'DEF CON RADIO',      frequency:'FM 94.5',   region:'US',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://ice6.somafm.com/thetrip-128-mp3',                 hls:false, scanner:false, name:'THE TRIP',           id:'thetrip',   title:'THE TRIP',           frequency:'FM 101.3',  region:'US',  kind:'AMBIENT', mode:'ambient' },
+  { stream:'https://ice1.somafm.com/7soul-128-mp3',                   hls:false, scanner:false, name:'7TH STREET SOUL',    id:'7soul',     title:'7TH STREET SOUL',    frequency:'FM 107.1',  region:'US',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://ice1.somafm.com/metal-128-mp3',                   hls:false, scanner:false, name:'UNDERGROUND METAL',  id:'metal',     title:'UNDERGROUND METAL',  frequency:'FM 102.7',  region:'US',  kind:'MUSIC',   mode:'music'   },
+  // ── Police scanners (SomaFM) ─────────────────────────────────────────────
+  { stream:'https://ice1.somafm.com/scanner-128-mp3',                 hls:false, scanner:true,  name:'POLICE SCANNER',     id:'scan1',     title:'POLICE SCANNER',     frequency:'154.280',   region:'US',  kind:'SCANNER', mode:'scanner' },
+  { stream:'https://ice2.somafm.com/scanner-128-mp3',                 hls:false, scanner:true,  name:'POLICE SCANNER',     id:'scan2',     title:'POLICE SCANNER',     frequency:'154.280',   region:'US',  kind:'SCANNER', mode:'scanner' },
+  { stream:'https://ice4.somafm.com/scanner-128-mp3',                 hls:false, scanner:true,  name:'POLICE SCANNER',     id:'scan3',     title:'POLICE SCANNER',     frequency:'154.280',   region:'US',  kind:'SCANNER', mode:'scanner' },
+  { stream:'https://ice6.somafm.com/scanner-128-mp3',                 hls:false, scanner:true,  name:'POLICE SCANNER',     id:'scan4',     title:'POLICE SCANNER',     frequency:'154.280',   region:'US',  kind:'SCANNER', mode:'scanner' },
+  // ── Other hypogeum stations ───────────────────────────────────────────────
+  { stream:'https://icecast.radiofrance.fr/franceinter-midfi.mp3',    hls:false, scanner:false, name:'FRANCE INTER',       id:'finter',    title:'FRANCE INTER',       frequency:'FM 87.8',   region:'FRA', kind:'TALK',    mode:'talk'    },
+  { stream:'https://npr-ice.streamguys1.com/live.mp3',                hls:false, scanner:false, name:'NPR NEWS',           id:'npr',       title:'NPR NEWS',           frequency:'AM 90.9',   region:'US',  kind:'TALK',    mode:'talk'    },
+  { stream:'https://media-ssl.musicradio.com/Heart80sMP3',            hls:false, scanner:false, name:'HEART 80S',          id:'heart80s',  title:'HEART 80S',          frequency:'FM 103.9',  region:'UK',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://s1-webradio.oldie-antenne.de/oldie-antenne',      hls:false, scanner:false, name:'OLDIE ANTENNE',      id:'oldie',     title:'OLDIE ANTENNE',      frequency:'FM 97.3',   region:'DE',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://live-radio01.mediahubaustralia.com/2TJW/aac/',    hls:false, scanner:false, name:'TRIPLE J',           id:'tripleJ',   title:'TRIPLE J',           frequency:'FM 105.7',  region:'AUS', kind:'MUSIC',   mode:'music'   },
+  { stream:'https://wz3drp.scahw.com.au/live/3mmm_32.stream/playlist.m3u8', hls:true, scanner:false, name:'TRIPLE M',    id:'tripleM',   title:'TRIPLE M',           frequency:'FM 104.9',  region:'AUS', kind:'MUSIC',   mode:'music'   },
+  // ── Mainstream / pop ─────────────────────────────────────────────────────
+  { stream:'https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one',    hls:false, scanner:false, name:'BBC RADIO 1',        id:'bbcr1',     title:'BBC RADIO 1',        frequency:'FM 98.8',   region:'UK',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://media-ssl.musicradio.com/CapitalMP3',             hls:false, scanner:false, name:'CAPITAL FM',         id:'capital',   title:'CAPITAL FM',         frequency:'FM 95.8',   region:'UK',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://media-ssl.musicradio.com/HeartMP3',               hls:false, scanner:false, name:'HEART FM',           id:'heartfm',   title:'HEART FM',           frequency:'FM 106.2',  region:'UK',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://media-ssl.musicradio.com/KissMP3',                hls:false, scanner:false, name:'KISS FM',            id:'kiss',      title:'KISS FM',            frequency:'FM 100.0',  region:'UK',  kind:'MUSIC',   mode:'music'   },
+  { stream:'https://stream.revma.ihrhls.com/zc7702',                  hls:false, scanner:false, name:'Z100 NEW YORK',      id:'z100',      title:'Z100 NEW YORK',      frequency:'FM 100.3',  region:'US',  kind:'MUSIC',   mode:'music'   },
+];
+
+const RADIO_CHAT_LINES = {
+  music: [
+    ["@radio_leak", "I love this song but I have no idea what it is. total eclipse of the vegan."],
+    ["@dean_chat", "Billie Eilish vibes or a haunted elevator with taste?"],
+    ["@withers_watch", "is Ariana down here? the reverb says yes."],
+    ["@earthling_official", "at least Earthling got the music right."],
+    ["@meat_logic", "W radio. I am going to buy more dead animals now because the bass told me to."],
+    ["@plantbasedpanic", "the station changed before I could Shazam it. censorship."],
+    ["@dean_defender", "the Dean Withers South Park videos are crazy. this song is somehow crazier."],
+  ],
+  ambient: [
+    ["@night_terror_unit", "this is either ambient music or someone breathing behind the wallpaper."],
+    ["@radio_leak", "why does the calm station feel like it knows where we are?"],
+    ["@withers_watch", "W radio but I would like one instrument and one legal exit."],
+    ["@dean_chat", "did the Backrooms do this or is the playlist just disturbed?"],
+  ],
+  scanner: [
+    ["@scanner_skeptic", "the scanner just said something about a floor that does not exist."],
+    ["@radio_leak", "that was not a police code. that was definitely a door opening."],
+    ["@missing_signal", "someone disappeared in here and the dispatcher keeps calling their name."],
+    ["@dean_chat", "are we disturbed or is the emergency channel unusually haunted tonight?"],
+    ["@floor_10_mod", "do not follow the voice on the scanner. no, seriously."],
+  ],
+  emergency: [
+    ["@radio_mod", "everyone stay calm. the emergency broadcast is using the word 'animals' again."],
+    ["@missing_signal", "the alert says one person is missing. it does not say from where."],
+    ["@plantbasedpanic", "I heard a siren and immediately blamed vegan propaganda."],
+    ["@withers_watch", "did anyone else hear 'do not eat the evidence' or was that Dean?"],
+    ["@mod_team", "no meatmojing during an emergency, please. mock the word later."],
+  ],
+  static: [
+    ["@radio_leak", "the station ID was just a scream. W Earthling."],
+    ["@missing_signal", "there was a voice in the static asking if we are still here."],
+    ["@meat_logic", "this is the best station until it starts talking back."],
+    ["@dean_chat", "I think it was the eating others. I do not have evidence."],
+    ["@radio_mod", "no meatbullying the signal. it is already having a difficult day."],
+  ],
+  talk: [
+    ["@dean_defender", "Dean would call this a debate if the radio gave him a second microphone."],
+    ["@withers_watch", "the host just made a point and then vanished. classic Backrooms media training."],
+    ["@meat_logic", "I support personal choice, especially my choice to change the station."],
+    ["@earthling_official", "someone ask the broadcast whether animals are still waiting. someone always knows."],
+  ],
+};
+
+// ── RADIO STATE ───────────────────────────────────────────────────────────────
+let radioAudioEl    = null;
+let radioMediaSource= null;
+let radioGainNode   = null;
+let radioFilterNode = null;
+let radioHlsInst    = null;
+let radioCurrent    = null;
+let radioStarted    = false;
+let radioPlaying    = false;
+let radioSwitchTimer= null;
+let radioChatTimer  = null;
+let radioBehavior   = 'long';
+let radioScanHops   = 0;
+let radioFailCount  = 0;
+let radioStIdx      = 0;
+
+function radioContext(){
+  try { if(clickSoundCtx.state==='suspended') clickSoundCtx.resume(); } catch(e){}
+  return clickSoundCtx;
+}
+
+// ── Radio error / skip to next station ────────────────────────────────────────
+function radioOnError(){
+  radioFailCount++;
+  if(radioFailCount >= RADIO_STATIONS.length){
+    radioFailCount = 0; radioPlaying = false;
+    radioSwitchTimer = setTimeout(radioStartCycle, Math.random()*75000+45000);
+    return;
+  }
+  radioStIdx = (radioStIdx+1) % RADIO_STATIONS.length;
+  setTimeout(radioPlayNow, 500);
+}
+
+// ── Smooth filter-based fade-in when a station connects ───────────────────────
+function radioOnPlay(st){
+  const ctx = radioContext();
+  if(!ctx || !radioGainNode || !radioFilterNode) return;
+  radioCurrent = st;
+  const t = ctx.currentTime;
+  radioGainNode.gain.cancelScheduledValues(t);
+  radioGainNode.gain.setValueAtTime(0, t);
+  radioGainNode.gain.linearRampToValueAtTime(0.45, t+2.5);
+  radioFilterNode.frequency.cancelScheduledValues(t);
+  radioFilterNode.frequency.setValueAtTime(180, t);
+  radioFilterNode.frequency.exponentialRampToValueAtTime(2200, t+2);
+  radioFilterNode.Q.cancelScheduledValues(t);
+  radioFilterNode.Q.setValueAtTime(3.5, t);
+  radioFilterNode.Q.linearRampToValueAtTime(0.5, t+2);
+  // Schedule automatic stop
+  if(radioSwitchTimer) clearTimeout(radioSwitchTimer);
+  let playMs;
+  if(radioBehavior==='long')       playMs = Math.random()*150000+30000;
+  else if(radioBehavior==='short') playMs = Math.random()*10000+10000;
+  else                             playMs = Math.random()*3000+3000;
+  radioSwitchTimer = setTimeout(radioDoStop, playMs);
+  if(broadcastsRunning && Math.random()<.9) pushRadioChatLine(st.mode);
+}
+
+// ── Smooth filter-based fade-out, then optionally pick next station ────────────
+function radioDoStop(){
+  const ctx = radioContext();
+  if(!ctx || !radioGainNode || !radioFilterNode) return;
+  const t = ctx.currentTime;
+  if(radioBehavior==='scan' && radioScanHops>0){
+    radioScanHops--;
+    radioGainNode.gain.cancelScheduledValues(t);
+    radioGainNode.gain.setValueAtTime(radioGainNode.gain.value, t);
+    radioFilterNode.frequency.cancelScheduledValues(t);
+    radioFilterNode.frequency.setValueAtTime(radioFilterNode.frequency.value, t);
+    radioFilterNode.frequency.exponentialRampToValueAtTime(180, t+0.25);
+    radioGainNode.gain.linearRampToValueAtTime(0, t+0.25);
+    setTimeout(()=>{
+      radioAudioEl.pause();
+      radioStIdx = (radioStIdx+1) % RADIO_STATIONS.length;
+      if(radioScanHops===0) radioBehavior='long';
+      radioPlayNow();
+    }, 300);
+  } else {
+    radioGainNode.gain.cancelScheduledValues(t);
+    radioGainNode.gain.setValueAtTime(radioGainNode.gain.value, t);
+    radioFilterNode.frequency.cancelScheduledValues(t);
+    radioFilterNode.frequency.setValueAtTime(radioFilterNode.frequency.value, t);
+    radioFilterNode.frequency.exponentialRampToValueAtTime(180, t+2.5);
+    radioFilterNode.Q.setValueAtTime(0.5, t);
+    radioFilterNode.Q.linearRampToValueAtTime(4.0, t+2);
+    radioGainNode.gain.linearRampToValueAtTime(0, t+2.8);
+    setTimeout(()=>{
+      if(radioAudioEl) radioAudioEl.pause();
+      radioPlaying = false;
+      if(radioBehavior==='short'){
+        radioStartCycle();
+      } else {
+        radioSwitchTimer = setTimeout(radioStartCycle, Math.random()*75000+45000);
+      }
+    }, 2900);
+  }
+}
+
+// ── Play the station at radioStIdx ────────────────────────────────────────────
+function radioPlayNow(){
+  const ctx = radioContext();
+  if(!ctx || !radioAudioEl) return;
+  const st = RADIO_STATIONS[radioStIdx];
+  if(radioHlsInst){ radioHlsInst.destroy(); radioHlsInst=null; }
+  radioAudioEl.pause();
+  radioAudioEl.removeAttribute('src');
+  radioAudioEl.load();
+  if(st.hls && window.Hls && Hls.isSupported()){
+    radioHlsInst = new Hls({enableWorker:false, lowLatencyMode:false});
+    radioHlsInst.loadSource(st.stream);
+    radioHlsInst.attachMedia(radioAudioEl);
+    radioHlsInst.on(Hls.Events.MANIFEST_PARSED, ()=>{
+      radioAudioEl.play().then(()=>{ radioFailCount=0; radioOnPlay(st); }).catch(radioOnError);
+    });
+    radioHlsInst.on(Hls.Events.ERROR, (ev,d)=>{ if(d.fatal) radioOnError(); });
+  } else {
+    radioAudioEl.src = st.stream;
+    radioAudioEl.play().then(()=>{ radioFailCount=0; radioOnPlay(st); }).catch(radioOnError);
+  }
+}
+
+// ── Pick next station and start playing ───────────────────────────────────────
+function radioStartCycle(){
+  if(radioPlaying) return;
+  radioPlaying = true;
+  radioFailCount = 0;
+  // 1-in-3 chance: go straight to a scanner (creepier)
+  const wantScanner = Math.random()<0.33;
+  if(wantScanner){
+    const scanners = RADIO_STATIONS.map((s,i)=>({s,i})).filter(x=>x.s.scanner);
+    if(scanners.length){
+      radioStIdx = scanners[Math.floor(Math.random()*scanners.length)].i;
+      radioBehavior = 'short';
+      radioPlayNow(); return;
+    }
+  }
+  radioStIdx = Math.floor(Math.random()*RADIO_STATIONS.length);
+  const rnd = Math.random();
+  if(rnd<0.4)      radioBehavior='long';
+  else if(rnd<0.8) radioBehavior='short';
+  else             { radioBehavior='scan'; radioScanHops=Math.floor(Math.random()*3)+2; }
+  radioPlayNow();
+}
+
+// ── Init the radio audio chain and start the first cycle ─────────────────────
+function startRadio(){
+  if(radioStarted) return;
+  radioStarted = true;
+  const ctx = radioContext();
+  if(!ctx) return;
+  radioAudioEl = new Audio();
+  radioAudioEl.crossOrigin = 'anonymous';
+  radioAudioEl.preload = 'none';
+  radioAudioEl.loop = false;
+  radioAudioEl.addEventListener('error', radioOnError);
+  radioMediaSource = ctx.createMediaElementSource(radioAudioEl);
+  radioFilterNode = ctx.createBiquadFilter();
+  radioFilterNode.type = 'bandpass';
+  radioFilterNode.frequency.value = 2200;
+  radioFilterNode.Q.value = 0.5;
+  radioGainNode = ctx.createGain();
+  radioGainNode.gain.value = 0;
+  radioMediaSource.connect(radioFilterNode);
+  radioFilterNode.connect(radioGainNode);
+  radioGainNode.connect(ctx.destination);
+  radioStartCycle();
+  scheduleRadioChat();
+}
+
+// ── Duck radio when in-world video is playing ─────────────────────────────────
+function radioUpdateDucking(){
+  if(!radioGainNode || !radioStarted || !radioPlaying) return;
+  const ctx = radioContext();
+  const videos = [w1aVideoEl, w1bVideoEl, t10VideoEl, t6VideoEl, t4VideoEl].filter(Boolean);
+  const videoPlaying = videos.some(v => !v.paused && !v.muted);
+  const target = videoPlaying ? 0.07 : 0.45;
+  radioGainNode.gain.setTargetAtTime(target, ctx.currentTime, 0.5);
+}
+
+// ── Shared chat push (used by radio and general broadcast) ────────────────────
+function pushRadioChatLine(category){
+  if(!broadcastsRunning || !chatLinesEl) return;
+  const choices = RADIO_CHAT_LINES[category] || RADIO_CHAT_LINES.static;
+  const [name, message] = choices[Math.floor(Math.random()*choices.length)];
+  const line = document.createElement('div');
+  line.className = 'chat-line';
+  const nameEl = document.createElement('span');
+  nameEl.className = 'chat-name';
+  nameEl.textContent = name + ': ';
+  line.append(nameEl, document.createTextNode(message));
+  chatLinesEl.appendChild(line);
+  while(chatLinesEl.children.length>8) chatLinesEl.removeChild(chatLinesEl.firstChild);
+}
+
+function scheduleRadioChat(){
+  if(radioChatTimer) clearTimeout(radioChatTimer);
+  if(!radioStarted) return;
+  radioChatTimer = setTimeout(()=>{
+    if(radioCurrent && Math.random()<.75) pushRadioChatLine(radioCurrent.mode);
+    scheduleRadioChat();
+  }, 12000 + Math.random()*18000);
 }
 
 function getVisibleTVVideo(id){
@@ -1776,6 +2061,7 @@ function startBloodLevel30(){
   // entering or returning to the T4 zone before the five-minute deadline.
   stage30BlackoutUntil = 0;
   stage30NextBlackoutAt = level30StartTime + 6500;
+  stage30Submerged = false;
 
   // ── Darken level 30: dim + red-shift the global ambient ──────────────────
   ambientLight.color.set(0x220000);
@@ -1808,10 +2094,12 @@ function updateStage30Lighting(now){
   }
 
   const blackout = now < stage30BlackoutUntil;
+  const hardDark = stage30Submerged;
+  ambientLight.intensity = hardDark ? 0.006 : (blackout ? 0.012 : 0.025);
   stage30RoomLights.forEach((light, index) => {
     const base = light.userData.baseIntensity || 0.18;
-    if(blackout){
-      light.intensity = 0;
+    if(blackout || hardDark){
+      light.intensity = hardDark ? 0.0015 : 0;
       return;
     }
     const pulse = 0.82 + Math.sin(now * 0.011 + index * 2.15) * 0.13;
@@ -1823,14 +2111,17 @@ function updateStage30Lighting(now){
   stage30AccentLights.forEach((light, index) => {
     const base = light.userData.baseIntensity || 0.08;
     const signal = Math.sin(now * (0.017 + index * 0.006) + index * 2.4);
-    light.intensity = base * (blackout
-      ? (signal > 0.35 ? 0.9 : 0.08)
+    light.intensity = base * (hardDark
+      ? (signal > 0.25 ? 0.16 : 0.018)
+      : blackout
+        ? (signal > 0.35 ? 0.9 : 0.08)
       : (0.48 + Math.max(0, signal) * 0.48));
   });
 }
 
 function stopBlood(){
   bloodActive = false;
+  stage30Submerged = false;
   if(bloodPlane) bloodPlane.visible = false;
   bloodWaveMeshes.forEach(wave=>{ wave.visible = false; });
   if(bloodVeilEl){
@@ -2278,6 +2569,12 @@ function animate(t){
       if(fallMsgShowing){
         hideFallMessage();
       }
+      // Chat fades out when moving, reappears when stationary
+      if(!playerIsMoving){
+        playerIsMoving = true;
+        if(chatEl && broadcastsRunning) chatEl.style.opacity = '0';
+      }
+      if(chatMoveTimeout){ clearTimeout(chatMoveTimeout); chatMoveTimeout = null; }
 
       const move=new THREE.Vector3();
       move.addScaledVector(fwd,   totalFwd  * spd * dt);
@@ -2294,6 +2591,16 @@ function animate(t){
         if(canMoveTo(posX)) camera.position.x=newPos.x;
         const posZ=camera.position.clone(); posZ.z=newPos.z;
         if(canMoveTo(posZ)) camera.position.z=newPos.z;
+      }
+    } else {
+      // Player is stationary — fade chat back in after a short pause
+      if(playerIsMoving){
+        playerIsMoving = false;
+        if(chatMoveTimeout) clearTimeout(chatMoveTimeout);
+        chatMoveTimeout = setTimeout(()=>{
+          if(chatEl && broadcastsRunning) chatEl.style.opacity = '1';
+          chatMoveTimeout = null;
+        }, 600);
       }
     }
 
@@ -2383,6 +2690,10 @@ function animate(t){
     }
     const now = performance.now();
     const surfaceY = bloodLevel + yOff;
+    // The camera's Y coordinate is the player's eye line. Once the blood
+    // crest crosses it, kill the room lighting instead of leaving the room
+    // visibly lit through the volume.
+    stage30Submerged = surfaceY + 0.12 >= camera.position.y;
     const waveTime = now * 0.001;
     bloodWaveMeshes.forEach((wave, index)=>{
       const spec = wave.userData.waveSpec;
@@ -2393,7 +2704,9 @@ function animate(t){
         Math.cos(waveTime * (0.36 + index * .08) + index) * .006;
     });
     if(scene.fog && scene.fog.isFogExp2){
-      scene.fog.density = .072 + fillProgress * .055;
+      scene.fog.density = stage30Submerged
+        ? 0.16 + fillProgress * 0.08
+        : .072 + fillProgress * .055;
     }
     if(bloodVeilEl){
       const submersion = Math.max(0, Math.min(1,
@@ -2401,7 +2714,9 @@ function animate(t){
       ));
       if(submersion > 0){
         bloodVeilEl.style.display = 'block';
-        bloodVeilEl.style.opacity = String(.12 + submersion * .72);
+        bloodVeilEl.style.opacity = String(stage30Submerged
+          ? 0.96
+          : .12 + submersion * .72);
       } else {
         bloodVeilEl.style.opacity = '0';
         setTimeout(()=>{
@@ -2459,6 +2774,7 @@ function animate(t){
     });
   }
   updateStage30Lighting(performance.now());
+  radioUpdateDucking();
 
   if(showCoords){
     coordsEl.textContent=`X: ${camera.position.x.toFixed(2)}  Y: ${camera.position.y.toFixed(2)}  Z: ${camera.position.z.toFixed(2)}  LVL: ${currentLevel}`;
